@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: obsh-laravel
+    env: docker
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: info
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        sync: false
+
+      # MySQL (Render has no managed MySQL; use an external provider)
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+
+      # Keep session/cache/queue simple unless you add Redis
+      - key: CACHE_STORE
+        value: database
+      - key: SESSION_DRIVER
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+    postdeploy:
+      - php artisan storage:link || true
+      - php artisan migrate --force
