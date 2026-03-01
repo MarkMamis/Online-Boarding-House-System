@@ -319,6 +319,8 @@ class RoomController extends Controller
 
         // Recommended rooms (rooms with available slots; apply user filters if provided)
         $recommendedRooms = Room::with('property.landlord')
+            ->withAvg('feedbacks', 'rating')
+            ->withCount('feedbacks')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
                 $q->where('approval_status', 'approved');
@@ -346,6 +348,8 @@ class RoomController extends Controller
 
         // All rooms with occupancy info (exclude maintenance)
         $allRooms = Room::with('property.landlord')
+            ->withAvg('feedbacks', 'rating')
+            ->withCount('feedbacks')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
                 $q->where('approval_status', 'approved');

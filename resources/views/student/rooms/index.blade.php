@@ -138,6 +138,20 @@
                             <div class="text-muted mt-1" style="font-size:.76rem;">
                                 <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ Str::limit($room->property->address, 38) }}
                             </div>
+                            <div class="mt-2" style="font-size:.75rem;">
+                                @if(($room->feedbacks_count ?? 0) > 0)
+                                    @php $avg = (float) $room->feedbacks_avg_rating; @endphp
+                                    <span class="me-1" style="color:#f59e0b;">
+                                        @for($s=1;$s<=5;$s++)
+                                            <i class="bi {{ $s <= round($avg) ? 'bi-star-fill' : 'bi-star' }}"></i>
+                                        @endfor
+                                    </span>
+                                    <span class="text-muted">{{ number_format($avg, 1) }}</span>
+                                    <span class="text-muted">({{ $room->feedbacks_count }})</span>
+                                @else
+                                    <span class="text-muted">No ratings yet</span>
+                                @endif
+                            </div>
                             <div class="d-flex justify-content-between align-items-center mt-2">
                                 <div>
                                     <span class="fw-bold text-dark" style="font-size:.88rem;">Room {{ $room->room_number }}</span>
@@ -208,6 +222,20 @@
                             <div class="fw-semibold text-dark" style="font-size:.9rem;">{{ $r->property->name }}</div>
                             <div class="text-muted mt-1" style="font-size:.76rem;">
                                 <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ Str::limit($r->property->address, 38) }}
+                            </div>
+                            <div class="mt-2" style="font-size:.75rem;">
+                                @if(($r->feedbacks_count ?? 0) > 0)
+                                    @php $avg = (float) $r->feedbacks_avg_rating; @endphp
+                                    <span class="me-1" style="color:#f59e0b;">
+                                        @for($s=1;$s<=5;$s++)
+                                            <i class="bi {{ $s <= round($avg) ? 'bi-star-fill' : 'bi-star' }}"></i>
+                                        @endfor
+                                    </span>
+                                    <span class="text-muted">{{ number_format($avg, 1) }}</span>
+                                    <span class="text-muted">({{ $r->feedbacks_count }})</span>
+                                @else
+                                    <span class="text-muted">No ratings yet</span>
+                                @endif
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-2">
                                 <div>

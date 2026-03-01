@@ -66,12 +66,40 @@
         const input = document.getElementById('chatbotText');
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+        function getStoredLocation() {
+            try {
+                const raw = localStorage.getItem('chatbotGeo');
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function storeLocation(lat, lng) {
+            try {
+                localStorage.setItem('chatbotGeo', JSON.stringify({ lat, lng }));
+            } catch (e) {}
+        }
+
         function addBubble(role, text, meta) {
             const wrap = document.createElement('div');
             wrap.className = `chatbot-bubble ${role}`;
             wrap.textContent = text;
 
-            if (meta && meta.action && meta.action.url) {
+            if (meta && meta.actions && Array.isArray(meta.actions)) {
+                const actionWrap = document.createElement('div');
+                actionWrap.className = 'chatbot-actions d-flex flex-wrap gap-2';
+                meta.actions.forEach((act) => {
+                    if (!act || !act.url) return;
+                    const link = document.createElement('a');
+                    link.href = act.url;
+                    link.className = 'btn btn-outline-secondary btn-sm rounded-pill';
+                    link.textContent = act.label || 'Open';
+                    actionWrap.appendChild(link);
+                });
+                wrap.appendChild(actionWrap);
+            } else if (meta && meta.action && meta.action.url) {
                 const actionWrap = document.createElement('div');
                 actionWrap.className = 'chatbot-actions';
                 const link = document.createElement('a');
@@ -79,6 +107,18 @@
                 link.className = 'btn btn-outline-secondary btn-sm rounded-pill';
                 link.textContent = meta.action.label || 'Open';
                 actionWrap.appendChild(link);
+                wrap.appendChild(actionWrap);
+            } else if (meta && meta.action && meta.action.type === 'geo') {
+                const actionWrap = document.createElement('div');
+                actionWrap.className = 'chatbot-actions';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-secondary btn-sm rounded-pill';
+                btn.textContent = meta.action.label || 'Share location';
+                btn.addEventListener('click', () => {
+                    window.dispatchEvent(new CustomEvent('chatbot:geo-request', { detail: { prompt: meta.action.prompt } }));
+                });
+                actionWrap.appendChild(btn);
                 wrap.appendChild(actionWrap);
             }
 
@@ -94,6 +134,24 @@
             (data.messages || []).forEach(msg => {
                 addBubble(msg.role, msg.content, msg.meta || {});
             });
+        }
+
+        async function sendMessage(text, extra = {}) {
+            const payload = { content: text, ...extra };
+            const res = await fetch('/chatbot/message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf || '',
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+                addBubble('assistant', 'Sorry, I could not send that.');
+                return;
+            }
+            const data = await res.json();
+            addBubble('assistant', data.reply, data.meta || {});
         }
 
         toggle?.addEventListener('click', () => {
@@ -113,20 +171,25 @@
             addBubble('user', text);
             input.value = '';
 
-            const res = await fetch('/chatbot/message', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf || '',
-                },
-                body: JSON.stringify({ content: text }),
-            });
-            if (!res.ok) {
-                addBubble('assistant', 'Sorry, I could not send that.');
+            const geo = getStoredLocation();
+            const extra = geo ? { lat: geo.lat, lng: geo.lng } : {};
+            await sendMessage(text, extra);
+        });
+
+        window.addEventListener('chatbot:geo-request', (event) => {
+            const prompt = event.detail?.prompt || 'Hanapin ang pinakamalapit na rooms';
+            if (!navigator.geolocation) {
+                addBubble('assistant', 'Hindi available ang location sa browser na ito.');
                 return;
             }
-            const data = await res.json();
-            addBubble('assistant', data.reply, data.meta || {});
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                storeLocation(lat, lng);
+                sendMessage(prompt, { lat, lng });
+            }, () => {
+                addBubble('assistant', 'Hindi ko nakuha ang location mo. Subukan ulit.');
+            }, { enableHighAccuracy: true, timeout: 8000 });
         });
     })();
 </script>
