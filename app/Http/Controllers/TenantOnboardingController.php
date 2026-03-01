@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\TenantOnboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 // use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -15,12 +16,55 @@ class TenantOnboardingController extends Controller
     // Student: view onboarding status
     public function index()
     {
-        $user = Auth::user();
-        $onboardings = TenantOnboarding::whereHas('booking', function ($q) use ($user) {
-            $q->where('student_id', $user->id);
-        })->with('booking.room.property')->get();
+        $student = Auth::user();
+        $today = now()->toDateString();
 
-        return view('student.onboarding.index', compact('onboardings'));
+        $currentApprovedBooking = $student->bookings()
+            ->where('status', 'approved')
+            ->where('check_out', '>', $today)
+            ->with(['room.property.landlord'])
+            ->orderByDesc('check_in')
+            ->first();
+        $hasCurrentApprovedBooking = !empty($currentApprovedBooking);
+
+        $latestOnboarding = TenantOnboarding::query()
+            ->whereHas('booking', function ($q) use ($student) {
+                $q->where('student_id', $student->id);
+            })
+            ->with(['booking.room.property.landlord'])
+            ->latest()
+            ->first();
+
+        $allOnboardings = TenantOnboarding::query()
+            ->whereHas('booking', function ($q) use ($student) {
+                $q->where('student_id', $student->id);
+            })
+            ->with(['booking.room.property.landlord'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $leaveRequests = collect();
+        if (Schema::hasTable('leave_requests')) {
+            $leaveRequests = \App\Models\LeaveRequest::query()
+                ->where('student_id', $student->id)
+                ->with(['booking.room.property.landlord'])
+                ->orderByDesc('created_at')
+                ->get();
+        }
+
+        $currentBookingLeaveRequests = collect();
+        if (!empty($currentApprovedBooking)) {
+            $currentBookingLeaveRequests = $leaveRequests->where('booking_id', $currentApprovedBooking->id)->values();
+        }
+
+        return view('student.onboarding.index', compact(
+            'allOnboardings',
+            'latestOnboarding',
+            'currentApprovedBooking',
+            'hasCurrentApprovedBooking',
+            'leaveRequests',
+            'currentBookingLeaveRequests'
+        ));
     }
 
     // Student: start onboarding process

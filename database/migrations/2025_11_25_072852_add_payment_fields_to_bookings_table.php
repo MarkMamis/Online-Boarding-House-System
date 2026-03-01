@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->enum('payment_status', ['pending', 'paid'])->default('pending')->after('cancel_reason');
-            $table->timestamp('payment_date')->nullable()->after('payment_status');
+            if (! Schema::hasColumn('bookings', 'payment_status')) {
+                $table->enum('payment_status', ['pending', 'paid'])->default('pending')->after('cancel_reason');
+            }
+            if (! Schema::hasColumn('bookings', 'payment_date')) {
+                $table->timestamp('payment_date')->nullable()->after('payment_status');
+            }
         });
     }
 

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Landlord Panel') - Online Boarding House System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -225,6 +226,9 @@
                         <a @class(['list-group-item', 'active' => $routeName === 'landlord.messages.index']) href="{{ route('landlord.messages.index') }}">
                             <i class="bi bi-chat-dots"></i> Messages
                         </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.feedback.index']) href="{{ route('landlord.feedback.index') }}">
+                            <i class="bi bi-star-half"></i> Feedback
+                        </a>
                         <a @class(['list-group-item', 'active' => $routeName === 'landlord.tenants.index']) href="{{ route('landlord.tenants.index') }}">
                             <i class="bi bi-people"></i> Tenants
                         </a>
@@ -255,32 +259,14 @@
             </div>
 
             <div class="col-12 col-lg-9 col-xl-10 main-col">
-                @if (session('success'))
-                    <div class="alert alert-success rounded-4">
-                        {{ session('success') }}
-                    </div>
-                @endif
-                @if (session('error'))
-                    <div class="alert alert-danger rounded-4">
-                        {{ session('error') }}
-                    </div>
-                @endif
-                @if (session('warning'))
-                    <div class="alert alert-warning rounded-4">
-                        {{ session('warning') }}
-                    </div>
-                @endif
-                @if (session('info'))
-                    <div class="alert alert-info rounded-4">
-                        {{ session('info') }}
-                    </div>
-                @endif
                 @yield('content')
             </div>
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <x-toast />
+    <x-chatbot />
     @stack('modals')
     @stack('scripts')
 </body>

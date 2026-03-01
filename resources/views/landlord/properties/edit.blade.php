@@ -15,10 +15,6 @@
   </div>
 @endif
 
-@if(session('success'))
-  <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
 <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 

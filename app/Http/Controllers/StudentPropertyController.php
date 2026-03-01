@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Property;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,12 +29,41 @@ class StudentPropertyController extends Controller
         return view('student.properties.show', compact('property'));
     }
 
-    public function map()
+    public function map(Request $request)
     {
         if (!Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
-        return view('student.properties.map');
+
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        $minCapacity = $request->query('capacity');
+        $search = $request->query('q');
+
+        $allProperties = Property::with(['landlord:id,full_name'])
+            ->where('approval_status', 'approved')
+            ->withCount([
+                'rooms as rooms_total_live',
+                'rooms as rooms_available_live' => function ($q) {
+                    $q->where('status', 'available');
+                },
+            ])
+            ->when($search && $search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%$search%")
+                       ->orWhere('address', 'like', "%$search%");
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        return view('student.properties.map', compact(
+            'allProperties',
+            'minPrice',
+            'maxPrice',
+            'minCapacity',
+            'search'
+        ));
     }
 
     public function mapData(): JsonResponse

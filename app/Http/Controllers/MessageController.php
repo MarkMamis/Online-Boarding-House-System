@@ -85,9 +85,43 @@ class MessageController extends Controller
                 ->orderBy('properties.name')
                 ->get();
         }
+        $messageThreads = collect();
+        if ($user->role === 'student') {
+            $allMessages = Message::with(['sender:id,full_name', 'receiver:id,full_name', 'property:id,name'])
+                ->where(function ($q) use ($user) {
+                    $q->where('sender_id', $user->id)
+                      ->orWhere('receiver_id', $user->id);
+                })
+                ->latest()
+                ->limit(200)
+                ->get();
+
+            $threads = [];
+            foreach ($allMessages as $msg) {
+                $otherId = (int) $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
+                $propId = $msg->property_id ?? 0;
+                $key = $otherId . '_' . $propId;
+                if (!isset($threads[$key])) {
+                    $threads[$key] = [
+                        'other' => (int) $msg->sender_id === $user->id ? $msg->receiver : $msg->sender,
+                        'property' => $msg->property,
+                        'property_id' => $msg->property_id,
+                        'latest' => $msg,
+                        'unread' => 0,
+                        'messages' => [],
+                    ];
+                }
+                if (empty($msg->read_at) && (int) $msg->receiver_id === $user->id) {
+                    $threads[$key]['unread']++;
+                }
+                $threads[$key]['messages'][] = $msg;
+            }
+            $messageThreads = collect(array_values($threads));
+        }
+
         return $user->role === 'landlord'
             ? view('landlord.messages.index', compact('messages', 'recipients', 'user'))
-            : view('messages.index', compact('messages', 'recipients', 'user', 'messageProperties'));
+            : view('messages.index', compact('messages', 'recipients', 'user', 'messageProperties', 'messageThreads'));
     }
 
     public function store(Request $request)
@@ -200,5 +234,42 @@ class MessageController extends Controller
             $message->save();
         }
         return back()->with('success', 'Message marked as read.');
+    }
+
+    /**
+     * Inquiry from a student to a room's landlord — no prior booking required.
+     */
+    public function storeInquiry(Request $request, \App\Models\Room $room)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'student') {
+            abort(403);
+        }
+
+        $room->load('property:id,name,address,landlord_id,approval_status');
+
+        if (($room->property->approval_status ?? 'pending') !== 'approved') {
+            abort(404);
+        }
+
+        $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $landlordId = (int) $room->property->landlord_id;
+
+        if ($landlordId === Auth::id()) {
+            return back()->withErrors(['body' => 'Cannot send a message to yourself.']);
+        }
+
+        Message::create([
+            'sender_id'   => Auth::id(),
+            'receiver_id' => $landlordId,
+            'property_id' => $room->property_id,
+            'body'        => $request->input('body'),
+        ]);
+
+        return redirect()
+            ->route('student.rooms.show', $room->id)
+            ->with('success', 'Your message was sent to the landlord.');
     }
 }

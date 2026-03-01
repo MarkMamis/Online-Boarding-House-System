@@ -11,10 +11,6 @@
     <a href="{{ route('landlord.properties.create') }}" class="btn btn-brand">Add Property</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -49,7 +45,30 @@
                             </td>
                             <td>{{ $room->capacity }}</td>
                             <td>₱ {{ number_format($room->price, 2) }}</td>
-                            <td class="text-muted small">{{ $room->inclusions ? Str::limit($room->inclusions, 40) : '—' }}</td>
+                            <td class="text-muted small">
+                                @if($room->inclusions)
+                                    @php
+                                        $incItems = collect(preg_split('/[,\n;]+/', $room->inclusions))->map('trim')->filter()->take(3);
+                                    @endphp
+                                    @if($incItems->isNotEmpty())
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; font-size: 0.85rem;">
+                                            @foreach($incItems as $item)
+                                                <span style="background: rgba(22,101,52,.1); padding: 0.25rem 0.5rem; border-radius: 0.25rem; white-space: nowrap;">{{ $item }}</span>
+                                            @endforeach
+                                            @php
+                                                $totalInc = collect(preg_split('/[,\n;]+/', $room->inclusions))->map('trim')->filter()->count();
+                                            @endphp
+                                            @if(count($incItems) < $totalInc)
+                                                <span style="color: rgba(0,0,0,.5); padding: 0.25rem 0.25rem;">+{{ $totalInc - 3 }} more</span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        —
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td>
                                 @if($room->current_tenant)
                                     <div class="d-flex align-items-center">

@@ -1,69 +1,583 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Request Booking</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" href="{{ route('student.dashboard') }}">Student</a>
-    <div class="ms-auto">
-      <form class="d-inline" method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-sm btn-outline-light">Logout</button></form>
-    </div>
-  </div>
-</nav>
-<main class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4">Request Booking</h1>
-    <a href="{{ route('student.rooms.index') }}" class="btn btn-outline-secondary">Back</a>
-  </div>
+@extends('layouts.student_dashboard')
 
-  @if($errors->any())
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        @foreach($errors->all() as $error)
-          <li>{{ $error }}</li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
+@section('title', 'Request Booking')
 
-  <div class="card shadow-sm mb-3">
-    <div class="card-body">
-      <h5 class="card-title mb-1">{{ $room->property->name }}</h5>
-      <div class="text-muted small mb-2">{{ $room->property->address }}</div>
-      <div class="mb-2"><strong>Room:</strong> {{ $room->room_number }}</div>
-      <div class="mb-2"><strong>Capacity:</strong> {{ $room->capacity }}</div>
-      <div><strong>Price:</strong> ₱ {{ number_format($room->price, 2) }}</div>
-    </div>
-  </div>
+@push('styles')
+<style>
+    :root { --brand: #166534; --brand-light: #dcfce7; --brand-mid: #16a34a; }
 
-  <form method="POST" action="{{ route('bookings.store', $room->id) }}" class="card shadow-sm">
-    @csrf
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Check-in</label>
-          <input type="date" name="check_in" class="form-control" value="{{ old('check_in') }}" required>
+    /* ── Page shell ── */
+    .bk-page { background: #f8faf8; min-height: 100vh; padding: 2rem 0 4rem; }
+
+    /* ── Breadcrumb ── */
+    .bk-breadcrumb { font-size: .82rem; color: rgba(2,8,20,.5); margin-bottom: 1.5rem; }
+    .bk-breadcrumb a { color: var(--brand); text-decoration: none; }
+    .bk-breadcrumb a:hover { text-decoration: underline; }
+
+    /* ── Room hero banner ── */
+    .bk-hero {
+        width: 100%; height: 220px; border-radius: 16px; overflow: hidden;
+        background: #e2e8f0; margin-bottom: 1.75rem; position: relative;
+    }
+    .bk-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .bk-hero-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 60%);
+        display: flex; align-items: flex-end; padding: 1.25rem 1.5rem;
+    }
+    .bk-hero-title { color: #fff; font-weight: 700; font-size: 1.35rem; line-height: 1.2; }
+    .bk-hero-sub   { color: rgba(255,255,255,.82); font-size: .85rem; }
+
+    /* ── Section cards ── */
+    .bk-card {
+        background: #fff; border-radius: 16px;
+        border: 1px solid rgba(2,8,20,.08); padding: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+    .bk-section-title {
+        font-size: 1rem; font-weight: 700; color: #0f172a;
+        margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .bk-section-title i { color: var(--brand); font-size: 1.1rem; }
+
+    /* ── Date pickers ── */
+    .bk-date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1.5px solid #d1d5db; border-radius: 12px; overflow: hidden; }
+    .bk-date-col { padding: .9rem 1rem; }
+    .bk-date-col:first-child { border-right: 1px solid #d1d5db; }
+    .bk-date-label { font-size: .7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .25rem; }
+    .bk-date-col input[type=date] {
+        border: none; outline: none; padding: 0; width: 100%;
+        font-size: .95rem; font-weight: 600; color: #0f172a; background: transparent;
+    }
+    .bk-date-col input[type=date]::-webkit-calendar-picker-indicator { opacity: .4; cursor: pointer; }
+
+    /* ── Notes ── */
+    .bk-notes { border: 1.5px solid #d1d5db; border-radius: 12px; padding: .9rem 1rem; width: 100%; resize: none; font-size: .9rem; color: #0f172a; }
+    .bk-notes:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(22,101,52,.12); }
+
+    /* ── House Rules ── */
+    .bk-rules {
+        background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
+        border: 1.5px solid #bbf7d0; border-radius: 16px;
+        padding: 1.75rem; margin-bottom: 1.25rem; font-size: .85rem; color: #374151;
+        line-height: 1.7;
+    }
+    .bk-rules-header {
+        display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1.25rem;
+        padding-bottom: 1rem; border-bottom: 2px solid #bbf7d0;
+    }
+    .bk-rules-icon { font-size: 1.4rem; color: var(--brand); flex-shrink: 0; margin-top: .05rem; }
+    .bk-rules-title { font-size: 1rem; font-weight: 800; color: #0f172a; margin: 0; }
+    .bk-rules-subtitle { font-size: .7rem; color: #6b7280; margin-top: .25rem; }
+    .bk-rules-section { margin-top: 1.25rem; }
+    .bk-rules-section-header {
+        font-size: .78rem; font-weight: 700; color: var(--brand); text-transform: uppercase;
+        letter-spacing: .05em; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .bk-rules-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+    .bk-rules-list li { display: flex; gap: .75rem; align-items: flex-start; }
+    .bk-rules-list-icon {
+        color: var(--brand); font-weight: 700; font-size: .75rem; flex-shrink: 0;
+        width: 20px; text-align: center; margin-top: .1rem;
+    }
+    .bk-rules-list-text { color: #374151; font-size: .8rem; }
+
+    /* ── ESign pad (in modal) ── */
+    .bk-esign-status-btn {
+        border: 2px dashed #d1d5db; border-radius: 8px; padding: 1rem;
+        background: #fafafa; width: 100%; cursor: pointer;
+        transition: all .2s; text-align: center; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: .5rem;
+    }
+    .bk-esign-status-btn:hover { border-color: var(--brand); background: #f0fdf4; }
+    .bk-esign-status-btn.signed { background: #f0fdf4; border-color: #86efac; }
+    .btn-open-sign { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .6rem 1.25rem; font-size: .82rem; font-weight: 600; cursor: pointer; width: 100%; transition: background .2s; }
+    .btn-open-sign:hover { background: #14532d; }
+
+    /* ── Full-screen signature modal ── */
+    .bk-sign-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; }
+    .bk-sign-modal.active { display: flex; align-items: center; justify-content: center; }
+    .bk-sign-modal-content {
+        background: #fff; border-radius: 20px; max-width: 90vw; max-height: 90vh;
+        display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,.3);
+    }
+    .bk-sign-modal-header {
+        border-bottom: 1px solid #e5e7eb; padding: 1.5rem; display: flex;
+        justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .bk-sign-modal-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+    .bk-sign-modal-close {
+        background: none; border: none; font-size: 1.5rem; color: #6b7280;
+        cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex;
+        align-items: center; justify-content: center;
+    }
+    .bk-sign-modal-close:hover { color: #0f172a; }
+    .bk-sign-modal-body {
+        padding: 2rem; flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; overflow-y: auto;
+    }
+    #signaturePadModal {
+        border: 2px solid #0f172a; border-radius: 8px; background: #fff;
+        touch-action: none; cursor: crosshair; width: 100%; max-width: 600px;
+        height: 60vh;
+    }
+    .bk-sign-modal-footer {
+        border-top: 1px solid #e5e7eb; padding: 1.5rem; display: flex;
+        justify-content: center; gap: 1rem; flex-shrink: 0;
+    }
+    .btn-sign-modal { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .8rem 2rem; font-size: .88rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .btn-sign-modal:hover { background: #14532d; }
+    .btn-cancel-modal { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 8px; padding: .8rem 2rem; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-cancel-modal:hover { background: #e5e7eb; }
+    .btn-clear-modal { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 8px; padding: .8rem 2rem; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-clear-modal:hover { background: #e5e7eb; }
+
+    /* ── Confirmation Modal ── */
+    .bk-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9998; }
+    .bk-confirm-modal.active { display: flex; align-items: center; justify-content: center; }
+    .bk-confirm-content { background: #fff; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }
+    .bk-confirm-header { background: linear-gradient(135deg, #166534 0%, #4ade80 100%); color: #fff; padding: 1.5rem; }
+    .bk-confirm-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+    .bk-confirm-body { padding: 1.5rem; }
+    .bk-confirm-row { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid #f0f0f0; }
+    .bk-confirm-row:last-child { border-bottom: none; }
+    .bk-confirm-label { font-size: .85rem; color: #6b7280; font-weight: 600; }
+    .bk-confirm-value { font-size: .95rem; color: #0f172a; font-weight: 700; }
+    .bk-confirm-footer { background: #f9fafb; padding: 1.25rem 1.5rem; display: flex; gap: 1rem; justify-content: flex-end; }
+    .bk-confirm-cancel { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 8px; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .bk-confirm-cancel:hover { background: #e5e7eb; }
+    .bk-confirm-submit { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .bk-confirm-submit:hover { background: #14532d; }
+
+    /* ── Agree checkbox ── */
+    .bk-agree {
+        display: flex; align-items: flex-start; gap: .75rem;
+        background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px;
+        padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+    }
+    .bk-agree input[type=checkbox] { width: 18px; height: 18px; margin-top: .15rem; accent-color: var(--brand); flex-shrink: 0; cursor: pointer; }
+    .bk-agree label { font-size: .88rem; color: #0f172a; cursor: pointer; }
+    .bk-agree label strong { color: var(--brand); }
+
+    /* ── Submit button ── */
+    .btn-brand-book {
+        background: var(--brand); color: #fff; border: none;
+        border-radius: 12px; padding: .9rem 2rem; font-weight: 700;
+        font-size: 1rem; width: 100%; transition: background .2s, opacity .2s;
+    }
+    .btn-brand-book:hover:not(:disabled) { background: #14532d; color: #fff; }
+    .btn-brand-book:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Sticky summary card ── */
+    .bk-summary {
+        background: #fff; border-radius: 20px;
+        border: 1px solid rgba(2,8,20,.1); padding: 1.5rem;
+        position: sticky; top: 5.5rem;
+        box-shadow: 0 4px 24px rgba(22,101,52,.08);
+    }
+    .bk-summary-price { font-size: 1.6rem; font-weight: 800; color: #0f172a; }
+    .bk-summary-price span { font-size: .9rem; font-weight: 400; color: rgba(2,8,20,.45); }
+    .bk-summary-divider { border: none; border-top: 1px solid rgba(2,8,20,.08); margin: 1rem 0; }
+    .bk-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; margin-bottom: .5rem; }
+    .bk-summary-row .label { color: rgba(2,8,20,.5); }
+    .bk-summary-row .val   { font-weight: 600; color: #0f172a; }
+    .bk-summary-total { font-size: 1rem; font-weight: 800; color: #0f172a; border-top: 1.5px solid rgba(2,8,20,.08); padding-top: .75rem; margin-top: .25rem; }
+    .bk-summary-note { font-size: .75rem; color: rgba(2,8,20,.4); text-align: center; margin-top: .75rem; }
+    .bk-summary-landlord { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
+    .bk-summary-landlord-avatar {
+        width: 40px; height: 40px; border-radius: 50%; background: var(--brand);
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .bk-summary-landlord-name { font-weight: 600; font-size: .88rem; color: #0f172a; }
+    .bk-summary-landlord-label { font-size: .75rem; color: rgba(2,8,20,.45); }
+
+    /* ── Alert ── */
+    .bk-alert-danger { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; color: #991b1b; font-size: .88rem; }
+
+    @media (max-width: 767px) {
+        .bk-hero { height: 150px; }
+        .bk-date-grid { grid-template-columns: 1fr; }
+        .bk-date-col:first-child { border-right: none; border-bottom: 1px solid #d1d5db; }
+        .bk-rules { font-size: .8rem; }
+        .bk-rules-title { font-size: .88rem; }
+    }
+</style>
+@endpush
+
+@section('content')
+@php
+    $inclusions = is_string($room->inclusions)
+        ? json_decode($room->inclusions, true)
+        : (is_array($room->inclusions) ? $room->inclusions : []);
+    $inclusions = is_array($inclusions) ? $inclusions : [];
+
+    $landlordName    = $landlord?->full_name ?? 'Landlord';
+    $landlordInitial = strtoupper(substr($landlordName, 0, 1));
+    $propertyName    = $room->property->name ?? 'Property';
+    $propertyAddress = $room->property->address ?? '';
+    $roomLabel       = $room->label ?? ('Room ' . $room->room_number);
+    $studentName     = $student->full_name ?? $student->name ?? 'Tenant';
+    $today           = now()->format('F d, Y');
+    $refNo           = 'OBHS-' . strtoupper(substr(md5($room->id . now()->timestamp), 0, 8));
+@endphp
+
+<div class="bk-page">
+    <div class="container" style="max-width:1100px;">
+
+        {{-- Breadcrumb --}}
+        <div class="bk-breadcrumb">
+            <a href="{{ route('student.dashboard') }}">Dashboard</a> /
+            <a href="{{ route('student.rooms.show', $room->id) }}">{{ $propertyName }}</a> /
+            <span>Request Booking</span>
         </div>
-        <div class="col-md-6">
-          <label class="form-label">Check-out</label>
-          <input type="date" name="check_out" class="form-control" value="{{ old('check_out') }}" required>
+
+        @if($errors->any())
+        <div class="bk-alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <ul class="mb-0 ps-3">
+                @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+            </ul>
         </div>
-        <div class="col-12">
-          <label class="form-label">Notes</label>
-          <textarea name="notes" rows="3" class="form-control" placeholder="Any special requests?">{{ old('notes') }}</textarea>
+        @endif
+
+        {{-- Hero banner --}}
+        <div class="bk-hero">
+            @if($coverImage)
+                <img src="{{ asset('storage/' . $coverImage->image_path) }}" alt="{{ $propertyName }}">
+            @else
+                <div style="width:100%;height:100%;background:linear-gradient(135deg,#166534 0%,#4ade80 100%);"></div>
+            @endif
+            <div class="bk-hero-overlay">
+                <div>
+                    <div class="bk-hero-title">{{ $propertyName }}</div>
+                    <div class="bk-hero-sub"><i class="bi bi-geo-alt me-1"></i>{{ $propertyAddress }}</div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="row g-4">
+
+            {{-- ═══════════════ LEFT COLUMN ═══════════════ --}}
+            <div class="col-lg-7">
+
+                {{-- Step 1: Dates --}}
+                <div class="bk-card">
+                    <div class="bk-section-title">
+                        <i class="bi bi-calendar3"></i> Your Stay
+                    </div>
+                    <div class="bk-date-grid mb-3">
+                        <div class="bk-date-col">
+                            <div class="bk-date-label">Check-in</div>
+                            <input type="date" id="checkInDisplay" value="{{ old('check_in') }}"
+                                   min="{{ now()->toDateString() }}" />
+                        </div>
+                        <div class="bk-date-col">
+                            <div class="bk-date-label">Check-out</div>
+                            <input type="date" id="checkOutDisplay" value="{{ old('check_out') }}"
+                                   min="{{ now()->addDay()->toDateString() }}" />
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bk-date-label mb-1" style="font-size:.78rem;">Special Requests / Notes</div>
+                        <textarea id="notesDisplay" rows="3" class="bk-notes"
+                                  placeholder="Early check-in, specific bed preference, allergies, etc.">{{ old('notes') }}</textarea>
+                    </div>
+                </div>
+
+                {{-- House Rules --}}
+                <div class="bk-rules">
+                    <div class="bk-rules-header">
+                        <i class="bi bi-file-text bk-rules-icon"></i>
+                        <div>
+                            <h5 class="bk-rules-title">House Rules</h5>
+                            <div class="bk-rules-subtitle">Please review before booking</div>
+                        </div>
+                    </div>
+
+                    <div class="bk-rules-section">
+                        <div class="bk-rules-section-header"><i class="bi bi-clock-history" style="font-size:.85rem;"></i> Occupancy</div>
+                        <ul class="bk-rules-list">
+                            <li><span class="bk-rules-list-icon">01</span> <span class="bk-rules-list-text">Overnight guests are prohibited without prior written consent of the landlord.</span></li>
+                            <li><span class="bk-rules-list-icon">02</span> <span class="bk-rules-list-text">Observe the curfew (10:00 PM – 5:00 AM) at all times.</span></li>
+                            <li><span class="bk-rules-list-icon">03</span> <span class="bk-rules-list-text">The tenant shall not sublet or transfer the room to any other person.</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="bk-rules-section">
+                        <div class="bk-rules-section-header"><i class="bi bi-house-door" style="font-size:.85rem;"></i> Maintenance & Safety</div>
+                        <ul class="bk-rules-list">
+                            <li><span class="bk-rules-list-icon">04</span> <span class="bk-rules-list-text">Keep the room and common areas clean and orderly at all times.</span></li>
+                            <li><span class="bk-rules-list-icon">05</span> <span class="bk-rules-list-text">Report any damage or maintenance issue to the landlord within 24 hours.</span></li>
+                            <li><span class="bk-rules-list-icon">06</span> <span class="bk-rules-list-text">Do not alter, paint, or modify any part of the room without written consent.</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="bk-rules-section">
+                        <div class="bk-rules-section-header"><i class="bi bi-fire" style="font-size:.85rem;"></i> Prohibited Activities</div>
+                        <ul class="bk-rules-list">
+                            <li><span class="bk-rules-list-icon">07</span> <span class="bk-rules-list-text">Noise disturbance after 10:00 PM (parties, loud music) is strictly prohibited.</span></li>
+                            <li><span class="bk-rules-list-icon">08</span> <span class="bk-rules-list-text">Cooking inside the room is not allowed unless a designated area is provided.</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                {{-- Hidden real form --}}
+                <form id="bookingForm" method="POST" action="{{ route('bookings.store', $room->id) }}">
+                    @csrf
+                    <input type="hidden" name="check_in"             id="fCheckIn"  value="{{ old('check_in') }}">
+                    <input type="hidden" name="check_out"            id="fCheckOut" value="{{ old('check_out') }}">
+                    <input type="hidden" name="notes"                id="fNotes"    value="{{ old('notes') }}">
+                    <input type="hidden" name="agreed_to_contract"   value="1">
+                </form>
+
+                <button type="button" class="btn-brand-book" id="submitBtn" disabled onclick="showConfirmation()">
+                    <i class="bi bi-calendar-check me-2"></i>Submit Booking Request
+                </button>
+                <div class="text-center mt-2" style="font-size:.78rem;color:rgba(2,8,20,.4);">
+                    <i class="bi bi-lock me-1"></i>Your request is reviewed by the landlord. You won't be charged yet.
+                </div>
+
+            </div>{{-- /left col --}}
+
+            {{-- ═══════════════ RIGHT COLUMN ═══════════════ --}}
+            <div class="col-lg-5">
+                <div class="bk-summary">
+
+                    <div class="bk-summary-landlord">
+                        <div class="bk-summary-landlord-avatar">{{ $landlordInitial }}</div>
+                        <div>
+                            <div class="bk-summary-landlord-name">{{ $landlordName }}</div>
+                            <div class="bk-summary-landlord-label">Boarding House Operator</div>
+                        </div>
+                    </div>
+
+                    <hr class="bk-summary-divider">
+
+                    <div class="fw-bold mb-1" style="font-size:.95rem;">{{ $roomLabel }}</div>
+                    <div class="text-muted" style="font-size:.8rem; line-height:1.5;">
+                        {{ $propertyName }}<br>
+                        <i class="bi bi-geo-alt me-1"></i>{{ $propertyAddress }}
+                    </div>
+
+                    @if(count($inclusions) > 0)
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        @foreach($inclusions as $inc)
+                        <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:20px;padding:.2rem .65rem;font-size:.72rem;font-weight:600;">{{ $inc }}</span>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    <hr class="bk-summary-divider">
+
+                    <div class="bk-summary-price mb-3">
+                        ₱{{ number_format($room->price, 0) }}<span>/month</span>
+                    </div>
+
+                    <div class="bk-summary-row">
+                        <span class="label">Monthly Rent</span>
+                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
+                    </div>
+                    <div class="bk-summary-row">
+                        <span class="label">1 Month Advance</span>
+                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
+                    </div>
+                    <div class="bk-summary-row">
+                        <span class="label">Security Deposit</span>
+                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
+                    </div>
+                    <div class="bk-summary-row bk-summary-total">
+                        <span>Move-in Total</span>
+                        <span>₱{{ number_format($room->price * 2, 0) }}</span>
+                    </div>
+
+                    <hr class="bk-summary-divider">
+
+                    <div class="bk-summary-row">
+                        <span class="label"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in</span>
+                        <span class="val" id="summaryCheckin">—</span>
+                    </div>
+                    <div class="bk-summary-row">
+                        <span class="label"><i class="bi bi-box-arrow-right me-1"></i>Check-out</span>
+                        <span class="val" id="summaryCheckout">—</span>
+                    </div>
+                    <div class="bk-summary-row">
+                        <span class="label"><i class="bi bi-moon me-1"></i>Duration</span>
+                        <span class="val" id="summaryDuration">—</span>
+                    </div>
+
+                    <hr class="bk-summary-divider">
+
+                    <div class="d-flex flex-column gap-2" style="font-size:.78rem;color:rgba(2,8,20,.55);">
+                        <div><i class="bi bi-shield-check me-2" style="color:var(--brand);"></i>Verified boarding house</div>
+                        <div><i class="bi bi-arrow-counterclockwise me-2"></i>Cancel anytime while request is pending</div>
+                        <div><i class="bi bi-person-check me-2" style="color:#3b82f6;"></i>Landlord reviews your request before approval</div>
+                    </div>
+
+                    <div class="bk-summary-note">Move-in cost is collected offline by the landlord upon approval.</div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="{{ route('student.rooms.show', $room->id) }}"
+                       style="font-size:.82rem;color:rgba(2,8,20,.45);text-decoration:none;">
+                        <i class="bi bi-arrow-left me-1"></i>Back to room details
+                    </a>
+                </div>
+            </div>{{-- /right col --}}
+
+        </div>{{-- /row --}}
+    </div>{{-- /container --}}
+</div>
+
+<!-- Booking Confirmation Modal -->
+<div class="bk-confirm-modal" id="confirmModal">
+    <div class="bk-confirm-content">
+        <div class="bk-confirm-header">
+            <h5 class="bk-confirm-title"><i class="bi bi-check2-circle me-2"></i>Confirm Your Booking</h5>
+        </div>
+        <div class="bk-confirm-body">
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Room</span>
+                <span class="bk-confirm-value" id="confirmRoom">—</span>
+            </div>
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Property</span>
+                <span class="bk-confirm-value" id="confirmProperty">—</span>
+            </div>
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Check-in</span>
+                <span class="bk-confirm-value" id="confirmCheckin">—</span>
+            </div>
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Check-out</span>
+                <span class="bk-confirm-value" id="confirmCheckout">—</span>
+            </div>
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Duration</span>
+                <span class="bk-confirm-value" id="confirmDuration">—</span>
+            </div>
+            <div class="bk-confirm-row">
+                <span class="bk-confirm-label">Price / Month</span>
+                <span class="bk-confirm-value" id="confirmPrice">—</span>
+            </div>
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #f0f0f0;">
+                <div style="font-size: .75rem; color: #9ca3af; display: flex; gap: .5rem; align-items: flex-start;">
+                    <i class="bi bi-info-circle" style="flex-shrink: 0; margin-top: .1rem;"></i>
+                    <span>Your booking request will be reviewed by the landlord. You won't be charged until approved.</span>
+                </div>
+            </div>
+        </div>
+        <div class="bk-confirm-footer">
+            <button type="button" class="bk-confirm-cancel" onclick="closeConfirmation()">
+                <i class="bi bi-x me-1"></i>Cancel
+            </button>
+            <button type="button" class="bk-confirm-submit" onclick="submitBooking()">
+                <i class="bi bi-check2 me-1"></i>Confirm Booking
+            </button>
+        </div>
     </div>
-    <div class="card-footer bg-light d-flex justify-content-end">
-      <button type="submit" class="btn btn-primary">Submit Request</button>
-    </div>
-  </form>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+</div>
+
+@endsection
+
+@push('scripts')
+<script>
+    function syncDates() {
+        const ci = document.getElementById('checkInDisplay').value;
+        const co = document.getElementById('checkOutDisplay').value;
+
+        document.getElementById('fCheckIn').value  = ci;
+        document.getElementById('fCheckOut').value = co;
+
+        if (ci) {
+            const next = new Date(ci);
+            next.setDate(next.getDate() + 1);
+            document.getElementById('checkOutDisplay').min = next.toISOString().split('T')[0];
+        }
+
+        const fmt = d => d
+            ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'})
+            : '—';
+
+        document.getElementById('summaryCheckin').textContent  = fmt(ci);
+        document.getElementById('summaryCheckout').textContent = fmt(co);
+
+        if (ci && co) {
+            const days = Math.round((new Date(co) - new Date(ci)) / 86400000);
+            document.getElementById('summaryDuration').textContent = days > 0
+                ? days + ' day' + (days !== 1 ? 's' : '') + ' (~' + (days / 30).toFixed(1) + ' mo)'
+                : 'Invalid range';
+        } else {
+            document.getElementById('summaryDuration').textContent = '—';
+        }
+
+        toggleSubmit();
+    }
+
+    function toggleSubmit() {
+        const ci     = document.getElementById('checkInDisplay').value;
+        const co     = document.getElementById('checkOutDisplay').value;
+        document.getElementById('submitBtn').disabled = !(ci && co);
+    }
+
+    function submitBooking() {
+        document.getElementById('fNotes').value = document.getElementById('notesDisplay').value;
+        document.getElementById('bookingForm').submit();
+    }
+
+    function showConfirmation() {
+        const ci = document.getElementById('checkInDisplay').value;
+        const co = document.getElementById('checkOutDisplay').value;
+
+        if (!ci || !co) {
+            alert('Please select both check-in and check-out dates.');
+            return;
+        }
+
+        // Format dates for display
+        const fmt = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        }) : '—';
+
+        // Calculate duration
+        const days = Math.round((new Date(co) - new Date(ci)) / 86400000);
+        const durationText = days > 0
+            ? days + ' day' + (days !== 1 ? 's' : '') + ' (~' + (days / 30).toFixed(1) + ' mo)'
+            : 'Invalid range';
+
+        // Populate confirmation modal
+        document.getElementById('confirmRoom').textContent = document.querySelector('.bk-summary .fw-bold').textContent.trim();
+        document.getElementById('confirmProperty').textContent = '{{ $propertyName }}';
+        document.getElementById('confirmCheckin').textContent = fmt(ci);
+        document.getElementById('confirmCheckout').textContent = fmt(co);
+        document.getElementById('confirmDuration').textContent = durationText;
+        document.getElementById('confirmPrice').textContent = '₱' + new Intl.NumberFormat('en-PH').format({{ $room->price }});
+
+        // Show modal
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmation() {
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    document.getElementById('checkInDisplay').addEventListener('change', syncDates);
+    document.getElementById('checkOutDisplay').addEventListener('change', syncDates);
+    document.getElementById('notesDisplay').addEventListener('input', function() {
+        document.getElementById('fNotes').value = this.value;
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('confirmModal').addEventListener('click', (e) => {
+        if (e.target.id === 'confirmModal') closeConfirmation();
+    });
+
+    // Restore state if validation failed
+    (function() {
+        const ci = document.getElementById('checkInDisplay').value;
+        const co = document.getElementById('checkOutDisplay').value;
+        if (ci || co) syncDates();
+    })();
+
+</script>
+@endpush

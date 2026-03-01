@@ -12,13 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('landlord_profiles', function (Blueprint $table) {
-            // Rename contact to contact_number
-            $table->renameColumn('contact', 'contact_number');
-            
-            // Drop address column and add boarding_house_name and about
-            $table->dropColumn('address');
-            $table->string('boarding_house_name')->nullable();
-            $table->text('about')->nullable();
+            if (Schema::hasColumn('landlord_profiles', 'contact') && ! Schema::hasColumn('landlord_profiles', 'contact_number')) {
+                $table->renameColumn('contact', 'contact_number');
+            }
+
+            if (Schema::hasColumn('landlord_profiles', 'address')) {
+                $table->dropColumn('address');
+            }
+
+            if (! Schema::hasColumn('landlord_profiles', 'boarding_house_name')) {
+                $table->string('boarding_house_name')->nullable();
+            }
+
+            if (! Schema::hasColumn('landlord_profiles', 'about')) {
+                $table->text('about')->nullable();
+            }
         });
     }
 
@@ -28,9 +36,18 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('landlord_profiles', function (Blueprint $table) {
-            $table->renameColumn('contact_number', 'contact');
-            $table->string('address')->nullable();
-            $table->dropColumn(['boarding_house_name', 'about']);
+            if (Schema::hasColumn('landlord_profiles', 'contact_number') && ! Schema::hasColumn('landlord_profiles', 'contact')) {
+                $table->renameColumn('contact_number', 'contact');
+            }
+            if (! Schema::hasColumn('landlord_profiles', 'address')) {
+                $table->string('address')->nullable();
+            }
+            if (Schema::hasColumn('landlord_profiles', 'boarding_house_name')) {
+                $table->dropColumn('boarding_house_name');
+            }
+            if (Schema::hasColumn('landlord_profiles', 'about')) {
+                $table->dropColumn('about');
+            }
         });
     }
 };

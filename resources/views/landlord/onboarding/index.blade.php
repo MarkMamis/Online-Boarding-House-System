@@ -8,10 +8,6 @@
       <h1 class="h4 mb-0">Tenant Onboarding Management</h1>
     </div>
 
-  @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-  @endif
-
   @if($onboardings->isEmpty())
     <div class="card shadow-sm">
       <div class="card-body text-center py-5">

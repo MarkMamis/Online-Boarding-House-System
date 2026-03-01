@@ -12,9 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasColumn('rooms', 'landlord_id')) {
+            return; // Column was removed in a later migration; nothing to fix.
+        }
+
         // Drop the incorrect foreign key constraint that references landlord_profiles
         Schema::table('rooms', function (Blueprint $table) {
-            // Drop foreign key if it exists
             try {
                 $table->dropForeign(['landlord_id']);
             } catch (\Exception $e) {
@@ -33,8 +36,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('rooms', 'landlord_id')) {
+            return;
+        }
+
         Schema::table('rooms', function (Blueprint $table) {
-            // Drop the correct foreign key
             try {
                 $table->dropForeign(['landlord_id']);
             } catch (\Exception $e) {

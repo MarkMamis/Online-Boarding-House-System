@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('emergency_contact_relationship')->nullable()->after('emergency_contact_number');
-            $table->string('blood_type')->nullable()->after('guardian_contact');
-            $table->text('allergies')->nullable()->after('blood_type');
-            $table->text('medications')->nullable()->after('allergies');
+            if (! Schema::hasColumn('users', 'emergency_contact_relationship')) {
+                $table->string('emergency_contact_relationship')->nullable()->after('emergency_contact_number');
+            }
+            if (! Schema::hasColumn('users', 'blood_type')) {
+                $table->string('blood_type')->nullable()->after('guardian_contact');
+            }
+            if (! Schema::hasColumn('users', 'allergies')) {
+                $table->text('allergies')->nullable()->after('blood_type');
+            }
+            if (! Schema::hasColumn('users', 'medications')) {
+                $table->text('medications')->nullable()->after('allergies');
+            }
         });
     }
 

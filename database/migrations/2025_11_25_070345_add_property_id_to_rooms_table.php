@@ -12,24 +12,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('rooms', function (Blueprint $table) {
-            // Add property_id column after id
-            $table->foreignId('property_id')->nullable()->after('id')->constrained('properties')->cascadeOnDelete();
-        });
-        
-        // Migrate data: For each room with landlord_id, find or create a default property
-        DB::statement('
-            UPDATE rooms r
-            INNER JOIN properties p ON r.landlord_id = p.landlord_id
-            SET r.property_id = p.id
-            WHERE r.property_id IS NULL
-            LIMIT 1
-        ');
-        
-        // Make property_id not nullable after migration
-        Schema::table('rooms', function (Blueprint $table) {
-            $table->foreignId('property_id')->nullable(false)->change();
-        });
+        if (! Schema::hasColumn('rooms', 'property_id')) {
+            Schema::table('rooms', function (Blueprint $table) {
+                // Add property_id column after id
+                $table->foreignId('property_id')->nullable()->after('id')->constrained('properties')->cascadeOnDelete();
+            });
+
+            // Migrate data: For each room with landlord_id, find or create a default property
+            DB::statement('
+                UPDATE rooms r
+                INNER JOIN properties p ON r.landlord_id = p.landlord_id
+                SET r.property_id = p.id
+                WHERE r.property_id IS NULL
+                LIMIT 1
+            ');
+
+            // Make property_id not nullable after migration
+            Schema::table('rooms', function (Blueprint $table) {
+                $table->foreignId('property_id')->nullable(false)->change();
+            });
+        }
     }
 
     /**

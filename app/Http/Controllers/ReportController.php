@@ -27,7 +27,13 @@ class ReportController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->to(route('student.dashboard') . '#reports')
+            if ($request->boolean('from_dashboard')) {
+                return redirect()->to(route('student.dashboard') . '#reports')
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+
+            return back()
                 ->withErrors($validator)
                 ->withInput();
         }
@@ -41,7 +47,11 @@ class ReportController extends Controller
             'priority' => $data['priority'],
         ]);
 
-        return redirect()->to(route('student.dashboard') . '#reports')->with('success', 'Report submitted successfully!');
+        if ($request->boolean('from_dashboard')) {
+            return redirect()->to(route('student.dashboard') . '#reports')->with('success', 'Report submitted successfully!');
+        }
+
+        return redirect()->route('student.reports.index')->with('success', 'Report submitted successfully!');
     }
 
     // Admin: List all reports

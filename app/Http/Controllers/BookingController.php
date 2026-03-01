@@ -72,26 +72,44 @@ class BookingController extends Controller
     {
         $this->ensureStudent();
         $this->authorize('create', Booking::class);
-        $room->load('property');
+        $room->load(['property.landlord.landlordProfile', 'roomImages']);
 
         $today = now()->toDateString();
-        $hasCurrentApprovedBooking = Booking::query()
+        
+        // Check for any active booking (pending or approved)
+        $existingBooking = Booking::query()
             ->where('student_id', Auth::id())
-            ->where('status', 'approved')
+            ->whereIn('status', ['pending', 'approved'])
             ->where('check_out', '>', $today)
-            ->exists();
-        if ($hasCurrentApprovedBooking) {
-            return redirect()->route('student.dashboard')
-                ->with('error', 'You already have an approved booking. Booking is disabled while your stay is active.');
+            ->first();
+        
+        if ($existingBooking) {
+            // Allow if it's the same room
+            if ($existingBooking->room_id !== $room->id) {
+                return redirect()->route('student.dashboard')
+                    ->with('error', 'You already have an active booking. Complete or cancel it to book another room.');
+            }
         }
 
         if (($room->property->approval_status ?? 'pending') !== 'approved') {
             return redirect()->route('student.rooms.index')->with('error', 'This property is not available yet.');
         }
-        if ($room->status !== 'available') {
-            return redirect()->route('student.rooms.index')->with('error', 'Room not available for booking.');
+        
+        // Check if room is in maintenance
+        if ($room->status === 'maintenance') {
+            return redirect()->route('student.rooms.index')->with('error', 'Room is currently under maintenance.');
         }
-        return view('student.bookings.create', compact('room'));
+        
+        // Check if room has available slots (based on actual occupancy, not manual status)
+        if (!$room->hasAvailableSlots()) {
+            return redirect()->route('student.rooms.index')->with('error', 'Room is at full capacity.');
+        }
+
+        $student    = Auth::user();
+        $landlord   = $room->property->landlord ?? null;
+        $coverImage = $room->roomImages->firstWhere('is_cover', true) ?? $room->roomImages->first();
+
+        return view('student.bookings.create', compact('room', 'student', 'landlord', 'coverImage'));
     }
 
     // Student: store booking
@@ -123,11 +141,21 @@ class BookingController extends Controller
             }
             return redirect()->route('student.rooms.index')->with('error', 'This property is not available yet.');
         }
-        if ($room->status !== 'available') {
+        
+        // Check if room is in maintenance
+        if ($room->status === 'maintenance') {
             if ($stayOnPage) {
-                return back()->with('error', 'Room not available for booking.');
+                return back()->with('error', 'Room is currently under maintenance.');
             }
-            return redirect()->route('student.rooms.index')->with('error', 'Room not available for booking.');
+            return redirect()->route('student.rooms.index')->with('error', 'Room is currently under maintenance.');
+        }
+        
+        // Check if room has available slots (based on actual occupancy, not manual status)
+        if (!$room->hasAvailableSlots()) {
+            if ($stayOnPage) {
+                return back()->with('error', 'Room is at full capacity.');
+            }
+            return redirect()->route('student.rooms.index')->with('error', 'Room is at full capacity.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -173,20 +201,6 @@ class BookingController extends Controller
             // ignore notifications storage errors
         }
 
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $landlord->id,
-            'property_id' => $room->property_id,
-            'body' => sprintf(
-                'New booking request for Room %s at %s (%s) from %s, %s to %s.',
-                $room->room_number,
-                $room->property->name,
-                $room->property->address,
-                Auth::user()->full_name,
-                $booking->check_in->format('M d, Y'),
-                $booking->check_out->format('M d, Y')
-            ),
-        ]);
         try {
             Mail::raw(
                 sprintf(

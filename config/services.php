@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'huggingface' => [
+        'token' => env('HF_TOKEN'),
+    ],
+
 ];

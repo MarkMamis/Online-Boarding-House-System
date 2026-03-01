@@ -36,7 +36,7 @@ class NotificationController extends Controller
                 ->count();
         }
 
-        $layout = 'layouts.student';
+        $layout = 'layouts.student_dashboard';
         if ($user->role === 'admin') {
             $layout = 'layouts.admin';
         } elseif ($user->role === 'landlord') {
@@ -70,7 +70,7 @@ class NotificationController extends Controller
         $stay = $request->boolean('stay');
         $panel = (string) $request->input('panel');
         if ($stay && ($user->role ?? null) === 'student' && $panel === 'notifications') {
-            return redirect()->to(route('student.dashboard') . '#notifications');
+            return redirect()->route('notifications.index');
         }
 
         $redirectUrl = data_get($notification->data, 'url');
@@ -100,7 +100,7 @@ class NotificationController extends Controller
         $stay = request()->boolean('stay');
         $panel = (string) request()->input('panel');
         if ($stay && ($user->role ?? null) === 'student' && $panel === 'notifications') {
-            return redirect()->to(route('student.dashboard') . '#notifications')
+            return redirect()->route('notifications.index')
                 ->with('success', 'All notifications marked as read.');
         }
 

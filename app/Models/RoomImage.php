@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class RoomImage extends Model
+{
+    protected $fillable = [
+        'room_id',
+        'image_path',
+        'label',
+        'sort_order',
+    ];
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
+}

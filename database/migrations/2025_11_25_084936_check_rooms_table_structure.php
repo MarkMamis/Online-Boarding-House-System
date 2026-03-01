@@ -12,27 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Check if room_name column exists and room_number doesn't
-        $columns = DB::select("SHOW COLUMNS FROM rooms");
-        $hasRoomName = false;
-        $hasRoomNumber = false;
-        
-        foreach ($columns as $column) {
-            if ($column->Field === 'room_name') {
-                $hasRoomName = true;
-            }
-            if ($column->Field === 'room_number') {
-                $hasRoomNumber = true;
-            }
-        }
-        
-        if ($hasRoomName && !$hasRoomNumber) {
-            // Rename room_name to room_number
+        $hasRoomName   = Schema::hasColumn('rooms', 'room_name');
+        $hasRoomNumber = Schema::hasColumn('rooms', 'room_number');
+
+        if ($hasRoomName && ! $hasRoomNumber) {
             Schema::table('rooms', function (Blueprint $table) {
                 $table->renameColumn('room_name', 'room_number');
             });
-        } elseif (!$hasRoomName && !$hasRoomNumber) {
-            // Add room_number column
+        } elseif (! $hasRoomName && ! $hasRoomNumber) {
             Schema::table('rooms', function (Blueprint $table) {
                 $table->string('room_number')->after('landlord_id');
             });
@@ -44,18 +31,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Check if room_number column exists
-        $columns = DB::select("SHOW COLUMNS FROM rooms");
-        $hasRoomNumber = false;
-        
-        foreach ($columns as $column) {
-            if ($column->Field === 'room_number') {
-                $hasRoomNumber = true;
-                break;
-            }
-        }
-        
-        if ($hasRoomNumber) {
+        if (Schema::hasColumn('rooms', 'room_number')) {
             Schema::table('rooms', function (Blueprint $table) {
                 $table->dropColumn('room_number');
             });

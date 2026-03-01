@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rooms', function (Blueprint $table) {
-            $table->string('maintenance_reason')->nullable()->after('status');
-            $table->timestamp('maintenance_date')->nullable()->after('maintenance_reason');
+            if (! Schema::hasColumn('rooms', 'maintenance_reason')) {
+                $table->string('maintenance_reason')->nullable()->after('status');
+            }
+            if (! Schema::hasColumn('rooms', 'maintenance_date')) {
+                $table->timestamp('maintenance_date')->nullable()->after('maintenance_reason');
+            }
         });
     }
 

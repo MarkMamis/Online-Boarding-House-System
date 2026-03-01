@@ -38,6 +38,7 @@
             img.src = '{{ asset('images/mindoro-way-pic.jpg') }}';
         });
     </script>
+    @stack('styles')
 </head>
 <body>
     <div class="bg-dorm"></div>
@@ -88,6 +89,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <x-toast />
+    <x-chatbot />
     @stack('scripts')
 </body>
 </html>

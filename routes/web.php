@@ -13,6 +13,7 @@ use App\Http\Controllers\StudentPropertyController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\RoomFeedbackController;
 use App\Http\Controllers\TenantOnboardingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MaintenanceController;
@@ -20,6 +21,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\StudentLeaveRequestController;
 use App\Http\Controllers\LandlordLeaveRequestController;
+use App\Http\Controllers\LandlordFeedbackController;
+use App\Http\Controllers\ChatbotController;
 use App\Models\Room;
 
 Route::get('/', function () {
@@ -90,6 +93,12 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('login')->with('status', 'verification-link-sent');
     })->middleware('throttle:6,1')->name('verification.send');
+});
+
+// Chatbot (global, authenticated)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/chatbot/history', [ChatbotController::class, 'history'])->name('chatbot.history');
+    Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 });
 
 Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
@@ -215,6 +224,10 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
     // Landlord messages
     Route::get('/landlord/messages', [MessageController::class, 'index'])->name('landlord.messages.index');
 
+    // Landlord feedback
+    Route::get('/landlord/feedback', [LandlordFeedbackController::class, 'index'])->name('landlord.feedback.index');
+    Route::post('/landlord/feedback/analyze', [LandlordFeedbackController::class, 'analyzePending'])->name('landlord.feedback.analyze');
+
     // Landlord onboarding
     Route::get('/landlord/onboarding', [TenantOnboardingController::class, 'landlordIndex'])->name('landlord.onboarding.index');
     Route::get('/landlord/onboarding/{onboarding}/review', [TenantOnboardingController::class, 'reviewDocuments'])->name('landlord.onboarding.review');
@@ -244,11 +257,14 @@ Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
     Route::put('/student/profile/change-password', [StudentProfileController::class, 'updatePassword'])->name('student.profile.update-password');
 
     // Student room browsing and booking
-    Route::get('/student/rooms', [BookingController::class, 'browse'])->name('student.rooms.index');
-    Route::get('/student/bookings', [BookingController::class, 'studentIndex'])->name('student.bookings.index');
-    Route::get('/rooms/{room}/book', [BookingController::class, 'create'])->name('bookings.create');
-    Route::post('/rooms/{room}/book', [BookingController::class, 'store'])->name('bookings.store');
-    Route::post('/student/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('student.bookings.cancel');
+    Route::get('/student/rooms', [RoomController::class, 'studentIndex'])->name('student.rooms.index');
+    Route::get('/student/rooms/{room}', [RoomController::class, 'studentShow'])->name('student.rooms.show');
+    Route::post('/student/rooms/{room}/inquire', [MessageController::class, 'storeInquiry'])->name('student.rooms.inquire');
+    Route::post('/student/rooms/{room}/feedback', [RoomFeedbackController::class, 'store'])->name('student.rooms.feedback');
+    Route::get('/student/rooms/{room}/book', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/student/rooms/{room}/book', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/student/requests', [BookingController::class, 'studentIndex'])->name('student.bookings.index');
+    Route::post('/student/requests/{booking}/cancel', [BookingController::class, 'cancel'])->name('student.bookings.cancel');
 
     // Student reports
     Route::get('/student/reports/create', [ReportController::class, 'create'])->name('student.reports.create');

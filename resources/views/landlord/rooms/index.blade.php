@@ -9,10 +9,6 @@
     <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand">Add Room</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">

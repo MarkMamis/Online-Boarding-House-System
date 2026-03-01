@@ -6,10 +6,6 @@
     <h2 class="h4 mb-0">Payments & Billing</h2>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
 @if($errors->any())
     <div class="alert alert-danger">
         <ul class="mb-0">

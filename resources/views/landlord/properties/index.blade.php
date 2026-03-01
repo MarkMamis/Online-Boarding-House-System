@@ -11,9 +11,6 @@
     </div>
     <a href="{{ route('landlord.properties.create') }}" class="btn btn-sm btn-brand rounded-pill">Add Property</a>
 </div>
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 <!-- Properties Map -->
 <div class="card shadow-sm mb-4" id="propertiesMapCard" style="display: none;">
