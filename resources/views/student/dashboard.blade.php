@@ -24,7 +24,39 @@
             color: var(--brand);
             flex: 0 0 auto;
         }
-        .map-mini { height: 220px; border-radius: 1rem; overflow: hidden; border: 1px solid rgba(2,8,20,.08); background: rgba(2,8,20,.02); }
+        .map-mini { height: 260px; border-radius: 1rem; overflow: hidden; border: 1px solid rgba(2,8,20,.08); background: rgba(2,8,20,.02); }
+        .map-mini-pill {
+            background: #0f5132;
+            color: #fff;
+            border-radius: 999px;
+            border: 2px solid #fff;
+            font-size: .68rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: .18rem .5rem;
+            white-space: nowrap;
+            box-shadow: 0 8px 16px rgba(2,8,20,.22);
+        }
+        .map-mini-pill.map-mini-pill-empty { background: #334155; }
+        .map-preview-meta {
+            border: 1px solid rgba(2,8,20,.08);
+            border-radius: .9rem;
+            background: #fff;
+            padding: .65rem .75rem;
+        }
+        .map-mini-popup-photo {
+            width: 100%;
+            height: 94px;
+            border-radius: .65rem;
+            overflow: hidden;
+            background: linear-gradient(135deg, #dcfce7, #ecfeff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f766e;
+            margin-bottom: .45rem;
+        }
+        .map-mini-popup-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         /* ── Airbnb-style room cards ── */
         .room-browse-card {
@@ -212,6 +244,37 @@
                             'panel' => 'reports',
                         ]);
                     }
+
+                    // Keep Recent Activity informative for first-time users.
+                    if ($events->isEmpty()) {
+                        $student = Auth::user();
+                        $events->push([
+                            'ts' => $student?->created_at,
+                            'icon' => 'bi-person-check',
+                            'title' => 'Account created',
+                            'meta' => 'Your student account was created successfully.',
+                            'panel' => 'browse-rooms',
+                        ]);
+
+                        if (!empty($student?->email_verified_at)) {
+                            $events->push([
+                                'ts' => $student->email_verified_at,
+                                'icon' => 'bi-envelope-check',
+                                'title' => 'Email verified',
+                                'meta' => 'Verification complete. Your student portal access is now active.',
+                                'panel' => 'profile',
+                            ]);
+                        } else {
+                            $events->push([
+                                'ts' => $student?->created_at,
+                                'icon' => 'bi-envelope-exclamation',
+                                'title' => 'Email verification pending',
+                                'meta' => 'Verify your email to secure your account and receive important updates.',
+                                'panel' => 'profile',
+                            ]);
+                        }
+                    }
+
                     $events = $events->sortByDesc('ts')->take(8)->values();
                 @endphp
 
@@ -302,6 +365,40 @@
                     </div>
                 </div>
 
+                @php
+                    $mapPreviewPropertyCount = (int) collect($recommendedRooms ?? collect())->pluck('property_id')->filter()->unique()->count();
+                    $mapPreviewPropertyCount = max($mapPreviewPropertyCount, (int) $availableRoomsCount > 0 ? 1 : 0);
+                @endphp
+
+                <div class="section-card p-3 p-lg-4 mb-4">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
+                        <div class="fw-semibold"><i class="bi bi-map me-2"></i>Map Preview</div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{{ route('student.properties.map_view') }}" class="btn btn-sm btn-outline-secondary rounded-pill">Open full map</a>
+                            <!-- <a href="{{ route('student.rooms.index') }}" class="btn btn-sm btn-brand rounded-pill px-3">Browse rooms</a> -->
+                        </div>
+                    </div>
+                    <div class="row g-3 align-items-stretch">
+                        <div class="col-12 col-lg-8">
+                            <div id="propertiesMapMini" class="map-mini" data-map-url="{{ route('student.properties.map') }}"></div>
+                        </div>
+                        <div class="col-12 col-lg-4 d-grid gap-2">
+                            <div class="map-preview-meta">
+                                <div class="small text-muted">Visible Listings</div>
+                                <div class="fw-semibold">Approved boarding houses nearby</div>
+                            </div>
+                            <div class="map-preview-meta">
+                                <div class="small text-muted">Coverage</div>
+                                <div class="fw-semibold">{{ $mapPreviewPropertyCount }}+ active properties</div>
+                            </div>
+                            <div class="map-preview-meta">
+                                <div class="small text-muted">Tip</div>
+                                <div class="small">Tap a price pin to preview the property, then jump straight to matching rooms.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section-card p-3 p-lg-4 mb-4">
                     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                         <div class="d-flex align-items-start gap-3">
@@ -311,7 +408,7 @@
                                 <div class="small text-muted">{{ $nextAction['desc'] }}</div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-brand rounded-pill px-4" data-panel-jump="{{ $nextAction['panel'] }}">{{ $nextAction['cta'] }}</button>
+                        <a href="{{ route('student.rooms.index') }}" class="btn btn-brand rounded-pill px-4">{{ $nextAction['cta'] }}</a>
                     </div>
                 </div>
 
@@ -346,26 +443,47 @@
                             <div class="section-card p-3 p-lg-4 mb-3">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div class="fw-semibold"><i class="bi bi-stars me-2"></i> Recommended Rooms</div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-panel-jump="browse-rooms">Browse</button>
                                 </div>
 
                                 <div class="row g-3">
                                     @forelse($recommendedRooms->take(3) as $room)
+                                        @php
+                                            $recImg = $room->image_path ?: ($room->property->image_path ?? null);
+                                            $recInclusions = collect(preg_split('/[,\n;]+/', $room->inclusions ?? ''))
+                                                ->map('trim')
+                                                ->filter()
+                                                ->take(4);
+                                        @endphp
                                         <div class="col-12">
                                             <div class="border rounded-4 bg-white shadow-sm p-3">
-                                                <div class="small text-muted">{{ $room->property->name }}</div>
-                                                <div class="fw-semibold">Room {{ $room->room_number }}</div>
-                                                <div class="small text-muted">Capacity: {{ $room->capacity }} • ₱ {{ number_format($room->price,2) }}</div>
-                                                <div class="mt-2">
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm btn-brand rounded-pill px-3"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#bookingRequestModal"
-                                                        data-booking-modal
-                                                        data-book-url="{{ route('bookings.store', $room->id) }}"
-                                                        data-room-label="{{ $room->property->name }} — Room {{ $room->room_number }}"
-                                                    >Request booking</button>
+                                                <div class="d-flex gap-3 align-items-start">
+                                                    <div class="rounded-3 overflow-hidden border" style="width:92px;height:92px;flex:0 0 92px;background:#f8fafc;">
+                                                        @if($recImg)
+                                                            <img src="{{ asset('storage/'.$recImg) }}" alt="Room image" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                                        @else
+                                                            <div class="d-flex align-items-center justify-content-center h-100 text-muted small">
+                                                                <i class="bi bi-image me-1"></i>No photo
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="flex-fill min-w-0">
+                                                        <div class="small text-muted text-truncate">{{ $room->property->name }}</div>
+                                                        <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                                        <div class="small text-muted">Capacity: {{ $room->capacity }} • ₱ {{ number_format($room->price,2) }}</div>
+
+                                                        <div class="d-flex flex-wrap gap-1 mt-2">
+                                                            @forelse($recInclusions as $inc)
+                                                                <span class="badge text-bg-light border">{{ $inc }}</span>
+                                                            @empty
+                                                                <span class="small text-muted">No inclusions listed.</span>
+                                                            @endforelse
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="d-flex align-items-center">
+                                                        <a href="{{ route('student.rooms.show', $room->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">View more</a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -464,14 +582,7 @@
                             </div>
                         @endif
 
-                        <div class="section-card p-3 p-lg-4">
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <div class="fw-semibold"><i class="bi bi-map me-2"></i> Map Preview</div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-panel-jump="property-map">Open map</button>
-                            </div>
-                            <div id="propertiesMapMini" class="map-mini" data-map-url="{{ route('student.properties.map') }}"></div>
-                            <div class="small text-muted mt-2">Shows approved boarding houses with available rooms.</div>
-                        </div>
+                        
                     </div>
                 </div>
             </div>
@@ -1708,6 +1819,53 @@
                     .then(r => r.json())
                     .then(data => {
                         const props = data.properties || [];
+
+                        const formatPriceLabel = (minPrice, maxPrice) => {
+                            if (minPrice === null && maxPrice === null) return 'Price TBD';
+                            if (minPrice !== null && maxPrice !== null && Number(minPrice) !== Number(maxPrice)) {
+                                return `₱${Number(minPrice).toLocaleString()}-₱${Number(maxPrice).toLocaleString()}`;
+                            }
+                            const single = minPrice !== null ? minPrice : maxPrice;
+                            return `₱${Number(single).toLocaleString()}`;
+                        };
+
+                        const compactPriceLabel = (minPrice, maxPrice) => {
+                            const shortPeso = (value) => {
+                                const n = Number(value || 0);
+                                if (!Number.isFinite(n)) return '0';
+                                if (n >= 1000) {
+                                    const k = n / 1000;
+                                    return `${Number.isInteger(k) ? k.toFixed(0) : k.toFixed(1)}k`;
+                                }
+                                return n.toFixed(0);
+                            };
+                            if (minPrice === null && maxPrice === null) return 'TBD';
+                            if (minPrice !== null && maxPrice !== null && Number(minPrice) !== Number(maxPrice)) {
+                                return `₱${shortPeso(minPrice)}-₱${shortPeso(maxPrice)}`;
+                            }
+                            const single = minPrice !== null ? minPrice : maxPrice;
+                            return `₱${shortPeso(single)}`;
+                        };
+
+                        const popupHtml = (p) => {
+                            const imageHtml = p.image_url
+                                ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)} preview">`
+                                : `<i class="bi bi-building fs-4"></i>`;
+
+                            return `
+                                <div style="min-width:220px;max-width:250px;">
+                                    <div class="map-mini-popup-photo">${imageHtml}</div>
+                                    <div class="fw-semibold">${escapeHtml(p.name)}</div>
+                                    <div class="small text-muted mb-1">${escapeHtml(p.address || 'Address not available')}</div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge text-bg-light">${escapeHtml(String(p.available_rooms || 0))} available</span>
+                                        <span class="fw-semibold" style="color:${BRAND_GREEN};">${escapeHtml(formatPriceLabel(p.price_min, p.price_max))}</span>
+                                    </div>
+                                    <button type='button' class='btn btn-sm btn-brand w-100' data-view-rooms-for-property='${p.id}' data-property-name='${escapeHtml(p.name)}'>View Rooms</button>
+                                </div>
+                            `;
+                        };
+
                         const map = L.map('propertiesMapMini', {
                             zoomControl: false,
                             attributionControl: false,
@@ -1726,14 +1884,17 @@
                         const bounds = [];
 
                         props.slice(0, 12).forEach(p => {
-                            const marker = L.circleMarker([p.lat, p.lng], {
-                                radius: 6,
-                                color: BRAND_GREEN,
-                                fillColor: BRAND_GREEN,
-                                fillOpacity: 0.7,
-                                weight: 1,
-                            }).addTo(map);
-                            marker.bindTooltip(p.name, { direction: 'top', offset: [0, -6] });
+                            const markerLabel = compactPriceLabel(p.price_min, p.price_max);
+                            const markerWidth = Math.max(60, Math.min(132, Math.round(markerLabel.length * 6.8 + 22)));
+                            const icon = L.divIcon({
+                                className: 'map-mini-pill-wrap',
+                                html: `<div class="map-mini-pill ${p.price_min === null && p.price_max === null ? 'map-mini-pill-empty' : ''}">${escapeHtml(markerLabel)}</div>`,
+                                iconSize: [markerWidth, 26],
+                                iconAnchor: [Math.round(markerWidth / 2), 13],
+                                popupAnchor: [0, -10],
+                            });
+                            const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
+                            marker.bindPopup(popupHtml(p));
                             bounds.push([p.lat, p.lng]);
                         });
 

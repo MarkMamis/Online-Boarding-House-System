@@ -24,6 +24,7 @@ use App\Http\Controllers\LandlordLeaveRequestController;
 use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
 use App\Models\Room;
+use App\Models\Property;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -40,29 +41,38 @@ Route::get('/', function () {
         return redirect()->route('student.dashboard');
     }
 
-    $today = now()->toDateString();
-
     $availableRooms = Room::query()
         ->select('rooms.*')
         ->join('properties', 'properties.id', '=', 'rooms.property_id')
         ->where('properties.approval_status', 'approved')
         ->where('rooms.status', 'available')
-        ->whereDoesntHave('bookings', function ($query) use ($today) {
-            $query->where('status', 'approved')
-                ->where('check_in', '<=', $today)
-                ->where('check_out', '>', $today);
-        })
+        ->where('rooms.slots_available', '>', 0)
         ->with([
             'property:id,name,address,landlord_id,image_path,average_rating,ratings_count',
             'property.landlord:id,full_name',
         ])
+        ->orderBy('rooms.price')
         ->orderByDesc('properties.average_rating')
-        ->orderByDesc('properties.ratings_count')
         ->orderByDesc('rooms.created_at')
         ->limit(6)
         ->get();
 
-    return view('landing', compact('availableRooms'));
+    $featuredProperties = Property::query()
+        ->where('approval_status', 'approved')
+        ->withCount('rooms')
+        ->withCount([
+            'rooms as available_rooms_count' => function ($query) {
+                $query->where('status', 'available')->where('slots_available', '>', 0);
+            },
+        ])
+        ->withMin('rooms', 'price')
+        ->orderByDesc('average_rating')
+        ->orderByDesc('ratings_count')
+        ->orderByDesc('created_at')
+        ->limit(3)
+        ->get();
+
+    return view('landing', compact('availableRooms', 'featuredProperties'));
 })->name('landing');
 
 // Public room details (from landing page)
@@ -143,7 +153,14 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/users/landlords', [AuthController::class, 'adminUsersByRole'])->name('admin.users.landlords');
     Route::get('/admin/users/admins', [AuthController::class, 'adminUsersByRole'])->name('admin.users.admins');
     Route::get('/admin/users/landlords/{user}', [AuthController::class, 'adminLandlordDetails'])->name('admin.users.landlords.show');
+    Route::put('/admin/users/landlords/{user}', [AuthController::class, 'adminUpdateLandlord'])->name('admin.users.landlords.update');
+    Route::post('/admin/users/landlords/{user}/status', [AuthController::class, 'adminToggleLandlordStatus'])->name('admin.users.landlords.status');
     Route::get('/admin/users/students/{user}', [AuthController::class, 'adminStudentDetails'])->name('admin.users.students.show');
+    Route::get('/admin/users/students/{user}/edit', [AuthController::class, 'adminEditStudent'])->name('admin.users.students.edit');
+    Route::put('/admin/users/students/{user}', [AuthController::class, 'adminUpdateStudent'])->name('admin.users.students.update');
+
+    // Admin direct messaging
+    Route::post('/admin/messages', [MessageController::class, 'store'])->name('admin.messages.store');
 
     // Admin properties management
     Route::get('/admin/properties', [AuthController::class, 'adminProperties'])->name('admin.properties.index');

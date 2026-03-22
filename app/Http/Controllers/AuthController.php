@@ -40,6 +40,11 @@ class AuthController extends Controller
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $user = Auth::user();
 
+            if (Schema::hasColumn('users', 'is_active') && !$user->is_active) {
+                Auth::logout();
+                return back()->withErrors(['email' => 'Your account is deactivated. Please contact the administrator.'])->withInput();
+            }
+
             if (
                 $user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail
                 && $user->role !== 'admin'
@@ -86,7 +91,9 @@ class AuthController extends Controller
             'password' => 'required|min:8|confirmed',
             'contact_number' => 'required|string|max:20',
             'course' => 'required_if:role,student|string|max:255',
-            'year_level' => 'required_if:role,student|in:1,2,3,4,5',
+            'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
+            'gender' => 'required_if:role,student|in:Male,Female,Other,Rather not say',
+            'gender_custom' => 'nullable|string|max:100',
             'boarding_house_name' => 'required_if:role,landlord|string|max:255',
             // Role is now hidden in the form
             'role' => 'required|in:landlord,student',
@@ -101,6 +108,18 @@ class AuthController extends Controller
             ? $request->input('role')
             : 'student';
 
+        // Handle gender field - if "Other" is selected, use the custom value
+        $gender = null;
+        if ($role === 'student') {
+            if ($request->gender === 'Other' && !empty($request->gender_custom)) {
+                $gender = $request->gender_custom;
+            } elseif ($request->gender === 'Rather not say') {
+                $gender = null;
+            } else {
+                $gender = $request->gender;
+            }
+        }
+
         $user = User::create([
             'full_name' => $request->full_name,
             'name' => $request->full_name, // for compatibility
@@ -108,7 +127,8 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'contact_number' => $request->contact_number,
             'course' => $role === 'student' ? $request->course : null,
-            'year_level' => $role === 'student' ? (string) $request->year_level : null,
+            'year_level' => $role === 'student' ? $request->year_level : null,
+            'gender' => $gender,
             'boarding_house_name' => $role === 'landlord' ? $request->boarding_house_name : 'N/A',
             'role' => $role,
         ]);
@@ -181,10 +201,101 @@ class AuthController extends Controller
         $pendingBookings = Booking::where('status', 'pending')->count();
         $approvedBookings = Booking::where('status', 'approved')->count();
 
+        $today = Carbon::today()->toDateString();
+
+        // Active boarded students (approved + currently in stay window)
+        $activeBoardingsBase = DB::table('bookings')
+            ->join('rooms', 'rooms.id', '=', 'bookings.room_id')
+            ->join('properties', 'properties.id', '=', 'rooms.property_id')
+            ->join('users as students', 'students.id', '=', 'bookings.student_id')
+            ->where('bookings.status', 'approved')
+            ->whereDate('bookings.check_in', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('bookings.check_out')
+                    ->orWhereDate('bookings.check_out', '>', $today);
+            });
+
+        $boardedByBoardingHouse = (clone $activeBoardingsBase)
+            ->select(
+                'properties.id',
+                'properties.name',
+                'properties.address',
+                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
+            )
+            ->groupBy('properties.id', 'properties.name', 'properties.address')
+            ->orderByDesc('total_students')
+            ->limit(8)
+            ->get();
+
+        $boardedByProgram = (clone $activeBoardingsBase)
+            ->select(
+                DB::raw("COALESCE(NULLIF(TRIM(students.course), ''), 'Not specified') as program"),
+                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
+            )
+            ->groupBy('program')
+            ->orderByDesc('total_students')
+            ->limit(10)
+            ->get();
+
+        $activeBoardedStudents = (clone $activeBoardingsBase)
+            ->distinct('bookings.student_id')
+            ->count('bookings.student_id');
+
+        // Gender analytics with schema-safe fallback if column does not exist.
+        $genderCounts = [
+            'male' => 0,
+            'female' => 0,
+            'unspecified' => 0,
+        ];
+
+        if (Schema::hasColumn('users', 'gender')) {
+            $genderBreakdown = (clone $activeBoardingsBase)
+                ->select(
+                    DB::raw("LOWER(COALESCE(NULLIF(TRIM(students.gender), ''), 'unspecified')) as gender_key"),
+                    DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
+                )
+                ->groupBy('gender_key')
+                ->pluck('total_students', 'gender_key');
+
+            $genderCounts['male'] = (int) ($genderBreakdown['male'] ?? 0);
+            $genderCounts['female'] = (int) ($genderBreakdown['female'] ?? 0);
+            $genderCounts['unspecified'] = (int) ($genderBreakdown['unspecified'] ?? 0);
+
+            foreach ($genderBreakdown as $key => $count) {
+                if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
+                    $genderCounts['unspecified'] += (int) $count;
+                }
+            }
+        } else {
+            $genderCounts['unspecified'] = $activeBoardedStudents;
+        }
+
+        // Map points for all approved landlord properties with coordinates.
+        $landlordMapPoints = Property::query()
+            ->with('landlord:id,full_name,email')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->where('approval_status', 'approved')
+            ->orderBy('name')
+            ->get(['id', 'name', 'address', 'latitude', 'longitude', 'landlord_id'])
+            ->map(function ($property) {
+                return [
+                    'id' => $property->id,
+                    'name' => $property->name,
+                    'address' => $property->address,
+                    'latitude' => (float) $property->latitude,
+                    'longitude' => (float) $property->longitude,
+                    'landlord_name' => $property->landlord?->full_name,
+                    'landlord_email' => $property->landlord?->email,
+                ];
+            })
+            ->values();
+
         return view('admin.dashboard', compact(
             'roleCounts', 'totalUsers', 'todayNew', 'last7DaysNew', 'growthPct', 'recentUsers', 'systemStatus', 'totalReports', 'pendingReports',
             'totalOnboardings', 'pendingOnboardings', 'completedOnboardings', 'activeOnboardings', 'totalProperties', 'activeProperties',
-            'pendingApprovals', 'totalBookings', 'pendingBookings', 'approvedBookings'
+            'pendingApprovals', 'totalBookings', 'pendingBookings', 'approvedBookings',
+            'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByProgram', 'genderCounts', 'landlordMapPoints'
         ));
     }
 
@@ -376,7 +487,7 @@ class AuthController extends Controller
             ->withCount([
                 'rooms as total_rooms',
                 'rooms as available_rooms' => function($q) {
-                    $q->where('status', 'available');
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
                 'rooms as occupied_rooms' => function($q) {
                     $q->whereHas('bookings', function($bq) {
@@ -448,6 +559,58 @@ class AuthController extends Controller
         ));
     }
 
+    public function adminUpdateLandlord(Request $request, User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role !== 'landlord') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'contact_number' => 'nullable|string|max:20',
+            'boarding_house_name' => 'nullable|string|max:255',
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Landlord profile updated successfully.');
+    }
+
+    public function adminToggleLandlordStatus(User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role !== 'landlord') {
+            abort(404);
+        }
+
+        if (!Schema::hasColumn('users', 'is_active')) {
+            return back()->with('error', 'Unable to update status: users.is_active column not found.');
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        if (!$user->is_active) {
+            // Revoke current remember token so next auth checks force re-login.
+            $user->setRememberToken(null);
+            $user->save();
+        }
+
+        $message = $user->is_active
+            ? 'Landlord account activated successfully.'
+            : 'Landlord account deactivated successfully.';
+
+        return back()->with('success', $message);
+    }
+
     public function adminStudentDetails(User $user)
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
@@ -485,6 +648,66 @@ class AuthController extends Controller
         ));
     }
 
+    public function adminEditStudent(User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role !== 'student') {
+            abort(404);
+        }
+
+        return view('admin.users.student_edit', compact('user'));
+    }
+
+    public function adminUpdateStudent(Request $request, User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role !== 'student') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'gender' => 'nullable|in:Male,Female,Other',
+            'gender_other' => 'nullable|string|max:100',
+            'contact_number' => 'nullable|string|max:20',
+            'student_id' => 'nullable|string|max:50',
+            'course' => 'nullable|string|max:100',
+            'year_level' => 'nullable|in:1st Year,2nd Year,3rd Year,4th Year',
+            'birth_date' => 'nullable|date',
+            'address' => 'nullable|string|max:255',
+            'emergency_contact_name' => 'nullable|string|max:255',
+            'emergency_contact_number' => 'nullable|string|max:20',
+            'emergency_contact_relationship' => 'nullable|string|max:100',
+            'guardian_name' => 'nullable|string|max:255',
+            'guardian_contact' => 'nullable|string|max:20',
+            'parent_contact_number' => 'nullable|string|max:20',
+            'blood_type' => 'nullable|string|max:10',
+            'allergies' => 'nullable|string|max:500',
+            'medical_conditions' => 'nullable|string|max:500',
+            'medications' => 'nullable|string|max:500',
+        ]);
+
+        // If gender is "Other", use the custom gender_other value
+        if ($validated['gender'] === 'Other' && !empty($validated['gender_other'])) {
+            $validated['gender'] = $validated['gender_other'];
+        }
+        
+        // Remove gender_other from the update data
+        unset($validated['gender_other']);
+
+        $user->update($validated);
+
+        return redirect()->route('admin.users.students.show', $user)
+            ->with('success', 'Student profile updated successfully.');
+    }
+
     public function adminProperties()
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
@@ -496,7 +719,7 @@ class AuthController extends Controller
             ->withCount([
                 'rooms as total_rooms',
                 'rooms as available_rooms' => function($q) {
-                    $q->where('status', 'available');
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
                 'rooms as occupied_rooms' => function($q) {
                     $q->whereHas('bookings', function($bq) {
@@ -540,7 +763,9 @@ class AuthController extends Controller
         $properties = Property::where('landlord_id', $landlordId)
             ->withCount([
                 'rooms as rooms_total_live',
-                'rooms as rooms_vacant_live' => function ($q) { $q->where('status', 'available'); },
+                'rooms as rooms_vacant_live' => function ($q) {
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
+                },
             ])
             ->orderByDesc('created_at')
             ->get();
@@ -548,7 +773,10 @@ class AuthController extends Controller
         $propertyIds = $properties->pluck('id');
         $propertiesCount = $properties->count();
         $totalRooms = Room::whereIn('property_id', $propertyIds)->count();
-        $vacantRooms = Room::whereIn('property_id', $propertyIds)->where('status', 'available')->count();
+        $vacantRooms = Room::whereIn('property_id', $propertyIds)
+            ->where('status', 'available')
+            ->where('slots_available', '>', 0)
+            ->count();
         $pendingRequests = Booking::where('status', 'pending')
             ->whereHas('room.property', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
@@ -559,6 +787,7 @@ class AuthController extends Controller
         $recommendedRooms = Room::with('property')
             ->whereIn('property_id', $propertyIds)
             ->where('status', 'available')
+            ->where('slots_available', '>', 0)
             ->orderBy('price')
             ->limit(6)
             ->get();
@@ -869,7 +1098,9 @@ class AuthController extends Controller
             ->where('approval_status', 'approved')
             ->withCount([
                 'rooms as rooms_total_live',
-                'rooms as rooms_available_live' => function($q){ $q->where('status','available'); },
+                'rooms as rooms_available_live' => function($q){
+                    $q->where('status','available')->where('slots_available', '>', 0);
+                },
             ])
             ->when($search && $search !== '', function($q) use ($search){
                 $q->where(function($qq) use ($search){

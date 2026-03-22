@@ -16,6 +16,51 @@
     box-shadow: 0 10px 26px rgba(2,8,20,.06);
   }
 
+  .onb-shell {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+    border: 1px solid rgba(2,8,20,.08);
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 26px rgba(2,8,20,.06);
+    padding: 1.1rem;
+  }
+
+  .onb-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .7rem;
+    margin-top: .8rem;
+  }
+
+  .onb-summary-item {
+    border: 1px solid rgba(20,83,45,.16);
+    background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
+    border-radius: .85rem;
+    padding: .65rem .75rem;
+  }
+
+  .onb-summary-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: rgba(2,8,20,.5);
+    font-weight: 700;
+    margin-bottom: .18rem;
+  }
+
+  .onb-summary-value {
+    font-size: .96rem;
+    font-weight: 700;
+    color: #14532d;
+  }
+
+  .onb-block {
+    border: 1px solid rgba(2,8,20,.08);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(2,8,20,.05);
+    padding: 1.1rem;
+  }
+
   .progress-steps {
     display: flex;
     justify-content: space-between;
@@ -254,15 +299,54 @@
     color: var(--brand);
     margin: 1rem 0;
   }
+
+  @media (max-width: 991.98px) {
+    .onb-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .onb-shell {
+      padding: .95rem;
+    }
+  }
 </style>
 @endpush
 
 @section('content')
-<div>
-  <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
+@php
+  $statusLabel = (string) ($onboarding->status ?? 'pending');
+  $docsDone = in_array($statusLabel, ['documents_uploaded', 'contract_signed', 'deposit_paid', 'completed'], true);
+  $contractDone = in_array($statusLabel, ['contract_signed', 'deposit_paid', 'completed'], true);
+  $depositDone = in_array($statusLabel, ['deposit_paid', 'completed'], true);
+  $completeDone = ($statusLabel === 'completed');
+  $stepsDone = (int) $docsDone + (int) $contractDone + (int) $depositDone + (int) $completeDone;
+  $progressPct = (int) round(($stepsDone / 4) * 100);
+@endphp
+
+<div class="onb-shell mb-4">
+  <div class="onb-block mb-3">
     <div class="mb-4">
+      <div class="text-uppercase small text-muted fw-semibold">Student Operations</div>
       <h4 class="fw-bold mb-1">Onboarding Process</h4>
       <p class="text-muted mb-0">{{ $onboarding->booking->room->property->name }} — Room {{ $onboarding->booking->room->room_number }}</p>
+    </div>
+
+    <div class="onb-summary mb-4">
+      <div class="onb-summary-item">
+        <div class="onb-summary-label">Status</div>
+        <div class="onb-summary-value">{{ ucfirst(str_replace('_', ' ', $statusLabel)) }}</div>
+      </div>
+      <div class="onb-summary-item">
+        <div class="onb-summary-label">Progress</div>
+        <div class="onb-summary-value">{{ $progressPct }}%</div>
+      </div>
+      <div class="onb-summary-item">
+        <div class="onb-summary-label">Deposit</div>
+        <div class="onb-summary-value">P{{ number_format($onboarding->deposit_amount, 0) }}</div>
+      </div>
+      <div class="onb-summary-item">
+        <div class="onb-summary-label">Lease</div>
+        <div class="onb-summary-value">{{ optional($onboarding->booking->check_in)->format('M d') }} - {{ optional($onboarding->booking->check_out)->format('M d') }}</div>
+      </div>
     </div>
 
     @if(session('success'))

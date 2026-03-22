@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Validator;
 
 class RoomController extends Controller
 {
+    protected function syncPropertyPriceRange(Property $property): void
+    {
+        $property->refreshPriceRange();
+    }
+
     protected function ensureLandlord()
     {
         if (!Auth::check() || Auth::user()->role !== 'landlord') {
@@ -33,6 +38,10 @@ class RoomController extends Controller
     public function landlordIndex()
     {
         $this->ensureLandlord();
+        $properties = Property::where('landlord_id', Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name', 'address']);
+
         $rooms = Room::with(['property', 'bookings' => function($q) {
                 $q->where('status', 'approved')
                   ->where('check_in', '<=', now()->toDateString())
@@ -52,7 +61,7 @@ class RoomController extends Controller
             $room->current_booking = $currentBooking;
         });
 
-        return view('landlord.rooms.landlord_index', compact('rooms'));
+        return view('landlord.rooms.landlord_index', compact('rooms', 'properties'));
     }
 
     public function index($propertyId)
@@ -90,10 +99,13 @@ class RoomController extends Controller
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
+            'slots_available' => 'nullable|integer|min:0|lte:capacity',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'inclusions' => 'nullable|string|max:2000',
+            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'detail_labels.*' => 'nullable|string|max:100',
         ]);
 
         try {
@@ -114,9 +126,37 @@ class RoomController extends Controller
             }
         }
 
-        $property->rooms()->create(array_merge($validated, [
-            'landlord_id' => Auth::id(),
-        ]));
+        $validated['slots_available'] = array_key_exists('slots_available', $validated)
+            ? (int) $validated['slots_available']
+            : ((string) $validated['status'] === 'available' ? (int) $validated['capacity'] : 0);
+
+        if ((string) $validated['status'] !== 'available') {
+            $validated['slots_available'] = 0;
+        }
+
+        $room = $property->rooms()->create($validated);
+
+        if ($request->hasFile('detail_images')) {
+            $labels = $request->input('detail_labels', []);
+            foreach ($request->file('detail_images') as $i => $file) {
+                if (!$file || !$file->isValid()) {
+                    continue;
+                }
+                try {
+                    $path = str_replace('\\', '/', $file->store('rooms', 'public'));
+                    RoomImage::create([
+                        'room_id' => $room->id,
+                        'image_path' => $path,
+                        'label' => $labels[$i] ?? null,
+                        'sort_order' => $i,
+                    ]);
+                } catch (\Exception $e) {
+                    // Skip failed detail image uploads and keep room creation successful.
+                }
+            }
+        }
+
+        $this->syncPropertyPriceRange($property);
 
         return redirect()
             ->route('landlord.properties.rooms.index', $property->id)
@@ -144,6 +184,7 @@ class RoomController extends Controller
         $validator = Validator::make($request->all(), [
             'room_number'            => 'required|string|max:50',
             'capacity'               => 'required|integer|min:1',
+            'slots_available'        => 'nullable|integer|min:0|lte:capacity',
             'price'                  => 'required|numeric|min:0',
             'status'                 => 'required|in:available,occupied,maintenance',
             'image'                  => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
@@ -177,7 +218,16 @@ class RoomController extends Controller
             }
         }
 
+        $validated['slots_available'] = array_key_exists('slots_available', $validated)
+            ? (int) $validated['slots_available']
+            : ($room->slots_available ?? 0);
+
+        if ((string) $validated['status'] !== 'available') {
+            $validated['slots_available'] = 0;
+        }
+
         $room->update($validated);
+        $this->syncPropertyPriceRange($property);
 
         // --- Delete removed detail images ---
         if ($request->filled('delete_detail_images')) {
@@ -229,6 +279,7 @@ class RoomController extends Controller
         }
         $this->authorize('delete', $room);
         $room->delete();
+        $this->syncPropertyPriceRange($property);
         return redirect()->route('landlord.properties.show', $property->id)
             ->with('success', 'Room deleted.');
     }
@@ -241,6 +292,7 @@ class RoomController extends Controller
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
+            'slots_available' => 'nullable|integer|min:0|lte:capacity',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
@@ -269,9 +321,17 @@ class RoomController extends Controller
                     ->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
             }
         }
-        $property->rooms()->create(array_merge($validated, [
-            'landlord_id' => Auth::id(),
-        ]));
+
+        $validated['slots_available'] = array_key_exists('slots_available', $validated)
+            ? (int) $validated['slots_available']
+            : ((string) $validated['status'] === 'available' ? (int) $validated['capacity'] : 0);
+
+        if ((string) $validated['status'] !== 'available') {
+            $validated['slots_available'] = 0;
+        }
+
+        $property->rooms()->create($validated);
+        $this->syncPropertyPriceRange($property);
         return redirect()->route('landlord.dashboard')
             ->with('success', 'Room added to property "'.$property->name.'"');
     }

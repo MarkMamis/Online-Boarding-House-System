@@ -95,7 +95,17 @@
     </nav>
 
     @php
-        $img = $room->image_path ?: ($room->property->image_path ?? null);
+        $roomImage = $room->image_path;
+        $propertyImage = $room->property->image_path ?? null;
+        $roomImageExists = !empty($roomImage) && (
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($roomImage) ||
+            file_exists(public_path('storage/' . ltrim($roomImage, '/')))
+        );
+        $propertyImageExists = !empty($propertyImage) && (
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage) ||
+            file_exists(public_path('storage/' . ltrim($propertyImage, '/')))
+        );
+        $img = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
         $rawRoomNumber = trim((string) ($room->room_number ?? ''));
         $normalizedRoomNumber = preg_replace('/^room\s*[:#-]?\s*/i', '', $rawRoomNumber);
         $displayRoomNumber = $normalizedRoomNumber !== '' ? $normalizedRoomNumber : $rawRoomNumber;

@@ -1,20 +1,36 @@
 @extends('layouts.landlord')
 
 @section('content')
-<div class="glass-card rounded-4 p-4 p-md-5">
+<div class="profile-edit-shell">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
+                    <div class="text-uppercase small text-muted fw-semibold">Account Settings</div>
                     <h1 class="h3 mb-1">
                         <i class="fas fa-user-edit me-2"></i>Edit Profile
                     </h1>
                     <p class="text-muted mb-0">Update your account information and preferences</p>
                 </div>
                 <div>
-                    <a href="{{ route('landlord.dashboard') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('landlord.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
                         <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
                     </a>
+                </div>
+            </div>
+
+            <div class="profile-summary mb-4">
+                <div class="profile-summary-item">
+                    <div class="profile-summary-label">Account Type</div>
+                    <div class="profile-summary-value">Landlord</div>
+                </div>
+                <div class="profile-summary-item">
+                    <div class="profile-summary-label">Member Since</div>
+                    <div class="profile-summary-value">{{ $user->created_at->format('F d, Y') }}</div>
+                </div>
+                <div class="profile-summary-item">
+                    <div class="profile-summary-label">Status</div>
+                    <div class="profile-summary-value">Active</div>
                 </div>
             </div>
 
@@ -36,8 +52,8 @@
 
             <div class="row">
                 <div class="col-lg-8">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
+                    <div class="card shadow-sm profile-main-card">
+                        <div class="card-header bg-transparent border-0 pt-3 pb-0 px-3">
                             <h5 class="mb-0">
                                 <i class="fas fa-user me-2"></i>Personal Information
                             </h5>
@@ -50,7 +66,7 @@
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label">Profile Photo</label>
-                                        <div class="d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center gap-3 profile-photo-panel">
                                             @if(!empty($user->profile_image_path))
                                                 <img id="profile_image_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width: 84px; height: 84px; object-fit: cover;">
                                             @else
@@ -59,7 +75,7 @@
                                                     <i class="fas fa-user text-muted"></i>
                                                 </div>
                                             @endif
-                                            <div class="flex-grow-1">
+                                            <div class="grow">
                                                 <input id="profile_image_input" type="file" name="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*">
                                                 @error('profile_image')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -140,8 +156,8 @@
                                     </div>
                                 </div>
 
-                                <div class="d-flex justify-content-end mt-4">
-                                    <button type="submit" class="btn btn-brand">
+                                <div class="d-flex justify-content-end mt-4 action-bar">
+                                    <button type="submit" class="btn btn-brand rounded-pill px-4">
                                         <i class="fas fa-save me-2"></i>Update Profile
                                     </button>
                                 </div>
@@ -151,56 +167,25 @@
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>Account Information
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <strong>Account Type:</strong>
-                                <span class="badge bg-warning text-dark ms-2">Landlord</span>
-                            </div>
-
-                            <div class="mb-3">
-                                <strong>Member Since:</strong>
-                                <div class="text-muted">{{ $user->created_at->format('F d, Y') }}</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <strong>Last Updated:</strong>
-                                <div class="text-muted">{{ $user->updated_at->format('F d, Y \a\t g:i A') }}</div>
-                            </div>
-
-                            <div class="mb-0">
-                                <strong>Account Status:</strong>
-                                <span class="badge bg-success ms-2">Active</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card shadow-sm mt-3">
-                        <div class="card-header">
+                    <div class="card shadow-sm mt-3 profile-side-card">
+                        <div class="card-header bg-transparent border-0 pb-0">
                             <h5 class="mb-0">
                                 <i class="fas fa-shield-alt me-2"></i>Security Tips
                             </h5>
                         </div>
-                        <div class="card-body">
-                            <ul class="list-unstyled small mb-0">
-                                <li class="mb-2">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    Use a strong password with at least 8 characters
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    Keep your contact information up to date
-                                </li>
-                                <li class="mb-0">
-                                    <i class="fas fa-check-circle text-success me-2"></i>
-                                    Regularly update your boarding house information
-                                </li>
-                            </ul>
+                        <div class="card-body profile-side-body">
+                            <div class="security-tip-item">
+                                <span class="security-tip-icon"><i class="fas fa-key"></i></span>
+                                <span class="security-tip-text">Use a strong password with at least 8 characters</span>
+                            </div>
+                            <div class="security-tip-item">
+                                <span class="security-tip-icon"><i class="fas fa-phone-alt"></i></span>
+                                <span class="security-tip-text">Keep your contact information up to date</span>
+                            </div>
+                            <div class="security-tip-item mb-0">
+                                <span class="security-tip-icon"><i class="fas fa-home"></i></span>
+                                <span class="security-tip-text">Regularly update your boarding house information</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -209,6 +194,133 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .profile-edit-shell {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 26px rgba(2,8,20,.06);
+        padding: 1.25rem;
+    }
+    .profile-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .75rem;
+    }
+    .profile-summary-item {
+        border: 1px solid rgba(20,83,45,.16);
+        background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
+        border-radius: .9rem;
+        padding: .7rem .8rem;
+        min-width: 0;
+    }
+    .profile-summary-label {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: rgba(2,8,20,.55);
+        font-weight: 700;
+        margin-bottom: .2rem;
+    }
+    .profile-summary-value {
+        font-size: .94rem;
+        font-weight: 700;
+        color: #14532d;
+    }
+    .profile-main-card,
+    .profile-side-card {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 1rem;
+        box-shadow: 0 14px 30px rgba(2,8,20,.07);
+    }
+    .profile-main-card .card-body,
+    .profile-side-card .card-body {
+        padding: 1rem;
+    }
+    .profile-side-body {
+        display: grid;
+        gap: .6rem;
+    }
+    .profile-main-card .form-label {
+        font-weight: 600;
+        color: #0f172a;
+    }
+    .profile-main-card .form-control {
+        border-color: rgba(2,8,20,.14);
+    }
+    .profile-photo-panel {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: .85rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        padding: .7rem;
+    }
+    .action-bar {
+        position: sticky;
+        bottom: .4rem;
+        z-index: 3;
+        padding: .55rem;
+        background: rgba(248,250,252,.88);
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: .85rem;
+    }
+    .side-info-item {
+        border: 1px solid rgba(2,8,20,.1);
+        border-radius: .75rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        padding: .55rem .65rem;
+    }
+    .side-info-label {
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: rgba(2,8,20,.56);
+        font-weight: 700;
+        margin-bottom: .15rem;
+    }
+    .side-info-value {
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.3;
+    }
+    .security-tip-item {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        align-items: start;
+        gap: .55rem;
+        border: 1px solid rgba(22,101,52,.14);
+        border-radius: .75rem;
+        background: linear-gradient(180deg, rgba(167,243,208,.16), #ffffff);
+        padding: .55rem .6rem;
+    }
+    .security-tip-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #166534;
+        background: rgba(22,101,52,.12);
+        font-size: .76rem;
+    }
+    .security-tip-text {
+        font-size: .86rem;
+        color: #0f172a;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    @media (max-width: 991.98px) {
+        .profile-summary {
+            grid-template-columns: 1fr;
+        }
+        .profile-edit-shell {
+            padding: .95rem;
+        }
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

@@ -11,9 +11,9 @@ class Room extends Model
 
     protected $fillable = [
         'property_id',
-        'landlord_id',
         'room_number',
         'capacity',
+        'slots_available',
         'price',
         'status',
         'image_path',
@@ -24,6 +24,7 @@ class Room extends Model
 
     protected $casts = [
         'maintenance_date' => 'datetime',
+        'slots_available' => 'integer',
     ];
 
     public function property()
@@ -68,8 +69,12 @@ class Room extends Model
      */
     public function getAvailableSlots(): int
     {
+        if ($this->slots_available !== null) {
+            return max(0, (int) $this->slots_available);
+        }
+
         $onboarded = $this->getOnboardedTenantsCount();
-        return max(0, $this->capacity - $onboarded);
+        return max(0, (int) $this->capacity - $onboarded);
     }
 
     /**
@@ -85,7 +90,8 @@ class Room extends Model
      */
     public function getOccupancyDisplay(): string
     {
-        $onboarded = $this->getOnboardedTenantsCount();
-        return "{$onboarded}/{$this->capacity}";
+        $available = $this->getAvailableSlots();
+        $occupied = max(0, (int) $this->capacity - $available);
+        return "{$occupied}/{$this->capacity}";
     }
 }

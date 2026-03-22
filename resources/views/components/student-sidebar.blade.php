@@ -21,7 +21,7 @@
 @endphp
 
 <div class="glass-card rounded-4 p-3 sidepanel">
-    <div class="d-flex align-items-center gap-2 px-2 pt-2 pb-3">
+    <div class="d-flex align-items-center gap-2 px-2 py-2 mb-2 sidebar-head">
         @if(!empty(Auth::user()->profile_image_path))
             <img src="{{ asset('storage/' . Auth::user()->profile_image_path) }}" alt="Profile photo" class="rounded-3 border" style="width:40px;height:40px;object-fit:cover;border-color:rgba(22,101,52,.22)!important;">
         @else
@@ -35,28 +35,7 @@
         </div>
     </div>
 
-    <div class="px-2 pb-3">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white" style="border-color: rgba(2,8,20,.08);"><i class="bi bi-search"></i></span>
-            <input id="sidepanelSearch" type="search" class="form-control" placeholder="Search menu…" style="border-color: rgba(2,8,20,.08);">
-        </div>
-        <div class="d-flex gap-2 mt-2">
-            @if($tenantMode)
-                <a href="{{ route('student.rooms.show', $tenantRoomId) }}" class="btn btn-brand btn-sm rounded-pill flex-fill">
-                    <i class="bi bi-house-door me-1"></i> My Room
-                </a>
-            @else
-                <a href="{{ route('student.rooms.index') }}" class="btn btn-brand btn-sm rounded-pill flex-fill">
-                    <i class="bi bi-search me-1"></i> Browse
-                </a>
-            @endif
-            <a href="{{ route('student.bookings.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill flex-fill">
-                <i class="bi bi-journal-check me-1"></i> Requests
-            </a>
-        </div>
-    </div>
-
-    <div class="list-group list-group-flush rounded-3 overflow-hidden">
+    <div class="list-group list-group-flush rounded-3 overflow-hidden student-nav-list">
         <div class="nav-section">Main</div>
         <a href="{{ route('student.dashboard') }}" class="list-group-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
             <i class="bi bi-speedometer2"></i>

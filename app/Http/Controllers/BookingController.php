@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -48,6 +49,7 @@ class BookingController extends Controller
         $this->ensureStudent();
         $rooms = Room::with('property.landlord')
             ->where('status', 'available')
+            ->where('slots_available', '>', 0)
             ->whereHas('property', function ($q) {
                 $q->where('approval_status', 'approved');
             })
@@ -288,11 +290,26 @@ class BookingController extends Controller
     {
         $this->ensureLandlord();
         $this->authorize('approve', $booking);
-        // Approve this booking
-        $booking->update(['status' => 'approved']);
+        DB::transaction(function () use ($booking) {
+            $booking->refresh();
+            $room = Room::lockForUpdate()->findOrFail($booking->room_id);
 
-        // Mark the room as occupied
-        $booking->room->update(['status' => 'occupied']);
+            if ((string) $booking->status !== 'pending') {
+                abort(422, 'Booking is no longer pending.');
+            }
+
+            if ((int) $room->slots_available <= 0) {
+                abort(422, 'No available slots left for this room.');
+            }
+
+            $booking->update(['status' => 'approved']);
+
+            $remainingSlots = max(0, (int) $room->slots_available - 1);
+            $room->update([
+                'slots_available' => $remainingSlots,
+                'status' => $remainingSlots > 0 ? 'available' : 'occupied',
+            ]);
+        });
 
         // Reject overlapping pending bookings for the same room
         Booking::where('room_id', $booking->room_id)

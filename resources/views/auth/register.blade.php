@@ -43,25 +43,20 @@
                 linear-gradient(120deg, rgba(2,8,20,.60), rgba(2,8,20,.26));
         }
         .auth-wrapper > .row { position: relative; z-index: 1; }
-        .auth-top {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            z-index: 2;
-        }
-        .auth-top a {
+        .hero-home-link {
             color: rgba(255,255,255,.88);
             text-decoration: none;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: .35rem;
-            padding: .4rem .75rem;
+            padding: .35rem .7rem;
             border-radius: 999px;
             background: rgba(255,255,255,.10);
             border: 1px solid rgba(255,255,255,.16);
+            line-height: 1;
         }
-        .auth-top a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+        .hero-home-link:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
         .hero-pane {
             background: transparent;
             position: relative;
@@ -105,6 +100,7 @@
             background: rgba(255,255,255,.10);
             border-color: rgba(255,255,255,.22);
             color: #fff;
+            transition: all .18s ease;
         }
         /* Make native select dropdown options readable */
         .form-select option {
@@ -118,7 +114,11 @@
         .card a:hover { color: rgba(255,255,255,1); }
 
         .card .card-header { background: transparent; border-bottom: 0; }
-        .form-control:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 .25rem rgba(var(--brand-rgb), .18); }
+        .form-control:focus, .form-select:focus { 
+            border-color: var(--brand); 
+            box-shadow: 0 0 0 .25rem rgba(var(--brand-rgb), .18);
+            background: rgba(255,255,255,.14);
+        }
         .field-icon { width: 40px; height: 40px; display:inline-flex; align-items:center; justify-content:center; border-radius: .5rem; }
         .auth-logo {
             width: 56px;
@@ -132,10 +132,91 @@
             color: var(--brand-dark);
             box-shadow: 0 16px 34px rgba(2,8,20,.10);
         }
-        .btn-brand { background: var(--brand); border-color: var(--brand); }
-        .btn-brand:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+        .btn-brand { 
+            background: var(--brand); 
+            border-color: var(--brand);
+            font-weight: 600;
+            letter-spacing: .02em;
+            transition: all .2s ease;
+            padding: .65rem 1.5rem;
+        }
+        .btn-brand:hover { 
+            background: var(--brand-dark); 
+            border-color: var(--brand-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(var(--brand-rgb), .25);
+        }
         .card a { color: var(--brand-dark); }
         .card a:hover { color: var(--brand); }
+
+        /* Form sections styling */
+        .form-section-label {
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: rgba(255,255,255,.55);
+            font-weight: 700;
+            display: block;
+            margin-bottom: .5rem;
+            margin-top: .75rem;
+            padding-bottom: .35rem;
+            border-bottom: 1px solid rgba(255,255,255,.10);
+        }
+        .form-section-label:first-child { margin-top: 0; }
+
+        /* Gender radio buttons styling */
+        .gender-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .6rem;
+            margin-bottom: .5rem;
+        }
+        .gender-option {
+            min-width: 0;
+        }
+        .gender-option input[type="radio"] {
+            display: none;
+        }
+        .gender-option label {
+            display: block;
+            padding: .5rem .75rem;
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: .5rem;
+            background: rgba(255,255,255,.08);
+            cursor: pointer;
+            transition: all .18s ease;
+            color: rgba(255,255,255,.88);
+            margin: 0;
+            text-align: center;
+            font-weight: 500;
+            white-space: nowrap;
+            font-size: .9rem;
+        }
+        .gender-option input[type="radio"]:checked + label {
+            border-color: var(--brand);
+            background: rgba(var(--brand-rgb), .20);
+            color: #fff;
+            box-shadow: 0 0 0 2px rgba(var(--brand-rgb), .30);
+        }
+        .gender-option label:hover {
+            border-color: var(--brand);
+            background: rgba(var(--brand-rgb), .12);
+        }
+        .gender-custom-field {
+            display: none;
+            margin-top: .5rem;
+        }
+        .gender-custom-field.show {
+            display: block;
+        }
+        .gender-custom-field .form-control {
+            padding: .55rem .75rem;
+            font-size: .9rem;
+        }
+
+        @media (min-width: 768px) {
+            .gender-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
 
         @media (min-width: 992px) {
             .hero-pane { min-height: 100vh; }
@@ -157,17 +238,17 @@
 </head>
 <body class="bg-dark">
     <div class="container-fluid auth-wrapper">
-        <div class="auth-top">
-            <a href="{{ route('landing') }}" aria-label="Go to home">
-                <i class="bi bi-arrow-left"></i> Home
-            </a>
-        </div>
         <div class="row g-0 h-100">
             <!-- Left hero pane with building image -->
             <div class="col-12 col-lg-6 hero-pane">
                 <div class="d-flex flex-column justify-content-between h-100 p-4 p-lg-5 hero-content">
                     <div>
-                        <span class="badge brand-badge text-white rounded-pill px-3 py-2">Online Boarding House</span>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <a href="{{ route('landing') }}" class="hero-home-link" aria-label="Go to home">
+                                <i class="bi bi-arrow-left"></i> Home
+                            </a>
+                            <span class="badge brand-badge text-white rounded-pill px-3 py-2">Online Boarding House</span>
+                        </div>
                         <h1 class="display-5 fw-bold mt-4">Find your next home away from home.</h1>
                         <p class="lead opacity-75">Create your account to manage rooms, tenants, and bookings with a modern, simple experience.</p>
 
@@ -201,11 +282,10 @@
 
             <!-- Right form pane -->
             <div class="col-lg-6 d-flex align-items-center justify-content-center p-4 p-lg-5">
-                <div class="w-100" style="max-width: 520px;">
+                <div class="w-100" style="max-width: 740px;">
                     <div class="card rounded-4">
                         <div class="card-body p-4 p-lg-5">
                             <div class="mb-4 text-center">
-                                <div class="auth-logo mb-3"><i class="bi bi-person-plus"></i></div>
                                 <h2 class="fw-bold mb-1">Create your account</h2>
                                 <p class="text-muted mb-0">Already have one? <a href="{{ route('login') }}">Sign in</a></p>
                             </div>
@@ -223,12 +303,17 @@
                             <form method="POST" action="{{ route('register') }}" novalidate>
                                 @csrf
 
-                                <div class="row g-3">
+                                <div class="row g-2">
+                                    <!-- Account Information Section -->
+                                    <div class="col-12">
+                                        <span class="form-section-label"><i class="bi bi-person-fill"></i> Account Information</span>
+                                    </div>
+
                                     <div class="col-12">
                                         <label for="full_name" class="form-label">Full Name</label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-person"></i></span>
-                                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ old('full_name') }}" placeholder="full name " required>
+                                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ old('full_name') }}" placeholder="full name" required>
                                         </div>
                                     </div>
 
@@ -240,11 +325,19 @@
                                         </div>
                                     </div>
 
+                                    <!-- Security Section -->
+                                    <div class="col-12">
+                                        <span class="form-section-label"><i class="bi bi-shield-lock"></i> Security</span>
+                                    </div>
+
                                     <div class="col-12 col-md-6">
                                         <label for="password" class="form-label">Password</label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-lock"></i></span>
                                             <input type="password" class="form-control" id="password" name="password" minlength="8" required>
+                                            <span class="input-group-text field-icon" id="toggle_password" role="button" tabindex="0" aria-label="Show password" aria-controls="password">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </span>
                                         </div>
                                         <div class="form-text">Minimum of 8 characters.</div>
                                     </div>
@@ -254,7 +347,15 @@
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-shield-lock"></i></span>
                                             <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" minlength="8" required>
+                                            <span class="input-group-text field-icon" id="toggle_password_confirmation" role="button" tabindex="0" aria-label="Show password" aria-controls="password_confirmation">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </span>
                                         </div>
+                                    </div>
+
+                                    <!-- Contact Information Section -->
+                                    <div class="col-12">
+                                        <span class="form-section-label"><i class="bi bi-telephone"></i> Contact Information</span>
                                     </div>
 
                                     <div class="col-12 col-md-6">
@@ -263,6 +364,36 @@
                                             <span class="input-group-text field-icon"><i class="bi bi-telephone"></i></span>
                                             <input type="text" class="form-control" id="contact_number" name="contact_number" value="{{ old('contact_number') }}" placeholder="09XX-XXX-XXXX" required>
                                         </div>
+                                    </div>
+
+                                    <div class="col-12 d-none" id="gender_group">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <div class="gender-options">
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_male" name="gender" value="Male" {{ old('gender') == 'Male' ? 'checked' : '' }}>
+                                                <label for="gender_male">Male</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_female" name="gender" value="Female" {{ old('gender') == 'Female' ? 'checked' : '' }}>
+                                                <label for="gender_female">Female</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_other" name="gender" value="Other" {{ old('gender') == 'Other' ? 'checked' : '' }}>
+                                                <label for="gender_other">Other</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_rather_not" name="gender" value="Rather not say" {{ old('gender') == 'Rather not say' ? 'checked' : '' }}>
+                                                <label for="gender_rather_not">Rather not say</label>
+                                            </div>
+                                        </div>
+                                        <div class="gender-custom-field {{ old('gender') == 'Other' ? 'show' : '' }}" id="genderCustomField">
+                                            <input type="text" class="form-control" id="gender_custom" name="gender_custom" placeholder="Please specify" value="{{ old('gender_custom') }}">
+                                        </div>
+                                    </div>
+
+                                    <!-- Student Fields Section -->
+                                    <div class="col-12" id="student_section_label">
+                                        <span class="form-section-label"><i class="bi bi-mortarboard"></i> Academic Information</span>
                                     </div>
 
                                     <div class="col-12 col-md-6" id="course_group">
@@ -279,13 +410,17 @@
                                             <span class="input-group-text field-icon"><i class="bi bi-123"></i></span>
                                             <select class="form-select" id="year_level" name="year_level">
                                                 <option value="" @selected(old('year_level') === null || old('year_level') === '')>Select year level</option>
-                                                <option value="1" @selected(old('year_level') == '1')>1st Year</option>
-                                                <option value="2" @selected(old('year_level') == '2')>2nd Year</option>
-                                                <option value="3" @selected(old('year_level') == '3')>3rd Year</option>
-                                                <option value="4" @selected(old('year_level') == '4')>4th Year</option>
-                                                <option value="5" @selected(old('year_level') == '5')>5th Year</option>
+                                                <option value="1st Year" @selected(old('year_level') == '1st Year')>1st Year</option>
+                                                <option value="2nd Year" @selected(old('year_level') == '2nd Year')>2nd Year</option>
+                                                <option value="3rd Year" @selected(old('year_level') == '3rd Year')>3rd Year</option>
+                                                <option value="4th Year" @selected(old('year_level') == '4th Year')>4th Year</option>
                                             </select>
                                         </div>
+                                    </div>
+
+                                    <!-- Landlord Fields Section -->
+                                    <div class="col-12" id="landlord_section_label">
+                                        <span class="form-section-label"><i class="bi bi-building"></i> Property Information</span>
                                     </div>
 
                                     <div class="col-12 col-md-6" id="boarding_house_group">
@@ -296,6 +431,7 @@
                                         </div>
                                     </div>
 
+                                    <!-- Role Selection -->
                                     <div class="col-12">
                                         <label for="role" class="form-label">Role</label>
                                         <div class="row g-2">
@@ -337,43 +473,123 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Password visibility toggle
         (function () {
-            const group = document.getElementById('boarding_house_group');
-            const input = document.getElementById('boarding_house_name');
+            const passwords = [
+                { input: 'password', toggle: 'toggle_password' },
+                { input: 'password_confirmation', toggle: 'toggle_password_confirmation' }
+            ];
+
+            passwords.forEach(config => {
+                const passwordInput = document.getElementById(config.input);
+                const toggle = document.getElementById(config.toggle);
+                if (!passwordInput || !toggle) return;
+
+                const icon = toggle.querySelector('i');
+
+                const applyState = (isVisible) => {
+                    passwordInput.type = isVisible ? 'text' : 'password';
+                    if (icon) {
+                        icon.classList.toggle('bi-eye', !isVisible);
+                        icon.classList.toggle('bi-eye-slash', isVisible);
+                    }
+                    toggle.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+                };
+
+                const toggleVisibility = () => {
+                    applyState(passwordInput.type === 'password');
+                };
+
+                toggle.addEventListener('click', toggleVisibility);
+                toggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleVisibility();
+                    }
+                });
+            });
+        })();
+
+        // Form role and field management
+        (function () {
+            const boardingGroup = document.getElementById('boarding_house_group');
+            const boardingInput = document.getElementById('boarding_house_name');
             const landlordRadio = document.getElementById('role_landlord');
             const studentRadio = document.getElementById('role_student');
 
+            const studentSectionLabel = document.getElementById('student_section_label');
+            const landlordSectionLabel = document.getElementById('landlord_section_label');
             const courseGroup = document.getElementById('course_group');
             const courseInput = document.getElementById('course');
             const yearLevelGroup = document.getElementById('year_level_group');
             const yearLevelSelect = document.getElementById('year_level');
+            const genderGroup = document.getElementById('gender_group');
 
-            function syncBoardingHouseField() {
-                if (!group || !input || !landlordRadio) return;
-                const isLandlord = landlordRadio.checked;
-                group.classList.toggle('d-none', !isLandlord);
-                input.disabled = !isLandlord;
-                input.required = isLandlord;
+            const genderRadios = document.querySelectorAll('input[name="gender"]');
+            const genderOtherRadio = document.getElementById('gender_other');
+            const genderCustomField = document.getElementById('genderCustomField');
+            const genderCustomInput = document.getElementById('gender_custom');
+
+            function syncRoleSections() {
+                const isStudent = !!studentRadio?.checked;
+                const isLandlord = !!landlordRadio?.checked;
+
+                if (studentSectionLabel) studentSectionLabel.classList.toggle('d-none', !isStudent);
+                if (courseGroup) courseGroup.classList.toggle('d-none', !isStudent);
+                if (yearLevelGroup) yearLevelGroup.classList.toggle('d-none', !isStudent);
+                if (genderGroup) genderGroup.classList.toggle('d-none', !isStudent);
+
+                if (courseInput) {
+                    courseInput.disabled = !isStudent;
+                    courseInput.required = isStudent;
+                }
+                if (yearLevelSelect) {
+                    yearLevelSelect.disabled = !isStudent;
+                    yearLevelSelect.required = isStudent;
+                }
+
+                genderRadios.forEach((radio) => {
+                    radio.disabled = !isStudent;
+                    radio.required = isStudent;
+                });
+
+                if (landlordSectionLabel) landlordSectionLabel.classList.toggle('d-none', !isLandlord);
+                if (boardingGroup) boardingGroup.classList.toggle('d-none', !isLandlord);
+                if (boardingInput) {
+                    boardingInput.disabled = !isLandlord;
+                    boardingInput.required = isLandlord;
+                }
+
+                toggleGenderCustomField();
             }
 
-            function syncStudentFields() {
-                if (!courseGroup || !courseInput || !yearLevelGroup || !yearLevelSelect || !studentRadio) return;
-                const isStudent = studentRadio.checked;
-                courseGroup.classList.toggle('d-none', !isStudent);
-                yearLevelGroup.classList.toggle('d-none', !isStudent);
-                courseInput.disabled = !isStudent;
-                yearLevelSelect.disabled = !isStudent;
-                courseInput.required = isStudent;
-                yearLevelSelect.required = isStudent;
+            function toggleGenderCustomField() {
+                const isStudent = !!studentRadio?.checked;
+                const isOtherSelected = !!genderOtherRadio?.checked;
+                const shouldShow = isStudent && isOtherSelected;
+
+                if (genderCustomField) {
+                    genderCustomField.classList.toggle('show', shouldShow);
+                }
+
+                if (genderCustomInput) {
+                    genderCustomInput.disabled = !shouldShow;
+                    genderCustomInput.required = shouldShow;
+                    if (!shouldShow) {
+                        genderCustomInput.value = '';
+                    }
+                }
             }
 
             document.querySelectorAll('input[name="role"]').forEach((el) => {
-                el.addEventListener('change', syncBoardingHouseField);
-                el.addEventListener('change', syncStudentFields);
+                el.addEventListener('change', syncRoleSections);
             });
 
-            syncBoardingHouseField();
-            syncStudentFields();
+            genderRadios.forEach((el) => {
+                el.addEventListener('change', toggleGenderCustomField);
+            });
+
+            syncRoleSections();
         })();
     </script>
 </body>

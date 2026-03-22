@@ -140,7 +140,9 @@ class PropertyController extends Controller
         $properties = Property::where('landlord_id', Auth::id())
             ->withCount([
                 'rooms as rooms_total_live',
-                'rooms as rooms_vacant_live' => function ($q) { $q->where('status', 'available'); },
+                'rooms as rooms_vacant_live' => function ($q) {
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
+                },
             ])
             ->orderBy('created_at','desc')
             ->get();
@@ -164,8 +166,6 @@ class PropertyController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price_min' => 'nullable|numeric|min:0',
-            'price_max' => 'nullable|numeric|gte:price_min',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
@@ -203,10 +203,6 @@ class PropertyController extends Controller
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'description' => $request->description,
-            'rooms_total' => 0, // Will be calculated live
-            'rooms_vacant' => 0, // Will be calculated live
-            'price_min' => $request->price_min,
-            'price_max' => $request->price_max,
         ]);
 
         // Geocode address only if coordinates not provided
@@ -220,14 +216,19 @@ class PropertyController extends Controller
         }
         // If room fields provided, create first room
         if ($request->filled('initial_room_number')) {
+            $initialCapacity = (int) ($request->initial_capacity ?: 1);
+            $initialStatus = (string) ($request->initial_status ?: 'available');
+
             Room::create([
                 'property_id' => $property->id,
-                'landlord_id' => Auth::id(),
                 'room_number' => $request->initial_room_number,
-                'capacity' => $request->initial_capacity ?: 1,
+                'capacity' => $initialCapacity,
+                'slots_available' => $initialStatus === 'available' ? $initialCapacity : 0,
                 'price' => $request->initial_price ?: 0,
-                'status' => $request->initial_status ?: 'available',
+                'status' => $initialStatus,
             ]);
+
+            $property->refreshPriceRange();
         }
 
         $successMsg = 'Property created successfully.' . ($request->filled('initial_room_number') ? ' First room added.' : '');
@@ -252,8 +253,6 @@ class PropertyController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price_min' => 'nullable|numeric|min:0',
-            'price_max' => 'nullable|numeric|gte:price_min',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
@@ -302,6 +301,9 @@ class PropertyController extends Controller
                 $property->save();
             }
         }
+
+        $property->refreshPriceRange();
+
         return redirect()->route('landlord.properties.index')->with('success', 'Property updated.');
     }
 
@@ -320,7 +322,9 @@ class PropertyController extends Controller
 
         $property->loadCount([
             'rooms as rooms_total_live',
-            'rooms as rooms_vacant_live' => function ($q) { $q->where('status', 'available'); },
+            'rooms as rooms_vacant_live' => function ($q) {
+                $q->where('status', 'available')->where('slots_available', '>', 0);
+            },
         ])->load(['rooms' => function($q){
             $q->with(['bookings' => function($bookingQ) {
                 $bookingQ->where('status', 'approved')

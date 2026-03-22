@@ -49,7 +49,7 @@
                                 class="list-group-item list-group-item-action px-3 py-2 text-start thread-btn {{ $isActive ? 'active' : '' }}"
                                 data-thread="{{ $tidx }}">
                             <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0"
                                      style="width:36px;height:36px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.2);">
                                     <i class="bi bi-person" style="color:var(--brand);font-size:.85rem;"></i>
                                 </div>
@@ -88,7 +88,7 @@
                         @php $isActive = $activeThreadKey !== null ? (string)$activeThreadKey === (string)$tidx : $tidx === 0; @endphp
                         <div class="thread-view d-flex flex-column {{ $isActive ? '' : 'd-none' }}" data-thread-view="{{ $tidx }}" style="height:100%;">
                             <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2" style="background:#fafafa;">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0"
                                      style="width:32px;height:32px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.18);">
                                     <i class="bi bi-person" style="color:var(--brand);font-size:.8rem;"></i>
                                 </div>
@@ -123,7 +123,7 @@
                                               class="form-control rounded-3 flex-fill"
                                               placeholder="Type a reply…"
                                               style="resize:none;font-size:.86rem;border-color:rgba(2,8,20,.12);"></textarea>
-                                    <button type="submit" class="btn btn-brand rounded-pill px-3 flex-shrink-0" style="font-size:.85rem;">
+                                    <button type="submit" class="btn btn-brand rounded-pill px-3 shrink-0" style="font-size:.85rem;">
                                         <i class="bi bi-send"></i>
                                     </button>
                                 </form>
@@ -142,6 +142,21 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .thread-btn.active,
+    .thread-btn.active:hover,
+    .thread-btn.active:focus {
+        background: rgba(167, 243, 208, .52) !important;
+        border-color: rgba(22, 101, 52, .28) !important;
+        color: #14532d !important;
+    }
+    .thread-btn.active .text-muted {
+        color: rgba(20, 83, 45, .72) !important;
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

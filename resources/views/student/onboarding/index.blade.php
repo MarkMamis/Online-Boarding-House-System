@@ -2,21 +2,133 @@
 
 @section('title', 'Tenant Onboarding')
 
+@push('styles')
+<style>
+    .onb-shell {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 26px rgba(2,8,20,.06);
+        padding: 1.25rem;
+    }
+    .onb-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .7rem;
+    }
+    .onb-summary-item {
+        border: 1px solid rgba(20,83,45,.16);
+        background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
+        border-radius: .85rem;
+        padding: .65rem .75rem;
+    }
+    .onb-summary-label {
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: rgba(2,8,20,.5);
+        font-weight: 700;
+        margin-bottom: .18rem;
+    }
+    .onb-summary-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #14532d;
+    }
+    .onb-block {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 1rem;
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(2,8,20,.05);
+        padding: 1rem;
+        margin-top: .9rem;
+    }
+    .onb-kicker {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 700;
+        color: rgba(2,8,20,.45);
+    }
+    .onb-step {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: .8rem;
+        padding: .75rem;
+        background: #fff;
+    }
+    .onb-step .label {
+        font-size: .72rem;
+        color: rgba(2,8,20,.52);
+        margin-bottom: .15rem;
+    }
+    .onb-step .value {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .onb-doc-row {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: .85rem;
+        padding: .75rem;
+        background: #fff;
+    }
+    @media (max-width: 991.98px) {
+        .onb-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .onb-shell {
+            padding: .95rem;
+        }
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="glass-card rounded-4 p-4 p-md-5 mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-semibold mb-0">Tenant Onboarding</h4>
+@php
+    $dashOnboardings = ($allOnboardings ?? collect());
+    $onbTotal = (int) $dashOnboardings->count();
+    $onbCompleted = (int) $dashOnboardings->where('status', 'completed')->count();
+    $onbInProgress = (int) $dashOnboardings->filter(function ($item) {
+        return ($item->status ?? '') !== 'completed';
+    })->count();
+    $onbPendingLeaves = (int) (($currentBookingLeaveRequests ?? collect())->where('status', 'pending')->count());
+@endphp
+
+<div class="onb-shell mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <div class="text-uppercase small text-muted fw-semibold">Student Operations</div>
+            <h1 class="h3 mb-1">Tenant Onboarding</h1>
+            <div class="text-muted small">Manage required steps, documents, and leave requests for your current stay.</div>
+        </div>
     </div>
 
-    <div class="border rounded-4 bg-white shadow-sm p-4 mb-3">
+    <div class="onb-summary mb-3">
+        <div class="onb-summary-item">
+            <div class="onb-summary-label">Records</div>
+            <div class="onb-summary-value">{{ $onbTotal }}</div>
+        </div>
+        <div class="onb-summary-item">
+            <div class="onb-summary-label">In Progress</div>
+            <div class="onb-summary-value">{{ $onbInProgress }}</div>
+        </div>
+        <div class="onb-summary-item">
+            <div class="onb-summary-label">Completed</div>
+            <div class="onb-summary-value">{{ $onbCompleted }}</div>
+        </div>
+        <div class="onb-summary-item">
+            <div class="onb-summary-label">Pending Leave</div>
+            <div class="onb-summary-value">{{ $onbPendingLeaves }}</div>
+        </div>
+    </div>
+
+    <div class="onb-block">
         <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-            <div class="fw-semibold">All my onboardings</div>
+            <div>
+                <div class="onb-kicker">Onboarding Records</div>
+                <div class="fw-semibold">All my onboardings</div>
+            </div>
         </div>
         <div class="small text-muted mb-3">Your onboarding records for each approved booking.</div>
-
-        @php
-            $dashOnboardings = ($allOnboardings ?? collect());
-        @endphp
 
         @if($dashOnboardings->isEmpty())
             <div class="alert alert-secondary mb-0">No onboarding records yet.</div>
@@ -38,7 +150,7 @@
                                 <td class="fw-semibold">{{ $obRow->booking?->room?->property?->name ?? 'Property' }}</td>
                                 <td>Room {{ $obRow->booking?->room?->room_number ?? '—' }}</td>
                                 <td>
-                                    <span class="badge text-bg-light">{{ $obRow->status ?? '—' }}</span>
+                                    <span class="badge rounded-pill {{ ($obRow->status ?? '') === 'completed' ? 'text-bg-success' : 'text-bg-light border' }}">{{ $obRow->status ?? '—' }}</span>
                                 </td>
                                 <td class="small text-muted">
                                     {{ optional($obRow->booking?->check_in)->format('M d, Y') }}
@@ -62,9 +174,12 @@
             $leaveItems = ($currentBookingLeaveRequests ?? collect());
         @endphp
 
-        <div class="border rounded-4 bg-white shadow-sm p-4 mb-3">
+        <div class="onb-block">
             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-                <div class="fw-semibold">Request for leave</div>
+                <div>
+                    <div class="onb-kicker">Stay Management</div>
+                    <div class="fw-semibold">Request for leave</div>
+                </div>
                 <div class="small text-muted">For your current stay</div>
             </div>
             <div class="small text-muted mb-3">Submit a leave date and reason. Your landlord will review it.</div>
@@ -112,7 +227,7 @@
                             @foreach($leaveItems as $lr)
                                 <tr>
                                     <td class="fw-semibold">{{ optional($lr->leave_date)->format('M d, Y') }}</td>
-                                    <td><span class="badge text-bg-light">{{ $lr->status }}</span></td>
+                                    <td><span class="badge rounded-pill {{ ($lr->status ?? '') === 'approved' ? 'text-bg-success' : (($lr->status ?? '') === 'rejected' ? 'text-bg-danger' : 'text-bg-light border') }}">{{ $lr->status }}</span></td>
                                     <td class="small text-muted">{{ \Illuminate\Support\Str::limit((string)($lr->reason ?? ''), 60) }}</td>
                                     <td class="text-end">
                                         @if(($lr->status ?? '') === 'pending')
@@ -155,9 +270,10 @@
             $uploadedDocs = collect($ob->uploaded_documents ?? []);
         @endphp
 
-        <div class="border rounded-4 bg-white shadow-sm p-4 mb-3">
+        <div class="onb-block">
             <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                 <div>
+                    <div class="onb-kicker mb-1">Current Workflow</div>
                     <div class="fw-semibold mb-1">Onboarding for</div>
                     <div class="small text-muted">
                         {{ $latestOnboarding->booking?->room?->property?->name ?? 'Property' }}
@@ -166,7 +282,7 @@
                     </div>
                 </div>
                 <div class="text-md-end">
-                    <span class="badge text-bg-light">Status: {{ $latestOnboarding->status ?? '—' }}</span>
+                    <span class="badge rounded-pill {{ ($latestOnboarding->status ?? '') === 'completed' ? 'text-bg-success' : 'text-bg-light border' }}">Status: {{ $latestOnboarding->status ?? '—' }}</span>
                     <div class="small text-muted mt-1">{{ $progressPct }}% complete</div>
                 </div>
             </div>
@@ -177,37 +293,37 @@
 
             <div class="row g-2 mt-3">
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="border rounded-4 p-3 h-100">
-                        <div class="small text-muted">Step 1</div>
-                        <div class="fw-semibold">Upload documents</div>
-                        <div class="small">@if($docsDone)<span class="text-success">Done</span>@else Pending @endif</div>
+                    <div class="onb-step h-100">
+                        <div class="label">Step 1</div>
+                        <div class="value">Upload documents</div>
+                        <div class="small mt-1">@if($docsDone)<span class="text-success">Done</span>@else Pending @endif</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="border rounded-4 p-3 h-100">
-                        <div class="small text-muted">Step 2</div>
-                        <div class="fw-semibold">Sign contract</div>
-                        <div class="small">@if($contractDone)<span class="text-success">Done</span>@else Pending @endif</div>
+                    <div class="onb-step h-100">
+                        <div class="label">Step 2</div>
+                        <div class="value">Sign contract</div>
+                        <div class="small mt-1">@if($contractDone)<span class="text-success">Done</span>@else Pending @endif</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="border rounded-4 p-3 h-100">
-                        <div class="small text-muted">Step 3</div>
-                        <div class="fw-semibold">Pay deposit</div>
-                        <div class="small">@if($depositDone)<span class="text-success">Done</span>@else Pending @endif</div>
+                    <div class="onb-step h-100">
+                        <div class="label">Step 3</div>
+                        <div class="value">Pay deposit</div>
+                        <div class="small mt-1">@if($depositDone)<span class="text-success">Done</span>@else Pending @endif</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div class="border rounded-4 p-3 h-100">
-                        <div class="small text-muted">Step 4</div>
-                        <div class="fw-semibold">Complete</div>
-                        <div class="small">@if($completeDone)<span class="text-success">Done</span>@else Pending @endif</div>
+                    <div class="onb-step h-100">
+                        <div class="label">Step 4</div>
+                        <div class="value">Complete</div>
+                        <div class="small mt-1">@if($completeDone)<span class="text-success">Done</span>@else Pending @endif</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="border rounded-4 bg-white shadow-sm p-4">
+        <div class="onb-block">
             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                 <div class="fw-semibold">Required documents</div>
                 <a href="{{ route('student.onboarding.show', $latestOnboarding->id) }}" class="btn btn-brand btn-sm rounded-pill px-3">Continue</a>
@@ -224,7 +340,7 @@
                             $hasAnyUpload = $uploadedDocs->isNotEmpty();
                         @endphp
                         <div class="col-12 col-md-6">
-                            <div class="border rounded-4 p-3 d-flex align-items-center justify-content-between">
+                            <div class="onb-doc-row d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="fw-semibold">{{ $label }}</div>
                                     <div class="small text-muted">@if($hasAnyUpload) Uploaded @else Not uploaded @endif</div>
@@ -241,7 +357,11 @@
             @endif
         </div>
     @else
-        <div class="alert alert-secondary mb-0">No onboarding record yet.</div>
+        @if($dashOnboardings->isNotEmpty())
+            <div class="onb-block">
+                <div class="alert alert-secondary mb-0">No active onboarding workflow right now.</div>
+            </div>
+        @endif
     @endif
 </div>
 @endsection

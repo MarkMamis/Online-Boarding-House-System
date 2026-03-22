@@ -36,6 +36,8 @@
                                     <div>
                                         <div class="fw-semibold">{{ $tenant->student->full_name }}</div>
                                         <div class="text-muted small">{{ $tenant->student->email }}</div>
+                                        <div class="text-muted small">Emergency: {{ $tenant->student->parent_contact_name ?: ($tenant->student->emergency_contact_name ?: 'Not provided') }}</div>
+                                        <div class="text-muted small">Contact: {{ $tenant->student->parent_contact_number ?: ($tenant->student->emergency_contact_number ?: 'Not provided') }}</div>
                                     </div>
                                 </div>
                             </td>

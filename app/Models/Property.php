@@ -25,8 +25,6 @@ class Property extends Model
         'latitude',
         'longitude',
         'description',
-        'rooms_total',
-        'rooms_vacant',
         'price_min',
         'price_max',
     ];
@@ -39,5 +37,17 @@ class Property extends Model
     public function rooms()
     {
         return $this->hasMany(Room::class);
+    }
+
+    public function refreshPriceRange(): void
+    {
+        $aggregates = $this->rooms()
+            ->selectRaw('MIN(price) as min_price, MAX(price) as max_price')
+            ->first();
+
+        $this->forceFill([
+            'price_min' => $aggregates?->min_price,
+            'price_max' => $aggregates?->max_price,
+        ])->save();
     }
 }

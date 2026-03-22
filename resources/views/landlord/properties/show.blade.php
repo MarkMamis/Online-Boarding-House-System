@@ -1,16 +1,19 @@
 @extends('layouts.landlord')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1 class="h4 mb-1">Property Overview — {{ $property->name }}</h1>
-    <div class="text-muted small">{{ $property->address }}</div>
+<div class="property-overview-shell">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <div class="text-uppercase small text-muted fw-semibold">Property Overview</div>
+      <h1 class="h3 mb-1">{{ $property->name }}</h1>
+      <div class="text-muted">{{ $property->address }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ route('landlord.properties.index') }}" class="btn btn-outline-secondary">Back to List</a>
+      <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-brand">Edit Property</a>
+      <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand">Add Room</a>
+    </div>
   </div>
-  <div class="d-flex gap-2">
-    <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-brand">Edit</a>
-    <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand">Add Room</a>
-  </div>
-</div>
 
 @if(session('info'))
   <div class="alert alert-info">{{ session('info') }}</div>
@@ -18,171 +21,190 @@
 
 <div class="row g-4 mb-4">
   <div class="col-6 col-md-3">
-    <div class="border rounded-4 p-3 bg-white shadow-sm text-center">
-      <div class="small text-muted">Total Rooms</div>
-      <div class="h4 mb-0">{{ $property->rooms_total_live }}</div>
+    <div class="metric-card">
+      <div class="small text-muted text-uppercase">Total Rooms</div>
+      <div class="h3 mb-0">{{ $property->rooms_total_live }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="border rounded-4 p-3 bg-white shadow-sm text-center">
-      <div class="small text-muted">Vacant Rooms</div>
-      <div class="h4 mb-0">{{ $property->rooms_vacant_live }}</div>
+    <div class="metric-card">
+      <div class="small text-muted text-uppercase">Vacant Rooms</div>
+      <div class="h3 mb-0">{{ $property->rooms_vacant_live }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="border rounded-4 p-3 bg-white shadow-sm text-center">
-      <div class="small text-muted">Active Bookings (Today)</div>
-      <div class="h4 mb-0">{{ $activeBookings->count() }}</div>
+    <div class="metric-card">
+      <div class="small text-muted text-uppercase">Active Today</div>
+      <div class="h3 mb-0">{{ $activeBookings->count() }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
-    <div class="border rounded-4 p-3 bg-white shadow-sm text-center">
-      <div class="small text-muted">Pending Requests</div>
-      <div class="h4 mb-0">{{ $pendingBookings->count() }}</div>
+    <div class="metric-card">
+      <div class="small text-muted text-uppercase">Pending Requests</div>
+      <div class="h3 mb-0">{{ $pendingBookings->count() }}</div>
     </div>
   </div>
 </div>
 
 <!-- Property Location Map -->
 @if($property->latitude && $property->longitude)
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-white">
+<div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+  <div class="card-header bg-white border-0 py-3">
     <strong>Property Location</strong>
   </div>
   <div class="card-body p-0">
-    <div id="propertyMap" style="height:300px; border-radius:0 0 0.375rem 0.375rem;"></div>
+    <div id="propertyMap" style="height:300px;"></div>
   </div>
 </div>
 @endif
 
 <div class="row g-4">
-  <div class="col-lg-6">
-    <div class="card shadow-sm">
-      <div class="card-header bg-white">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 rounded-4 h-100 panel-card">
+      <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
         <strong>Rooms</strong>
+        <span class="badge text-bg-light border">{{ $property->rooms->count() }}</span>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>#</th>
-              <th>Capacity</th>
-              <th>Price</th>
-              <th>Current Tenant</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($property->rooms as $room)
-              <tr>
-                <td class="fw-semibold">{{ $room->room_number }}</td>
-                <td>{{ $room->capacity }}</td>
-                <td>₱ {{ number_format($room->price, 2) }}</td>
-                <td>
-                  @if($room->current_tenant)
-                    <div class="d-flex align-items-center">
-                      <div class="avatar avatar-sm rounded-circle me-2 bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                        <i class="fas fa-user fa-xs"></i>
-                      </div>
-                      <div>
-                        <div class="fw-medium">{{ $room->current_tenant->full_name }}</div>
-                        <div class="text-muted small">{{ $room->current_tenant->student_id }}</div>
-                      </div>
-                    </div>
-                  @else
-                    <span class="text-muted small">No tenant</span>
-                  @endif
-                </td>
-                <td>
-                  @if($room->status==='available')
-                    <span class="badge text-bg-success">Available</span>
-                  @elseif($room->status==='occupied')
-                    <span class="badge text-bg-secondary">Occupied</span>
-                  @else
-                    <span class="badge text-bg-warning">Maintenance</span>
-                  @endif
-                </td>
-                <td class="text-end">
-                  <a href="{{ route('landlord.properties.rooms.edit', [$property->id, $room->id]) }}" class="btn btn-sm btn-outline-brand">Edit</a>
-                  <form action="{{ route('landlord.properties.rooms.destroy', [$property->id, $room->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this room?');">
-                    @csrf
-                    @method('DELETE')
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-            @empty
-              <tr><td colspan="5" class="text-center text-muted py-4">No rooms yet. <a href="{{ route('landlord.properties.rooms.create', $property->id) }}">Add one</a>.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
+      <div class="card-body p-3 pt-0">
+        @forelse($property->rooms as $room)
+          @php
+            $slotsAvailable = $room->getAvailableSlots();
+          @endphp
+          <div class="item-row">
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+              <div class="fw-semibold">Room {{ $room->room_number }}</div>
+              <div>
+                @if($room->status==='available')
+                  <span class="badge text-bg-success">Available</span>
+                @elseif($room->status==='occupied')
+                  <span class="badge text-bg-dark">Occupied</span>
+                @else
+                  <span class="badge text-bg-warning">Maintenance</span>
+                @endif
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 small mb-2">
+              <span class="item-chip">Capacity: <strong>{{ $room->capacity }}</strong></span>
+              <span class="item-chip">Slots: <strong>{{ $slotsAvailable }}/{{ $room->capacity }}</strong></span>
+              <span class="item-chip">Price: <strong>₱{{ number_format($room->price, 2) }}</strong></span>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+              <div class="small mb-0">
+                <span class="text-muted me-1">Tenant:</span>
+                @if($room->current_tenant)
+                  <span class="fw-medium">{{ $room->current_tenant->full_name }}</span>
+                  <span class="text-muted">({{ $room->current_tenant->student_id }})</span>
+                @else
+                  <span class="text-muted">No tenant</span>
+                @endif
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <a href="{{ route('landlord.properties.rooms.edit', [$property->id, $room->id]) }}" class="btn btn-sm btn-outline-brand">Edit</a>
+                <form action="{{ route('landlord.properties.rooms.destroy', [$property->id, $room->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this room?');">
+                  @csrf
+                  @method('DELETE')
+                  <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        @empty
+          <div class="text-center text-muted py-4">No rooms yet. <a href="{{ route('landlord.properties.rooms.create', $property->id) }}">Add one</a>.</div>
+        @endforelse
       </div>
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-white"><strong>Active Bookings (Today)</strong></div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Room</th>
-              <th>Student</th>
-              <th>Dates</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($activeBookings as $b)
-              <tr>
-                <td>{{ $b->room->room_number }}</td>
-                <td>{{ $b->student->full_name }}</td>
-                <td>{{ $b->check_in->format('M d, Y') }} → {{ $b->check_out->format('M d, Y') }}</td>
-              </tr>
-            @empty
-              <tr><td colspan="3" class="text-center text-muted py-4">No active bookings today.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 rounded-4 mb-4 panel-card">
+      <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+        <strong>Active Bookings (Today)</strong>
+        <span class="badge text-bg-light border">{{ $activeBookings->count() }}</span>
+      </div>
+      <div class="card-body p-3 pt-0">
+        @forelse($activeBookings as $b)
+          <div class="item-row">
+            <div class="fw-semibold mb-1">Room {{ $b->room->room_number }}</div>
+            <div class="small mb-1"><span class="text-muted">Student:</span> {{ $b->student->full_name }}</div>
+            <div class="small text-muted">{{ $b->check_in->format('M d, Y') }} -> {{ $b->check_out->format('M d, Y') }}</div>
+          </div>
+        @empty
+          <div class="text-center text-muted py-4">No active bookings today.</div>
+        @endforelse
       </div>
     </div>
 
-    <div class="card shadow-sm">
-      <div class="card-header bg-white"><strong>Pending Requests</strong></div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Room</th>
-              <th>Student</th>
-              <th>Dates</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($pendingBookings as $b)
-              <tr>
-                <td>{{ $b->room->room_number }}</td>
-                <td>{{ $b->student->full_name }}</td>
-                <td>{{ $b->check_in->format('M d, Y') }} → {{ $b->check_out->format('M d, Y') }}</td>
-                <td class="text-end">
-                  <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-success">Approve</button></form>
-                  <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-outline-danger">Reject</button></form>
-                </td>
-              </tr>
-            @empty
-              <tr><td colspan="4" class="text-center text-muted py-4">No pending requests.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
+    <div class="card shadow-sm border-0 rounded-4 panel-card">
+      <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+        <strong>Pending Requests</strong>
+        <span class="badge text-bg-light border">{{ $pendingBookings->count() }}</span>
+      </div>
+      <div class="card-body p-3 pt-0">
+        @forelse($pendingBookings as $b)
+          <div class="item-row">
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+              <div class="fw-semibold">Room {{ $b->room->room_number }}</div>
+              <div class="small text-muted">{{ $b->check_in->format('M d, Y') }} -> {{ $b->check_out->format('M d, Y') }}</div>
+            </div>
+            <div class="small mb-3"><span class="text-muted">Student:</span> {{ $b->student->full_name }}</div>
+            <div class="d-flex flex-wrap gap-2">
+              <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-success">Approve</button></form>
+              <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="d-inline">@csrf<button class="btn btn-sm btn-outline-danger">Reject</button></form>
+            </div>
+          </div>
+        @empty
+          <div class="text-center text-muted py-4">No pending requests.</div>
+        @endforelse
       </div>
     </div>
   </div>
+</div>
 </div>
 @endsection
 
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+  .property-overview-shell {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+    border: 1px solid rgba(2,8,20,.08);
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 26px rgba(2,8,20,.06);
+    padding: 1.25rem;
+  }
+  .metric-card {
+    border: 1px solid rgba(2,8,20,.08);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: #fff;
+    box-shadow: 0 6px 16px rgba(2,8,20,.04);
+    text-align: center;
+  }
+  .panel-card .card-body {
+    max-height: 520px;
+    overflow: auto;
+  }
+  .item-row {
+    border: 1px solid rgba(2,8,20,.08);
+    border-radius: .9rem;
+    background: #fff;
+    padding: .8rem;
+  }
+  .item-row + .item-row {
+    margin-top: .65rem;
+  }
+  .item-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    border: 1px solid rgba(2,8,20,.12);
+    background: rgba(248,250,252,.9);
+    border-radius: 999px;
+    padding: .3rem .6rem;
+  }
+</style>
 @endpush
 
 @push('scripts')

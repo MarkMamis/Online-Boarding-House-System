@@ -6,6 +6,7 @@ use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class StudentPropertyController extends Controller
 {
@@ -23,7 +24,9 @@ class StudentPropertyController extends Controller
             $q->orderBy('room_number');
         }])->loadCount([
             'rooms as rooms_total_live',
-            'rooms as rooms_available_live' => function($q){ $q->where('status','available'); },
+            'rooms as rooms_available_live' => function($q){
+                $q->where('status','available')->where('slots_available', '>', 0);
+            },
         ]);
 
         return view('student.properties.show', compact('property'));
@@ -45,7 +48,7 @@ class StudentPropertyController extends Controller
             ->withCount([
                 'rooms as rooms_total_live',
                 'rooms as rooms_available_live' => function ($q) {
-                    $q->where('status', 'available');
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
             ->when($search && $search !== '', function ($q) use ($search) {
@@ -66,25 +69,39 @@ class StudentPropertyController extends Controller
         ));
     }
 
-    public function mapData(): JsonResponse
+    public function mapData(Request $request): JsonResponse
     {
         if (!Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
+        $search = trim((string) $request->query('q', ''));
+
         $properties = Property::query()
             ->where('approval_status', 'approved')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
+                });
+            })
             ->withCount([
                 'rooms as available_rooms' => function ($q) {
-                    $q->where('status', 'available');
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
             ->orderBy('name')
-            ->get(['id', 'name', 'address', 'latitude', 'longitude']);
+            ->get(['id', 'name', 'address', 'latitude', 'longitude', 'image_path', 'price_min', 'price_max']);
 
         $payload = $properties->map(function ($p) {
+            $imagePath = ltrim((string) ($p->image_path ?? ''), '/');
+            $imageExists = $imagePath !== '' && (
+                Storage::disk('public')->exists($imagePath)
+                || file_exists(public_path('storage/' . $imagePath))
+            );
+
             return [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -92,6 +109,9 @@ class StudentPropertyController extends Controller
                 'lat' => (float) $p->latitude,
                 'lng' => (float) $p->longitude,
                 'available_rooms' => (int) ($p->available_rooms ?? 0),
+                'price_min' => $p->price_min !== null ? (float) $p->price_min : null,
+                'price_max' => $p->price_max !== null ? (float) $p->price_max : null,
+                'image_url' => $imageExists ? asset('storage/' . $imagePath) : null,
             ];
         })->values();
 

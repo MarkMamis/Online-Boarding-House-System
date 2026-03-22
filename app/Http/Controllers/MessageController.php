@@ -165,7 +165,7 @@ class MessageController extends Controller
 
             $hasBookingForProperty = \App\Models\Booking::query()
                 ->where('student_id', Auth::id())
-                ->whereIn('status', ['pending', 'approved'])
+                ->whereIn('bookings.status', ['pending', 'approved'])
                 ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
                 ->where('rooms.property_id', $propertyId)
                 ->exists();

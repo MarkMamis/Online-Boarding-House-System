@@ -35,15 +35,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'contact_number',
         'boarding_house_name',
         'role',
+        'is_active',
         'profile_image_path',
         'student_id',
         'course',
+        'gender',
         'year_level',
         'birth_date',
         'address',
         'emergency_contact_name',
         'emergency_contact_number',
         'emergency_contact_relationship',
+        'parent_contact_name',
+        'parent_contact_number',
         'guardian_name',
         'guardian_contact',
         'blood_type',
@@ -73,6 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'birth_date' => 'date',
+            'is_active' => 'boolean',
         ];
     }
 

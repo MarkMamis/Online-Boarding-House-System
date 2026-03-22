@@ -137,6 +137,39 @@
         .card a { color: var(--brand-dark); }
         .card a:hover { color: var(--brand); }
 
+        .gender-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .6rem;
+            margin-top: .25rem;
+        }
+        .gender-option input[type="radio"] { display: none; }
+        .gender-option label {
+            display: block;
+            padding: .5rem .7rem;
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: .5rem;
+            background: rgba(255,255,255,.08);
+            cursor: pointer;
+            transition: all .18s ease;
+            color: rgba(255,255,255,.88);
+            text-align: center;
+            font-weight: 500;
+            margin: 0;
+        }
+        .gender-option input[type="radio"]:checked + label {
+            border-color: var(--brand);
+            background: rgba(var(--brand-rgb), .20);
+            color: #fff;
+            box-shadow: 0 0 0 2px rgba(var(--brand-rgb), .30);
+        }
+        .gender-custom-field { display: none; margin-top: .5rem; }
+        .gender-custom-field.show { display: block; }
+
+        @media (min-width: 768px) {
+            .gender-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
         @media (min-width: 992px) {
             .hero-pane { min-height: 100vh; }
         }
@@ -266,6 +299,31 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-12">
+                                        <label class="form-label">Gender</label>
+                                        <div class="gender-options">
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_male" name="gender" value="Male" {{ old('gender') == 'Male' ? 'checked' : '' }} required>
+                                                <label for="gender_male">Male</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_female" name="gender" value="Female" {{ old('gender') == 'Female' ? 'checked' : '' }} required>
+                                                <label for="gender_female">Female</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_other" name="gender" value="Other" {{ old('gender') == 'Other' ? 'checked' : '' }} required>
+                                                <label for="gender_other">Other</label>
+                                            </div>
+                                            <div class="gender-option">
+                                                <input type="radio" id="gender_rather_not" name="gender" value="Rather not say" {{ old('gender') == 'Rather not say' ? 'checked' : '' }} required>
+                                                <label for="gender_rather_not">Rather not say</label>
+                                            </div>
+                                        </div>
+                                        <div class="gender-custom-field {{ old('gender') == 'Other' ? 'show' : '' }}" id="genderCustomField">
+                                            <input type="text" class="form-control" id="gender_custom" name="gender_custom" placeholder="Please specify" value="{{ old('gender_custom') }}">
+                                        </div>
+                                    </div>
+
                                     <div class="col-12 col-md-6">
                                         <label for="course" class="form-label">Course</label>
                                         <div class="input-group">
@@ -280,11 +338,10 @@
                                             <span class="input-group-text field-icon"><i class="bi bi-123"></i></span>
                                             <select class="form-select" id="year_level" name="year_level" required>
                                                 <option value="" @selected(old('year_level') === null || old('year_level') === '')>Select year level</option>
-                                                <option value="1" @selected(old('year_level') == '1')>1st Year</option>
-                                                <option value="2" @selected(old('year_level') == '2')>2nd Year</option>
-                                                <option value="3" @selected(old('year_level') == '3')>3rd Year</option>
-                                                <option value="4" @selected(old('year_level') == '4')>4th Year</option>
-                                                <option value="5" @selected(old('year_level') == '5')>5th Year</option>
+                                                <option value="1st Year" @selected(old('year_level') == '1st Year')>1st Year</option>
+                                                <option value="2nd Year" @selected(old('year_level') == '2nd Year')>2nd Year</option>
+                                                <option value="3rd Year" @selected(old('year_level') == '3rd Year')>3rd Year</option>
+                                                <option value="4th Year" @selected(old('year_level') == '4th Year')>4th Year</option>
                                             </select>
                                         </div>
                                     </div>
@@ -303,5 +360,31 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const genderOtherRadio = document.getElementById('gender_other');
+            const genderCustomField = document.getElementById('genderCustomField');
+            const genderCustomInput = document.getElementById('gender_custom');
+            const genderRadios = document.querySelectorAll('input[name="gender"]');
+
+            function toggleGenderCustomField() {
+                const isOtherSelected = !!genderOtherRadio?.checked;
+                if (genderCustomField) {
+                    genderCustomField.classList.toggle('show', isOtherSelected);
+                }
+                if (genderCustomInput) {
+                    genderCustomInput.disabled = !isOtherSelected;
+                    genderCustomInput.required = isOtherSelected;
+                    if (!isOtherSelected) genderCustomInput.value = '';
+                }
+            }
+
+            genderRadios.forEach((el) => {
+                el.addEventListener('change', toggleGenderCustomField);
+            });
+
+            toggleGenderCustomField();
+        })();
+    </script>
 </body>
 </html>
