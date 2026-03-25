@@ -20,6 +20,9 @@ class AdminBookingController extends Controller
         $this->ensureAdmin();
 
         $status = $request->query('status');
+        $search = trim((string) $request->query('search', ''));
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
 
         $bookingsQuery = Booking::query()
             ->with(['student', 'room.property.landlord'])
@@ -27,6 +30,43 @@ class AdminBookingController extends Controller
 
         if (is_string($status) && $status !== '') {
             $bookingsQuery->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $bookingsQuery->where(function ($query) use ($search) {
+                if (ctype_digit($search)) {
+                    $query->orWhere('id', (int) $search);
+                }
+
+                $like = '%' . $search . '%';
+
+                $query->orWhereHas('student', function ($studentQuery) use ($like) {
+                    $studentQuery->where('full_name', 'like', $like)
+                        ->orWhere('email', 'like', $like);
+                });
+
+                $query->orWhereHas('room', function ($roomQuery) use ($like) {
+                    $roomQuery->where('room_number', 'like', $like);
+                });
+
+                $query->orWhereHas('room.property', function ($propertyQuery) use ($like) {
+                    $propertyQuery->where('name', 'like', $like)
+                        ->orWhere('address', 'like', $like);
+                });
+
+                $query->orWhereHas('room.property.landlord', function ($landlordQuery) use ($like) {
+                    $landlordQuery->where('full_name', 'like', $like)
+                        ->orWhere('email', 'like', $like);
+                });
+            });
+        }
+
+        if (is_string($dateFrom) && $dateFrom !== '') {
+            $bookingsQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if (is_string($dateTo) && $dateTo !== '') {
+            $bookingsQuery->whereDate('created_at', '<=', $dateTo);
         }
 
         $bookings = $bookingsQuery->paginate(25)->withQueryString();
@@ -46,6 +86,9 @@ class AdminBookingController extends Controller
         return view('admin.bookings.index', compact(
             'bookings',
             'status',
+            'search',
+            'dateFrom',
+            'dateTo',
             'totalBookings',
             'pendingBookings',
             'approvedBookings',

@@ -147,6 +147,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/dashboard/stats', [AuthController::class, 'adminDashboardStats'])->name('admin.dashboard.stats');
 
+    // Admin settings
+    Route::get('/admin/settings', [AuthController::class, 'adminSettings'])->name('admin.settings.edit');
+    Route::put('/admin/settings', [AuthController::class, 'updateAdminSettings'])->name('admin.settings.update');
+
     // Admin user management
     Route::get('/admin/users', [AuthController::class, 'adminUsers'])->name('admin.users.index');
     Route::get('/admin/users/students', [AuthController::class, 'adminUsersByRole'])->name('admin.users.students');

@@ -26,7 +26,7 @@
             content: "";
             position: absolute;
             inset: 0;
-            background-image: url("{{ asset('images/minsu.png') }}");
+            background-image: url("{{ asset('images/MinSU-Calapan.jpg') }}");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -224,7 +224,7 @@
     </style>
     <noscript>
         <style>
-            .auth-wrapper:before { background-image: url("{{ asset('images/minsu.png') }}"); }
+            .auth-wrapper:before { background-image: url("{{ asset('images/MinSU-Calapan.jpg') }}"); }
         </style>
     </noscript>
     <!-- If the image is missing, show a subtle gradient background on the left -->
@@ -232,7 +232,7 @@
         window.addEventListener('load', function(){
             const img = new Image();
             img.onerror = () => document.querySelector('.auth-wrapper')?.classList.add('bg-gradient');
-            img.src = "{{ asset('images/minsu.png') }}";
+            img.src = "{{ asset('images/MinSU-Calapan.jpg') }}";
         });
     </script>
 </head>
@@ -287,7 +287,7 @@
                         <div class="card-body p-4 p-lg-5">
                             <div class="mb-4 text-center">
                                 <h2 class="fw-bold mb-1">Create your account</h2>
-                                <p class="text-muted mb-0">Already have one? <a href="{{ route('login') }}">Sign in</a></p>
+                                <p class="text-muted mb-0">Already have one? <a href="{{ route('login') }}" class="text-white text-decoration-none fw-semibold mb-0">Sign in</a></p>
                             </div>
 
                             @if($errors->any())

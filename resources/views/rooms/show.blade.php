@@ -6,16 +6,37 @@
     <title>Room {{ $room->room_number }} - {{ $room->property->name ?? 'Property' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
     <style>
-        body.room-show-bg { min-height: 100vh; position: relative; }
+        :root {
+            --brand: #15803d;
+            --brand-dark: #166534;
+            --ink: #0f172a;
+            --muted: #64748b;
+            --paper: #f8fafc;
+        }
+
+        body.room-show-bg {
+            min-height: 100vh;
+            position: relative;
+            color: var(--ink);
+            font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        h1, h2, h3, h4, h5, .display-font {
+            font-family: 'Bricolage Grotesque', 'Manrope', system-ui, sans-serif;
+        }
         body.room-show-bg::before {
             content: "";
             position: fixed;
             inset: 0;
-            background-image: url("{{ asset('images/minsu.png') }}");
+            background-image: url("{{ asset('images/MinSU-Calapan.jpg') }}");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            filter: saturate(1.05) contrast(1.04);
             z-index: 0;
             pointer-events: none;
         }
@@ -23,16 +44,91 @@
             content: "";
             position: fixed;
             inset: 0;
-            background: linear-gradient(180deg, rgba(248,249,250,.35), rgba(248,249,250,.82));
+            background:
+                radial-gradient(900px circle at 8% 5%, rgba(22, 101, 52, .28), transparent 60%),
+                linear-gradient(180deg, rgba(248,250,252,.42), rgba(248,250,252,.84));
             z-index: 0;
             pointer-events: none;
         }
         nav, main { position: relative; z-index: 1; }
 
+        .room-main { padding-top: 7.7rem !important; }
+
+        .navbar-green {
+            background: linear-gradient(180deg, #1a5c2e 0%, #2d8a4e 60%, #3aaf65 100%);
+            box-shadow: 0 2px 16px rgba(0,0,0,.30);
+            overflow: visible !important;
+        }
+
+        .navbar-green .nav-link {
+            color: rgba(255,255,255,.92);
+            font-weight: 600;
+            letter-spacing: .01em;
+        }
+
+        .navbar-green .nav-link:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+
+        .navbar-green .navbar-brand {
+            position: relative;
+            padding-left: 86px;
+            margin-left: 0;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .nav-logo-under {
+            position: absolute;
+            left: 0;
+            top: -10px;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-logo-under img {
+            height: 84px;
+            width: 84px;
+            object-fit: contain;
+            margin-bottom: -18px;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,.45));
+        }
+
+        .room-back-btn {
+            border-radius: 999px;
+            border-color: rgba(255,255,255,.42);
+            color: #fff;
+            font-weight: 600;
+            background: rgba(255,255,255,.08);
+        }
+
+        .room-back-btn:hover {
+            background: rgba(255,255,255,.15);
+            border-color: rgba(255,255,255,.56);
+            color: #fff;
+        }
+
+        .section-card {
+            border: 1px solid rgba(15, 23, 42, .10);
+            background: rgba(255,255,255,.86);
+            border-radius: 1rem;
+            box-shadow: 0 18px 36px rgba(2, 8, 20, .10);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            padding: 1.05rem;
+        }
+
         /* Cover */
-        .cover-img { width:100%; height:380px; object-fit:cover; border-radius:1rem; }
+        .cover-img {
+            width:100%;
+            height:410px;
+            object-fit:cover;
+            border-radius:1.1rem;
+            border: 1px solid rgba(15, 23, 42, .09);
+            box-shadow: 0 24px 44px rgba(2, 8, 20, .16);
+        }
         .cover-placeholder {
-            height:380px; background:#f1f3f5; border-radius:1rem;
+            height:410px; background:#f1f3f5; border-radius:1rem;
             display:flex; align-items:center; justify-content:center;
             color:#adb5bd; font-size:.95rem;
         }
@@ -58,7 +154,13 @@
             align-items:center; justify-content:center;
             backdrop-filter:blur(4px);
         }
-        #lightbox img { max-width:min(92vw,900px); max-height:88vh; border-radius:.75rem; box-shadow:0 24px 64px rgba(0,0,0,.5); object-fit:contain; }
+        #lightbox img {
+            width: min(92vw, 1200px);
+            height: min(88vh, 900px);
+            border-radius: .75rem;
+            box-shadow: 0 24px 64px rgba(0,0,0,.5);
+            object-fit: contain;
+        }
         #lightbox .lb-label {
             position:absolute; bottom:2rem; left:50%; transform:translateX(-50%);
             background:rgba(255,255,255,.12); color:#fff;
@@ -75,19 +177,107 @@
         #lightbox .lb-prev { left:1.25rem; } #lightbox .lb-next { right:1.25rem; }
 
         /* Misc */
-        .inclusion-badge { display:inline-flex; align-items:center; gap:.35rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:2rem; padding:.3rem .75rem; font-size:.82rem; color:#475569; font-weight:500; }
-        .stat-block { padding:.75rem; background:#f8fafc; border-radius:.75rem; }
+        .room-info-card {
+            border: 1px solid rgba(15, 23, 42, .08);
+            background: rgba(255,255,255,.88);
+            box-shadow: 0 24px 44px rgba(2, 8, 20, .12);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        .inclusion-badge {
+            display:inline-flex;
+            align-items:center;
+            gap:.35rem;
+            background:#f1f5f9;
+            border:1px solid #e2e8f0;
+            border-radius:2rem;
+            padding:.32rem .75rem;
+            font-size:.82rem;
+            color:#475569;
+            font-weight:500;
+        }
+
+        .stat-block {
+            padding:.78rem;
+            background:#f8fafc;
+            border-radius:.75rem;
+            border: 1px solid rgba(148, 163, 184, .20);
+        }
+
         .stat-block .stat-label { font-size:.72rem; color:#94a3b8; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
         .stat-block .stat-value { font-size:1.1rem; color:#1e293b; font-weight:700; margin-top:.1rem; }
+
+        .book-btn {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            border: 0;
+            box-shadow: 0 12px 24px rgba(22, 101, 52, .26);
+        }
+
+        .book-btn:hover {
+            filter: brightness(.97);
+            transform: translateY(-1px);
+        }
+
+        .stars {
+            display: inline-flex;
+            align-items: center;
+            gap: .08rem;
+            color: #f59e0b;
+        }
+
+        .feedback-item {
+            border: 1px solid rgba(148, 163, 184, .26);
+            border-radius: .85rem;
+            padding: .85rem;
+            background: #fff;
+        }
+
+        .feedback-meta {
+            font-size: .82rem;
+            color: var(--muted);
+        }
+
+        .feedback-comment {
+            margin-top: .45rem;
+            color: #334155;
+            font-size: .94rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-green .navbar-brand {
+                padding-left: 62px;
+                font-size: 1rem;
+            }
+
+            .nav-logo-under {
+                top: -6px;
+            }
+
+            .nav-logo-under img {
+                height: 56px;
+                width: 56px;
+                margin-bottom: -8px;
+            }
+
+            .room-main { padding-top: 6.7rem !important; }
+
+            .cover-img, .cover-placeholder { height: 300px; }
+        }
     </style>
 </head>
 <body class="room-show-bg">
 
-    <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-green fixed-top">
         <div class="container-xl py-2">
-            <a class="navbar-brand fw-bold" href="{{ route('landing') }}">OBHS</a>
+            <a class="navbar-brand" href="{{ route('landing') }}">
+                <span class="nav-logo-under" aria-hidden="true">
+                    <img src="{{ asset('images/minsu3.png') }}" alt="MINSU">
+                </span>
+                Online Boarding House System
+            </a>
             <div class="ms-auto">
-                <a href="{{ route('landing') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+                <a href="{{ route('landing') }}" class="btn room-back-btn btn-sm px-3">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
             </div>
@@ -112,6 +302,11 @@
 
         $inclusions = collect(preg_split('/[\s,;]+/', $room->inclusions ?? ''))->filter()->values();
         $detailPhotos = $room->roomImages ?? collect();
+        $feedbacks = $room->feedbacks ?? collect();
+        $feedbackCount = (int) ($room->feedbacks_count ?? $feedbacks->count());
+        $avgRating = $room->feedbacks_avg_rating !== null
+            ? round((float) $room->feedbacks_avg_rating, 1)
+            : ($feedbackCount > 0 ? round((float) $feedbacks->avg('rating'), 1) : 0);
 
         $statusColors = [
             'available'   => ['bg' => 'text-bg-success', 'icon' => 'bi-check-circle-fill'],
@@ -121,7 +316,7 @@
         $sc = $statusColors[$room->status] ?? ['bg' => 'text-bg-secondary', 'icon' => 'bi-circle'];
     @endphp
 
-    <main class="container-xl py-4 pb-5">
+    <main class="container-xl room-main py-4 pb-5">
 
         {{-- Cover + Info --}}
         <div class="row g-4 align-items-start">
@@ -137,7 +332,7 @@
             </div>
 
             <div class="col-12 col-lg-6">
-                <div class="card border-0 shadow rounded-4">
+                <div class="card border-0 shadow rounded-4 room-info-card">
                     <div class="card-body p-4">
 
                         <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
@@ -167,7 +362,7 @@
                             <div class="col-6">
                                 <div class="stat-block">
                                     <div class="stat-label">Monthly Rent</div>
-                                    <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>₱{{ number_format((float) $room->price, 2) }}</div>
+                                    <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format((float) $room->price, 2) }}</div>
                                 </div>
                             </div>
                             <div class="col-12">
@@ -210,13 +405,13 @@
                             @auth
                                 @if(auth()->user()->role === 'student')
                                     <a href="{{ route('bookings.create', $room->id) }}"
-                                       class="btn btn-success w-100 rounded-pill fw-semibold mt-1">
+                                       class="btn book-btn text-white w-100 rounded-pill fw-semibold mt-1">
                                         <i class="bi bi-calendar-check me-1"></i> Book This Room
                                     </a>
                                 @endif
                             @else
                                 <a href="{{ route('login') }}"
-                                   class="btn btn-success w-100 rounded-pill fw-semibold mt-1">
+                                   class="btn book-btn text-white w-100 rounded-pill fw-semibold mt-1">
                                     <i class="bi bi-calendar-check me-1"></i> Book This Room
                                 </a>
                             @endauth
@@ -231,26 +426,81 @@
             </div>
         </div>
 
-        {{-- Detail Photos --}}
-        @if($detailPhotos->isNotEmpty())
-            <div class="mt-5">
-                <h5 class="fw-bold mb-3"><i class="bi bi-images text-primary me-2"></i>Room Photos</h5>
-                <div class="detail-grid">
-                    @foreach($detailPhotos as $idx => $photo)
-                        <div class="detail-thumb"
-                             onclick="openLightbox({{ $idx }})"
-                             data-src="{{ asset('storage/' . $photo->image_path) }}"
-                             data-label="{{ $photo->label ?? '' }}">
-                            <img src="{{ asset('storage/' . $photo->image_path) }}"
-                                 alt="{{ $photo->label ?? 'Room photo' }}" loading="lazy">
-                            @if(!empty($photo->label))
-                                <div class="thumb-label">{{ $photo->label }}</div>
-                            @endif
+        <div class="row g-4 mt-1">
+            <div class="col-12 col-lg-6">
+                <div class="section-card h-100">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-images text-success me-2"></i>Room Photos</h5>
+                        <span class="badge text-bg-light border">{{ $detailPhotos->count() }} photo{{ $detailPhotos->count() > 1 ? 's' : '' }}</span>
+                    </div>
+                    <div class="text-muted small mb-3">Tap any photo to open gallery view.</div>
+
+                    @if($detailPhotos->isNotEmpty())
+                        <div class="detail-grid">
+                            @foreach($detailPhotos as $idx => $photo)
+                                <div class="detail-thumb"
+                                     onclick="openLightbox({{ $idx }})"
+                                     data-src="{{ asset('storage/' . $photo->image_path) }}"
+                                     data-label="{{ $photo->label ?? '' }}">
+                                    <img src="{{ asset('storage/' . $photo->image_path) }}"
+                                         alt="{{ $photo->label ?? 'Room photo' }}" loading="lazy">
+                                    @if(!empty($photo->label))
+                                        <div class="thumb-label">{{ $photo->label }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                    @else
+                        <div class="text-muted">No room photos uploaded yet.</div>
+                    @endif
                 </div>
             </div>
-        @endif
+
+            <div class="col-12 col-lg-6">
+                <div class="section-card h-100">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1"><i class="bi bi-chat-left-text text-success me-2"></i>Feedback</h5>
+                            <div class="text-muted small">Experiences shared by students who stayed in this room.</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="h5 mb-0">{{ number_format($avgRating, 1) }} <span class="text-muted small">/ 5</span></div>
+                            <div class="stars" aria-label="Average rating">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <i class="bi {{ $i <= round($avgRating) ? 'bi-star-fill' : 'bi-star' }}"></i>
+                                @endfor
+                            </div>
+                            <div class="text-muted small">{{ $feedbackCount }} review{{ $feedbackCount === 1 ? '' : 's' }}</div>
+                        </div>
+                    </div>
+
+                    @if($feedbacks->isNotEmpty())
+                        <div class="row g-2">
+                            @foreach($feedbacks as $feedback)
+                                <div class="col-12">
+                                    <div class="feedback-item h-100">
+                                        <div class="d-flex justify-content-between align-items-start gap-2">
+                                            <div>
+                                                <div class="fw-semibold">{{ $feedback->public_name }}</div>
+                                                <div class="feedback-meta">{{ optional($feedback->created_at)->format('M d, Y') }} • {{ optional($feedback->created_at)->diffForHumans() }}</div>
+                                            </div>
+                                            <div class="stars" aria-label="{{ (int) $feedback->rating }} out of 5">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <i class="bi {{ $i <= (int) $feedback->rating ? 'bi-star-fill' : 'bi-star' }}"></i>
+                                                @endfor
+                                            </div>
+                                        </div>
+                                        <div class="feedback-comment">{{ $feedback->comment }}</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-muted">No feedback yet for this room.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
 
     </main>
 

@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    @stack('styles')
     <style>
         :root {
             --brand:#14532d;
@@ -79,6 +80,11 @@
             background: rgba(167,243,208,.22);
             color: #14532d;
         }
+        .icon-btn.active {
+            background: rgba(167,243,208,.28);
+            color: #14532d;
+            border-color: rgba(20,83,45,.28);
+        }
         .icon-btn-wrap {
             position: relative;
             display: inline-flex;
@@ -114,6 +120,8 @@
 
         .btn-brand { background:var(--brand); border-color:var(--brand); color:#fff; }
         .btn-brand:hover { background:var(--brand-dark); border-color:var(--brand-dark); color:#fff; }
+        .btn-outline-brand { border-color: rgba(20,83,45,.35); color: var(--brand); }
+        .btn-outline-brand:hover { background: rgba(167,243,208,.22); border-color: rgba(20,83,45,.55); color: var(--brand); }
         .badge-brand { background: rgba(22,101,52,.10); border:1px solid rgba(22,101,52,.18); color: var(--brand); }
 
         .sidepanel {
@@ -199,9 +207,103 @@
             justify-content: flex-start;
         }
 
+        .mobile-bottom-nav {
+            display: none;
+        }
+
+        .mobile-top-icons {
+            display: none;
+        }
+
         @media (max-width: 992px){
-            .dash-shell { padding-top:4.2rem; }
+            .dash-shell {
+                padding-top: 4.2rem;
+                padding-bottom: 5.25rem;
+            }
             .main-col { padding: .9rem; }
+            .sidepanel-col { display: none; }
+
+            .mobile-bottom-nav {
+                display: block;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1055;
+                background: rgba(255,255,255,.98);
+                border-top: 1px solid var(--line);
+                box-shadow: 0 -8px 24px rgba(2, 8, 20, .10);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+
+            .mobile-bottom-nav .nav-grid {
+                display: grid;
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+
+            .mobile-bottom-nav .nav-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: .2rem;
+                color: #64748b;
+                width: 100%;
+                padding: .5rem .2rem .45rem;
+                font-size: .67rem;
+                font-weight: 700;
+                text-decoration: none;
+                line-height: 1.05;
+                border: 0;
+                background: transparent;
+            }
+
+            .mobile-bottom-nav .nav-link i {
+                font-size: .98rem;
+            }
+
+            .mobile-bottom-nav .nav-link.active {
+                color: #14532d;
+            }
+
+            .mobile-bottom-nav .home-link i {
+                font-size: 1.15rem;
+            }
+
+            .mobile-top-icons {
+                display: inline-flex;
+                align-items: center;
+                gap: .45rem;
+            }
+
+            .mobile-top-icons .icon-btn {
+                width: 32px;
+                height: 32px;
+            }
+
+            .chatbot-widget {
+                bottom: 5.4rem !important;
+            }
+
+            .chatbot-panel {
+                bottom: 4.1rem !important;
+            }
+
+            .more-list .list-group-item {
+                border: 1px solid rgba(2, 8, 20, .08);
+                border-radius: .75rem;
+                margin-bottom: .5rem;
+                display: flex;
+                align-items: center;
+                gap: .55rem;
+                color: #334155;
+                font-weight: 600;
+            }
+
+            .more-list .list-group-item i {
+                color: #64748b;
+            }
         }
         @media (min-width: 992px) {
             .navbar-glass {
@@ -268,6 +370,22 @@
                 <span>Admin Portal</span>
             </a>
             <div class="d-flex align-items-center gap-3 ms-auto">
+                <div class="mobile-top-icons d-lg-none">
+                    <a @class(['icon-btn', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.reports.')]) href="{{ route('admin.reports.index') }}" title="Reports">
+                        <i class="bi bi-flag"></i>
+                    </a>
+                    <span class="icon-btn-wrap">
+                        <a @class(['icon-btn', 'active' => $routeName === 'notifications.index']) href="{{ route('notifications.index') }}" title="Notifications">
+                            <i class="bi bi-bell"></i>
+                        </a>
+                        @if($notificationsCount > 0)
+                            <span class="icon-btn-badge">{{ $notificationsCount > 99 ? '99+' : $notificationsCount }}</span>
+                        @endif
+                    </span>
+                    <a @class(['icon-btn', 'active' => $routeName === 'admin.settings.edit']) href="{{ route('admin.settings.edit') }}" title="Settings">
+                        <i class="bi bi-gear"></i>
+                    </a>
+                </div>
                 <div class="top-meta d-none d-lg-block text-end">
                     <div>Workspace</div>
                     <div class="fw-semibold">System Administration</div>
@@ -392,6 +510,53 @@
             </div>
         </div>
     </main>
+
+    @php
+        $isUsersRoute = is_string($routeName) && str_starts_with($routeName, 'admin.users.');
+        $isPropertiesRoute = is_string($routeName)
+            && str_starts_with($routeName, 'admin.properties.')
+            && !str_starts_with($routeName, 'admin.properties.pending')
+            && !str_starts_with($routeName, 'admin.properties.approve')
+            && !str_starts_with($routeName, 'admin.properties.reject');
+        $isApprovalsRoute = is_string($routeName)
+            && (
+                str_starts_with($routeName, 'admin.properties.pending')
+                || str_starts_with($routeName, 'admin.properties.approve')
+                || str_starts_with($routeName, 'admin.properties.reject')
+            );
+        $isBookingsRoute = $routeName === 'admin.bookings.index';
+        $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
+        $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
+    @endphp
+
+    <nav class="mobile-bottom-nav d-lg-none" aria-label="Admin mobile navigation">
+        <div class="nav-grid">
+            <a @class(['nav-link', 'active' => $isUsersRoute]) href="{{ route('admin.users.index') }}">
+                <i class="bi bi-people"></i>
+                <span>Users</span>
+            </a>
+            <a @class(['nav-link', 'active' => $isPropertiesRoute]) href="{{ route('admin.properties.index') }}">
+                <i class="bi bi-buildings"></i>
+                <span>Properties</span>
+            </a>
+            <a @class(['nav-link', 'home-link', 'active' => $routeName === 'admin.dashboard']) href="{{ route('admin.dashboard') }}">
+                <i class="bi bi-house-door"></i>
+                <span>Home</span>
+            </a>
+            <a @class(['nav-link', 'active' => $isApprovalsRoute]) href="{{ route('admin.properties.pending') }}">
+                <i class="bi bi-check2-circle"></i>
+                <span>Approvals</span>
+            </a>
+            <a @class(['nav-link', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
+                <i class="bi bi-journal-check"></i>
+                <span>Bookings</span>
+            </a>
+            <a @class(['nav-link', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Onboardings</span>
+            </a>
+        </div>
+    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <x-toast />

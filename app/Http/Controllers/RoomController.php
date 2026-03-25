@@ -343,7 +343,14 @@ class RoomController extends Controller
             'property:id,name,address,landlord_id,image_path,approval_status',
             'property.landlord:id,full_name',
             'roomImages',
+            'feedbacks' => function ($query) {
+                $query->with('user:id,full_name')
+                    ->latest()
+                    ->take(8);
+            },
         ]);
+
+        $room->loadCount('feedbacks')->loadAvg('feedbacks', 'rating');
 
         if (($room->property->approval_status ?? 'pending') !== 'approved') {
             abort(404);

@@ -85,7 +85,7 @@
             content: "";
             position: absolute;
             inset: 0;
-            background: url("{{ asset('images/minsu.png') }}") center/cover no-repeat;
+            background: url("{{ asset('images/MinSU-Calapan.jpg') }}") center/cover no-repeat;
             opacity: .35;
             filter: saturate(1.05) contrast(1.1);
         }

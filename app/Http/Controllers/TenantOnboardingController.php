@@ -306,15 +306,73 @@ Date: " . ($onboarding->contract_signed_at ? $onboarding->contract_signed_at->fo
     }
 
     // Admin: view all onboardings
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
         $this->ensureAdmin();
 
-        $onboardings = TenantOnboarding::with('booking.student', 'booking.room.property.landlord')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $status = strtolower((string) $request->query('status', 'all'));
+        $search = trim((string) $request->query('search', ''));
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
 
-        return view('admin.onboardings.index', compact('onboardings'));
+        $query = TenantOnboarding::with('booking.student', 'booking.room.property.landlord')
+            ->orderBy('created_at', 'desc');
+
+        if ($status === 'active') {
+            $query->whereIn('status', [
+                'documents_uploaded',
+                'documents_approved',
+                'contract_signed',
+                'deposit_paid',
+            ]);
+        } elseif ($status === 'pending') {
+            $query->where('status', 'pending');
+        } elseif ($status === 'completed') {
+            $query->where('status', 'completed');
+        } else {
+            $status = 'all';
+        }
+
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                if (ctype_digit($search)) {
+                    $inner->orWhere('id', (int) $search);
+                }
+
+                $like = '%' . $search . '%';
+
+                $inner->orWhere('status', 'like', $like)
+                    ->orWhere('digital_id', 'like', $like)
+                    ->orWhereHas('booking.student', function ($studentQuery) use ($like) {
+                        $studentQuery->where('full_name', 'like', $like)
+                            ->orWhere('student_id', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    })
+                    ->orWhereHas('booking.room', function ($roomQuery) use ($like) {
+                        $roomQuery->where('room_number', 'like', $like);
+                    })
+                    ->orWhereHas('booking.room.property', function ($propertyQuery) use ($like) {
+                        $propertyQuery->where('name', 'like', $like)
+                            ->orWhere('address', 'like', $like);
+                    })
+                    ->orWhereHas('booking.room.property.landlord', function ($landlordQuery) use ($like) {
+                        $landlordQuery->where('full_name', 'like', $like)
+                            ->orWhere('email', 'like', $like);
+                    });
+            });
+        }
+
+        if (is_string($dateFrom) && $dateFrom !== '') {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if (is_string($dateTo) && $dateTo !== '') {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $onboardings = $query->paginate(20)->withQueryString();
+
+        return view('admin.onboardings.index', compact('onboardings', 'status', 'search', 'dateFrom', 'dateTo'));
     }
 
     // Admin: view active onboardings
@@ -322,7 +380,12 @@ Date: " . ($onboarding->contract_signed_at ? $onboarding->contract_signed_at->fo
     {
         $this->ensureAdmin();
 
-        $onboardings = TenantOnboarding::whereNotIn('status', ['completed', 'cancelled'])
+        $onboardings = TenantOnboarding::whereIn('status', [
+                'documents_uploaded',
+                'documents_approved',
+                'contract_signed',
+                'deposit_paid',
+            ])
             ->with('booking.student', 'booking.room.property.landlord')
             ->orderBy('created_at', 'desc')
             ->paginate(20);

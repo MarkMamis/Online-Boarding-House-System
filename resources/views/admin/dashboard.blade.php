@@ -140,10 +140,12 @@
         .kpi a { color: inherit; }
 
         .section-card {
+            position: relative;
             border: 1px solid var(--line);
             border-radius: 18px;
             background: var(--card);
             box-shadow: 0 14px 30px rgba(15, 23, 42, .06);
+            overflow: hidden;
         }
 
         .section-card .card-header {
@@ -164,7 +166,18 @@
             border-radius: 999px;
         }
 
-        .chart-wrap { height: 285px; }
+        .chart-wrap {
+            position: relative;
+            height: 300px;
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: 16px;
+            padding: .65rem;
+            background:
+                radial-gradient(560px 180px at 100% 0%, rgba(14, 165, 233, .10), transparent 58%),
+                radial-gradient(420px 160px at 0% 100%, rgba(22, 101, 52, .09), transparent 60%),
+                linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(248, 250, 252, .88));
+        }
+
         .chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
         .status-chip {
@@ -268,7 +281,7 @@
         @media (max-width: 575.98px) {
             .hero-actions { width: 100%; }
             .hero-actions .btn { flex: 1 1 auto; }
-            .chart-wrap { height: 245px; }
+            .chart-wrap { height: 250px; padding: .45rem; }
         }
     </style>
 
@@ -701,34 +714,61 @@
                 if (el) el.textContent = text;
             };
 
-            const buildLine = (ctx, labels, data) => new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'New users',
-                        data,
-                        borderColor: colors.brand,
-                        backgroundColor: colors.brandSoft,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: 2,
-                        pointHoverRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { intersect: false, mode: 'index' },
+            const buildLine = (ctx, labels, data) => {
+                const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+                gradient.addColorStop(0, 'rgba(21,128,61,.34)');
+                gradient.addColorStop(1, 'rgba(21,128,61,.03)');
+
+                return new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'New users',
+                            data,
+                            borderColor: colors.brand,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.42,
+                            borderWidth: 2.75,
+                            pointRadius: 2.5,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: colors.brand,
+                            pointBorderWidth: 2,
+                        }]
                     },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 10, color: colors.gray } },
-                        y: { beginAtZero: true, ticks: { precision: 0, color: colors.gray } }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 900, easing: 'easeOutQuart' },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                intersect: false,
+                                mode: 'index',
+                                backgroundColor: 'rgba(2,8,20,.86)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#f8fafc',
+                                padding: 10,
+                                cornerRadius: 10,
+                                displayColors: false
+                            },
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { maxTicksLimit: 10, color: colors.gray, padding: 8, font: { size: 11 } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0, color: colors.gray, padding: 8, font: { size: 11 } },
+                                grid: { color: 'rgba(148,163,184,0.22)', drawBorder: false }
+                            }
+                        }
                     }
-                }
-            });
+                });
+            };
 
             const initLandlordMap = () => {
                 const mapEl = document.getElementById('adminLandlordMap');
@@ -780,17 +820,92 @@
                     datasets: [{
                         data,
                         backgroundColor: palette,
-                        borderWidth: 1,
-                        borderColor: 'rgba(255,255,255,1)'
+                        borderWidth: 2,
+                        borderColor: 'rgba(255,255,255,0.95)',
+                        hoverOffset: 10,
+                        spacing: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '68%',
+                    animation: { duration: 900, easing: 'easeOutQuart' },
+                    cutout: '70%',
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, color: colors.gray } },
-                        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}` } }
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                color: colors.gray,
+                                padding: 12,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}` },
+                            backgroundColor: 'rgba(2,8,20,.86)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#f8fafc',
+                            padding: 10,
+                            cornerRadius: 10
+                        }
+                    }
+                }
+            });
+
+            const buildPolar = (ctx, labels, data, palette) => new Chart(ctx, {
+                type: 'polarArea',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: palette,
+                        borderWidth: 2,
+                        borderColor: 'rgba(255,255,255,0.95)',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 950, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                color: colors.gray,
+                                padding: 12,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}` },
+                            backgroundColor: 'rgba(2,8,20,.86)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#f8fafc',
+                            padding: 10,
+                            cornerRadius: 10
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                color: colors.gray,
+                                backdropColor: 'rgba(255,255,255,.72)',
+                                font: { size: 10 }
+                            },
+                            grid: { color: 'rgba(148,163,184,0.22)' },
+                            angleLines: { color: 'rgba(148,163,184,0.16)' }
+                        }
                     }
                 }
             });
@@ -800,20 +915,64 @@
                 data: {
                     labels,
                     datasets: [
-                        { label: 'Approved', data: approved, backgroundColor: colors.tealSoft, borderColor: colors.teal, borderWidth: 1 },
-                        { label: 'Rejected', data: rejected, backgroundColor: colors.dangerSoft, borderColor: colors.danger, borderWidth: 1 },
+                        {
+                            label: 'Approved',
+                            data: approved,
+                            backgroundColor: 'rgba(21,128,61,.32)',
+                            borderColor: colors.teal,
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            maxBarThickness: 18
+                        },
+                        {
+                            label: 'Rejected',
+                            data: rejected,
+                            backgroundColor: 'rgba(220,38,38,.24)',
+                            borderColor: colors.danger,
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            maxBarThickness: 18
+                        },
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: { duration: 850, easing: 'easeOutQuart' },
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, color: colors.gray } },
-                        tooltip: { intersect: false, mode: 'index' }
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                color: colors.gray,
+                                padding: 12,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            intersect: false,
+                            mode: 'index',
+                            backgroundColor: 'rgba(2,8,20,.86)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#f8fafc',
+                            padding: 10,
+                            cornerRadius: 10
+                        }
                     },
                     scales: {
-                        x: { stacked: false, grid: { display: false }, ticks: { maxTicksLimit: 10, color: colors.gray } },
-                        y: { beginAtZero: true, ticks: { precision: 0, color: colors.gray } }
+                        x: {
+                            stacked: false,
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 10, color: colors.gray, padding: 8, font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, padding: 8, font: { size: 11 } },
+                            grid: { color: 'rgba(148,163,184,0.22)', drawBorder: false }
+                        }
                     }
                 }
             });
@@ -839,7 +998,7 @@
 
                     if (bookCtx) {
                         const bs = stats.bookingStatus || {};
-                        buildDoughnut(bookCtx,
+                        buildPolar(bookCtx,
                             ['Pending', 'Approved', 'Rejected', 'Cancelled'],
                             [bs.pending || 0, bs.approved || 0, bs.rejected || 0, bs.cancelled || 0],
                             [

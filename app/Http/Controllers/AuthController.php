@@ -394,17 +394,39 @@ class AuthController extends Controller
         ]);
     }
 
-    public function adminUsers()
+    public function adminUsers(Request $request)
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        $users = User::with('landlordProfile')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $search = trim((string) $request->query('search', ''));
+        $roleFilter = strtolower((string) $request->query('role', 'all'));
 
-        return view('admin.users.index', compact('users'));
+        $users = User::with('landlordProfile')
+            ->whereIn('role', ['student', 'landlord'])
+            ->orderBy('created_at', 'desc')
+            ->when($roleFilter === 'student' || $roleFilter === 'landlord', function ($query) use ($roleFilter) {
+                $query->where('role', $roleFilter);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%' . $search . '%';
+                $query->where(function ($inner) use ($like, $search) {
+                    if (ctype_digit($search)) {
+                        $inner->orWhere('id', (int) $search)
+                            ->orWhere('student_id', 'like', $like);
+                    }
+
+                    $inner->orWhere('full_name', 'like', $like)
+                        ->orWhere('name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('contact_number', 'like', $like);
+                });
+            })
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.users.index', compact('users', 'search', 'roleFilter'));
     }
 
     public function adminUsersByRole(Request $request)
@@ -877,6 +899,70 @@ class AuthController extends Controller
         }
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function adminSettings()
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $user = Auth::user();
+        return view('admin.settings.edit', compact('user'));
+    }
+
+    public function updateAdminSettings(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'contact_number' => 'nullable|string|max:20',
+            'current_password' => 'nullable|required_with:new_password',
+            'new_password' => 'nullable|min:8|confirmed',
+        ]);
+
+        try {
+            if ($validator->fails()) {
+                return back()->withErrors($validator)->withInput();
+            }
+        } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
+            return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
+        }
+
+        $user->update([
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'contact_number' => $request->contact_number,
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            if (!empty($user->profile_image_path)) {
+                Storage::disk('public')->delete($user->profile_image_path);
+            }
+
+            try {
+                $user->profile_image_path = str_replace('\\', '/', $request->file('profile_image')->store('profiles', 'public'));
+                $user->save();
+            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
+                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
+            }
+        }
+
+        if ($request->filled('new_password')) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+            }
+            $user->update(['password' => Hash::make($request->new_password)]);
+        }
+
+        return back()->with('success', 'Admin settings updated successfully.');
     }
 
     public function studentDashboard(Request $request)

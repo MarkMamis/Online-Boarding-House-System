@@ -26,7 +26,7 @@
             content: "";
             position: absolute;
             inset: 0;
-            background-image: url("{{ asset('images/minsu.png') }}");
+            background-image: url("{{ asset('images/MinSU-Calapan.jpg') }}");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -135,14 +135,14 @@
     </style>
     <noscript>
         <style>
-            .auth-wrapper:before { background-image: url("{{ asset('images/minsu.png') }}"); }
+            .auth-wrapper:before { background-image: url("{{ asset('images/MinSU-Calapan.jpg') }}"); }
         </style>
     </noscript>
     <script>
         window.addEventListener('load', function(){
             const img = new Image();
             img.onerror = () => document.querySelector('.auth-wrapper')?.classList.add('bg-gradient');
-            img.src = "{{ asset('images/minsu.png') }}";
+            img.src = "{{ asset('images/MinSU-Calapan.jpg') }}";
         });
     </script>
 </head>
@@ -196,9 +196,8 @@
                     <div class="card rounded-4">
                         <div class="card-body p-4 p-lg-5">
                             <div class="mb-4 text-center">
-                                <div class="auth-logo mb-3"><i class="bi bi-shield-lock"></i></div>
                                 <h2 class="fw-bold mb-1">Sign in</h2>
-                                <p class="text-muted mb-0">New here? <a href="{{ route('register') }}">Create an account</a></p>
+                                <p class="text-muted mb-0">New here? <a href="{{ route('register') }}" class="text-white text-decoration-none fw-semibold mb-0">Create an account</a></p>
                             </div>
 
                             @if(session('success'))
@@ -241,7 +240,7 @@
                                             <input class="form-check-input" type="checkbox" id="remember" name="remember">
                                             <label class="form-check-label" for="remember">Remember me</label>
                                         </div>
-                                        <a class="small" href="#" onclick="return false;">Forgot password?</a>
+                                        <a class="small text-white text-decoration-none" href="#" onclick="return false; ">Forgot password?</a>
                                     </div>
 
                                     <div class="col-12 mt-2">
