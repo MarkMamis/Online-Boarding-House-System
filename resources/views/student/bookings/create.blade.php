@@ -135,15 +135,178 @@
     /* ── Confirmation Modal ── */
     .bk-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9998; }
     .bk-confirm-modal.active { display: flex; align-items: center; justify-content: center; }
-    .bk-confirm-content { background: #fff; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }
-    .bk-confirm-header { background: linear-gradient(135deg, #166534 0%, #4ade80 100%); color: #fff; padding: 1.5rem; }
-    .bk-confirm-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
-    .bk-confirm-body { padding: 1.5rem; }
-    .bk-confirm-row { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid #f0f0f0; }
+    .bk-confirm-content {
+        background: #fff;
+        border-radius: 18px;
+        max-width: 980px;
+        width: 94%;
+        max-height: 92vh;
+        box-shadow: 0 24px 70px rgba(2,8,20,.28);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .bk-confirm-header {
+        background: #fff;
+        color: #0f172a;
+        padding: 1.15rem 1.5rem;
+        flex-shrink: 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .bk-confirm-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: .01em;
+    }
+    .bk-confirm-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+    .bk-confirm-shell {
+        display: grid;
+        grid-template-columns: 1.15fr .85fr;
+        gap: 1.25rem;
+    }
+    .bk-confirm-col {
+        border: 1px solid rgba(2,8,20,.1);
+        border-radius: 20px;
+        background: #fff;
+        padding: 1.2rem;
+        box-shadow: 0 4px 24px rgba(22,101,52,.08);
+    }
+    .bk-detail-head {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 14px;
+        padding: .8rem .9rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        margin-bottom: .9rem;
+    }
+    .bk-detail-head-title {
+        font-size: .98rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .bk-detail-head-sub {
+        margin-top: .2rem;
+        font-size: .78rem;
+        color: rgba(2,8,20,.55);
+        line-height: 1.35;
+    }
+    .bk-detail-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .55rem;
+    }
+    .bk-detail-item {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 12px;
+        background: #fff;
+        padding: .62rem .72rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .6rem;
+    }
+    .bk-detail-item .bk-confirm-label {
+        margin: 0;
+        color: rgba(2,8,20,.55);
+        font-size: .8rem;
+        font-weight: 600;
+    }
+    .bk-detail-item .bk-confirm-value {
+        margin: 0;
+        font-size: .92rem;
+        font-weight: 700;
+        color: #0f172a;
+        text-align: right;
+    }
+    .bk-confirm-panel-title {
+        font-size: .95rem;
+        color: #0f172a;
+        font-weight: 700;
+        margin-bottom: .85rem;
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+    }
+    .bk-confirm-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .7rem 0;
+        border-bottom: 1px solid rgba(2,8,20,.08);
+        font-size: .88rem;
+    }
     .bk-confirm-row:last-child { border-bottom: none; }
-    .bk-confirm-label { font-size: .85rem; color: #6b7280; font-weight: 600; }
-    .bk-confirm-value { font-size: .95rem; color: #0f172a; font-weight: 700; }
-    .bk-confirm-footer { background: #f9fafb; padding: 1.25rem 1.5rem; display: flex; gap: 1rem; justify-content: flex-end; }
+    .bk-confirm-label { color: rgba(2,8,20,.5); font-weight: 500; }
+    .bk-confirm-value { color: #0f172a; font-weight: 600; }
+    .bk-confirm-price {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: .85rem;
+    }
+    .bk-confirm-price span {
+        font-size: .9rem;
+        font-weight: 400;
+        color: rgba(2,8,20,.45);
+    }
+    .bk-confirm-edit-box {
+        margin-top: .9rem;
+        padding: .9rem;
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 14px;
+        background: #fff;
+    }
+    .bk-confirm-edit-title {
+        font-size: .84rem;
+        font-weight: 700;
+        color: rgba(2,8,20,.55);
+        margin-bottom: .65rem;
+    }
+    .bk-plan-options {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .5rem;
+    }
+    .bk-plan-option {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        padding: .55rem .7rem;
+        border: 1px solid rgba(2,8,20,.14);
+        border-radius: 10px;
+        background: #fff;
+        font-size: .84rem;
+    }
+    .bk-plan-option input[type="radio"],
+    .bk-plan-option input[type="checkbox"] {
+        accent-color: var(--brand);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .bk-confirm-info {
+        margin-top: 1rem;
+        padding-top: .85rem;
+        border-top: 1px solid #e5e7eb;
+        font-size: .78rem;
+        color: #94a3b8;
+        display: flex;
+        gap: .5rem;
+        align-items: flex-start;
+    }
+    .bk-confirm-footer {
+        background: #f9fafb;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        flex-shrink: 0;
+        border-top: 1px solid #e5e7eb;
+    }
     .bk-confirm-cancel { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 8px; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s; }
     .bk-confirm-cancel:hover { background: #e5e7eb; }
     .bk-confirm-submit { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .2s; }
@@ -201,6 +364,11 @@
         .bk-date-col:first-child { border-right: none; border-bottom: 1px solid #d1d5db; }
         .bk-rules { font-size: .8rem; }
         .bk-rules-title { font-size: .88rem; }
+        .bk-confirm-modal.active { align-items: flex-start; padding: 1rem 0; }
+        .bk-confirm-content { width: 94%; max-height: 94vh; }
+        .bk-confirm-shell { grid-template-columns: 1fr; }
+        .bk-confirm-body { padding: 1rem; }
+        .bk-confirm-footer { padding: 1rem; }
     }
 </style>
 @endpush
@@ -328,6 +496,8 @@
                     <input type="hidden" name="check_in"             id="fCheckIn"  value="{{ old('check_in') }}">
                     <input type="hidden" name="check_out"            id="fCheckOut" value="{{ old('check_out') }}">
                     <input type="hidden" name="notes"                id="fNotes"    value="{{ old('notes') }}">
+                    <input type="hidden" name="include_advance_payment" id="fIncludeAdvance" value="{{ old('include_advance_payment', '0') }}">
+                    <input type="hidden" name="occupancy_mode" id="fOccupancyMode" value="{{ old('occupancy_mode', 'solo') }}">
                     <input type="hidden" name="agreed_to_contract"   value="1">
                 </form>
 
@@ -374,21 +544,43 @@
                         ₱{{ number_format($room->price, 0) }}<span>/month</span>
                     </div>
 
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-2" style="font-size:.84rem;">Occupancy Option</div>
+                        <div class="d-flex flex-column gap-2" style="font-size:.82rem;">
+                            <label class="d-flex align-items-center gap-2">
+                                <input type="radio" name="occupancy_mode_display" value="solo" {{ old('occupancy_mode', 'solo') === 'solo' ? 'checked' : '' }}>
+                                <span>Solo occupancy</span>
+                            </label>
+                            @if((int) $room->capacity > 1)
+                                <label class="d-flex align-items-center gap-2">
+                                    <input type="radio" name="occupancy_mode_display" value="shared" {{ old('occupancy_mode') === 'shared' ? 'checked' : '' }}>
+                                    <span>Open vacancy (shared) - rent split by capacity ({{ (int) $room->capacity }})</span>
+                                </label>
+                            @endif
+                        </div>
+                    </div>
+
                     <div class="bk-summary-row">
                         <span class="label">Monthly Rent</span>
-                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
+                        <span class="val" id="summaryMonthlyRent">₱{{ number_format($room->price, 0) }}</span>
                     </div>
                     <div class="bk-summary-row">
                         <span class="label">1 Month Advance</span>
-                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
-                    </div>
-                    <div class="bk-summary-row">
-                        <span class="label">Security Deposit</span>
-                        <span class="val">₱{{ number_format($room->price, 0) }}</span>
+                        <span class="val" id="summaryAdvance">₱{{ number_format($room->price, 0) }}</span>
                     </div>
                     <div class="bk-summary-row bk-summary-total">
                         <span>Move-in Total</span>
-                        <span>₱{{ number_format($room->price * 2, 0) }}</span>
+                        <span id="summaryMoveInTotal">₱{{ number_format($room->price, 0) }}</span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="includeAdvanceDisplay" {{ old('include_advance_payment', '0') === '1' ? 'checked' : '' }}>
+                        <label class="form-check-label" for="includeAdvanceDisplay" style="font-size:.83rem;color:rgba(2,8,20,.72);">
+                            Include 1 month advance in move-in payment
+                        </label>
+                    </div>
+                    <div style="font-size:.76rem;color:rgba(2,8,20,.52);margin-top:.25rem;">
+                        You can choose to pay advance now or pay it later based on your arrangement with the landlord.
                     </div>
 
                     <hr class="bk-summary-divider">
@@ -433,38 +625,76 @@
 <div class="bk-confirm-modal" id="confirmModal">
     <div class="bk-confirm-content">
         <div class="bk-confirm-header">
-            <h5 class="bk-confirm-title"><i class="bi bi-check2-circle me-2"></i>Confirm Your Booking</h5>
+            <h5 class="bk-confirm-title"><i class="bi bi-check2-circle me-2" style="color:#166534;"></i>Confirm Your Booking</h5>
         </div>
         <div class="bk-confirm-body">
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Room</span>
-                <span class="bk-confirm-value" id="confirmRoom">—</span>
-            </div>
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Property</span>
-                <span class="bk-confirm-value" id="confirmProperty">—</span>
-            </div>
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Check-in</span>
-                <span class="bk-confirm-value" id="confirmCheckin">—</span>
-            </div>
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Check-out</span>
-                <span class="bk-confirm-value" id="confirmCheckout">—</span>
-            </div>
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Duration</span>
-                <span class="bk-confirm-value" id="confirmDuration">—</span>
-            </div>
-            <div class="bk-confirm-row">
-                <span class="bk-confirm-label">Price / Month</span>
-                <span class="bk-confirm-value" id="confirmPrice">—</span>
-            </div>
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #f0f0f0;">
-                <div style="font-size: .75rem; color: #9ca3af; display: flex; gap: .5rem; align-items: flex-start;">
-                    <i class="bi bi-info-circle" style="flex-shrink: 0; margin-top: .1rem;"></i>
-                    <span>Your booking request will be reviewed by the landlord. You won't be charged until approved.</span>
+            <div class="bk-confirm-shell">
+                <div class="bk-confirm-col">
+                    <div class="bk-confirm-panel-title"><i class="bi bi-file-earmark-text"></i>Booking Details</div>
+                    <div class="bk-detail-head">
+                        <div class="bk-detail-head-title" id="confirmRoom">—</div>
+                        <div class="bk-detail-head-sub" id="confirmProperty">—</div>
+                    </div>
+                    <div class="bk-detail-grid">
+                        <div class="bk-detail-item">
+                            <p class="bk-confirm-label"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in</p>
+                            <p class="bk-confirm-value" id="confirmCheckin">—</p>
+                        </div>
+                        <div class="bk-detail-item">
+                            <p class="bk-confirm-label"><i class="bi bi-box-arrow-right me-1"></i>Check-out</p>
+                            <p class="bk-confirm-value" id="confirmCheckout">—</p>
+                        </div>
+                        <div class="bk-detail-item">
+                            <p class="bk-confirm-label"><i class="bi bi-moon me-1"></i>Duration</p>
+                            <p class="bk-confirm-value" id="confirmDuration">—</p>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="bk-confirm-col">
+                    <div class="bk-confirm-panel-title"><i class="bi bi-wallet2"></i>Plan & Payment</div>
+                    <div class="bk-confirm-price" id="confirmPriceHero">—<span>/month</span></div>
+                    <div class="bk-confirm-row">
+                        <span class="bk-confirm-label">Monthly Rent</span>
+                        <span class="bk-confirm-value" id="confirmPrice">—</span>
+                    </div>
+                    <div class="bk-confirm-row">
+                        <span class="bk-confirm-label">Occupancy</span>
+                        <span class="bk-confirm-value" id="confirmOccupancy">—</span>
+                    </div>
+                    <div class="bk-confirm-row">
+                        <span class="bk-confirm-label">Advance Payment</span>
+                        <span class="bk-confirm-value" id="confirmAdvanceOption">—</span>
+                    </div>
+                    <div class="bk-confirm-row">
+                        <span class="bk-confirm-label">Move-in Total</span>
+                        <span class="bk-confirm-value" id="confirmMoveInTotal">—</span>
+                    </div>
+
+                    <div class="bk-confirm-edit-box">
+                        <div class="bk-confirm-edit-title">Booking Options (Editable)</div>
+                        <div class="bk-plan-options">
+                            <label class="bk-plan-option">
+                                <input type="radio" name="confirm_occupancy_mode" value="solo">
+                                <span>Solo occupancy plan</span>
+                            </label>
+                            @if((int) $room->capacity > 1)
+                            <label class="bk-plan-option">
+                                <input type="radio" name="confirm_occupancy_mode" value="shared">
+                                <span>Shared occupancy plan (split by capacity {{ (int) $room->capacity }})</span>
+                            </label>
+                            @endif
+                            <label class="bk-plan-option">
+                                <input type="checkbox" id="confirmIncludeAdvance">
+                                <span>Include 1 month advance in move-in total</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bk-confirm-info">
+                <i class="bi bi-info-circle" style="flex-shrink: 0; margin-top: .1rem;"></i>
+                <span>Your booking request will be reviewed by the landlord. You won't be charged until approved.</span>
             </div>
         </div>
         <div class="bk-confirm-footer">
@@ -482,18 +712,82 @@
 
 @push('scripts')
 <script>
+    const baseMonthlyRent = {{ (float) $room->price }};
+    const roomCapacity = Math.max(1, {{ (int) $room->capacity }});
+
+    function peso(amount) {
+        return '₱' + new Intl.NumberFormat('en-PH', {
+            minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function selectedOccupancyMode() {
+        const selected = document.querySelector('input[name="occupancy_mode_display"]:checked');
+        return selected ? selected.value : 'solo';
+    }
+
+    function computedMonthlyRent() {
+        const mode = selectedOccupancyMode();
+        if (mode === 'shared') {
+            return Math.round((baseMonthlyRent / roomCapacity) * 100) / 100;
+        }
+        return baseMonthlyRent;
+    }
+
+    function syncAdvanceOption() {
+        const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
+        const includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
+        const monthlyRent = computedMonthlyRent();
+        const advanceAmount = includeAdvance ? monthlyRent : 0;
+        const moveInTotal = monthlyRent + advanceAmount;
+
+        const fOccupancyMode = document.getElementById('fOccupancyMode');
+        if (fOccupancyMode) {
+            fOccupancyMode.value = selectedOccupancyMode();
+        }
+
+        const fIncludeAdvance = document.getElementById('fIncludeAdvance');
+        if (fIncludeAdvance) {
+            fIncludeAdvance.value = includeAdvance ? '1' : '0';
+        }
+
+        const summaryMonthlyRent = document.getElementById('summaryMonthlyRent');
+        const summaryAdvance = document.getElementById('summaryAdvance');
+        const summaryMoveInTotal = document.getElementById('summaryMoveInTotal');
+        if (summaryMonthlyRent) summaryMonthlyRent.textContent = peso(monthlyRent);
+        if (summaryAdvance) summaryAdvance.textContent = peso(advanceAmount);
+        if (summaryMoveInTotal) summaryMoveInTotal.textContent = peso(moveInTotal);
+    }
+
     function syncDates() {
         const ci = document.getElementById('checkInDisplay').value;
-        const co = document.getElementById('checkOutDisplay').value;
+        const checkOutInput = document.getElementById('checkOutDisplay');
+        let co = checkOutInput.value;
 
         document.getElementById('fCheckIn').value  = ci;
-        document.getElementById('fCheckOut').value = co;
 
         if (ci) {
             const next = new Date(ci);
             next.setDate(next.getDate() + 1);
-            document.getElementById('checkOutDisplay').min = next.toISOString().split('T')[0];
+            checkOutInput.min = next.toISOString().split('T')[0];
+
+            // Auto-fill checkout to one month after check-in when empty.
+            if (!co) {
+                const defaultCheckout = new Date(ci + 'T00:00:00');
+                defaultCheckout.setMonth(defaultCheckout.getMonth() + 1);
+                co = defaultCheckout.toISOString().split('T')[0];
+                checkOutInput.value = co;
+            }
+
+            // If selected checkout is earlier than min, correct it to min valid date.
+            if (co && co < checkOutInput.min) {
+                co = checkOutInput.min;
+                checkOutInput.value = co;
+            }
         }
+
+        document.getElementById('fCheckOut').value = co;
 
         const fmt = d => d
             ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'})
@@ -551,10 +845,70 @@
         document.getElementById('confirmCheckin').textContent = fmt(ci);
         document.getElementById('confirmCheckout').textContent = fmt(co);
         document.getElementById('confirmDuration').textContent = durationText;
-        document.getElementById('confirmPrice').textContent = '₱' + new Intl.NumberFormat('en-PH').format({{ $room->price }});
+        const monthlyRent = computedMonthlyRent();
+        document.getElementById('confirmPrice').textContent = peso(monthlyRent);
+        const confirmPriceHero = document.getElementById('confirmPriceHero');
+        if (confirmPriceHero) {
+            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span>/month</span>`;
+        }
+        document.getElementById('confirmOccupancy').textContent = selectedOccupancyMode() === 'shared' ? 'Open vacancy (shared)' : 'Solo occupancy';
+
+        const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
+        const includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
+        const advanceAmount = includeAdvance ? monthlyRent : 0;
+        const moveInTotal = monthlyRent + advanceAmount;
+        document.getElementById('confirmAdvanceOption').textContent = includeAdvance ? 'Included' : 'Not included';
+        document.getElementById('confirmMoveInTotal').textContent = peso(moveInTotal);
+
+        syncConfirmControls();
 
         // Show modal
         document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function syncConfirmControls() {
+        const mainOccupancy = selectedOccupancyMode();
+        const confirmOccupancy = document.querySelector(`input[name="confirm_occupancy_mode"][value="${mainOccupancy}"]`);
+        if (confirmOccupancy) {
+            confirmOccupancy.checked = true;
+        }
+
+        const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
+        const confirmIncludeAdvance = document.getElementById('confirmIncludeAdvance');
+        if (confirmIncludeAdvance && includeAdvanceDisplay) {
+            confirmIncludeAdvance.checked = !!includeAdvanceDisplay.checked;
+        }
+    }
+
+    function applyConfirmationEdits() {
+        const confirmSelected = document.querySelector('input[name="confirm_occupancy_mode"]:checked');
+        const mainSelected = confirmSelected
+            ? document.querySelector(`input[name="occupancy_mode_display"][value="${confirmSelected.value}"]`)
+            : null;
+        if (mainSelected) {
+            mainSelected.checked = true;
+        }
+
+        const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
+        const confirmIncludeAdvance = document.getElementById('confirmIncludeAdvance');
+        if (includeAdvanceDisplay && confirmIncludeAdvance) {
+            includeAdvanceDisplay.checked = !!confirmIncludeAdvance.checked;
+        }
+
+        syncAdvanceOption();
+
+        const monthlyRent = computedMonthlyRent();
+        const includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
+        const advanceAmount = includeAdvance ? monthlyRent : 0;
+        const moveInTotal = monthlyRent + advanceAmount;
+        document.getElementById('confirmPrice').textContent = peso(monthlyRent);
+        const confirmPriceHero = document.getElementById('confirmPriceHero');
+        if (confirmPriceHero) {
+            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span>/month</span>`;
+        }
+        document.getElementById('confirmOccupancy').textContent = selectedOccupancyMode() === 'shared' ? 'Open vacancy (shared)' : 'Solo occupancy';
+        document.getElementById('confirmAdvanceOption').textContent = includeAdvance ? 'Included' : 'Not included';
+        document.getElementById('confirmMoveInTotal').textContent = peso(moveInTotal);
     }
 
     function closeConfirmation() {
@@ -563,6 +917,17 @@
 
     document.getElementById('checkInDisplay').addEventListener('change', syncDates);
     document.getElementById('checkOutDisplay').addEventListener('change', syncDates);
+    document.getElementById('includeAdvanceDisplay').addEventListener('change', syncAdvanceOption);
+    document.querySelectorAll('input[name="occupancy_mode_display"]').forEach((el) => {
+        el.addEventListener('change', syncAdvanceOption);
+    });
+    document.querySelectorAll('input[name="confirm_occupancy_mode"]').forEach((el) => {
+        el.addEventListener('change', applyConfirmationEdits);
+    });
+    const confirmIncludeAdvance = document.getElementById('confirmIncludeAdvance');
+    if (confirmIncludeAdvance) {
+        confirmIncludeAdvance.addEventListener('change', applyConfirmationEdits);
+    }
     document.getElementById('notesDisplay').addEventListener('input', function() {
         document.getElementById('fNotes').value = this.value;
     });
@@ -576,6 +941,7 @@
     (function() {
         const ci = document.getElementById('checkInDisplay').value;
         const co = document.getElementById('checkOutDisplay').value;
+        syncAdvanceOption();
         if (ci || co) syncDates();
     })();
 

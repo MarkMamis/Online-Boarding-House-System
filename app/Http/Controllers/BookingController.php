@@ -164,6 +164,8 @@ class BookingController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'notes' => 'nullable|string|max:1000',
+            'include_advance_payment' => 'nullable|boolean',
+            'occupancy_mode' => 'required|in:solo,shared',
         ]);
 
         if ($validator->fails()) {
@@ -178,6 +180,16 @@ class BookingController extends Controller
         $data['room_id'] = $room->id;
         $data['student_id'] = Auth::id();
         $data['status'] = 'pending';
+        $data['include_advance_payment'] = $request->boolean('include_advance_payment', true);
+
+        $occupancyMode = (string) $request->input('occupancy_mode', 'solo');
+        $roomCapacity = max(1, (int) $room->capacity);
+        $monthlyRentAmount = $occupancyMode === 'shared'
+            ? round(((float) $room->price) / $roomCapacity, 2)
+            : (float) $room->price;
+
+        $data['occupancy_mode'] = $occupancyMode;
+        $data['monthly_rent_amount'] = $monthlyRentAmount;
 
         $booking = Booking::create($data);
 

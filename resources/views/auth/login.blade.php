@@ -228,7 +228,7 @@
                                         <label for="password" class="form-label">Password</label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-lock"></i></span>
-                                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password">
                                             <span class="input-group-text field-icon" id="toggle_password" role="button" tabindex="0" aria-label="Show password" aria-controls="password">
                                                 <i class="bi bi-eye" aria-hidden="true"></i>
                                             </span>

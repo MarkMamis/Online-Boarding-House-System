@@ -115,10 +115,142 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label">Boarding House Name</label>
-                                        <input type="text" name="boarding_house_name" value="{{ old('boarding_house_name', $user->boarding_house_name) }}"
+                                        <input type="text" name="boarding_house_name" value="{{ old('boarding_house_name', $user->boarding_house_name ?? optional($user->landlordProfile)->boarding_house_name) }}"
                                                class="form-control @error('boarding_house_name') is-invalid @enderror"
                                                placeholder="e.g. Mindoro Way Boarding House">
                                         @error('boarding_house_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">About Your Boarding House</label>
+                                        <textarea name="about" rows="3" class="form-control @error('about') is-invalid @enderror" placeholder="Briefly describe your property, amenities, and house rules.">{{ old('about', optional($user->landlordProfile)->about) }}</textarea>
+                                        @error('about')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-12">
+                                        <hr class="my-4">
+                                        <h6 class="fw-semibold mb-3">
+                                            <i class="fas fa-file-shield me-2"></i>Business Verification
+                                        </h6>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Business Permit</label>
+                                        <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png">
+                                        @error('business_permit')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">Accepted: PDF, JPG, JPEG, PNG. Max size: 2MB.</div>
+                                        @if(!empty(optional($user->landlordProfile)->business_permit_path))
+                                            <div class="mt-2">
+                                                <a href="{{ asset('storage/' . optional($user->landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                    <i class="fas fa-file-alt me-1"></i>View Uploaded Permit
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-12">
+                                        <hr class="my-4">
+                                        <h6 class="fw-semibold mb-3">
+                                            <i class="fas fa-wallet me-2"></i>Payment Details
+                                        </h6>
+                                        <p class="text-muted small mb-3">These details can be shown to tenants during booking and payment steps.</p>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Preferred Payment Method(s)</label>
+                                        @php
+                                            $preferredPaymentMethods = old('preferred_payment_methods', optional($user->landlordProfile)->preferred_payment_methods ?? []);
+                                            $preferredPaymentMethods = is_array($preferredPaymentMethods) ? $preferredPaymentMethods : [];
+                                        @endphp
+                                        <div class="d-flex flex-wrap gap-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="preferred_payment_methods[]" value="bank" id="pref_payment_bank" @checked(in_array('bank', $preferredPaymentMethods, true))>
+                                                <label class="form-check-label" for="pref_payment_bank">Bank</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="preferred_payment_methods[]" value="gcash" id="pref_payment_gcash" @checked(in_array('gcash', $preferredPaymentMethods, true))>
+                                                <label class="form-check-label" for="pref_payment_gcash">GCash</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="preferred_payment_methods[]" value="cash" id="pref_payment_cash" @checked(in_array('cash', $preferredPaymentMethods, true))>
+                                                <label class="form-check-label" for="pref_payment_cash">Cash</label>
+                                            </div>
+                                        </div>
+                                        @error('preferred_payment_methods')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        @error('preferred_payment_methods.*')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">You can select one or multiple methods.</div>
+                                    </div>
+
+                                    <div class="col-md-6" id="bank_field_bank_name">
+                                        <label class="form-label">Bank Name</label>
+                                        <input type="text" name="payment_bank_name" value="{{ old('payment_bank_name', optional($user->landlordProfile)->payment_bank_name) }}" class="form-control @error('payment_bank_name') is-invalid @enderror" placeholder="e.g. BDO, BPI">
+                                        @error('payment_bank_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6" id="bank_field_account_name">
+                                        <label class="form-label">Account Name</label>
+                                        <input type="text" name="payment_account_name" value="{{ old('payment_account_name', optional($user->landlordProfile)->payment_account_name) }}" class="form-control @error('payment_account_name') is-invalid @enderror" placeholder="e.g. Juan Dela Cruz">
+                                        @error('payment_account_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6" id="bank_field_account_number">
+                                        <label class="form-label">Account Number</label>
+                                        <input type="text" name="payment_account_number" value="{{ old('payment_account_number', optional($user->landlordProfile)->payment_account_number) }}" class="form-control @error('payment_account_number') is-invalid @enderror" placeholder="e.g. 1234-5678-9012">
+                                        @error('payment_account_number')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6" id="gcash_field_name">
+                                        <label class="form-label">GCash Name</label>
+                                        <input type="text" name="payment_gcash_name" value="{{ old('payment_gcash_name', optional($user->landlordProfile)->payment_gcash_name) }}" class="form-control @error('payment_gcash_name') is-invalid @enderror" placeholder="e.g. Juan Dela Cruz">
+                                        @error('payment_gcash_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6" id="gcash_field_number">
+                                        <label class="form-label">GCash Number</label>
+                                        <input type="text" name="payment_gcash_number" value="{{ old('payment_gcash_number', optional($user->landlordProfile)->payment_gcash_number) }}" class="form-control @error('payment_gcash_number') is-invalid @enderror" placeholder="e.g. 09XX-XXX-XXXX">
+                                        @error('payment_gcash_number')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6" id="gcash_field_qr">
+                                        <label class="form-label">GCash QR Code</label>
+                                        <input type="file" name="payment_gcash_qr" class="form-control @error('payment_gcash_qr') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp" data-has-existing="{{ !empty(optional($user->landlordProfile)->payment_gcash_qr_path) ? '1' : '0' }}">
+                                        @error('payment_gcash_qr')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">Accepted: JPG, JPEG, PNG, WEBP. Max size: 2MB.</div>
+                                        @if(!empty(optional($user->landlordProfile)->payment_gcash_qr_path))
+                                            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                                                <a href="{{ asset('storage/' . optional($user->landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                    <i class="fas fa-qrcode me-1"></i>View Current QR
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Payment Instructions</label>
+                                        <textarea name="payment_instructions" rows="3" class="form-control @error('payment_instructions') is-invalid @enderror" placeholder="Example: Send payment proof via chat after transfer.">{{ old('payment_instructions', optional($user->landlordProfile)->payment_instructions) }}</textarea>
+                                        @error('payment_instructions')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -128,12 +260,12 @@
                                         <h6 class="fw-semibold mb-3">
                                             <i class="fas fa-lock me-2"></i>Change Password (Optional)
                                         </h6>
-                                        <p class="text-muted small mb-3">Leave blank if you don't want to change your password</p>
+                                        <p class="text-muted small mb-3">Leave blank if you don't want to change your password. Current password check is temporarily disabled.</p>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">Current Password</label>
-                                        <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror">
+                                        <label class="form-label">Current Password (Temporarily Not Required)</label>
+                                        <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="Not required for now">
                                         @error('current_password')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -340,6 +472,55 @@
             preview.classList.remove('d-none');
             if (placeholder) placeholder.classList.add('d-none');
         });
+    })();
+
+    (function () {
+        const bankToggle = document.getElementById('pref_payment_bank');
+        const gcashToggle = document.getElementById('pref_payment_gcash');
+
+        const bankFieldIds = ['bank_field_bank_name', 'bank_field_account_name', 'bank_field_account_number'];
+        const gcashFieldIds = ['gcash_field_name', 'gcash_field_number', 'gcash_field_qr'];
+
+        const bankNameInput = document.querySelector('input[name="payment_bank_name"]');
+        const bankAccountNameInput = document.querySelector('input[name="payment_account_name"]');
+        const gcashNameInput = document.querySelector('input[name="payment_gcash_name"]');
+        const gcashNumberInput = document.querySelector('input[name="payment_gcash_number"]');
+        const gcashQrInput = document.querySelector('input[name="payment_gcash_qr"]');
+
+        if (!bankToggle || !gcashToggle) return;
+
+        const setGroupVisibility = (ids, visible) => {
+            ids.forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('d-none', !visible);
+                el.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = !visible;
+                });
+            });
+        };
+
+        const syncPaymentMethodFields = () => {
+            const showBank = !!bankToggle.checked;
+            const showGcash = !!gcashToggle.checked;
+
+            setGroupVisibility(bankFieldIds, showBank);
+            setGroupVisibility(gcashFieldIds, showGcash);
+
+            if (bankNameInput) bankNameInput.required = showBank;
+            if (bankAccountNameInput) bankAccountNameInput.required = showBank;
+            if (gcashNameInput) gcashNameInput.required = showGcash;
+            if (gcashNumberInput) gcashNumberInput.required = showGcash;
+
+            if (gcashQrInput) {
+                const hasExistingQr = gcashQrInput.getAttribute('data-has-existing') === '1';
+                gcashQrInput.required = showGcash && !hasExistingQr;
+            }
+        };
+
+        bankToggle.addEventListener('change', syncPaymentMethodFields);
+        gcashToggle.addEventListener('change', syncPaymentMethodFields);
+        syncPaymentMethodFields();
     })();
 </script>
 @endpush

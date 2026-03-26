@@ -401,6 +401,35 @@
     </div>
 
 @push('modals')
+    @if(!empty($needsPaymentSetup))
+        <div class="modal fade" id="paymentSetupReminderModal" tabindex="-1" aria-labelledby="paymentSetupReminderModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content rounded-4">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-semibold" id="paymentSetupReminderModalLabel">
+                            <i class="bi bi-exclamation-circle text-warning me-2"></i>Set Up Your Payment Method
+                        </h5>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">Please select your preferred payment method(s) and complete required payment details before receiving tenant payments.</p>
+                        <div class="small text-muted mb-2">Required setup options:</div>
+                        <ul class="small mb-0">
+                            <li>Bank: <strong>Bank Name</strong> and <strong>Account Name</strong></li>
+                            <li>GCash: <strong>GCash Name</strong>, <strong>GCash Number</strong>, and <strong>GCash QR Code</strong></li>
+                            <li>Cash: select <strong>Cash</strong> as a preferred method</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Later</button>
+                        <a href="{{ route('landlord.profile.edit') }}" class="btn btn-brand rounded-pill px-4">
+                            <i class="bi bi-gear me-1"></i>Set Up Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="modal fade" id="addPropertyModal" tabindex="-1" aria-labelledby="addPropertyModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-4">
@@ -540,6 +569,14 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        @if(!empty($needsPaymentSetup))
+            const paymentSetupModalEl = document.getElementById('paymentSetupReminderModal');
+            if (paymentSetupModalEl && window.bootstrap?.Modal) {
+                const paymentSetupModal = new bootstrap.Modal(paymentSetupModalEl);
+                paymentSetupModal.show();
+            }
+        @endif
+
         const form = document.getElementById('quickRoomForm');
         if(form){
             form.addEventListener('submit', function(){

@@ -214,6 +214,68 @@
             font-size: .9rem;
         }
 
+        /* Business permit uploader */
+        .permit-upload {
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: .75rem;
+            background: rgba(255,255,255,.07);
+            padding: .75rem;
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+        .permit-upload:focus-within {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 .25rem rgba(var(--brand-rgb), .16);
+            background: rgba(255,255,255,.10);
+        }
+        .permit-upload-top {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            flex-wrap: wrap;
+        }
+        .permit-upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            border: 1px solid rgba(var(--brand-rgb), .55);
+            color: #fff;
+            background: rgba(var(--brand-rgb), .24);
+            border-radius: .6rem;
+            padding: .45rem .75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .18s ease, background .18s ease;
+        }
+        .permit-upload-btn:hover {
+            background: rgba(var(--brand-rgb), .34);
+            transform: translateY(-1px);
+        }
+        .permit-upload-filename {
+            min-width: 0;
+            font-size: .93rem;
+            color: rgba(255,255,255,.85);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1 1 240px;
+        }
+        .permit-upload-help {
+            margin-top: .45rem;
+            color: rgba(255,255,255,.65);
+            font-size: .85rem;
+        }
+        .permit-upload input[type="file"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         @media (min-width: 768px) {
             .gender-options { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
@@ -300,7 +362,7 @@
                                 </div>
                             @endif
 
-                            <form method="POST" action="{{ route('register') }}" novalidate>
+                            <form method="POST" action="{{ route('register') }}" novalidate enctype="multipart/form-data">
                                 @csrf
 
                                 <div class="row g-2">
@@ -431,6 +493,21 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-12" id="business_permit_group">
+                                        <label for="business_permit" class="form-label">Business Permit</label>
+                                        <div class="permit-upload">
+                                            <input type="file" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png">
+                                            <div class="permit-upload-top">
+                                                <label class="permit-upload-btn" for="business_permit">
+                                                    <i class="bi bi-cloud-arrow-up"></i>
+                                                    Choose file
+                                                </label>
+                                                <span class="permit-upload-filename" id="business_permit_filename">No file selected</span>
+                                            </div>
+                                            <div class="permit-upload-help">Upload your business permit (PDF, JPG, PNG). Max 2MB.</div>
+                                        </div>
+                                    </div>
+
                                     <!-- Role Selection -->
                                     <div class="col-12">
                                         <label for="role" class="form-label">Role</label>
@@ -514,6 +591,9 @@
         (function () {
             const boardingGroup = document.getElementById('boarding_house_group');
             const boardingInput = document.getElementById('boarding_house_name');
+            const businessPermitGroup = document.getElementById('business_permit_group');
+            const businessPermitInput = document.getElementById('business_permit');
+            const businessPermitFilename = document.getElementById('business_permit_filename');
             const landlordRadio = document.getElementById('role_landlord');
             const studentRadio = document.getElementById('role_student');
 
@@ -555,9 +635,18 @@
 
                 if (landlordSectionLabel) landlordSectionLabel.classList.toggle('d-none', !isLandlord);
                 if (boardingGroup) boardingGroup.classList.toggle('d-none', !isLandlord);
+                if (businessPermitGroup) businessPermitGroup.classList.toggle('d-none', !isLandlord);
                 if (boardingInput) {
                     boardingInput.disabled = !isLandlord;
                     boardingInput.required = isLandlord;
+                }
+                if (businessPermitInput) {
+                    businessPermitInput.disabled = !isLandlord;
+                    businessPermitInput.required = isLandlord;
+                    if (!isLandlord) {
+                        businessPermitInput.value = '';
+                        updateBusinessPermitFilename();
+                    }
                 }
 
                 toggleGenderCustomField();
@@ -581,6 +670,14 @@
                 }
             }
 
+            function updateBusinessPermitFilename() {
+                if (!businessPermitFilename || !businessPermitInput) return;
+                const selected = businessPermitInput.files && businessPermitInput.files[0]
+                    ? businessPermitInput.files[0].name
+                    : 'No file selected';
+                businessPermitFilename.textContent = selected;
+            }
+
             document.querySelectorAll('input[name="role"]').forEach((el) => {
                 el.addEventListener('change', syncRoleSections);
             });
@@ -589,6 +686,9 @@
                 el.addEventListener('change', toggleGenderCustomField);
             });
 
+            businessPermitInput?.addEventListener('change', updateBusinessPermitFilename);
+
+            updateBusinessPermitFilename();
             syncRoleSections();
         })();
     </script>

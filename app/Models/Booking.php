@@ -19,12 +19,17 @@ class Booking extends Model
         'cancel_reason',
         'payment_status',
         'payment_date',
+        'include_advance_payment',
+        'occupancy_mode',
+        'monthly_rent_amount',
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
         'payment_date' => 'datetime',
+        'include_advance_payment' => 'boolean',
+        'monthly_rent_amount' => 'decimal:2',
     ];
 
     public function room()
