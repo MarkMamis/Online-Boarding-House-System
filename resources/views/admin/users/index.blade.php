@@ -207,9 +207,9 @@
             <h1 class="h4 mb-1">User Management</h1>
             <div class="muted small">Manage all system users and their roles</div>
         </div>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
             Back to Dashboard
-        </a>
+        </a> -->
     </div>
 
     @if(session('success'))

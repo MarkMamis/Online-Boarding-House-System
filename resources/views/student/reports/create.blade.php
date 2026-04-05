@@ -26,21 +26,14 @@
         <form method="POST" action="{{ route('student.reports.store') }}">
             @csrf
             <div class="row g-3">
-                <div class="col-12 col-lg-8">
+                <div class="col-12">
                     <label class="form-label small text-muted">Title</label>
                     <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="e.g., Broken lock / Noise complaint" required>
-                </div>
-                <div class="col-12 col-lg-4">
-                    <label class="form-label small text-muted">Priority</label>
-                    <select name="priority" class="form-select" required>
-                        <option value="low" @selected(old('priority', 'medium')==='low')>Low</option>
-                        <option value="medium" @selected(old('priority', 'medium')==='medium')>Medium</option>
-                        <option value="high" @selected(old('priority', 'medium')==='high')>High</option>
-                    </select>
                 </div>
                 <div class="col-12">
                     <label class="form-label small text-muted">Description</label>
                     <textarea name="description" class="form-control" rows="4" placeholder="Describe the issue clearly…" required>{{ old('description') }}</textarea>
+                    <div class="small text-muted mt-2">Priority is auto-detected by our AI triage model (Low, Medium, High).</div>
                 </div>
             </div>
             <div class="mt-3">

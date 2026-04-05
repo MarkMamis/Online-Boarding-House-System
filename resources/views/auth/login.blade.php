@@ -198,6 +198,7 @@
                             <div class="mb-4 text-center">
                                 <h2 class="fw-bold mb-1">Sign in</h2>
                                 <p class="text-muted mb-0">New here? <a href="{{ route('register') }}" class="text-white text-decoration-none fw-semibold mb-0">Create an account</a></p>
+                                <!-- <p class="text-muted mb-0 small mt-1">Need admin access? <a href="{{ route('register.admin') }}" class="text-white text-decoration-none fw-semibold">Register admin</a></p> -->
                             </div>
 
                             @if(session('success'))
@@ -228,7 +229,7 @@
                                         <label for="password" class="form-label">Password</label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-lock"></i></span>
-                                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password">
+                                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
                                             <span class="input-group-text field-icon" id="toggle_password" role="button" tabindex="0" aria-label="Show password" aria-controls="password">
                                                 <i class="bi bi-eye" aria-hidden="true"></i>
                                             </span>

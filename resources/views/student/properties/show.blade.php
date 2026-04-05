@@ -39,12 +39,44 @@
 
     <main class="py-4">
         <div class="container">
+            @php
+                $student = auth()->user();
+                $schoolIdVerificationStatus = (string) ($student->school_id_verification_status ?? '');
+                if ($schoolIdVerificationStatus === '') {
+                    $hasVerificationDocument = filled($student->school_id_path) || filled($student->enrollment_proof_path);
+                    $schoolIdVerificationStatus = $hasVerificationDocument ? 'pending' : 'not_submitted';
+                }
+                $bookingLockedBySchoolId = $schoolIdVerificationStatus !== 'approved';
+
+                if ($schoolIdVerificationStatus === 'rejected') {
+                    $bookingLockMessage = 'Your verification document was rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock booking.';
+                } elseif ($schoolIdVerificationStatus === 'not_submitted') {
+                    $bookingLockMessage = 'Booking is locked until you upload your School ID or COR/COE in Student Setup.';
+                } else {
+                    $bookingLockMessage = 'Booking is locked while your academic verification is pending admin approval.';
+                }
+            @endphp
+
             @if(session('error'))
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
             @if(session('booking_success'))
                 <div class="alert alert-success">{{ session('booking_success') }}</div>
             @endif
+
+            @if($bookingLockedBySchoolId)
+                <div class="alert alert-warning">
+                    {{ $bookingLockMessage }} You can still browse rooms and properties.
+                </div>
+            @endif
+
+            @php
+                $amenityLabels = (array) config('property_amenities.flat', []);
+                $buildingInclusions = collect((array) ($property->building_inclusions ?? []))
+                    ->map(fn ($key) => $amenityLabels[$key] ?? null)
+                    ->filter()
+                    ->values();
+            @endphp
 
             <!-- Property Location Map -->
             @if($property->latitude && $property->longitude)
@@ -95,15 +127,19 @@
                                             </td>
                                             <td class="text-end">
                                                 @if($room->status==='available')
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm btn-outline-success"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#bookingRequestModal"
-                                                        data-booking-modal
-                                                        data-book-url="{{ route('bookings.store', $room->id) }}"
-                                                        data-room-label="{{ $property->name }} — Room {{ $room->room_number }}"
-                                                    >Request</button>
+                                                    @if($bookingLockedBySchoolId)
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="{{ $bookingLockMessage }}">Request</button>
+                                                    @else
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-sm btn-outline-success"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#bookingRequestModal"
+                                                            data-booking-modal
+                                                            data-book-url="{{ route('bookings.store', $room->id) }}"
+                                                            data-room-label="{{ $property->name }} — Room {{ $room->room_number }}"
+                                                        >Request</button>
+                                                    @endif
                                                 @else
                                                     <span class="text-muted">—</span>
                                                 @endif
@@ -118,6 +154,16 @@
                     </div>
                 </div>
                 <div class="col-lg-4">
+                    @if($buildingInclusions->isNotEmpty())
+                        <div class="rooms-card p-4 mb-4">
+                            <h6 class="fw-semibold mb-2">Building/Boarding House Inclusions</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach($buildingInclusions as $inclusion)
+                                    <span class="badge text-bg-light border">{{ $inclusion }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                     <div class="rooms-card p-4 mb-4">
                         <h6 class="fw-semibold mb-2">Description</h6>
                         <p class="small mb-0">{{ $property->description ?: 'No description provided by landlord.' }}</p>
@@ -237,6 +283,8 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const map = L.map('propertyMap');
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxNativeZoom: 19,
+                    maxZoom: 22,
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
                 

@@ -60,6 +60,84 @@
         height: 390px;
     }
 
+    .price-marker {
+        background: #0f5132;
+        color: #fff;
+        border-radius: 999px;
+        border: 2px solid #fff;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .01em;
+        padding: .2rem .55rem;
+        white-space: nowrap;
+        line-height: 1;
+        box-shadow: 0 10px 18px rgba(2, 8, 20, .28);
+    }
+
+    .price-marker.price-marker-empty {
+        background: #334155;
+    }
+
+    .leaflet-popup-content-wrapper {
+        border-radius: .95rem;
+    }
+
+    .map-popup {
+        min-width: 240px;
+        max-width: 280px;
+    }
+
+    .map-popup-photo {
+        width: 100%;
+        height: 112px;
+        border-radius: .7rem;
+        background: linear-gradient(135deg, #d1fae5 0%, #ecfeff 100%);
+        overflow: hidden;
+        margin-bottom: .55rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f766e;
+    }
+
+    .map-popup-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .map-popup-title {
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: .2rem;
+    }
+
+    .map-popup-address {
+        color: rgba(2, 8, 20, .65);
+        font-size: .78rem;
+        margin-bottom: .35rem;
+    }
+
+    .map-popup-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem;
+        margin-bottom: .45rem;
+    }
+
+    .map-popup-price {
+        font-size: .88rem;
+        font-weight: 700;
+        color: #0f5132;
+    }
+
+    .map-popup-distance {
+        font-size: .72rem;
+        color: rgba(2, 8, 20, .72);
+    }
+
     .property-avatar {
         width: 42px;
         height: 42px;
@@ -126,9 +204,9 @@
             <h1 class="h3 mb-1">Properties Management</h1>
             <p class="section-muted mb-0">Overview of all landlord properties and their locations.</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
             Back to Dashboard
-        </a>
+        </a> -->
     </div>
 
     <div class="row g-3 mb-4">
@@ -243,6 +321,9 @@
                             </td>
                             <td class="pe-3">
                                 <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-sm btn-outline-secondary" title="View property details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
                                     <button class="btn btn-sm btn-outline-secondary" title="View on map" onclick="focusProperty({{ $property->id }}, {{ $property->latitude ?? 0 }}, {{ $property->longitude ?? 0 }})">
                                         <i class="bi bi-geo-alt"></i>
                                     </button>
@@ -280,25 +361,72 @@ document.addEventListener('DOMContentLoaded', function() {
     const map = L.map('properties-map').setView([14.5995, 120.9842], 10);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxNativeZoom: 19,
+        maxZoom: 22,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     const markers = [];
     const propertiesData = @json($properties);
 
+    const escapeHtml = function(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    };
+
+    const formatPriceLabel = function(minPrice, maxPrice) {
+        const normalizedMin = minPrice !== null && minPrice !== undefined && minPrice !== '' ? Number(minPrice) : null;
+        const normalizedMax = maxPrice !== null && maxPrice !== undefined && maxPrice !== '' ? Number(maxPrice) : null;
+
+        if (normalizedMin === null && normalizedMax === null) return 'Price TBD';
+        if (normalizedMin !== null && normalizedMax !== null && normalizedMin !== normalizedMax) {
+            return `PHP ${normalizedMin.toLocaleString()}-${normalizedMax.toLocaleString()}`;
+        }
+        const single = normalizedMin !== null ? normalizedMin : normalizedMax;
+        return `PHP ${single.toLocaleString()}`;
+    };
+
+    const buildPopupHtml = function(property) {
+        const imageHtml = property.image_path
+            ? `<img src="/storage/${escapeHtml(property.image_path)}" alt="${escapeHtml(property.name)} preview">`
+            : '<i class="bi bi-building fs-3"></i>';
+        const availableRooms = Number(property.available_rooms || 0);
+        const priceText = formatPriceLabel(property.price_min, property.price_max);
+
+        return `
+            <div class="map-popup">
+                <div class="map-popup-photo">${imageHtml}</div>
+                <div class="map-popup-title">${escapeHtml(property.name)}</div>
+                <div class="map-popup-address">${escapeHtml(property.address || 'Address not available')}</div>
+                <div class="map-popup-row">
+                    <span class="badge text-bg-light">${escapeHtml(String(availableRooms))} room(s) available</span>
+                    <span class="map-popup-price">${escapeHtml(priceText)}</span>
+                </div>
+                <div class="map-popup-distance">${escapeHtml(property.landlord?.full_name || 'Landlord')} • ${escapeHtml(String(property.occupancy_rate || 0))}% occupancy</div>
+                <a href="/admin/properties/${property.id}" class="btn btn-sm btn-success mt-2 w-100">View Details</a>
+            </div>
+        `;
+    };
+
     propertiesData.forEach(function(property) {
         if (property.latitude && property.longitude) {
-            const marker = L.marker([property.latitude, property.longitude])
+            const markerPrice = formatPriceLabel(property.price_min, property.price_max);
+            const markerWidth = Math.max(72, Math.min(168, Math.round(markerPrice.length * 7.2 + 22)));
+            const markerIcon = L.divIcon({
+                className: 'price-marker-wrap',
+                html: `<div class="price-marker ${(property.price_min === null || property.price_min === undefined || property.price_min === '') && (property.price_max === null || property.price_max === undefined || property.price_max === '') ? 'price-marker-empty' : ''}">${escapeHtml(markerPrice)}</div>`,
+                iconSize: [markerWidth, 28],
+                iconAnchor: [Math.round(markerWidth / 2), 14],
+                popupAnchor: [0, -10],
+            });
+
+            const marker = L.marker([property.latitude, property.longitude], { icon: markerIcon })
                 .addTo(map)
-                .bindPopup(`
-                    <div style="min-width:220px;">
-                        <div style="font-weight:700;">${property.name}</div>
-                        <div style="font-size:12px;color:#64748b;margin-top:2px;">${property.address}</div>
-                        <div style="margin-top:8px;font-size:12px;"><strong>Landlord:</strong> ${property.landlord.full_name}</div>
-                        <div style="font-size:12px;"><strong>Rooms:</strong> ${property.occupied_rooms}/${property.total_rooms} occupied</div>
-                        <div style="font-size:12px;"><strong>Occupancy:</strong> ${property.occupancy_rate}%</div>
-                    </div>
-                `);
+                .bindPopup(buildPopupHtml(property));
 
             markers.push({
                 id: property.id,

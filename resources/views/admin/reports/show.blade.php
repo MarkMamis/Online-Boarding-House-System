@@ -121,9 +121,9 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <span class="report-id-chip"><i class="bi bi-hash"></i>{{ $report->id }}</span>
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-house-door me-1"></i>Dashboard
-                </a>
+                </a> -->
                 <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i>Back to Reports
                 </a>
@@ -161,11 +161,11 @@
                         <div class="report-label">Priority</div>
                         <div>
                             @if($report->priority === 'high')
-                                <span class="badge priority-badge text-bg-danger">High</span>
+                                <span class="badge priority-badge text-bg-danger">Critical</span>
                             @elseif($report->priority === 'medium')
-                                <span class="badge priority-badge text-bg-warning">Medium</span>
+                                <span class="badge priority-badge text-bg-warning">Moderate</span>
                             @else
-                                <span class="badge priority-badge text-bg-success">Low</span>
+                                <span class="badge priority-badge text-bg-success">Minor</span>
                             @endif
                         </div>
                     </div>
@@ -173,9 +173,9 @@
                         <div class="report-label">Status</div>
                         <div>
                             @if($report->status === 'pending')
-                                <span class="badge status-badge text-bg-secondary">Pending</span>
+                                <span class="badge status-badge text-bg-secondary">Submitted</span>
                             @elseif($report->status === 'in_progress')
-                                <span class="badge status-badge text-bg-primary">In Progress</span>
+                                <span class="badge status-badge text-bg-primary">Reviewed</span>
                             @else
                                 <span class="badge status-badge text-bg-success">Resolved</span>
                             @endif
@@ -219,8 +219,8 @@
                         <div class="mb-3">
                             <label for="status" class="form-label fw-semibold">Status</label>
                             <select class="form-select" id="status" name="status" required>
-                                <option value="pending" {{ $report->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_progress" {{ $report->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                <option value="pending" {{ $report->status === 'pending' ? 'selected' : '' }}>Submitted</option>
+                                <option value="in_progress" {{ $report->status === 'in_progress' ? 'selected' : '' }}>Reviewed</option>
                                 <option value="resolved" {{ $report->status === 'resolved' ? 'selected' : '' }}>Resolved</option>
                             </select>
                         </div>

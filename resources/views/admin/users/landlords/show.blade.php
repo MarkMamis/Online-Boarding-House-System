@@ -69,6 +69,22 @@
         border-top: 1px solid rgba(2, 8, 20, .08);
     }
     .info-grid p { margin-bottom: .5rem; }
+    .permit-card {
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: .9rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        padding: .85rem .9rem;
+    }
+    .permit-label {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: rgba(2, 8, 20, .55);
+    }
+    .permit-value {
+        font-weight: 600;
+        color: #0f172a;
+    }
     @media (max-width: 767.98px) {
         .landlord-detail-shell { padding: .95rem; }
     }
@@ -157,6 +173,15 @@
                         </div>
                         <div class="col-md-6">
                             <p><strong>Boarding House:</strong> {{ $user->boarding_house_name ?: 'Not specified' }}</p>
+                            @php
+                                $permitStatus = optional($user->landlordProfile)->business_permit_status ?? 'not_submitted';
+                            @endphp
+                            <p>
+                                <strong>Permit Status:</strong>
+                                <span class="badge {{ $permitStatus === 'approved' ? 'text-bg-success' : ($permitStatus === 'rejected' ? 'text-bg-danger' : 'text-bg-warning') }}">
+                                    {{ str_replace('_', ' ', $permitStatus) }}
+                                </span>
+                            </p>
                             <p><strong>Registered:</strong> {{ $user->created_at->format('F d, Y') }}</p>
                             <p><strong>Last Updated:</strong> {{ $user->updated_at->format('F d, Y') }}</p>
                         </div>
@@ -170,12 +195,71 @@
                 <div class="p-3 d-grid gap-2">
                     <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#messageModal" data-receiver-id="{{ $user->id }}" data-receiver-name="{{ $user->full_name }}"><i class="bi bi-envelope me-1"></i> Send Message</button>
                     <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editLandlordModal"><i class="bi bi-pencil-square me-1"></i> Edit Profile</button>
+                    <a href="{{ route('admin.permits.index') }}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-check me-1"></i> Permit Queue</a>
                     <button class="btn {{ ($user->is_active ?? true) ? 'btn-outline-danger' : 'btn-outline-success' }} w-100" data-bs-toggle="modal" data-bs-target="#confirmStatusModal">
                         <i class="bi {{ ($user->is_active ?? true) ? 'bi-slash-circle' : 'bi-check-circle' }} me-1"></i>
                         {{ ($user->is_active ?? true) ? 'Deactivate Account' : 'Activate Account' }}
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="section-card mb-4">
+        <div class="section-header d-flex justify-content-between align-items-center gap-2">
+            <div class="fw-semibold"><i class="bi bi-file-earmark-check me-1"></i> Business Permit</div>
+            @php
+                $permitProfile = optional($user->landlordProfile);
+                $permitStatus = (string) ($permitProfile->business_permit_status ?? ($permitProfile->business_permit_path ? 'pending' : 'not_submitted'));
+                $permitBadgeClass = $permitStatus === 'approved'
+                    ? 'text-bg-success'
+                    : ($permitStatus === 'rejected' ? 'text-bg-danger' : ($permitStatus === 'pending' ? 'text-bg-warning' : 'text-bg-secondary'));
+            @endphp
+            <span class="badge {{ $permitBadgeClass }}">{{ str_replace('_', ' ', $permitStatus) }}</span>
+        </div>
+        <div class="p-3">
+            @if(filled($permitProfile->business_permit_path))
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="permit-card h-100">
+                            <div class="permit-label mb-1">Permit File</div>
+                            <div class="permit-value mb-2">Uploaded</div>
+                            <a href="{{ asset('storage/' . $permitProfile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>View Business Permit
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="permit-card h-100">
+                            <div class="permit-label mb-1">Last Reviewed</div>
+                            <div class="permit-value">
+                                {{ filled($permitProfile->business_permit_reviewed_at) ? $permitProfile->business_permit_reviewed_at->format('M d, Y h:i A') : 'Not reviewed yet' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="permit-card h-100">
+                            <div class="permit-label mb-1">Review Note</div>
+                            <div class="permit-value">
+                                @if($permitStatus === 'rejected' && filled($permitProfile->business_permit_rejection_reason))
+                                    {{ $permitProfile->business_permit_rejection_reason }}
+                                @elseif($permitStatus === 'approved')
+                                    Permit has been approved.
+                                @elseif($permitStatus === 'pending')
+                                    Pending admin review.
+                                @else
+                                    No review note available.
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="text-center py-4 muted">
+                    <div class="h6 mb-1"><i class="bi bi-file-earmark-x me-1"></i>No business permit uploaded</div>
+                    <div>Landlord has not submitted a permit document yet.</div>
+                </div>
+            @endif
         </div>
     </div>
 

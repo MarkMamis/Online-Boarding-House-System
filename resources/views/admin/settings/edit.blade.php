@@ -10,9 +10,9 @@
             <h1 class="h3 mb-1"><i class="bi bi-gear me-2"></i>Admin Settings</h1>
             <p class="text-muted mb-0">Manage your admin account details and security settings.</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
-        </a>
+        </a> -->
     </div>
 
     <div class="settings-summary mb-4">
@@ -55,6 +55,7 @@
                     <h5 class="mb-0"><i class="bi bi-person me-2"></i>Profile Information</h5>
                 </div>
                 <div class="card-body">
+                    <div class="profile-form-wrap">
                     <form method="POST" action="{{ route('admin.settings.update') }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
@@ -71,10 +72,16 @@
                                             <i class="bi bi-person text-muted"></i>
                                         </div>
                                     @endif
-                                    <div class="flex-grow-1">
-                                        <input id="profile_image_input" type="file" name="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*">
+                                    <div class="w-100">
+                                        <input id="profile_image_input" type="file" name="profile_image" class="d-none @error('profile_image') is-invalid @enderror" accept="image/*">
+                                        <div class="upload-control">
+                                            <label for="profile_image_input" class="btn btn-outline-brand upload-trigger mb-0">
+                                                <i class="bi bi-upload me-1"></i>Choose Photo
+                                            </label>
+                                            <span id="profile_file_name" class="upload-file-name">{{ !empty($user->profile_image_path) ? 'Current photo selected' : 'No file selected' }}</span>
+                                        </div>
                                         @error('profile_image')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            <div class="small text-danger mt-2">{{ $message }}</div>
                                         @enderror
                                         <div class="form-text">JPG, PNG, WEBP, GIF (max 2MB)</div>
                                     </div>
@@ -139,16 +146,8 @@
                             </button>
                         </div>
                     </form>
+                    </div>
                 </div>
-            </div>
-
-            <div class="d-lg-none mt-3">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-logout rounded-pill w-100">
-                        <i class="bi bi-box-arrow-right me-1"></i> Logout
-                    </button>
-                </form>
             </div>
         </div>
 
@@ -206,11 +205,35 @@
         border-radius: 1rem;
         box-shadow: 0 14px 30px rgba(2,8,20,.07);
     }
+    .profile-form-wrap {
+        max-width: 760px;
+    }
     .photo-panel {
         border: 1px solid rgba(2,8,20,.08);
         border-radius: .85rem;
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         padding: .7rem;
+    }
+    .upload-control {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        flex-wrap: wrap;
+    }
+    .upload-trigger {
+        border-radius: 999px;
+        padding: .35rem .8rem;
+    }
+    .upload-file-name {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        border: 1px solid rgba(2,8,20,.1);
+        border-radius: .7rem;
+        padding: .35rem .6rem;
+        font-size: .84rem;
+        color: #475569;
+        background: rgba(255,255,255,.85);
     }
     .tip-item {
         display: grid;
@@ -234,6 +257,15 @@
         .settings-shell {
             padding: .95rem;
         }
+        .profile-form-wrap {
+            max-width: 100%;
+        }
+    }
+    @media (max-width: 575.98px) {
+        .photo-panel {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
     }
 </style>
 @endpush
@@ -244,11 +276,18 @@
         const input = document.getElementById('profile_image_input');
         const preview = document.getElementById('profile_image_preview');
         const placeholder = document.getElementById('profile_image_placeholder');
+        const fileName = document.getElementById('profile_file_name');
+        const initialFileLabel = fileName ? fileName.textContent : 'No file selected';
         if (!input || !preview) return;
 
         input.addEventListener('change', function () {
             const file = this.files && this.files[0];
-            if (!file) return;
+            if (!file) {
+                if (fileName) fileName.textContent = initialFileLabel;
+                return;
+            }
+
+            if (fileName) fileName.textContent = file.name;
             const url = URL.createObjectURL(file);
             preview.src = url;
             preview.classList.remove('d-none');

@@ -158,6 +158,18 @@
         font-size: .75rem;
         font-weight: 600;
     }
+    .amenity-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        border: 1px solid rgba(2,8,20,.12);
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #0f172a;
+        padding: .15rem .5rem;
+        font-size: .7rem;
+        font-weight: 600;
+    }
     @media (max-width: 991.98px) {
         .lookup-summary {
             grid-template-columns: 1fr;
@@ -170,6 +182,23 @@
 @endpush
 
 @section('content')
+@php
+    $student = auth()->user();
+    $schoolIdVerificationStatus = (string) ($student->school_id_verification_status ?? '');
+    if ($schoolIdVerificationStatus === '') {
+        $hasVerificationDocument = filled($student->school_id_path) || filled($student->enrollment_proof_path);
+        $schoolIdVerificationStatus = $hasVerificationDocument ? 'pending' : 'not_submitted';
+    }
+
+    $showVerificationModal = $schoolIdVerificationStatus !== 'approved';
+    $verificationModalTitle = $schoolIdVerificationStatus === 'rejected'
+        ? 'Academic Verification Required'
+        : 'Academic Verification In Progress';
+    $verificationModalMessage = $schoolIdVerificationStatus === 'rejected'
+        ? 'Your verification document was not approved yet. Booking stays locked until your School ID or COR/COE is validated by admin.'
+        : 'Your academic verification is still in process. Booking stays locked until admin validation is completed.';
+@endphp
+
 <div class="lookup-shell mb-4">
     @php
         $totalProperties = (int) $allProperties->count();
@@ -204,11 +233,19 @@
         <input type="hidden" name="max_price" value="{{ $maxPrice }}">
         <input type="hidden" name="capacity" value="{{ $minCapacity }}">
         <div class="row g-2 align-items-center">
-            <div class="col-12 col-lg-9">
+            <div class="col-12 col-lg-6">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" name="q" class="form-control" placeholder="Search by property name or address" value="{{ request('q') }}">
                 </div>
+            </div>
+            <div class="col-12 col-lg-3">
+                <select name="amenity" class="form-select">
+                    <option value="">Any amenity</option>
+                    @foreach(($amenityOptions ?? []) as $amenityKey => $amenityLabel)
+                        <option value="{{ $amenityKey }}" @selected(($amenity ?? '') === $amenityKey)>{{ $amenityLabel }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-12 col-lg-3 d-flex gap-2">
                 <button class="btn btn-brand flex-fill" type="submit">Search</button>
@@ -244,6 +281,20 @@
 
                     <div class="small">{{ \Illuminate\Support\Str::limit($prop->description, 95) ?: 'No description provided.' }}</div>
 
+                    @php
+                        $propertyInclusions = collect((array) ($prop->building_inclusions ?? []))
+                            ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                            ->filter()
+                            ->take(5);
+                    @endphp
+                    @if($propertyInclusions->isNotEmpty())
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach($propertyInclusions as $inclusion)
+                                <span class="amenity-chip"><i class="bi bi-check-circle"></i>{{ $inclusion }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         @if($prop->price_min !== null || $prop->price_max !== null)
                             <span class="meta-chip"><i class="bi bi-cash"></i>₱{{ number_format($prop->price_min,0) }} - ₱{{ number_format($prop->price_max,0) }}</span>
@@ -252,7 +303,7 @@
                     </div>
 
                     <div class="mt-auto pt-2 d-flex justify-content-end">
-                        <a class="btn btn-sm btn-brand rounded-pill px-3" href="{{ route('student.rooms.index') }}?property_id={{ $prop->id }}&property_name={{ urlencode($prop->name) }}">View Rooms</a>
+                        <a class="btn btn-sm btn-brand rounded-pill px-3" href="{{ route('student.rooms.index') }}?property_id={{ $prop->id }}&property_name={{ urlencode($prop->name) }}@if(($amenity ?? '') !== '')&amenity={{ urlencode($amenity) }}@endif">View Rooms</a>
                     </div>
                 </article>
             </div>
@@ -261,12 +312,40 @@
         @endforelse
     </div>
 </div>
+
+@if($showVerificationModal)
+<div class="modal fade" id="studentVerificationPendingModal" tabindex="-1" aria-labelledby="studentVerificationPendingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="studentVerificationPendingModalLabel">
+                    <i class="bi bi-shield-exclamation text-warning me-2"></i>{{ $verificationModalTitle }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="mb-2">{{ $verificationModalMessage }}</p>
+                <p class="small text-muted mb-0">You can continue browsing rooms and properties while waiting for validation.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const verificationModalEl = document.getElementById('studentVerificationPendingModal');
+        if (verificationModalEl && window.bootstrap) {
+            const verificationModal = bootstrap.Modal.getOrCreateInstance(verificationModalEl);
+            verificationModal.show();
+        }
+
         const mapEl = document.getElementById('propertiesMap');
         const baseMapUrl = mapEl ? mapEl.dataset.mapUrl : null;
         const searchParams = new URLSearchParams(window.location.search || '');
@@ -295,6 +374,8 @@
                 const roomsBaseUrl = @json(route('student.rooms.index'));
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxNativeZoom: 19,
+                    maxZoom: 22,
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
 
@@ -323,6 +404,17 @@
                     const distanceHtml = distanceText
                         ? `<div class="map-popup-distance">${escapeHtml(distanceText)} away</div>`
                         : `<div class="map-popup-distance">Distance unavailable</div>`;
+                    const inclusions = Array.isArray(p.inclusions) ? p.inclusions.slice(0, 4) : [];
+                    const inclusionsHtml = inclusions.length
+                        ? `<div class="d-flex flex-wrap gap-1 mt-1">${inclusions.map(label => `<span class="badge text-bg-light border">${escapeHtml(label)}</span>`).join('')}</div>`
+                        : '';
+
+                    const roomsUrl = new URL(roomsBaseUrl, window.location.origin);
+                    roomsUrl.searchParams.set('property_id', p.id);
+                    roomsUrl.searchParams.set('property_name', p.name || '');
+                    if (searchParams.get('amenity')) {
+                        roomsUrl.searchParams.set('amenity', searchParams.get('amenity'));
+                    }
 
                     return `
                         <div class="map-popup">
@@ -333,8 +425,9 @@
                                 <span class="badge text-bg-light">${escapeHtml(String(p.available_rooms || 0))} room(s) available</span>
                                 <span class="map-popup-price">${escapeHtml(formatPriceLabel(p.price_min, p.price_max))}</span>
                             </div>
+                            ${inclusionsHtml}
                             ${distanceHtml}
-                            <a class='btn btn-sm btn-brand mt-2 w-100' href='${roomsBaseUrl}?property_id=${encodeURIComponent(p.id)}&property_name=${encodeURIComponent(p.name || '')}'>View Rooms</a>
+                            <a class='btn btn-sm btn-brand mt-2 w-100' href='${roomsUrl.toString()}'>View Rooms</a>
                         </div>
                     `;
                 };

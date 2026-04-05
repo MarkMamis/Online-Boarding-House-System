@@ -263,7 +263,7 @@ class ChatbotController extends Controller
         $rooms = Room::with('property')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
-                $q->where('approval_status', 'approved');
+                $q->visibleToAudience();
             })
             ->orderBy('price')
             ->get();
@@ -282,7 +282,7 @@ class ChatbotController extends Controller
         $rooms = Room::with('property')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
-                $q->where('approval_status', 'approved')
+                                $q->visibleToAudience()
                   ->whereNotNull('latitude')
                   ->whereNotNull('longitude');
             })

@@ -19,8 +19,7 @@
             <h2 class="h3 mb-1">Properties</h2>
             <p class="text-muted mb-0">Use this page as your property control center. Open rooms from each property card.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('landlord.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">Back to Dashboard</a>
+        <div class="d-flex flex-wrap gap-2">  
             <a href="{{ route('landlord.properties.create') }}" class="btn btn-brand rounded-pill px-3">Add Property</a>
         </div>
     </div>
@@ -70,15 +69,15 @@
             </div>
             <div class="col-12 col-md-6 col-lg-3">
                 <label for="mapToggleBtn" class="form-label small text-muted mb-1">Property Map</label>
-                <button id="mapToggleBtn" class="btn btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#propertiesMapWrap" aria-expanded="false" aria-controls="propertiesMapWrap">
-                    Show Map
+                <button id="mapToggleBtn" class="btn btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#propertiesMapWrap" aria-expanded="{{ $mappedProperties > 0 ? 'true' : 'false' }}" aria-controls="propertiesMapWrap">
+                    {{ $mappedProperties > 0 ? 'Hide Map' : 'Show Map' }}
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4 mb-4" id="propertiesMapCard" style="display:none;">
-        <div id="propertiesMapWrap" class="collapse">
+    <div class="card shadow-sm border-0 rounded-4 mb-4" id="propertiesMapCard" style="{{ $mappedProperties > 0 ? 'display:block;' : 'display:none;' }}">
+        <div id="propertiesMapWrap" class="collapse{{ $mappedProperties > 0 ? ' show' : '' }}">
             <div class="card-body p-0">
                 <div class="px-4 py-3 border-bottom small text-muted">Property Locations</div>
                 <div id="propertiesMap" style="height:280px;"></div>
@@ -95,6 +94,11 @@
                 $total = (int) ($prop->rooms_total_live ?? 0);
                 $occupied = max($total - $vacant, 0);
                 $occupancyRate = $total > 0 ? (int) round(($occupied / $total) * 100) : 0;
+                $amenityLabels = (array) config('property_amenities.flat', []);
+                $buildingInclusions = collect((array) ($prop->building_inclusions ?? []))
+                    ->map(fn ($key) => $amenityLabels[$key] ?? null)
+                    ->filter()
+                    ->values();
             @endphp
             <article class="property-card rounded-4 p-3 p-md-4"
                 data-name="{{ strtolower($prop->name) }}"
@@ -113,6 +117,14 @@
                             @endif
                         </div>
                         <div class="text-muted small mb-3">{{ $prop->address }}</div>
+
+                        @if($buildingInclusions->isNotEmpty())
+                            <div class="d-flex flex-wrap gap-2 mb-3 small">
+                                @foreach($buildingInclusions->take(4) as $inclusion)
+                                    <span class="chip">{{ $inclusion }}</span>
+                                @endforeach
+                            </div>
+                        @endif
 
                         <div class="d-flex flex-wrap gap-2 small">
                             <span class="chip">Rooms: <strong>{{ $total }}</strong></span>
@@ -299,12 +311,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const map = L.map('propertiesMap');
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxNativeZoom: 19,
+            maxZoom: 22,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
         
-        const bounds = [];
+        const markerLatLngs = [];
         propertiesWithCoords.forEach(property => {
-            const latLng = [property.latitude, property.longitude];
+            const lat = Number(property.latitude);
+            const lng = Number(property.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return;
+            }
+
+            const latLng = [lat, lng];
             const marker = L.marker(latLng).addTo(map);
             marker.bindPopup(`
                 <strong>${property.name}</strong><br>
@@ -312,17 +332,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="badge bg-primary">${property.rooms_vacant_live} vacant / ${property.rooms_total_live} total rooms</span><br>
                 <a href="/landlord/properties/${property.id}" class="btn btn-sm btn-brand mt-2">View Details</a>
             `);
-            bounds.push(latLng);
+            markerLatLngs.push(latLng);
         });
-        
-        if (bounds.length > 0) {
-            map.fitBounds(bounds, { padding: [20, 20] });
+
+        const fitMapToProperties = () => {
+            if (markerLatLngs.length === 0) return;
+
+            if (markerLatLngs.length === 1) {
+                map.setView(markerLatLngs[0], 16);
+                return;
+            }
+
+            const bounds = L.latLngBounds(markerLatLngs);
+            map.fitBounds(bounds.pad(0.2), { padding: [20, 20] });
+        };
+
+        fitMapToProperties();
+
+        if (mapWrap && mapWrap.classList.contains('show')) {
+            setTimeout(() => {
+                map.invalidateSize();
+                fitMapToProperties();
+            }, 170);
         }
 
         if (mapWrap && mapToggleBtn) {
             mapWrap.addEventListener('shown.bs.collapse', () => {
                 mapToggleBtn.textContent = 'Hide Map';
-                setTimeout(() => map.invalidateSize(), 170);
+                setTimeout(() => {
+                    map.invalidateSize();
+                    fitMapToProperties();
+                }, 170);
             });
             mapWrap.addEventListener('hidden.bs.collapse', () => {
                 mapToggleBtn.textContent = 'Show Map';

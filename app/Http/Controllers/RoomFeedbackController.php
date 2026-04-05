@@ -19,14 +19,16 @@ class RoomFeedbackController extends Controller
             abort(403);
         }
 
-        // Must have had an approved booking for this room
+        // Must have had an approved booking for this room that has already started
+        $today = now()->toDateString();
         $hasBooking = $room->bookings()
             ->where('student_id', $student->id)
             ->where('status', 'approved')
+            ->whereDate('check_in', '<=', $today)
             ->exists();
 
         if (!$hasBooking) {
-            return back()->withErrors(['feedback' => 'Only students who have stayed in this room can leave feedback.']);
+            return back()->withErrors(['feedback' => 'Only verified tenants can rate or leave feedback for this room.']);
         }
 
         // One feedback per student per room
@@ -36,7 +38,7 @@ class RoomFeedbackController extends Controller
 
         $validated = $request->validate([
             'rating'       => 'required|integer|min:1|max:5',
-            'comment'      => 'required|string|max:1000',
+            'comment'      => 'nullable|string|max:1000',
             'display_name' => 'nullable|string|max:80',
             'anonymous'    => 'nullable|boolean',
         ]);
@@ -92,14 +94,14 @@ class RoomFeedbackController extends Controller
             'room_id'      => $room->id,
             'user_id'      => $student->id,
             'rating'       => $validated['rating'],
-            'comment'      => $validated['comment'],
+            'comment'      => trim((string) ($validated['comment'] ?? '')),
             'display_name' => $request->boolean('anonymous') ? null : ($validated['display_name'] ?: $student->full_name),
             'sentiment_label' => $sentimentLabel,
             'sentiment_score' => $sentimentScore,
         ]);
 
         return redirect()
-            ->route('student.rooms.show', $room->id)
+            ->route('student.rooms.feedback_page', $room->id)
             ->with('success', 'Thank you! Your feedback has been submitted.');
     }
 }

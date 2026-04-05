@@ -32,79 +32,123 @@
         display:flex; align-items:center; gap:.5rem;
     }
     .sr-card-header i { color:var(--brand); font-size:1rem; }
-    .sr-card-body { padding:1.25rem; }
+    .sr-card-body { padding: 1rem 1.25rem; }
 
-    /* ── Stat tiles ── */
-    .sr-stat { background:#f8fafc; border:1px solid rgba(2,8,20,.07); border-radius:.75rem; padding:.75rem 1rem; }
-    .sr-stat .lbl { font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:rgba(2,8,20,.45); }
-    .sr-stat .val { font-size:1.05rem; font-weight:700; color:#0f172a; margin-top:.2rem; }
+    .sr-stat {
+        border:1px solid rgba(2,8,20,.08); border-radius:.8rem;
+        background:#f8fafc; padding:.7rem .8rem;
+    }
+    .sr-stat .lbl {
+        font-size:.67rem; letter-spacing:.05em; text-transform:uppercase;
+        color:rgba(2,8,20,.5); font-weight:700;
+    }
+    .sr-stat .val {
+        font-size:.96rem; font-weight:700; color:#0f172a; margin-top:.15rem;
+    }
 
-    /* ── Status badges ── */
-    .sr-status-available   { background:rgba(22,101,52,.10); color:#166534; border:1px solid rgba(22,101,52,.25); }
-    .sr-status-occupied    { background:rgba(220,38,38,.08);  color:#991b1b; border:1px solid rgba(220,38,38,.2); }
-    .sr-status-maintenance { background:rgba(234,179,8,.12);  color:#854d0e; border:1px solid rgba(234,179,8,.3); }
-
-    /* ── Inclusion chips ── */
     .inc-chip {
-        display:inline-flex; align-items:center; gap:.3rem;
-        background:rgba(22,101,52,.07); border:1px solid rgba(22,101,52,.18);
-        color:#166534; font-size:.75rem; font-weight:600;
-        padding:.28rem .65rem; border-radius:2rem;
+        display:inline-flex; align-items:center; gap:.35rem;
+        border:1px solid rgba(2,8,20,.12); border-radius:999px;
+        padding:.35rem .65rem; font-size:.77rem; color:rgba(2,8,20,.75);
+        background:#fff;
     }
+    .inc-chip i { color:var(--brand); }
 
-    /* ── Detail photo grid ── */
-    .detail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem; }
-    .detail-thumb { position:relative; border-radius:.75rem; overflow:hidden; cursor:pointer; aspect-ratio:4/3; background:#f1f5f9; border:1px solid rgba(2,8,20,.07); }
-    .detail-thumb img { width:100%; height:100%; object-fit:cover; transition:transform .25s ease; }
-    .detail-thumb:hover img { transform:scale(1.04); }
-    .detail-thumb:hover { box-shadow:0 4px 14px rgba(2,8,20,.13); }
-    .detail-thumb .thumb-label { position:absolute; bottom:0; left:0; right:0; padding:.28rem .5rem; background:linear-gradient(transparent,rgba(0,0,0,.6)); color:#fff; font-size:.68rem; font-weight:600; }
-
-    /* ── Lightbox ── */
-    #lbOverlay { display:none; position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,.88); backdrop-filter:blur(6px); align-items:center; justify-content:center; }
-    #lbOverlay.active { display:flex; }
-    #lbOverlay img { max-width:min(92vw,900px); max-height:86vh; border-radius:.75rem; box-shadow:0 24px 64px rgba(0,0,0,.5); object-fit:contain; }
-    #lbOverlay .lb-label { position:absolute; bottom:1.5rem; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.14); color:#fff; padding:.3rem .9rem; border-radius:2rem; font-size:.82rem; white-space:nowrap; }
-    #lbOverlay .lb-close { position:absolute; top:1rem; right:1.25rem; color:#fff; font-size:1.6rem; cursor:pointer; opacity:.8; border:none; background:none; line-height:1; }
-    #lbOverlay .lb-close:hover { opacity:1; }
-    #lbOverlay .lb-nav { position:absolute; top:50%; transform:translateY(-50%); color:#fff; font-size:1.6rem; cursor:pointer; opacity:.75; border:none; background:rgba(255,255,255,.12); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; transition:opacity .2s,background .2s; }
-    #lbOverlay .lb-nav:hover { opacity:1; background:rgba(255,255,255,.24); }
-    #lbOverlay .lb-prev { left:1rem; } #lbOverlay .lb-next { right:1rem; }
-
-    /* ── Booking price ── */
-    .sr-book-price { font-size:1.6rem; font-weight:800; color:#0f172a; }
-    .sr-book-price span { font-size:.95rem; font-weight:400; color:rgba(2,8,20,.45); }
-
-    /* ── Chat thread ── */
-    .sr-chat-box { max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:.55rem; padding:.25rem 0; }
-    .msg-bubble { max-width:78%; }
-    .msg-bubble.mine   .bubble-body { background:var(--brand); color:#fff; border-radius:1rem 1rem 0 1rem; }
-    .msg-bubble.theirs .bubble-body { background:#f1f5f9; color:#0f172a; border-radius:1rem 1rem 1rem 0; }
-    .bubble-body { padding:.55rem .85rem; font-size:.86rem; line-height:1.5; }
-    .msg-meta { font-size:.67rem; color:rgba(2,8,20,.4); margin-top:.18rem; }
-
-    /* ── Feedback ── */
-    .feedback-item:last-child { border-bottom:0 !important; padding-bottom:0 !important; }
-    .sr-star-pick { transition: color .12s, transform .1s; }
-    .sr-star-pick:hover { transform: scale(1.2); }
-
-    /* ── Tenant view ── */
     .tenant-banner {
-        background: linear-gradient(135deg, rgba(22,101,52,.12), rgba(22,101,52,.04));
-        border: 1px solid rgba(22,101,52,.25);
-        border-radius: 1rem;
-        padding: 1rem 1.25rem;
+        border:1px solid rgba(22,101,52,.2);
+        border-radius:.9rem;
+        background:linear-gradient(180deg, rgba(22,101,52,.07) 0%, rgba(22,101,52,.03) 100%);
+        padding:.9rem 1rem;
     }
+
     .roommate-card {
-        display: flex; align-items: center; gap: .75rem;
-        border: 1px solid rgba(2,8,20,.08); border-radius: .85rem;
-        padding: .85rem 1rem; background: #fff;
+        display:flex; align-items:center; gap:.7rem;
+        border:1px solid rgba(2,8,20,.08); border-radius:.8rem;
+        background:#fff; padding:.65rem .75rem;
     }
     .roommate-avatar {
-        width: 42px; height: 42px; border-radius: 50%;
-        background: rgba(22,101,52,.1); color: #166534;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700;
+        width:34px; height:34px; border-radius:999px;
+        display:flex; align-items:center; justify-content:center;
+        font-weight:700; font-size:.8rem;
+        color:#166534; background:rgba(22,101,52,.1);
+        border:1px solid rgba(22,101,52,.2);
+    }
+
+    .detail-grid {
+        display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+        gap:.6rem;
+    }
+    .detail-thumb {
+        position:relative; border-radius:.75rem; overflow:hidden;
+        border:1px solid rgba(2,8,20,.08); cursor:pointer;
+    }
+    .detail-thumb img { width:100%; height:100%; object-fit:cover; aspect-ratio:4/3; display:block; }
+    .thumb-label {
+        position:absolute; left:.35rem; right:.35rem; bottom:.35rem;
+        background:rgba(2,8,20,.65); color:#fff; font-size:.67rem;
+        border-radius:.45rem; padding:.2rem .4rem;
+    }
+
+    .sr-chat-box {
+        display:flex; flex-direction:column; gap:.6rem;
+        max-height:280px; overflow:auto;
+        border:1px solid rgba(2,8,20,.08); border-radius:.8rem;
+        background:#f8fafc; padding:.8rem;
+    }
+    .bubble-body {
+        max-width:540px; border-radius:.9rem; padding:.5rem .72rem;
+        font-size:.84rem; line-height:1.45;
+    }
+    .bubble-body.mine { background:#166534; color:#fff; }
+    .bubble-body.theirs { background:#fff; border:1px solid rgba(2,8,20,.1); color:#0f172a; }
+    .msg-meta { margin-top:.18rem; font-size:.68rem; color:rgba(2,8,20,.55); }
+
+    .sr-book-price {
+        font-size:1.5rem; line-height:1; font-weight:800; color:#0f172a;
+    }
+    .sr-book-price span {
+        font-size:.8rem; font-weight:500; color:rgba(2,8,20,.6); margin-left:.15rem;
+    }
+
+    .btn-outline-brand {
+        border:1px solid color-mix(in srgb, var(--brand) 45%, #ffffff);
+        color:var(--brand);
+        background:#fff;
+    }
+    .btn-outline-brand:hover {
+        background:color-mix(in srgb, var(--brand) 8%, #ffffff);
+        color:var(--brand);
+    }
+
+    .sr-status-available {
+        background: rgba(22,101,52,.12);
+        border: 1px solid rgba(22,101,52,.24);
+        color: #166534;
+    }
+
+    #lbOverlay {
+        position:fixed; inset:0; background:rgba(2,8,20,.88);
+        display:none; align-items:center; justify-content:center;
+        z-index:2000; padding:1rem;
+    }
+    #lbOverlay.active { display:flex; }
+    #lbImg { max-width:92vw; max-height:84vh; border-radius:.65rem; }
+    .lb-close, .lb-nav {
+        position:absolute; border:0; border-radius:999px;
+        width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+        background:rgba(255,255,255,.16); color:#fff;
+    }
+    .lb-close { top:1rem; right:1rem; }
+    .lb-prev { left:1rem; }
+    .lb-next { right:1rem; }
+    .lb-label {
+        position:absolute; left:50%; transform:translateX(-50%); bottom:1rem;
+        background:rgba(2,8,20,.68); color:#fff;
+        border-radius:.5rem; font-size:.76rem; padding:.35rem .6rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .sr-hero, .sr-hero-placeholder { aspect-ratio: 16/8; }
     }
 </style>
 @endpush
@@ -112,25 +156,28 @@
 @section('content')
 @php
     $img = $room->image_path ?: ($room->property->image_path ?? null);
-    $rawNum = trim((string)($room->room_number ?? ''));
+    $rawNum = trim((string) ($room->room_number ?? ''));
     $displayNum = preg_replace('/^room\s*[:#-]?\s*/i', '', $rawNum) ?: $rawNum;
 
     $inclusions = collect(preg_split('/[,\n;]+/', $room->inclusions ?? ''))->map('trim')->filter()->values();
+    $propertyInclusionLabels = (array) config('property_amenities.flat', []);
+    $propertyInclusions = collect((array) ($room->property->building_inclusions ?? []))
+        ->map(fn ($key) => $propertyInclusionLabels[$key] ?? null)
+        ->filter()
+        ->values();
     $detailPhotos = $room->roomImages ?? collect();
 
-    // Calculate occupancy
     $availableSlots = $room->getAvailableSlots();
     $occupancy = $room->getOccupancyDisplay();
     $isFullCapacity = $availableSlots === 0;
     $isInMaintenance = $room->status === 'maintenance';
 
     $statusMap = [
-        'available'   => ['label'=>'Available',   'css'=>'sr-status-available',   'icon'=>'bi-check-circle-fill'],
-        'occupied'    => ['label'=>'Occupied',     'css'=>'sr-status-occupied',    'icon'=>'bi-x-circle-fill'],
-        'maintenance' => ['label'=>'Maintenance',  'css'=>'sr-status-maintenance', 'icon'=>'bi-tools'],
+        'available' => ['label' => 'Available', 'css' => 'sr-status-available', 'icon' => 'bi-check-circle-fill'],
+        'occupied' => ['label' => 'Occupied', 'css' => 'sr-status-occupied', 'icon' => 'bi-x-circle-fill'],
+        'maintenance' => ['label' => 'Maintenance', 'css' => 'sr-status-maintenance', 'icon' => 'bi-tools'],
     ];
-    
-    // Update status based on actual occupancy
+
     if ($isInMaintenance) {
         $sc = $statusMap['maintenance'];
     } elseif ($isFullCapacity) {
@@ -140,16 +187,50 @@
     }
 
     $inclusionIcons = [
-        'wifi'=>'bi-wifi','aircon'=>'bi-thermometer-snow',
-        'electric'=>'bi-lightning-charge','fan'=>'bi-wind',
-        'water'=>'bi-droplet','parking'=>'bi-p-circle',
-        'cable'=>'bi-tv','laundry'=>'bi-bag',
-        'kitchen'=>'bi-egg-fried','ref'=>'bi-snow2','refrigerator'=>'bi-snow2',
+        'wifi' => 'bi-wifi', 'aircon' => 'bi-thermometer-snow',
+        'electric' => 'bi-lightning-charge', 'fan' => 'bi-wind',
+        'water' => 'bi-droplet', 'parking' => 'bi-p-circle',
+        'cable' => 'bi-tv', 'laundry' => 'bi-bag',
+        'kitchen' => 'bi-egg-fried', 'ref' => 'bi-snow2', 'refrigerator' => 'bi-snow2',
     ];
 
-    $landlordId   = $room->property->landlord_id ?? null;
+    $landlordId = $room->property->landlord_id ?? null;
     $landlordName = $room->property->landlord->full_name ?? 'Landlord';
     $tenantMode = $tenantMode ?? false;
+
+    $student = auth()->user();
+    $schoolIdVerificationStatus = (string) ($student->school_id_verification_status ?? '');
+    if ($schoolIdVerificationStatus === '') {
+        $hasVerificationDocument = filled($student->school_id_path) || filled($student->enrollment_proof_path);
+        $schoolIdVerificationStatus = $hasVerificationDocument ? 'pending' : 'not_submitted';
+    }
+    $bookingLockedBySchoolId = $schoolIdVerificationStatus !== 'approved';
+
+    if ($schoolIdVerificationStatus === 'rejected') {
+        $bookingLockMessage = 'Verification rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock booking.';
+    } elseif ($schoolIdVerificationStatus === 'not_submitted') {
+        $bookingLockMessage = 'Upload your School ID or COR/COE in Student Setup to unlock booking.';
+    } else {
+        $bookingLockMessage = 'Booking is locked while your academic verification is pending admin approval.';
+    }
+
+    $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
+    $propertyHouseRules = (array) ($room->property->house_rules ?? []);
+    $houseRuleSections = collect($defaultHouseRuleCategories)
+        ->map(function ($categoryConfig, $categoryKey) use ($propertyHouseRules) {
+            $fallbackRules = (array) ($categoryConfig['rules'] ?? []);
+            $rules = collect((array) ($propertyHouseRules[$categoryKey] ?? $fallbackRules))
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+
+            return [
+                'label' => (string) ($categoryConfig['label'] ?? $categoryKey),
+                'rules' => $rules,
+            ];
+        })
+        ->filter(fn ($section) => $section['rules']->isNotEmpty())
+        ->values();
 @endphp
 
 @if($tenantMode)
@@ -225,6 +306,17 @@
                             </div>
                         </div>
                     </div>
+
+                    @if($propertyInclusions->isNotEmpty())
+                    <div class="mt-3">
+                        <div class="mb-2" style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(2,8,20,.45);">Boarding House Inclusions</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($propertyInclusions as $inclusion)
+                            <span class="inc-chip"><i class="bi bi-shield-check"></i>{{ $inclusion }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -251,6 +343,24 @@
             </div>
 
             <div class="sr-card mt-3">
+                <div class="sr-card-header"><i class="bi bi-file-text"></i> House Rules</div>
+                <div class="sr-card-body">
+                    @forelse($houseRuleSections as $section)
+                        <div class="mb-3">
+                            <div class="small text-uppercase text-muted fw-semibold mb-2">{{ $section['label'] }}</div>
+                            <ul class="mb-0 ps-3" style="font-size:.86rem;color:rgba(2,8,20,.75);line-height:1.55;">
+                                @foreach($section['rules'] as $rule)
+                                    <li>{{ $rule }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @empty
+                        <div class="text-muted small">No house rules configured for this property yet.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="sr-card mt-3">
                 <div class="sr-card-header">
                     <i class="bi bi-star-half"></i> Tenant Feedback
                     @if($avgRating)
@@ -263,98 +373,11 @@
                     </span>
                     @endif
                 </div>
-                <div class="sr-card-body">
-                    @if($feedbacks->isNotEmpty())
-                    <div class="d-flex flex-column gap-3 mb-4" id="feedbackList">
-                        @foreach($feedbacks as $fb)
-                        <div class="feedback-item pb-3" style="border-bottom:1px solid rgba(2,8,20,.06);">
-                            <div class="d-flex align-items-start gap-2">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                     style="width:34px;height:34px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.2);">
-                                    <i class="bi bi-person" style="color:var(--brand);font-size:.85rem;"></i>
-                                </div>
-                                <div class="flex-fill min-w-0">
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <span class="fw-semibold" style="font-size:.88rem;">{{ $fb->public_name }}</span>
-                                        <div class="d-flex gap-1">
-                                            @for($s=1;$s<=5;$s++)
-                                            <i class="bi {{ $s <= $fb->rating ? 'bi-star-fill' : 'bi-star' }}" style="color:#f59e0b;font-size:.72rem;"></i>
-                                            @endfor
-                                        </div>
-                                        <span class="text-muted ms-auto" style="font-size:.72rem;">{{ $fb->created_at->format('M j, Y') }}</span>
-                                    </div>
-                                    <p class="mb-0 mt-1" style="font-size:.85rem;color:rgba(2,8,20,.75);line-height:1.5;">{{ $fb->comment }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                    @else
-                    <div class="rounded-3 mb-4 p-3 text-center" style="background:#f8fafc;border:1px solid rgba(2,8,20,.06);">
-                        <i class="bi bi-star fs-4 d-block mb-1" style="color:rgba(2,8,20,.2);"></i>
-                        <span class="text-muted small">No reviews yet for this room.</span>
-                    </div>
-                    @endif
-
-                    @if($canFeedback && !$alreadyFeedback)
-                    <div style="border-top:1px solid rgba(2,8,20,.07);padding-top:1rem;">
-                        <div class="fw-semibold mb-3" style="font-size:.88rem;">Leave Your Feedback</div>
-                        <form method="POST" action="{{ route('student.rooms.feedback', $room->id) }}" id="feedbackFormTenant">
-                            @csrf
-                            @error('feedback')<div class="alert alert-danger py-2 small mb-2">{{ $message }}</div>@enderror
-
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Rating</label>
-                                <div class="d-flex gap-2" id="starPickerTenant">
-                                    @for($s=1;$s<=5;$s++)
-                                    <i class="bi bi-star sr-star-pick" data-val="{{ $s }}" style="font-size:1.5rem;color:#d1d5db;cursor:pointer;transition:color .15s;"></i>
-                                    @endfor
-                                </div>
-                                <input type="hidden" name="rating" id="ratingInputTenant" value="{{ old('rating') }}">
-                                @error('rating')<div class="text-danger" style="font-size:.75rem;">{{ $message }}</div>@enderror
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Your Review</label>
-                                <textarea name="comment"
-                                          class="form-control rounded-3 @error('comment') is-invalid @enderror"
-                                          rows="3"
-                                          placeholder="Share your experience staying in this room..."
-                                          style="resize:none;font-size:.88rem;border-color:rgba(2,8,20,.12);">{{ old('comment') }}</textarea>
-                                @error('comment')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Display Name</label>
-                                <input type="text" name="display_name" id="displayNameInput"
-                                       class="form-control rounded-3 @error('display_name') is-invalid @enderror"
-                                       placeholder="Your name (leave blank to use your account name)"
-                                       value="{{ old('display_name') }}"
-                                       style="font-size:.88rem;border-color:rgba(2,8,20,.12);">
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" name="anonymous" value="1" id="anonCheck" {{ old('anonymous') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="anonCheck" style="font-size:.82rem;">
-                                        Post anonymously
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-brand w-100 rounded-pill fw-semibold" style="font-size:.88rem;">
-                                <i class="bi bi-send me-1"></i> Submit Feedback
-                            </button>
-                        </form>
-                    </div>
-                    @elseif($alreadyFeedback)
-                    <div class="rounded-3 p-3" style="background:rgba(22,101,52,.06);border:1px solid rgba(22,101,52,.18);">
-                        <i class="bi bi-check-circle-fill me-2" style="color:var(--brand);"></i>
-                        <span style="font-size:.86rem;font-weight:600;color:var(--brand);">You've already submitted feedback for this room.</span>
-                    </div>
-                    @elseif(!$canFeedback)
-                    <div class="rounded-3 p-3" style="background:#f8fafc;border:1px solid rgba(2,8,20,.07);">
-                        <i class="bi bi-info-circle me-2 text-muted"></i>
-                        <span class="text-muted" style="font-size:.84rem;">Only students who have stayed in this room can leave feedback.</span>
-                    </div>
-                    @endif
+                <div class="sr-card-body d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
+                    <div class="text-muted small">Feedback is now managed on a dedicated page for better review and submission flow.</div>
+                    <a href="{{ route('student.rooms.feedback_page', $room->id) }}" class="btn btn-outline-brand rounded-pill px-3">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open Feedback Page
+                    </a>
                 </div>
             </div>
         </div>
@@ -442,6 +465,17 @@
                     </div>
                 </div>
                 @endif
+
+                @if($propertyInclusions->isNotEmpty())
+                <div class="mt-3">
+                    <div class="mb-2" style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(2,8,20,.45);">Boarding House Inclusions</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach($propertyInclusions as $inclusion)
+                        <span class="inc-chip"><i class="bi bi-shield-check"></i>{{ $inclusion }}</span>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -521,105 +555,11 @@
                 </span>
                 @endif
             </div>
-            <div class="sr-card-body">
-
-                {{-- Existing feedback list --}}
-                @if($feedbacks->isNotEmpty())
-                <div class="d-flex flex-column gap-3 mb-4" id="feedbackList">
-                    @foreach($feedbacks as $fb)
-                    <div class="feedback-item pb-3" style="border-bottom:1px solid rgba(2,8,20,.06);">
-                        <div class="d-flex align-items-start gap-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                 style="width:34px;height:34px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.2);">
-                                <i class="bi bi-person" style="color:var(--brand);font-size:.85rem;"></i>
-                            </div>
-                            <div class="flex-fill min-w-0">
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="fw-semibold" style="font-size:.88rem;">{{ $fb->public_name }}</span>
-                                    <div class="d-flex gap-1">
-                                        @for($s=1;$s<=5;$s++)
-                                        <i class="bi {{ $s <= $fb->rating ? 'bi-star-fill' : 'bi-star' }}" style="color:#f59e0b;font-size:.72rem;"></i>
-                                        @endfor
-                                    </div>
-                                    <span class="text-muted ms-auto" style="font-size:.72rem;">{{ $fb->created_at->format('M j, Y') }}</span>
-                                </div>
-                                <p class="mb-0 mt-1" style="font-size:.85rem;color:rgba(2,8,20,.75);line-height:1.5;">{{ $fb->comment }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                @else
-                <div class="rounded-3 mb-4 p-3 text-center" style="background:#f8fafc;border:1px solid rgba(2,8,20,.06);">
-                    <i class="bi bi-star fs-4 d-block mb-1" style="color:rgba(2,8,20,.2);"></i>
-                    <span class="text-muted small">No reviews yet for this room.</span>
-                </div>
-                @endif
-
-                {{-- Submit feedback --}}
-                @if($canFeedback && !$alreadyFeedback)
-                <div style="border-top:1px solid rgba(2,8,20,.07);padding-top:1rem;">
-                    <div class="fw-semibold mb-3" style="font-size:.88rem;">Leave Your Feedback</div>
-                    <form method="POST" action="{{ route('student.rooms.feedback', $room->id) }}" id="feedbackForm">
-                        @csrf
-                        @error('feedback')<div class="alert alert-danger py-2 small mb-2">{{ $message }}</div>@enderror
-
-                        {{-- Star rating picker --}}
-                        <div class="mb-3">
-                            <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Rating</label>
-                            <div class="d-flex gap-2" id="starPicker">
-                                @for($s=1;$s<=5;$s++)
-                                <i class="bi bi-star sr-star-pick" data-val="{{ $s }}" style="font-size:1.5rem;color:#d1d5db;cursor:pointer;transition:color .15s;"></i>
-                                @endfor
-                            </div>
-                            <input type="hidden" name="rating" id="ratingInput" value="{{ old('rating') }}">
-                            @error('rating')<div class="text-danger" style="font-size:.75rem;">{{ $message }}</div>@enderror
-                        </div>
-
-                        {{-- Comment --}}
-                        <div class="mb-3">
-                            <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Your Review</label>
-                            <textarea name="comment"
-                                      class="form-control rounded-3 @error('comment') is-invalid @enderror"
-                                      rows="3"
-                                      placeholder="Share your experience staying in this room..."
-                                      style="resize:none;font-size:.88rem;border-color:rgba(2,8,20,.12);">{{ old('comment') }}</textarea>
-                            @error('comment')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-
-                        {{-- Name / Anonymous --}}
-                        <div class="mb-3">
-                            <label class="form-label" style="font-size:.8rem;font-weight:600;color:rgba(2,8,20,.55);text-transform:uppercase;letter-spacing:.05em;">Display Name</label>
-                            <input type="text" name="display_name" id="displayNameInput"
-                                   class="form-control rounded-3 @error('display_name') is-invalid @enderror"
-                                   placeholder="Your name (leave blank to use your account name)"
-                                   value="{{ old('display_name') }}"
-                                   style="font-size:.88rem;border-color:rgba(2,8,20,.12);">
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" name="anonymous" value="1" id="anonCheck" {{ old('anonymous') ? 'checked' : '' }}>
-                                <label class="form-check-label" for="anonCheck" style="font-size:.82rem;">
-                                    Post anonymously
-                                </label>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-brand w-100 rounded-pill fw-semibold" style="font-size:.88rem;">
-                            <i class="bi bi-send me-1"></i> Submit Feedback
-                        </button>
-                    </form>
-                </div>
-                @elseif($alreadyFeedback)
-                <div class="rounded-3 p-3" style="background:rgba(22,101,52,.06);border:1px solid rgba(22,101,52,.18);">
-                    <i class="bi bi-check-circle-fill me-2" style="color:var(--brand);"></i>
-                    <span style="font-size:.86rem;font-weight:600;color:var(--brand);">You've already submitted feedback for this room.</span>
-                </div>
-                @elseif(!$canFeedback)
-                <div class="rounded-3 p-3" style="background:#f8fafc;border:1px solid rgba(2,8,20,.07);">
-                    <i class="bi bi-info-circle me-2 text-muted"></i>
-                    <span class="text-muted" style="font-size:.84rem;">Only students who have stayed in this room can leave feedback.</span>
-                </div>
-                @endif
-
+            <div class="sr-card-body d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
+                <div class="text-muted small">Feedback has its own page so ratings, comments, and submission are all in one place.</div>
+                <a href="{{ route('student.rooms.feedback_page', $room->id) }}" class="btn btn-outline-brand rounded-pill px-3">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Open Feedback Page
+                </a>
             </div>
         </div>
 
@@ -650,6 +590,11 @@
                         <i class="bi bi-tools me-1"></i> In Maintenance
                     </button>
                     <div class="text-center text-muted small">This room is currently under maintenance</div>
+                @elseif($bookingLockedBySchoolId)
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="{{ $bookingLockMessage }}">
+                        <i class="bi bi-shield-lock me-1"></i> Booking Locked
+                    </button>
+                    <div class="text-center text-muted" style="font-size:.72rem;">{{ $bookingLockMessage }}</div>
                 @elseif($hasExistingBooking && !$existingBookingIsThisRoom)
                     {{-- Student has a booking but not for this room --}}
                     <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="You already have an active booking. Complete or cancel it to book another room.">
@@ -769,38 +714,6 @@
         if (e.key === 'ArrowRight') lbNav(1,  { stopPropagation: () => {} });
     });
 
-    // ── Star rating picker ──
-    const stars   = document.querySelectorAll('.sr-star-pick');
-    const rInput  = document.getElementById('ratingInput') || document.getElementById('ratingInputTenant');
-    const anonChk = document.getElementById('anonCheck');
-    const nameInp = document.getElementById('displayNameInput');
-
-    function paintStars(val) {
-        stars.forEach(s => {
-            const v = parseInt(s.dataset.val);
-            s.classList.toggle('bi-star-fill', v <= val);
-            s.classList.toggle('bi-star',      v  > val);
-            s.style.color = v <= val ? '#f59e0b' : '#d1d5db';
-        });
-    }
-
-    stars.forEach(s => {
-        s.addEventListener('mouseover', () => paintStars(parseInt(s.dataset.val)));
-        s.addEventListener('mouseleave', () => paintStars(parseInt(rInput?.value || 0)));
-        s.addEventListener('click', () => {
-            if (rInput) { rInput.value = s.dataset.val; paintStars(parseInt(s.dataset.val)); }
-        });
-    });
-
-    // Restore selected stars on page load (e.g. validation fail)
-    if (rInput && rInput.value) paintStars(parseInt(rInput.value));
-
-    // Toggle name field visibility when anonymous is checked
-    if (anonChk && nameInp) {
-        function toggleName() { nameInp.closest('.mb-3').style.opacity = anonChk.checked ? '.4' : '1'; nameInp.disabled = anonChk.checked; }
-        anonChk.addEventListener('change', toggleName);
-        toggleName();
-    }
 </script>
 
 {{-- Book Confirmation Modal --}}
@@ -820,7 +733,7 @@
           @endphp
           @if($coverImg)
           <img src="{{ asset('storage/' . $coverImg->image_path) }}"
-               class="rounded-3 flex-shrink-0"
+               class="rounded-3 shrink-0"
                style="width:72px;height:56px;object-fit:cover;"
                alt="Room photo">
           @endif

@@ -232,6 +232,38 @@
             </div>
         </div>
 
+        <div class="request-metrics">
+            <div class="request-metric">
+                <div class="k"><i class="bi bi-person me-1"></i>Room Mode</div>
+                <div class="v">{{ ucfirst((string) ($booking->occupancy_mode ?? 'solo')) }}</div>
+            </div>
+            <div class="request-metric">
+                <div class="k"><i class="bi bi-cash-coin me-1"></i>Monthly Rent</div>
+                <div class="v">₱{{ number_format((float) ($booking->monthly_rent_amount ?? 0), 2) }}</div>
+            </div>
+            <div class="request-metric">
+                <div class="k"><i class="bi bi-lightning me-1"></i>Advance Payment</div>
+                <div class="v">
+                    @if($booking->include_advance_payment)
+                        <span class="badge text-bg-success" style="font-size: .75rem;">Yes</span>
+                    @else
+                        <span class="badge text-bg-secondary" style="font-size: .75rem;">No</span>
+                    @endif
+                </div>
+            </div>
+            <div class="request-metric">
+                <div class="k"><i class="bi bi-exclamation-triangle me-1"></i>Payment Status</div>
+                <div class="v">
+                    @php
+                        $paymentStatus = $booking->derivedPaymentStatus();
+                    @endphp
+                    <span class="badge {{ $paymentStatus === 'paid' ? 'text-bg-success' : ($paymentStatus === 'overdue' ? 'text-bg-danger' : 'text-bg-warning') }} " style="font-size: .75rem;">
+                        {{ ucfirst($paymentStatus) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
         @if($booking->notes)
             <div class="request-note">
                 <div class="small fw-semibold mb-1" style="letter-spacing:.02em;">Notes</div>

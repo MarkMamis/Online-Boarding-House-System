@@ -11,6 +11,8 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\StudentPropertyController;
 use App\Http\Controllers\StudentProfileController;
+use App\Http\Controllers\StudentSetupController;
+use App\Http\Controllers\LandlordSetupController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RoomFeedbackController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\StudentLeaveRequestController;
+use App\Http\Controllers\StudentPaymentController;
 use App\Http\Controllers\LandlordLeaveRequestController;
 use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
@@ -35,6 +38,34 @@ Route::get('/', function () {
         }
 
         if ($role === 'landlord') {
+            $user = Auth::user()->loadMissing('landlordProfile');
+            $profile = $user->landlordProfile;
+
+            $preferredPaymentMethods = collect(optional($profile)->preferred_payment_methods ?? [])
+                ->filter(fn ($method) => in_array($method, ['bank', 'gcash', 'cash'], true))
+                ->values();
+
+            $bankRequired = $preferredPaymentMethods->contains('bank');
+            $gcashRequired = $preferredPaymentMethods->contains('gcash');
+            $cashRequired = $preferredPaymentMethods->contains('cash');
+
+            $bankReady = !$bankRequired || (filled(optional($profile)->payment_bank_name) && filled(optional($profile)->payment_account_name));
+            $gcashReady = !$gcashRequired || (filled(optional($profile)->payment_gcash_name) && filled(optional($profile)->payment_gcash_number));
+            $cashReady = !$cashRequired || true;
+
+            $setupSubmitted = filled($user->contact_number)
+                && filled($user->boarding_house_name)
+                && filled(optional($profile)->about)
+                && filled(optional($profile)->business_permit_path)
+                && $preferredPaymentMethods->isNotEmpty()
+                && $bankReady
+                && $gcashReady
+                && $cashReady;
+
+            if (!$setupSubmitted) {
+                return redirect()->route('landlord.setup.show');
+            }
+
             return redirect()->route('landlord.dashboard');
         }
 
@@ -42,9 +73,9 @@ Route::get('/', function () {
     }
 
     $availableRooms = Room::query()
-        ->select('rooms.*')
-        ->join('properties', 'properties.id', '=', 'rooms.property_id')
-        ->where('properties.approval_status', 'approved')
+        ->whereHas('property', function ($query) {
+            $query->visibleToAudience();
+        })
         ->where('rooms.status', 'available')
         ->where('rooms.slots_available', '>', 0)
         ->with([
@@ -52,13 +83,12 @@ Route::get('/', function () {
             'property.landlord:id,full_name',
         ])
         ->orderBy('rooms.price')
-        ->orderByDesc('properties.average_rating')
         ->orderByDesc('rooms.created_at')
         ->limit(6)
         ->get();
 
     $featuredProperties = Property::query()
-        ->where('approval_status', 'approved')
+        ->visibleToAudience()
         ->withCount('rooms')
         ->withCount([
             'rooms as available_rooms_count' => function ($query) {
@@ -85,8 +115,10 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 // Separate role-specific registration forms
 Route::get('/register/student', [AuthController::class, 'showRegisterStudentForm'])->name('register.student');
 Route::get('/register/landlord', [AuthController::class, 'showRegisterLandlordForm'])->name('register.landlord');
+Route::get('/register/admin', [AuthController::class, 'showRegisterAdminForm'])->name('register.admin');
 // Registration submit endpoint (POST). Named for direct form action use if needed.
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+Route::post('/register/admin', [AuthController::class, 'registerAdmin'])->name('register.admin.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Email verification
@@ -106,7 +138,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Chatbot (global, authenticated)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'student.setup'])->group(function () {
     Route::get('/chatbot/history', [ChatbotController::class, 'history'])->name('chatbot.history');
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 });
@@ -127,7 +159,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
 })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
 // Shared authenticated routes (any logged-in role) - require verified email
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'student.setup'])->group(function () {
     // Messaging (used by multiple roles)
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
@@ -159,6 +191,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/users/landlords/{user}', [AuthController::class, 'adminLandlordDetails'])->name('admin.users.landlords.show');
     Route::put('/admin/users/landlords/{user}', [AuthController::class, 'adminUpdateLandlord'])->name('admin.users.landlords.update');
     Route::post('/admin/users/landlords/{user}/status', [AuthController::class, 'adminToggleLandlordStatus'])->name('admin.users.landlords.status');
+    Route::get('/admin/permits', [AuthController::class, 'adminPermitApprovals'])->name('admin.permits.index');
+    Route::post('/admin/permits/{user}/approve', [AuthController::class, 'adminApproveLandlordPermit'])->name('admin.permits.approve');
+    Route::post('/admin/permits/{user}/reject', [AuthController::class, 'adminRejectLandlordPermit'])->name('admin.permits.reject');
+    Route::get('/admin/student-verifications', [AuthController::class, 'adminStudentVerifications'])->name('admin.student_verifications.index');
+    Route::post('/admin/student-verifications/{user}/approve', [AuthController::class, 'adminApproveStudentVerification'])->name('admin.student_verifications.approve');
+    Route::post('/admin/student-verifications/{user}/reject', [AuthController::class, 'adminRejectStudentVerification'])->name('admin.student_verifications.reject');
     Route::get('/admin/users/students/{user}', [AuthController::class, 'adminStudentDetails'])->name('admin.users.students.show');
     Route::get('/admin/users/students/{user}/edit', [AuthController::class, 'adminEditStudent'])->name('admin.users.students.edit');
     Route::put('/admin/users/students/{user}', [AuthController::class, 'adminUpdateStudent'])->name('admin.users.students.update');
@@ -173,9 +211,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->name('admin.bookings.index');
 
     // Property approval workflow
-    Route::get('/admin/properties/pending', [PropertyController::class, 'adminPending'])->name('admin.properties.pending');
+    Route::get('/admin/properties/approval', [PropertyController::class, 'adminPending'])->name('admin.properties.pending');
     Route::post('/admin/properties/{property}/approve', [PropertyController::class, 'adminApprove'])->name('admin.properties.approve');
     Route::post('/admin/properties/{property}/reject', [PropertyController::class, 'adminReject'])->name('admin.properties.reject');
+    Route::get('/admin/properties/{property}', [PropertyController::class, 'adminShow'])->name('admin.properties.show');
 
     // Admin reports management
     Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
@@ -193,114 +232,136 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 // Landlord-only (verified)
 Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
+    // Dedicated landlord setup flow (accessible before full operations unlock)
+    Route::get('/landlord/setup', [LandlordSetupController::class, 'show'])->name('landlord.setup.show');
+    Route::put('/landlord/setup', [LandlordSetupController::class, 'update'])->name('landlord.setup.update');
+
     Route::get('/landlord/dashboard', [AuthController::class, 'landlordDashboard'])->name('landlord.dashboard');
 
     // Landlord profile management
     Route::get('/landlord/profile', [AuthController::class, 'landlordProfile'])->name('landlord.profile.edit');
     Route::put('/landlord/profile', [AuthController::class, 'updateLandlordProfile'])->name('landlord.profile.update');
 
-    // Landlord property management
-    Route::get('/landlord/properties', [PropertyController::class, 'index'])->name('landlord.properties.index');
-    Route::get('/landlord/properties/create', [PropertyController::class, 'create'])->name('landlord.properties.create');
-    Route::post('/landlord/properties', [PropertyController::class, 'store'])->name('landlord.properties.store');
-    Route::get('/landlord/properties/{property}', [PropertyController::class, 'show'])->name('landlord.properties.show');
-    Route::get('/landlord/properties/{property}/edit', [PropertyController::class, 'edit'])->name('landlord.properties.edit');
-    Route::put('/landlord/properties/{property}', [PropertyController::class, 'update'])->name('landlord.properties.update');
-    Route::delete('/landlord/properties/{property}', [PropertyController::class, 'destroy'])->name('landlord.properties.destroy');
+    Route::middleware(['landlord.setup:profile_complete', 'landlord.setup:permit_submitted', 'landlord.setup:permit_approved'])->group(function () {
+        // Landlord property management
+        Route::get('/landlord/properties', [PropertyController::class, 'index'])->name('landlord.properties.index');
+        Route::get('/landlord/properties/create', [PropertyController::class, 'create'])->name('landlord.properties.create');
+        Route::post('/landlord/properties', [PropertyController::class, 'store'])->name('landlord.properties.store');
+        Route::get('/landlord/properties/{property}', [PropertyController::class, 'show'])->name('landlord.properties.show');
+        Route::get('/landlord/properties/{property}/edit', [PropertyController::class, 'edit'])->name('landlord.properties.edit');
+        Route::put('/landlord/properties/{property}', [PropertyController::class, 'update'])->name('landlord.properties.update');
+        Route::delete('/landlord/properties/{property}', [PropertyController::class, 'destroy'])->name('landlord.properties.destroy');
 
-    // Landlord room management (nested under property)
-    Route::get('/landlord/properties/{property}/rooms', [RoomController::class, 'index'])->name('landlord.properties.rooms.index');
-    Route::get('/landlord/properties/{property}/rooms/create', [RoomController::class, 'create'])->name('landlord.properties.rooms.create');
-    Route::post('/landlord/properties/{property}/rooms', [RoomController::class, 'store'])->name('landlord.properties.rooms.store');
-    Route::get('/landlord/properties/{property}/rooms/{room}/edit', [RoomController::class, 'edit'])->name('landlord.properties.rooms.edit');
-    Route::put('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'update'])->name('landlord.properties.rooms.update');
-    Route::delete('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'destroy'])->name('landlord.properties.rooms.destroy');
-    // Quick creation from dashboard (property id passed directly)
-    Route::post('/landlord/dashboard/properties/{property}/rooms', [RoomController::class, 'quickStore'])->name('landlord.dashboard.rooms.quick_store');
+        // Landlord room management (nested under property)
+        Route::get('/landlord/properties/{property}/rooms', [RoomController::class, 'index'])->name('landlord.properties.rooms.index');
+        Route::get('/landlord/properties/{property}/rooms/create', [RoomController::class, 'create'])->name('landlord.properties.rooms.create');
+        Route::post('/landlord/properties/{property}/rooms', [RoomController::class, 'store'])->name('landlord.properties.rooms.store');
+        Route::get('/landlord/properties/{property}/rooms/{room}/edit', [RoomController::class, 'edit'])->name('landlord.properties.rooms.edit');
+        Route::put('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'update'])->name('landlord.properties.rooms.update');
+        Route::delete('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'destroy'])->name('landlord.properties.rooms.destroy');
+        // Quick creation from dashboard (property id passed directly)
+        Route::post('/landlord/dashboard/properties/{property}/rooms', [RoomController::class, 'quickStore'])->name('landlord.dashboard.rooms.quick_store');
 
-    // Landlord bookings review
-    Route::get('/landlord/bookings', [BookingController::class, 'landlordIndex'])->name('landlord.bookings.index');
-    Route::post('/landlord/bookings/{booking}/approve', [BookingController::class, 'approve'])->name('landlord.bookings.approve');
-    Route::post('/landlord/bookings/{booking}/reject', [BookingController::class, 'reject'])->name('landlord.bookings.reject');
+        // Landlord bookings review
+        Route::get('/landlord/bookings', [BookingController::class, 'landlordIndex'])->name('landlord.bookings.index');
+        Route::post('/landlord/bookings/{booking}/approve', [BookingController::class, 'approve'])->name('landlord.bookings.approve');
+        Route::post('/landlord/bookings/{booking}/reject', [BookingController::class, 'reject'])->name('landlord.bookings.reject');
 
-    // Landlord tenants (current approved bookings)
-    Route::get('/landlord/tenants', [BookingController::class, 'landlordTenants'])->name('landlord.tenants.index');
+        // Landlord tenants (current approved bookings)
+        Route::get('/landlord/tenants', [BookingController::class, 'landlordTenants'])->name('landlord.tenants.index');
 
-    // Landlord maintenance management
-    Route::get('/landlord/maintenance', [MaintenanceController::class, 'index'])->name('landlord.maintenance.index');
-    Route::post('/landlord/maintenance/set', [MaintenanceController::class, 'setMaintenance'])->name('landlord.maintenance.set');
-    Route::post('/landlord/maintenance/{room}/complete', [MaintenanceController::class, 'completeMaintenance'])->name('landlord.maintenance.complete');
+        // Landlord maintenance management
+        Route::get('/landlord/maintenance', [MaintenanceController::class, 'index'])->name('landlord.maintenance.index');
+        Route::post('/landlord/maintenance/set', [MaintenanceController::class, 'setMaintenance'])->name('landlord.maintenance.set');
+        Route::post('/landlord/maintenance/{room}/complete', [MaintenanceController::class, 'completeMaintenance'])->name('landlord.maintenance.complete');
 
-    // Landlord payments & billing
-    Route::get('/landlord/payments', [PaymentController::class, 'index'])->name('landlord.payments.index');
-    Route::post('/landlord/payments/{booking}/paid', [PaymentController::class, 'markAsPaid'])->name('landlord.payments.mark_paid');
-    Route::post('/landlord/payments/{booking}/pending', [PaymentController::class, 'markAsPending'])->name('landlord.payments.mark_pending');
+        // Landlord payments & billing
+        Route::get('/landlord/payments', [PaymentController::class, 'index'])->name('landlord.payments.index');
+        Route::get('/landlord/payments/{booking}/manage', [PaymentController::class, 'manageMonthly'])->name('landlord.payments.manage');
+        Route::post('/landlord/payments/{booking}/paid', [PaymentController::class, 'markAsPaid'])->name('landlord.payments.mark_paid');
+        Route::post('/landlord/payments/{booking}/pending', [PaymentController::class, 'markAsPending'])->name('landlord.payments.mark_pending');
+        Route::post('/landlord/payments/{booking}/remind', [PaymentController::class, 'sendReminder'])->name('landlord.payments.remind');
+        Route::post('/landlord/payments/{booking}/records', [PaymentController::class, 'storeMonthlyRecord'])->name('landlord.payments.records.store');
+        Route::post('/landlord/payments/{booking}/records/{record}/status', [PaymentController::class, 'updateMonthlyRecordStatus'])->name('landlord.payments.records.status');
 
-    // Landlord analytics
-    Route::get('/landlord/analytics', [AnalyticsController::class, 'index'])->name('landlord.analytics.index');
+        // Landlord analytics
+        Route::get('/landlord/analytics', [AnalyticsController::class, 'index'])->name('landlord.analytics.index');
 
-    // Landlord rooms management
-    Route::get('/landlord/rooms', [RoomController::class, 'landlordIndex'])->name('landlord.rooms.index');
+        // Landlord rooms management
+        Route::get('/landlord/rooms', [RoomController::class, 'landlordIndex'])->name('landlord.rooms.index');
 
-    // Landlord messages
-    Route::get('/landlord/messages', [MessageController::class, 'index'])->name('landlord.messages.index');
+        // Landlord messages
+        Route::get('/landlord/messages', [MessageController::class, 'index'])->name('landlord.messages.index');
 
-    // Landlord feedback
-    Route::get('/landlord/feedback', [LandlordFeedbackController::class, 'index'])->name('landlord.feedback.index');
-    Route::post('/landlord/feedback/analyze', [LandlordFeedbackController::class, 'analyzePending'])->name('landlord.feedback.analyze');
+        // Landlord feedback
+        Route::get('/landlord/feedback', [LandlordFeedbackController::class, 'index'])->name('landlord.feedback.index');
+        Route::post('/landlord/feedback/analyze', [LandlordFeedbackController::class, 'analyzePending'])->name('landlord.feedback.analyze');
 
-    // Landlord onboarding
-    Route::get('/landlord/onboarding', [TenantOnboardingController::class, 'landlordIndex'])->name('landlord.onboarding.index');
-    Route::get('/landlord/onboarding/{onboarding}/review', [TenantOnboardingController::class, 'reviewDocuments'])->name('landlord.onboarding.review');
-    Route::post('/landlord/onboarding/{onboarding}/approve-documents', [TenantOnboardingController::class, 'approveDocuments'])->name('landlord.onboarding.approve_documents');
+        // Landlord onboarding
+        Route::get('/landlord/onboarding', [TenantOnboardingController::class, 'landlordIndex'])->name('landlord.onboarding.index');
+        Route::get('/landlord/onboarding/{onboarding}/review', [TenantOnboardingController::class, 'reviewDocuments'])->name('landlord.onboarding.review');
+        Route::post('/landlord/onboarding/{onboarding}/approve-documents', [TenantOnboardingController::class, 'approveDocuments'])->name('landlord.onboarding.approve_documents');
 
-    // Landlord leave requests
-    Route::get('/landlord/leave-requests', [LandlordLeaveRequestController::class, 'index'])->name('landlord.leave_requests.index');
-    Route::post('/landlord/leave-requests/{leaveRequest}/approve', [LandlordLeaveRequestController::class, 'approve'])->name('landlord.leave_requests.approve');
-    Route::post('/landlord/leave-requests/{leaveRequest}/reject', [LandlordLeaveRequestController::class, 'reject'])->name('landlord.leave_requests.reject');
+        // Landlord leave requests
+        Route::get('/landlord/leave-requests', [LandlordLeaveRequestController::class, 'index'])->name('landlord.leave_requests.index');
+        Route::post('/landlord/leave-requests/{leaveRequest}/approve', [LandlordLeaveRequestController::class, 'approve'])->name('landlord.leave_requests.approve');
+        Route::post('/landlord/leave-requests/{leaveRequest}/reject', [LandlordLeaveRequestController::class, 'reject'])->name('landlord.leave_requests.reject');
+    });
 });
 
 // Student-only (verified)
 Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
-    Route::get('/student/dashboard', [AuthController::class, 'studentDashboard'])->name('student.dashboard');
+    // Dedicated student verification setup (accessible before full portal unlock)
+    Route::get('/student/setup', [StudentSetupController::class, 'show'])->name('student.setup.show');
+    Route::put('/student/setup', [StudentSetupController::class, 'update'])->name('student.setup.update');
 
-    // Student property map
-    Route::get('/student/properties/map-data', [StudentPropertyController::class, 'mapData'])->name('student.properties.map');
-    Route::get('/student/properties/map', [StudentPropertyController::class, 'map'])->name('student.properties.map_view');
-    Route::get('/student/properties/{property}/rooms-data', [StudentPropertyController::class, 'roomsData'])->name('student.properties.rooms_data');
-    Route::get('/student/properties/{property}', [StudentPropertyController::class, 'show'])->name('student.properties.show');
+    Route::middleware(['student.setup'])->group(function () {
+        Route::get('/student/dashboard', [AuthController::class, 'studentDashboard'])->name('student.dashboard');
+        Route::get('/student/tenant-dashboard', [AuthController::class, 'studentTenantDashboard'])->name('student.tenant.dashboard');
 
-    // Student Profile Management
-    Route::get('/student/profile', [StudentProfileController::class, 'show'])->name('student.profile.show');
-    Route::get('/student/profile/edit', [StudentProfileController::class, 'edit'])->name('student.profile.edit');
-    Route::put('/student/profile', [StudentProfileController::class, 'update'])->name('student.profile.update');
-    Route::get('/student/profile/change-password', [StudentProfileController::class, 'editPassword'])->name('student.profile.change-password');
-    Route::put('/student/profile/change-password', [StudentProfileController::class, 'updatePassword'])->name('student.profile.update-password');
+        // Student property map
+        Route::get('/student/properties/map-data', [StudentPropertyController::class, 'mapData'])->name('student.properties.map');
+        Route::get('/student/properties/map', [StudentPropertyController::class, 'map'])->name('student.properties.map_view');
+        Route::get('/student/properties/{property}/rooms-data', [StudentPropertyController::class, 'roomsData'])->name('student.properties.rooms_data');
+        Route::get('/student/properties/{property}', [StudentPropertyController::class, 'show'])->name('student.properties.show');
 
-    // Student room browsing and booking
-    Route::get('/student/rooms', [RoomController::class, 'studentIndex'])->name('student.rooms.index');
-    Route::get('/student/rooms/{room}', [RoomController::class, 'studentShow'])->name('student.rooms.show');
-    Route::post('/student/rooms/{room}/inquire', [MessageController::class, 'storeInquiry'])->name('student.rooms.inquire');
-    Route::post('/student/rooms/{room}/feedback', [RoomFeedbackController::class, 'store'])->name('student.rooms.feedback');
-    Route::get('/student/rooms/{room}/book', [BookingController::class, 'create'])->name('bookings.create');
-    Route::post('/student/rooms/{room}/book', [BookingController::class, 'store'])->name('bookings.store');
-    Route::get('/student/requests', [BookingController::class, 'studentIndex'])->name('student.bookings.index');
-    Route::post('/student/requests/{booking}/cancel', [BookingController::class, 'cancel'])->name('student.bookings.cancel');
+        // Student Profile Management
+        Route::get('/student/profile', [StudentProfileController::class, 'show'])->name('student.profile.show');
+        Route::get('/student/profile/edit', [StudentProfileController::class, 'edit'])->name('student.profile.edit');
+        Route::put('/student/profile', [StudentProfileController::class, 'update'])->name('student.profile.update');
+        Route::get('/student/profile/change-password', [StudentProfileController::class, 'editPassword'])->name('student.profile.change-password');
+        Route::put('/student/profile/change-password', [StudentProfileController::class, 'updatePassword'])->name('student.profile.update-password');
 
-    // Student reports
-    Route::get('/student/reports/create', [ReportController::class, 'create'])->name('student.reports.create');
-    Route::post('/student/reports', [ReportController::class, 'store'])->name('student.reports.store');
-    Route::get('/student/reports', [ReportController::class, 'studentIndex'])->name('student.reports.index');
-    Route::post('/student/reports/{report}/mark-read', [ReportController::class, 'markResponseRead'])->name('student.reports.mark_read');
+        // Student room browsing and booking
+        Route::get('/student/rooms', [RoomController::class, 'studentIndex'])->name('student.rooms.index');
+        Route::get('/student/rooms/{room}', [RoomController::class, 'studentShow'])->name('student.rooms.show');
+        Route::get('/student/rooms/{room}/feedback', [RoomController::class, 'studentFeedback'])->name('student.rooms.feedback_page');
+        Route::post('/student/rooms/{room}/inquire', [MessageController::class, 'storeInquiry'])->name('student.rooms.inquire');
+        Route::post('/student/rooms/{room}/feedback', [RoomFeedbackController::class, 'store'])->name('student.rooms.feedback');
+        Route::get('/student/rooms/{room}/book', [BookingController::class, 'create'])->name('bookings.create');
+        Route::post('/student/rooms/{room}/book', [BookingController::class, 'store'])->name('bookings.store');
+        Route::get('/student/requests', [BookingController::class, 'studentIndex'])->name('student.bookings.index');
+        Route::post('/student/requests/{booking}/cancel', [BookingController::class, 'cancel'])->name('student.bookings.cancel');
 
-    // Student onboarding
-    Route::get('/student/onboarding', [TenantOnboardingController::class, 'index'])->name('student.onboarding.index');
-    Route::get('/student/onboarding/{onboarding}', [TenantOnboardingController::class, 'show'])->name('student.onboarding.show');
-    Route::post('/student/onboarding/{onboarding}/documents', [TenantOnboardingController::class, 'uploadDocuments'])->name('student.onboarding.upload_documents');
-    Route::post('/student/onboarding/{onboarding}/sign-contract', [TenantOnboardingController::class, 'signContract'])->name('student.onboarding.sign_contract');
-    Route::post('/student/onboarding/{onboarding}/pay-deposit', [TenantOnboardingController::class, 'payDeposit'])->name('student.onboarding.pay_deposit');
+        // Student reports
+        Route::get('/student/reports/create', [ReportController::class, 'create'])->name('student.reports.create');
+        Route::post('/student/reports', [ReportController::class, 'store'])->name('student.reports.store');
+        Route::get('/student/reports', [ReportController::class, 'studentIndex'])->name('student.reports.index');
+        Route::post('/student/reports/{report}/mark-read', [ReportController::class, 'markResponseRead'])->name('student.reports.mark_read');
 
-    // Student leave requests (onboarded/approved tenants)
-    Route::post('/student/leave-requests', [StudentLeaveRequestController::class, 'store'])->name('student.leave_requests.store');
-    Route::post('/student/leave-requests/{leaveRequest}/cancel', [StudentLeaveRequestController::class, 'cancel'])->name('student.leave_requests.cancel');
+        // Student onboarding
+        Route::get('/student/onboarding', [TenantOnboardingController::class, 'index'])->name('student.onboarding.index');
+        Route::get('/student/onboarding/{onboarding}', [TenantOnboardingController::class, 'show'])->name('student.onboarding.show');
+        Route::post('/student/onboarding/{onboarding}/documents', [TenantOnboardingController::class, 'uploadDocuments'])->name('student.onboarding.upload_documents');
+        Route::post('/student/onboarding/{onboarding}/sign-contract', [TenantOnboardingController::class, 'signContract'])->name('student.onboarding.sign_contract');
+        Route::post('/student/onboarding/{onboarding}/pay-deposit', [TenantOnboardingController::class, 'payDeposit'])->name('student.onboarding.pay_deposit');
+
+        // Student leave requests (onboarded/approved tenants)
+        Route::post('/student/leave-requests', [StudentLeaveRequestController::class, 'store'])->name('student.leave_requests.store');
+        Route::post('/student/leave-requests/{leaveRequest}/cancel', [StudentLeaveRequestController::class, 'cancel'])->name('student.leave_requests.cancel');
+
+        // Student tenant monthly payments
+        Route::get('/student/payments', [StudentPaymentController::class, 'index'])->name('student.payments.index');
+        Route::post('/student/payments', [StudentPaymentController::class, 'store'])->name('student.payments.store');
+    });
 });

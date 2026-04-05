@@ -15,7 +15,6 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     postgresql-dev \
-    sqlite \
     su-exec \
     unzip \
     zip
@@ -27,7 +26,6 @@ RUN docker-php-ext-configure intl \
     pdo \
     pdo_mysql \
     pdo_pgsql \
-    pdo_sqlite \
     bcmath \
     mbstring \
     opcache \

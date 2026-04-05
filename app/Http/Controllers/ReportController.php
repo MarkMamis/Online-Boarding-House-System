@@ -3,27 +3,60 @@
 namespace App\Http\Controllers;
 
 use App\Models\Report;
+use App\Services\ReportPriorityClassifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ReportController extends Controller
 {
+    public function __construct(private readonly ReportPriorityClassifier $reportPriorityClassifier)
+    {
+    }
+
+    private function canSubmitStudentReport(): bool
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'student') {
+            return false;
+        }
+
+        return $user->bookings()
+            ->where('status', 'approved')
+            ->whereDate('check_in', '<=', now()->toDateString())
+            ->exists();
+    }
+
     // Student: Show create report form
     public function create()
     {
-        $this->authorize('create', Report::class);
-        return view('student.reports.create');
+        if (!$this->canSubmitStudentReport()) {
+            return redirect()->route('student.reports.index')
+                ->with('error', 'Only verified tenants can submit reports.');
+        }
+
+        return redirect()->route('student.reports.index', ['compose' => 1]);
     }
 
     // Student: Store new report
     public function store(Request $request)
     {
+        if (!$this->canSubmitStudentReport()) {
+            if ($request->boolean('from_dashboard')) {
+                return redirect()->to(route('student.dashboard') . '#reports')
+                    ->with('error', 'Only verified tenants can submit reports.');
+            }
+
+            return redirect()->route('student.reports.index')
+                ->with('error', 'Only verified tenants can submit reports.');
+        }
+
         $this->authorize('create', Report::class);
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'priority' => 'required|in:low,medium,high',
         ]);
 
         if ($validator->fails()) {
@@ -39,12 +72,16 @@ class ReportController extends Controller
         }
 
         $data = $validator->validated();
+        $aiPriority = $this->reportPriorityClassifier->classify(
+            (string) $data['title'],
+            (string) $data['description']
+        );
 
         Report::create([
             'user_id' => Auth::id(),
             'title' => $data['title'],
             'description' => $data['description'],
-            'priority' => $data['priority'],
+            'priority' => $aiPriority,
         ]);
 
         if ($request->boolean('from_dashboard')) {
@@ -98,12 +135,15 @@ class ReportController extends Controller
     }
 
     // Student: List their own reports
-    public function studentIndex()
+    public function studentIndex(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $reports = $user->reports()->latest()->paginate(10);
-        return view('student.reports.index', compact('reports'));
+        $canSubmitReport = $this->canSubmitStudentReport();
+        $openCompose = $request->boolean('compose');
+
+        return view('student.reports.index', compact('reports', 'canSubmitReport', 'openCompose'));
     }
 
     // Student: Mark admin response as read

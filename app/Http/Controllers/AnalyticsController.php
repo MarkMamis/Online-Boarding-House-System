@@ -61,6 +61,18 @@ class AnalyticsController extends Controller
             return $booking->room->price * $booking->getDurationInDays();
         });
 
+        // Expected revenue from all approved bookings for this landlord
+        $approvedBookings = Booking::where('status', 'approved')
+            ->whereHas('room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->with('room')
+            ->get();
+
+        $totalExpected = $approvedBookings->sum(function ($booking) {
+            return $booking->room->price * $booking->getDurationInDays();
+        });
+
         // Booking trends (last 7 days)
         $weeklyBookings = [];
         for ($i = 6; $i >= 0; $i--) {
@@ -80,6 +92,10 @@ class AnalyticsController extends Controller
         // Top performing properties
         $topProperties = Property::where('landlord_id', $landlordId)
             ->withCount([
+                'rooms as total_rooms',
+                'rooms as occupied_rooms' => function ($q) {
+                    $q->where('status', 'occupied');
+                },
                 'rooms as booking_count' => function ($q) {
                     $q->whereHas('bookings', function ($bq) {
                         $bq->where('status', 'approved');
@@ -98,6 +114,7 @@ class AnalyticsController extends Controller
             'maintenanceRooms',
             'occupancyRate',
             'monthlyRevenue',
+            'totalExpected',
             'weeklyBookings',
             'topProperties'
         ));

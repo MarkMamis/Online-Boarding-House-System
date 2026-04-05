@@ -155,9 +155,9 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <span class="id-chip"><i class="bi bi-hash"></i>{{ $onboarding->id }}</span>
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-house-door me-1"></i>Dashboard
-                </a>
+                </a> -->
                 <a href="{{ route('admin.onboardings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i>Back to List
                 </a>

@@ -74,6 +74,26 @@
                 <option value="maintenance" @selected(old('status', $room->status)==='maintenance')>Maintenance</option>
               </select>
             </div>
+
+            @if(!empty($supportsAdvanceRequirement))
+            <div class="col-12">
+              <div class="form-check mt-1">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="1"
+                  id="requiresAdvancePayment"
+                  name="requires_advance_payment"
+                  @checked(old('requires_advance_payment', $room->requires_advance_payment ? '1' : '0') == '1')
+                >
+                <label class="form-check-label" for="requiresAdvancePayment">
+                  Require 1 month advance payment for this room
+                </label>
+              </div>
+              <div class="form-text">If enabled, students cannot turn off advance payment during booking.</div>
+            </div>
+            @endif
+
             <div class="col-12">
               <label class="form-label">Included in Rent (optional)</label>
               <input type="hidden" name="inclusions" id="inclusionsSerialized" value="{{ old('inclusions', $room->inclusions) }}">

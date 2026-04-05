@@ -44,6 +44,28 @@
             letter-spacing: .01em;
             font-weight: 700;
         }
+        .navbar-left {
+            display: inline-flex;
+            align-items: center;
+            gap: .6rem;
+        }
+        .mobile-menu-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: .65rem;
+            border: 1px solid rgba(2,8,20,.10);
+            background: #ffffff;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 14px rgba(2,8,20,.08);
+        }
+        .mobile-menu-btn:hover {
+            background: #f8fafc;
+            color: #14532d;
+            border-color: rgba(20,83,45,.22);
+        }
         .brand-mark {
             width: 34px;
             height: 34px;
@@ -186,6 +208,11 @@
             background: rgba(167,243,208,.22);
             border-color: rgba(20,83,45,.20);
         }
+        .sidepanel .nav-locked {
+            pointer-events: none;
+            cursor: not-allowed;
+            opacity: .55;
+        }
         .sidepanel .nav-section {
             padding: .9rem .9rem .35rem;
             font-size: .68rem;
@@ -252,11 +279,144 @@
             justify-content: flex-start;
         }
 
+        .sidebar-mobile-header {
+            border-bottom: 1px solid rgba(148,163,184,.2);
+        }
+        .mobile-drawer-close {
+            width: 34px;
+            height: 34px;
+            border-radius: .55rem;
+            border: 1px solid rgba(20,83,45,.22);
+            background: rgba(255,255,255,.78);
+            color: #14532d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mobile-drawer-close:hover {
+            background: rgba(255,255,255,.95);
+            color: #166534;
+            border-color: rgba(20,83,45,.34);
+        }
+
         @media (max-width: 992px){
             .dash-shell { padding-top:4.2rem; }
             .main-col { padding: .9rem; }
+
+            .sidepanel-col {
+                --bs-offcanvas-width: min(86vw, 320px);
+                background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 45%, #ecfdf5 100%);
+                color: #14532d;
+                border-right: 1px solid rgba(20,83,45,.18);
+            }
+            .sidepanel {
+                background: transparent;
+                border-right: none;
+                padding: .85rem .85rem 1.15rem;
+            }
+            .sidepanel .sidebar-head {
+                background: rgba(255,255,255,.72);
+                border-color: rgba(20,83,45,.22);
+            }
+            .sidepanel .panel-title,
+            .sidepanel .nav-section,
+            .sidepanel .nav-helper,
+            .sidepanel .sub-meta {
+                color: #4b5563;
+            }
+            .sidepanel .list-group-item {
+                color: #14532d;
+                border-color: transparent;
+            }
+            .sidepanel .list-group-item i {
+                color: #166534;
+            }
+            .sidepanel .list-group-item:hover {
+                background: rgba(255,255,255,.72);
+                border-color: rgba(20,83,45,.22);
+            }
+            .sidepanel .list-group-item.active {
+                background: rgba(4,120,87,.18);
+                border-color: rgba(5,150,105,.35);
+                color: #064e3b;
+            }
+            .sidepanel .list-group-item.active i {
+                color: #065f46;
+            }
+            .sidepanel .sidebar-footer {
+                border-top-color: rgba(20,83,45,.2);
+            }
+            .sidepanel .btn-logout {
+                color: #fecaca;
+                border-color: rgba(252,165,165,.3);
+                background: rgba(239,68,68,.12);
+            }
+            .sidepanel .btn-logout:hover {
+                color: #fee2e2;
+                border-color: rgba(252,165,165,.48);
+                background: rgba(239,68,68,.2);
+            }
         }
+
+        @media (max-width: 420px) {
+            .container,
+            .container-fluid {
+                padding-left: .75rem !important;
+                padding-right: .75rem !important;
+            }
+
+            .main-col {
+                padding: .65rem !important;
+            }
+
+            .dash-shell {
+                padding-top: 4rem;
+                padding-bottom: 1.2rem;
+            }
+
+            h1, .h1 { font-size: 1.35rem; }
+            h2, .h2 { font-size: 1.2rem; }
+            h3, .h3 { font-size: 1.08rem; }
+            h4, .h4 { font-size: 1rem; }
+
+            .card,
+            .glass-card,
+            .metric-tile {
+                border-radius: .85rem !important;
+            }
+
+            .btn {
+                font-size: .86rem;
+                padding: .45rem .8rem;
+            }
+
+            .form-control,
+            .form-select {
+                font-size: .95rem;
+                padding: .5rem .68rem;
+            }
+
+            .table-responsive {
+                font-size: .86rem;
+            }
+
+            .top-meta {
+                display: none !important;
+            }
+        }
+
         @media (min-width: 992px) {
+            .offcanvas-lg.offcanvas-start.sidepanel-col {
+                --bs-offcanvas-width: var(--sidebar-w);
+                width: var(--sidebar-w) !important;
+                min-width: var(--sidebar-w) !important;
+                max-width: var(--sidebar-w) !important;
+                flex: 0 0 var(--sidebar-w);
+            }
+            .offcanvas-lg.offcanvas-start.sidepanel-col .offcanvas-body {
+                display: block;
+                padding: 0;
+            }
             .navbar-glass {
                 left: var(--sidebar-w);
                 width: calc(100% - var(--sidebar-w));
@@ -307,6 +467,20 @@
         $notificationsCount = \Illuminate\Support\Facades\Schema::hasTable('notifications')
             ? Auth::user()->unreadNotifications()->count()
             : 0;
+        $bookingRequestCount = 0;
+        $onboardingQueueCount = 0;
+
+        $layoutUser = Auth::user();
+        $layoutUser?->loadMissing('landlordProfile');
+        $layoutLandlordProfile = $layoutUser?->landlordProfile;
+        $layoutProfileComplete = filled($layoutUser?->contact_number)
+            && filled($layoutUser?->boarding_house_name)
+            && filled(optional($layoutLandlordProfile)->about);
+        $layoutPermitSubmitted = filled(optional($layoutLandlordProfile)->business_permit_path);
+        $layoutPermitStatus = (string) (optional($layoutLandlordProfile)->business_permit_status ?: ($layoutPermitSubmitted ? 'pending' : 'not_submitted'));
+        $layoutPermitPending = $layoutPermitStatus === 'pending';
+        $layoutPermitApproved = $layoutPermitSubmitted && $layoutPermitStatus === 'approved';
+        $landlordOpsLocked = !$layoutProfileComplete || !$layoutPermitApproved;
 
         $propertyRouteParam = request()->route('property');
         $currentPropertyId = is_object($propertyRouteParam) ? (int) $propertyRouteParam->id : (is_numeric($propertyRouteParam) ? (int) $propertyRouteParam : null);
@@ -325,21 +499,51 @@
             }])
                 ->orderBy('name')
                 ->get();
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('bookings')) {
+                $bookingRequestCount = \App\Models\Booking::query()
+                    ->where('status', 'pending')
+                    ->whereHas('room.property', function ($query) {
+                        $query->where('landlord_id', Auth::id());
+                    })
+                    ->count();
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('tenant_onboardings')) {
+                $onboardingQueueCount = \App\Models\TenantOnboarding::query()
+                    ->whereIn('status', ['pending', 'documents_uploaded', 'contract_signed', 'deposit_paid'])
+                    ->whereHas('booking.room.property', function ($query) {
+                        $query->where('landlord_id', Auth::id());
+                    })
+                    ->count();
+            }
         }
     @endphp
 
     <nav class="navbar navbar-expand-lg navbar-light navbar-glass fixed-top">
         <div class="container-fluid px-3 px-lg-4">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('landlord.dashboard') }}">
-                <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
-                <span>Landlord Portal</span>
-            </a>
+            <div class="navbar-left">
+                <button
+                    class="mobile-menu-btn d-lg-none"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#landlordSidebar"
+                    aria-controls="landlordSidebar"
+                    aria-label="Open menu"
+                >
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="{{ route('landlord.dashboard') }}">
+                    <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
+                    <span>Landlord Portal</span>
+                </a>
+            </div>
             <div class="d-flex align-items-center gap-3 ms-auto">
                 <div class="top-meta d-none d-lg-block text-end">
                     <div>Workspace</div>
                     <div class="fw-semibold">Property Operations</div>
                 </div>
-                <span class="icon-btn-wrap d-none d-md-inline-flex">
+                <span class="icon-btn-wrap">
                     <a class="icon-btn" href="{{ route('notifications.index') }}" title="Notifications">
                         <i class="bi bi-bell"></i>
                     </a>
@@ -356,7 +560,18 @@
 
     <main class="dash-shell container-fluid ps-0 pe-0">
         <div class="row g-0">
-            <div class="col-12 col-lg-3 col-xl-2 ps-0 sidepanel-col">
+            <div class="offcanvas-lg offcanvas-start sidepanel-col" tabindex="-1" id="landlordSidebar" aria-labelledby="landlordSidebarLabel">
+                <div class="offcanvas-header d-lg-none sidebar-mobile-header">
+                    <div class="d-flex align-items-center gap-2" id="landlordSidebarLabel">
+                        <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
+                        <span class="fw-semibold">Landlord Menu</span>
+                    </div>
+                    <button type="button" class="mobile-drawer-close" id="landlordSidebarClose" data-bs-dismiss="offcanvas" aria-label="Close menu">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="offcanvas-body p-0">
                 <div class="p-3 sidepanel">
                     <div class="d-flex align-items-center gap-2 px-2 py-2 mb-2 sidebar-head">
                         @if(!empty(Auth::user()->profile_image_path))
@@ -379,97 +594,115 @@
                             <span>Dashboard</span>
                         </a>
 
-                        <div class="nav-section">Management</div>
-                        <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navProperties" aria-expanded="{{ $portfolioOpen ? 'true' : 'false' }}" aria-controls="navProperties">
-                            <i class="bi bi-buildings"></i>
-                            <span>Properties</span>
-                            <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
-                        </button>
-                        <div class="collapse {{ $portfolioOpen ? 'show' : '' }}" id="navProperties">
-                            <a @class(['list-group-item sub-item', 'active' => is_string($routeName) && ($routeName === 'landlord.properties.index' || $routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with($routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.index') }}">
-                                <i class="bi bi-list-ul"></i> All Properties
-                            </a>
-                            @foreach($landlordProperties as $navProperty)
-                                <a @class(['list-group-item sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && ($routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with((string) $routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.show', $navProperty->id) }}" title="{{ $navProperty->name }}">
-                                    <i class="bi bi-house-door"></i>
-                                    <span class="sub-item-label">{{ $navProperty->name }}</span>
-                                    <span class="sub-meta">{{ $navProperty->rooms_count }}</span>
+                        @if($landlordOpsLocked)
+                            <div class="px-2 py-2">
+                                <div class="nav-helper">Complete your profile and business permit approval to unlock management and operations.</div>
+                            </div>
+                        @else
+                            <div class="nav-section">Management</div>
+                            <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navProperties" aria-expanded="{{ $portfolioOpen ? 'true' : 'false' }}" aria-controls="navProperties">
+                                <i class="bi bi-buildings"></i>
+                                <span>Properties</span>
+                                <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
+                            </button>
+                            <div class="collapse {{ $portfolioOpen ? 'show' : '' }}" id="navProperties">
+                                <a @class(['list-group-item sub-item', 'active' => is_string($routeName) && ($routeName === 'landlord.properties.index' || $routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with($routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.index') }}">
+                                    <i class="bi bi-list-ul"></i> All Properties
                                 </a>
-                            @endforeach
-                            <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.properties.create']) href="{{ route('landlord.properties.create') }}">
-                                <i class="bi bi-plus-circle"></i> Add Property
-                            </a>
-                        </div>
-
-                        <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navRooms" aria-expanded="{{ $roomsOpen ? 'true' : 'false' }}" aria-controls="navRooms">
-                            <i class="bi bi-door-open"></i>
-                            <span>Room Directory</span>
-                            <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
-                        </button>
-                        <div class="collapse {{ $roomsOpen ? 'show' : '' }}" id="navRooms">
-                            <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.rooms.index']) href="{{ route('landlord.rooms.index') }}">
-                                <i class="bi bi-grid"></i> All Rooms
-                            </a>
-                            @foreach($landlordProperties as $navProperty)
-                                @php
-                                    $roomGroupOpen = $currentPropertyId === (int) $navProperty->id && str_starts_with((string) $routeName, 'landlord.properties.rooms.');
-                                @endphp
-                                <button class="list-group-item sub-group-toggle nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navPropertyRooms{{ $navProperty->id }}" aria-expanded="{{ $roomGroupOpen ? 'true' : 'false' }}" aria-controls="navPropertyRooms{{ $navProperty->id }}" title="{{ $navProperty->name }}">
-                                    <i class="bi bi-building"></i>
-                                    <span class="sub-item-label">{{ $navProperty->name }}</span>
-                                    <i class="bi bi-chevron-down nav-chevron" style="font-size:.85rem;"></i>
-                                </button>
-                                <div class="collapse {{ $roomGroupOpen ? 'show' : '' }}" id="navPropertyRooms{{ $navProperty->id }}">
-                                    <a @class(['list-group-item sub-sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && $routeName === 'landlord.properties.rooms.index']) href="{{ route('landlord.properties.rooms.index', $navProperty->id) }}">
-                                        <i class="bi bi-list-ul"></i>
-                                        <span>All Rooms</span>
+                                @foreach($landlordProperties as $navProperty)
+                                    <a @class(['list-group-item sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && ($routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with((string) $routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.show', $navProperty->id) }}" title="{{ $navProperty->name }}">
+                                        <i class="bi bi-house-door"></i>
+                                        <span class="sub-item-label">{{ $navProperty->name }}</span>
+                                        <span class="sub-meta">{{ $navProperty->rooms_count }}</span>
                                     </a>
-                                    @foreach($navProperty->rooms as $navRoom)
-                                        <a @class(['list-group-item sub-sub-item', 'active' => $currentRoomId === (int) $navRoom->id && $routeName === 'landlord.properties.rooms.edit']) href="{{ route('landlord.properties.rooms.edit', [$navProperty->id, $navRoom->id]) }}">
-                                            <i class="bi bi-door-closed"></i>
-                                            <span class="sub-item-label">Room {{ $navRoom->room_number }}</span>
-                                        </a>
-                                    @endforeach
-                                </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                                <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.properties.create']) href="{{ route('landlord.properties.create') }}">
+                                    <i class="bi bi-plus-circle"></i> Add Property
+                                </a>
+                            </div>
 
-                        <div class="nav-section">Operations</div>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.bookings.index']) href="{{ route('landlord.bookings.index') }}">
-                            <i class="bi bi-journal-check"></i> Booking Requests
-                        </a>
+                            <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navRooms" aria-expanded="{{ $roomsOpen ? 'true' : 'false' }}" aria-controls="navRooms">
+                                <i class="bi bi-door-open"></i>
+                                <span>Room Directory</span>
+                                <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
+                            </button>
+                            <div class="collapse {{ $roomsOpen ? 'show' : '' }}" id="navRooms">
+                                <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.rooms.index']) href="{{ route('landlord.rooms.index') }}">
+                                    <i class="bi bi-grid"></i> All Rooms
+                                </a>
+                                @foreach($landlordProperties as $navProperty)
+                                    @php
+                                        $roomGroupOpen = $currentPropertyId === (int) $navProperty->id && str_starts_with((string) $routeName, 'landlord.properties.rooms.');
+                                    @endphp
+                                    <button class="list-group-item sub-group-toggle nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navPropertyRooms{{ $navProperty->id }}" aria-expanded="{{ $roomGroupOpen ? 'true' : 'false' }}" aria-controls="navPropertyRooms{{ $navProperty->id }}" title="{{ $navProperty->name }}">
+                                        <i class="bi bi-building"></i>
+                                        <span class="sub-item-label">{{ $navProperty->name }}</span>
+                                        <i class="bi bi-chevron-down nav-chevron" style="font-size:.85rem;"></i>
+                                    </button>
+                                    <div class="collapse {{ $roomGroupOpen ? 'show' : '' }}" id="navPropertyRooms{{ $navProperty->id }}">
+                                        <a @class(['list-group-item sub-sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && $routeName === 'landlord.properties.rooms.index']) href="{{ route('landlord.properties.rooms.index', $navProperty->id) }}">
+                                            <i class="bi bi-list-ul"></i>
+                                            <span>All Rooms</span>
+                                        </a>
+                                        @foreach($navProperty->rooms as $navRoom)
+                                            <a @class(['list-group-item sub-sub-item', 'active' => $currentRoomId === (int) $navRoom->id && $routeName === 'landlord.properties.rooms.edit']) href="{{ route('landlord.properties.rooms.edit', [$navProperty->id, $navRoom->id]) }}">
+                                                <i class="bi bi-door-closed"></i>
+                                                <span class="sub-item-label">Room {{ $navRoom->room_number }}</span>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="nav-section">Operations</div>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.bookings.index']) href="{{ route('landlord.bookings.index') }}">
+                                <i class="bi bi-journal-check"></i>
+                                <span>Booking Requests</span>
+                                @if($bookingRequestCount > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $bookingRequestCount > 99 ? '99+' : $bookingRequestCount }}</span>
+                                @endif
+                            </a>
+                            @if(!$layoutPermitPending)
+                                <a @class(['list-group-item', 'active' => $routeName === 'landlord.messages.index']) href="{{ route('landlord.messages.index') }}">
+                                    <i class="bi bi-chat-dots"></i> Messages
+                                </a>
+                            @endif
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.feedback.index']) href="{{ route('landlord.feedback.index') }}">
+                                <i class="bi bi-star-half"></i> Feedback
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.tenants.index']) href="{{ route('landlord.tenants.index') }}">
+                                <i class="bi bi-people"></i> Tenants
+                            </a>
+                            <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'landlord.onboarding.')]) href="{{ route('landlord.onboarding.index') }}">
+                                <i class="bi bi-clipboard-check"></i>
+                                <span>Onboarding</span>
+                                @if($onboardingQueueCount > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $onboardingQueueCount > 99 ? '99+' : $onboardingQueueCount }}</span>
+                                @endif
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.leave_requests.index']) href="{{ route('landlord.leave_requests.index') }}">
+                                <i class="bi bi-box-arrow-right"></i> Leave Requests
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.maintenance.index']) href="{{ route('landlord.maintenance.index') }}">
+                                <i class="bi bi-tools"></i> Maintenance
+                            </a>
+
+                            <div class="nav-section">Finance</div>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.payments.index']) href="{{ route('landlord.payments.index') }}">
+                                <i class="bi bi-cash-coin"></i> Payments
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.analytics.index']) href="{{ route('landlord.analytics.index') }}">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        @endif
+
+                        <div class="nav-section">Activity</div>
                         <a @class(['list-group-item', 'active' => $routeName === 'notifications.index']) href="{{ route('notifications.index') }}">
                             <i class="bi bi-bell"></i>
                             <span>Notifications</span>
                             @if($notificationsCount > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $notificationsCount }}</span>
                             @endif
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.messages.index']) href="{{ route('landlord.messages.index') }}">
-                            <i class="bi bi-chat-dots"></i> Messages
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.feedback.index']) href="{{ route('landlord.feedback.index') }}">
-                            <i class="bi bi-star-half"></i> Feedback
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.tenants.index']) href="{{ route('landlord.tenants.index') }}">
-                            <i class="bi bi-people"></i> Tenants
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.onboarding.index']) href="{{ route('landlord.onboarding.index') }}">
-                            <i class="bi bi-clipboard-check"></i> Onboarding
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.leave_requests.index']) href="{{ route('landlord.leave_requests.index') }}">
-                            <i class="bi bi-box-arrow-right"></i> Leave Requests
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.maintenance.index']) href="{{ route('landlord.maintenance.index') }}">
-                            <i class="bi bi-tools"></i> Maintenance
-                        </a>
-
-                        <div class="nav-section">Finance</div>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.payments.index']) href="{{ route('landlord.payments.index') }}">
-                            <i class="bi bi-cash-coin"></i> Payments
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.analytics.index']) href="{{ route('landlord.analytics.index') }}">
-                            <i class="bi bi-graph-up"></i> Analytics
                         </a>
 
                         <div class="nav-section">Account</div>
@@ -487,6 +720,7 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <div class="col-12 col-lg-9 col-xl-10 main-col">
@@ -498,6 +732,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <x-toast />
     <x-chatbot />
+    <script>
+        (function () {
+            const sidebar = document.getElementById('landlordSidebar');
+            if (!sidebar) return;
+
+            const closeBtn = document.getElementById('landlordSidebarClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    const instance = bootstrap.Offcanvas.getOrCreateInstance(sidebar);
+                    instance.hide();
+                });
+            }
+
+            sidebar.querySelectorAll('a.list-group-item').forEach((link) => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth >= 992) return;
+                    const instance = bootstrap.Offcanvas.getOrCreateInstance(sidebar);
+                    if (instance) instance.hide();
+                });
+            });
+        })();
+    </script>
     @stack('modals')
     @stack('scripts')
 </body>

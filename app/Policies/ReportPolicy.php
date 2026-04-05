@@ -14,7 +14,14 @@ class ReportPolicy
 
     public function create(User $user): bool
     {
-        return $user->role === 'student';
+        if ($user->role !== 'student') {
+            return false;
+        }
+
+        return $user->bookings()
+            ->where('status', 'approved')
+            ->whereDate('check_in', '<=', now()->toDateString())
+            ->exists();
     }
 
     public function view(User $user, Report $report): bool

@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'landlord.setup' => \App\Http\Middleware\EnsureLandlordSetupStep::class,
+            'student.setup' => \App\Http\Middleware\EnsureStudentSetupComplete::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         ]);
     })

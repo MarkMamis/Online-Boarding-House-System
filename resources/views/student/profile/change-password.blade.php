@@ -15,7 +15,7 @@
             <div class="alert alert-success small mb-3">{{ session('status') }}</div>
         @endif
 
-        <form action="{{ route('student.profile.updatePassword') }}" method="POST" class="row g-3">
+        <form action="{{ route('student.profile.update-password') }}" method="POST" class="row g-3">
             @csrf
             @method('PUT')
 
@@ -25,6 +25,8 @@
                     type="password"
                     name="current_password"
                     class="form-control @error('current_password') is-invalid @enderror"
+                    required
+                    autocomplete="current-password"
                 />
                 @error('current_password')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -37,6 +39,9 @@
                     type="password"
                     name="password"
                     class="form-control @error('password') is-invalid @enderror"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
                 />
                 @error('password')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -49,6 +54,9 @@
                     type="password"
                     name="password_confirmation"
                     class="form-control @error('password_confirmation') is-invalid @enderror"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
                 />
                 @error('password_confirmation')
                     <div class="invalid-feedback">{{ $message }}</div>

@@ -9,6 +9,7 @@ use App\Models\RoomImage;
 use App\Models\TenantOnboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -90,12 +91,14 @@ class RoomController extends Controller
     public function create($propertyId)
     {
         $property = $this->getOwnedProperty($propertyId);
-        return view('landlord.rooms.create', compact('property'));
+        $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+        return view('landlord.rooms.create', compact('property', 'supportsAdvanceRequirement'));
     }
 
     public function store(Request $request, $propertyId)
     {
         $property = $this->getOwnedProperty($propertyId);
+        $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
@@ -104,6 +107,7 @@ class RoomController extends Controller
             'status' => 'required|in:available,occupied,maintenance',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'inclusions' => 'nullable|string|max:2000',
+            'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
             'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
             'detail_labels.*' => 'nullable|string|max:100',
         ]);
@@ -118,6 +122,11 @@ class RoomController extends Controller
 
         $validated = $validator->validated();
         unset($validated['image']);
+
+        if ($supportsAdvanceRequirement) {
+            $validated['requires_advance_payment'] = $request->boolean('requires_advance_payment');
+        }
+
         if ($request->hasFile('image')) {
             try {
                 $validated['image_path'] = str_replace('\\', '/', $request->file('image')->store('rooms', 'public'));
@@ -171,7 +180,8 @@ class RoomController extends Controller
         }
         $this->authorize('update', $room);
         $roomImages = $room->roomImages;
-        return view('landlord.rooms.edit', compact('property', 'room', 'roomImages'));
+        $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+        return view('landlord.rooms.edit', compact('property', 'room', 'roomImages', 'supportsAdvanceRequirement'));
     }
 
     public function update(Request $request, $propertyId, Room $room)
@@ -181,6 +191,7 @@ class RoomController extends Controller
             abort(404);
         }
         $this->authorize('update', $room);
+        $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $validator = Validator::make($request->all(), [
             'room_number'            => 'required|string|max:50',
             'capacity'               => 'required|integer|min:1',
@@ -189,6 +200,7 @@ class RoomController extends Controller
             'status'                 => 'required|in:available,occupied,maintenance',
             'image'                  => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
             'inclusions'             => 'nullable|string|max:2000',
+            'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
             'detail_images.*'        => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
             'detail_labels.*'        => 'nullable|string|max:100',
             'delete_detail_images'   => 'nullable|array',
@@ -205,6 +217,10 @@ class RoomController extends Controller
 
         $validated = $validator->validated();
         unset($validated['image']);
+
+        if ($supportsAdvanceRequirement) {
+            $validated['requires_advance_payment'] = $request->boolean('requires_advance_payment');
+        }
 
         // --- Cover photo ---
         if ($request->hasFile('image')) {
@@ -289,6 +305,7 @@ class RoomController extends Controller
     {
         $property = $this->getOwnedProperty($propertyId);
         $this->authorize('update', $property);
+        $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
@@ -297,6 +314,7 @@ class RoomController extends Controller
             'status' => 'required|in:available,occupied,maintenance',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'inclusions' => 'nullable|string|max:2000',
+            'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
         ]);
 
         try {
@@ -312,6 +330,11 @@ class RoomController extends Controller
         }
         $validated = $validator->validated();
         unset($validated['image']);
+
+        if ($supportsAdvanceRequirement) {
+            $validated['requires_advance_payment'] = $request->boolean('requires_advance_payment');
+        }
+
         if ($request->hasFile('image')) {
             try {
                 $validated['image_path'] = str_replace('\\', '/', $request->file('image')->store('rooms', 'public'));
@@ -352,7 +375,7 @@ class RoomController extends Controller
 
         $room->loadCount('feedbacks')->loadAvg('feedbacks', 'rating');
 
-        if (($room->property->approval_status ?? 'pending') !== 'approved') {
+        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
             abort(404);
         }
 
@@ -383,6 +406,12 @@ class RoomController extends Controller
         $maxPrice = $request->query('max_price');
         $minCapacity = $request->query('capacity');
         $search = $request->query('q');
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $amenityOptions = (array) config('property_amenities.flat', []);
+        $amenity = trim((string) $request->query('amenity', ''));
+        if (!$supportsBuildingInclusions || ($amenity !== '' && !array_key_exists($amenity, $amenityOptions))) {
+            $amenity = '';
+        }
 
         // Recommended rooms (rooms with available slots; apply user filters if provided)
         $recommendedRooms = Room::with('property.landlord')
@@ -390,7 +419,12 @@ class RoomController extends Controller
             ->withCount('feedbacks')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
-                $q->where('approval_status', 'approved');
+                $q->visibleToAudience();
+            })
+            ->when($amenity !== '', function ($q) use ($amenity) {
+                $q->whereHas('property', function ($propertyQuery) use ($amenity) {
+                    $propertyQuery->whereJsonContains('building_inclusions', $amenity);
+                });
             })
             ->when($minCapacity !== null && $minCapacity !== '', function ($q) use ($minCapacity) {
                 $q->where('capacity', '>=', (int) $minCapacity);
@@ -419,7 +453,12 @@ class RoomController extends Controller
             ->withCount('feedbacks')
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
-                $q->where('approval_status', 'approved');
+                $q->visibleToAudience();
+            })
+            ->when($amenity !== '', function ($q) use ($amenity) {
+                $q->whereHas('property', function ($propertyQuery) use ($amenity) {
+                    $propertyQuery->whereJsonContains('building_inclusions', $amenity);
+                });
             })
             ->when($minCapacity !== null && $minCapacity !== '', function ($q) use ($minCapacity) {
                 $q->where('capacity', '>=', (int) $minCapacity);
@@ -448,6 +487,8 @@ class RoomController extends Controller
             'minPrice',
             'maxPrice',
             'minCapacity',
+            'amenity',
+            'amenityOptions',
             'newThreshold',
             'hasCurrentApprovedBooking',
             'currentApprovedBooking'
@@ -478,13 +519,13 @@ class RoomController extends Controller
         $tenantBooking = $tenantOnboarding?->booking;
 
         $room->load([
-            'property:id,name,address,landlord_id,image_path,approval_status',
+            'property:id,name,address,landlord_id,image_path,approval_status,house_rules',
             'property.landlord:id,full_name',
             'roomImages',
             'feedbacks.user:id,full_name',
         ]);
 
-        if (($room->property->approval_status ?? 'pending') !== 'approved') {
+        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
             abort(404);
         }
 
@@ -527,6 +568,7 @@ class RoomController extends Controller
         $canFeedback = $room->bookings()
             ->where('student_id', Auth::id())
             ->where('status', 'approved')
+            ->whereDate('check_in', '<=', $today)
             ->exists();
 
         $alreadyFeedback = \App\Models\RoomFeedback::where('room_id', $room->id)
@@ -535,6 +577,16 @@ class RoomController extends Controller
 
         $feedbacks = $room->feedbacks;
         $avgRating = $feedbacks->isNotEmpty() ? round($feedbacks->avg('rating'), 1) : null;
+        $feedbackDistribution = collect([5, 4, 3, 2, 1])->map(function (int $stars) use ($feedbacks) {
+            $count = $feedbacks->where('rating', $stars)->count();
+            $total = $feedbacks->count();
+
+            return [
+                'stars' => $stars,
+                'count' => $count,
+                'percent' => $total > 0 ? (int) round(($count / $total) * 100) : 0,
+            ];
+        });
 
         $roommates = collect();
         if ($tenantMode) {
@@ -553,6 +605,7 @@ class RoomController extends Controller
             'thread',
             'feedbacks',
             'avgRating',
+            'feedbackDistribution',
             'canFeedback',
             'alreadyFeedback',
             'hasExistingBooking',
@@ -561,6 +614,72 @@ class RoomController extends Controller
             'tenantMode',
             'tenantBooking',
             'roommates'
+        ));
+    }
+
+    // Student-authenticated dedicated feedback page
+    public function studentFeedback(Room $room)
+    {
+        $today = now()->toDateString();
+
+        $tenantOnboarding = TenantOnboarding::where('status', 'completed')
+            ->whereHas('booking', function ($q) use ($today) {
+                $q->where('student_id', Auth::id())
+                  ->where('status', 'approved')
+                  ->where('check_in', '<=', $today)
+                  ->where('check_out', '>', $today);
+            })
+            ->with('booking.room.property.landlord')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($tenantOnboarding && $tenantOnboarding->booking?->room_id && $tenantOnboarding->booking->room_id !== $room->id) {
+            return redirect()->route('student.rooms.feedback_page', $tenantOnboarding->booking->room_id);
+        }
+
+        $tenantMode = !empty($tenantOnboarding);
+
+        $room->load([
+            'property:id,name,address,landlord_id,image_path,approval_status',
+            'property.landlord:id,full_name',
+            'feedbacks.user:id,full_name',
+        ]);
+
+        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
+            abort(404);
+        }
+
+        $canFeedback = $room->bookings()
+            ->where('student_id', Auth::id())
+            ->where('status', 'approved')
+            ->whereDate('check_in', '<=', $today)
+            ->exists();
+
+        $alreadyFeedback = \App\Models\RoomFeedback::where('room_id', $room->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        $feedbacks = $room->feedbacks;
+        $avgRating = $feedbacks->isNotEmpty() ? round($feedbacks->avg('rating'), 1) : null;
+        $feedbackDistribution = collect([5, 4, 3, 2, 1])->map(function (int $stars) use ($feedbacks) {
+            $count = $feedbacks->where('rating', $stars)->count();
+            $total = $feedbacks->count();
+
+            return [
+                'stars' => $stars,
+                'count' => $count,
+                'percent' => $total > 0 ? (int) round(($count / $total) * 100) : 0,
+            ];
+        });
+
+        return view('student.rooms.feedback', compact(
+            'room',
+            'feedbacks',
+            'avgRating',
+            'feedbackDistribution',
+            'canFeedback',
+            'alreadyFeedback',
+            'tenantMode'
         ));
     }
 }

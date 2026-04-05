@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\TenantOnboarding;
+use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -73,7 +74,7 @@ class TenantOnboardingController extends Controller
         $this->authorize('view', $onboarding);
 
         // Load necessary relationships
-        $onboarding->load('booking.student', 'booking.room.property');
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
 
         return view('student.onboarding.show', compact('onboarding'));
     }
@@ -83,11 +84,18 @@ class TenantOnboardingController extends Controller
     {
         $this->authorize('uploadDocuments', $onboarding);
 
-        $onboarding->load('booking.student', 'booking.room.property');
+        $onboarding->load('booking.student', 'booking.room.property.landlord');
+        $requiredDocumentCount = max(1, count((array) ($onboarding->required_documents ?? [])));
 
         try {
             $request->validate([
+                'documents' => 'required|array|min:' . $requiredDocumentCount,
                 'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
+            ], [
+                'documents.required' => 'Please upload all required documents before continuing.',
+                'documents.array' => 'Invalid document upload payload. Please try again.',
+                'documents.min' => 'Please upload all required documents before continuing.',
+                'documents.*.required' => 'Each required document must have an uploaded file.',
             ]);
         } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
             return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try smaller file(s) if needed (PHP upload limit).');
@@ -111,15 +119,37 @@ class TenantOnboardingController extends Controller
             'status' => 'documents_uploaded'
         ]);
 
+        $this->notifyLandlordOnboardingStep(
+            $onboarding,
+            'Onboarding documents submitted',
+            sprintf(
+                '%s uploaded onboarding documents for Room %s at %s.',
+                $onboarding->booking->student->full_name ?? 'A student',
+                $onboarding->booking->room->room_number ?? '—',
+                $onboarding->booking->room->property->name ?? 'Property'
+            )
+        );
+
         return back()->with('success', 'Documents uploaded successfully.');
     }
 
     // Student: sign contract
-    public function signContract(TenantOnboarding $onboarding)
+    public function signContract(Request $request, TenantOnboarding $onboarding)
     {
         $this->authorize('signContract', $onboarding);
 
-        $onboarding->load('booking.student', 'booking.room.property');
+        $onboarding->load('booking.student', 'booking.room.property.landlord');
+
+        if ((string) $onboarding->status !== 'documents_uploaded') {
+            return back()->with('error', 'Contract can only be signed after document upload.');
+        }
+
+        $request->validate([
+            'signature_data' => 'required|string',
+            'signature_name' => 'nullable|string|max:255',
+        ], [
+            'signature_data.required' => 'Please provide your e-signature before signing the contract.',
+        ]);
 
         // Generate contract content if not exists
         if (!$onboarding->contract_content) {
@@ -127,37 +157,195 @@ class TenantOnboardingController extends Controller
             $onboarding->update(['contract_content' => $contract]);
         }
 
+        $signaturePath = $this->storeContractSignatureDataUrl(
+            (string) $request->input('signature_data'),
+            $onboarding->contract_signature_path
+        );
+
+        if (!$signaturePath) {
+            return back()->with('error', 'Invalid signature format. Please draw or upload your signature again.');
+        }
+
+        $signatureName = trim((string) $request->input('signature_name', ''));
+        if ($signatureName === '') {
+            $signatureName = trim((string) ($onboarding->booking->student->full_name ?? Auth::user()?->name ?? ''));
+        }
+
         $onboarding->update([
             'contract_signed' => true,
             'contract_signed_at' => now(),
+            'contract_signature_path' => $signaturePath,
+            'contract_signature_name' => $signatureName !== '' ? $signatureName : null,
             'status' => 'contract_signed'
         ]);
+
+        $this->notifyLandlordOnboardingStep(
+            $onboarding,
+            'Onboarding contract signed',
+            sprintf(
+                '%s signed the onboarding contract for Room %s at %s.',
+                $onboarding->booking->student->full_name ?? 'A student',
+                $onboarding->booking->room->room_number ?? '—',
+                $onboarding->booking->room->property->name ?? 'Property'
+            )
+        );
 
         return back()->with('success', 'Contract signed successfully.');
     }
 
     // Student: pay deposit
-    public function payDeposit(TenantOnboarding $onboarding)
+    public function payDeposit(Request $request, TenantOnboarding $onboarding)
     {
         $this->authorize('payDeposit', $onboarding);
 
-        $onboarding->load('booking.student', 'booking.room.property');
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
 
-        // In a real app, integrate with payment gateway
-        // For now, simulate payment
-        $depositAmount = $onboarding->booking->room->price * 0.5; // 50% deposit
+        if ((string) $onboarding->status !== 'contract_signed') {
+            return back()->with('error', 'Payment can only be submitted after contract signing.');
+        }
+
+        $landlordProfile = optional(optional($onboarding->booking->room->property)->landlord)->landlordProfile;
+        $preferredMethods = collect((array) ($landlordProfile?->preferred_payment_methods ?? []))
+            ->map(fn ($method) => strtolower(trim((string) $method)))
+            ->filter(fn ($method) => in_array($method, ['bank', 'gcash', 'cash'], true))
+            ->unique()
+            ->values();
+
+        $hasBankDetails = filled($landlordProfile?->payment_bank_name)
+            && filled($landlordProfile?->payment_account_name)
+            && filled($landlordProfile?->payment_account_number);
+        $hasGcashDetails = filled($landlordProfile?->payment_gcash_name)
+            && filled($landlordProfile?->payment_gcash_number);
+
+        $availableMethods = collect();
+        if ($preferredMethods->contains('bank') && $hasBankDetails) {
+            $availableMethods->push('bank');
+        }
+        if ($preferredMethods->contains('gcash') && $hasGcashDetails) {
+            $availableMethods->push('gcash');
+        }
+        if ($preferredMethods->contains('cash')) {
+            $availableMethods->push('cash');
+        }
+
+        // Fallback for older landlord profiles that have billing data but no preferred methods yet.
+        if ($availableMethods->isEmpty()) {
+            if ($hasBankDetails) {
+                $availableMethods->push('bank');
+            }
+            if ($hasGcashDetails) {
+                $availableMethods->push('gcash');
+            }
+        }
+
+        if ($availableMethods->isEmpty()) {
+            return back()->withInput()->with('error', 'Landlord has not configured a valid payment method yet. Please contact the landlord first.');
+        }
+
+        $validator = validator($request->all(), [
+            'payment_method' => 'required|string|in:bank,gcash,cash',
+            'payment_reference' => 'nullable|string|max:120',
+            'payment_notes' => 'nullable|string|max:1000',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ], [
+            'payment_method.required' => 'Please select a payment method.',
+            'payment_method.in' => 'Selected payment method is invalid.',
+            'payment_proof.mimes' => 'Payment proof must be a JPG, PNG, or PDF file.',
+            'payment_proof.max' => 'Payment proof must not exceed 5MB.',
+        ]);
+
+        $validator->after(function ($validator) use ($request, $availableMethods, $hasBankDetails, $hasGcashDetails) {
+            $selectedMethod = strtolower((string) $request->input('payment_method'));
+
+            if ($selectedMethod && !$availableMethods->contains($selectedMethod)) {
+                $validator->errors()->add('payment_method', 'This payment method is not available for this landlord.');
+                return;
+            }
+
+            if (in_array($selectedMethod, ['bank', 'gcash'], true) && !filled($request->input('payment_reference'))) {
+                $validator->errors()->add('payment_reference', 'Reference number is required for Bank and GCash payments.');
+            }
+
+            if (in_array($selectedMethod, ['bank', 'gcash'], true) && !$request->hasFile('payment_proof')) {
+                $validator->errors()->add('payment_proof', 'Payment proof is required for Bank and GCash payments.');
+            }
+
+            if ($selectedMethod === 'bank' && !$hasBankDetails) {
+                $validator->errors()->add('payment_method', 'Bank payment is currently unavailable for this landlord.');
+            }
+
+            if ($selectedMethod === 'gcash' && !$hasGcashDetails) {
+                $validator->errors()->add('payment_method', 'GCash payment is currently unavailable for this landlord.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $selectedMethod = strtolower((string) $request->input('payment_method'));
+        $requiresOnlineProof = in_array($selectedMethod, ['bank', 'gcash'], true);
+
+        $paymentProofPath = $onboarding->payment_proof_path;
+        if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
+            if (!empty($paymentProofPath)) {
+                Storage::disk('public')->delete($paymentProofPath);
+            }
+            $paymentProofPath = str_replace('\\', '/', $request->file('payment_proof')->store('onboarding-payments', 'public'));
+        }
+
+        if (!$requiresOnlineProof) {
+            if (!empty($paymentProofPath)) {
+                Storage::disk('public')->delete($paymentProofPath);
+            }
+            $paymentProofPath = null;
+        }
+
+        $monthlyRent = is_numeric($onboarding->booking->monthly_rent_amount)
+            ? (float) $onboarding->booking->monthly_rent_amount
+            : (float) ($onboarding->booking->room->price ?? 0);
+        $advanceAmount = !empty($onboarding->booking->include_advance_payment)
+            ? $monthlyRent
+            : 0.0;
+        $depositAmount = $monthlyRent + $advanceAmount;
 
         $onboarding->update([
             'deposit_amount' => $depositAmount,
-            'deposit_paid' => true,
-            'deposit_paid_at' => now(),
+            'advance_amount' => $advanceAmount,
+            'payment_method' => $selectedMethod,
+            'payment_reference' => $requiresOnlineProof && $request->filled('payment_reference')
+                ? trim((string) $request->input('payment_reference'))
+                : null,
+            'payment_proof_path' => $paymentProofPath,
+            'payment_notes' => $request->filled('payment_notes') ? trim((string) $request->input('payment_notes')) : null,
+            'payment_submitted_at' => now(),
+            'deposit_paid' => false,
+            'deposit_paid_at' => null,
             'status' => 'deposit_paid'
         ]);
 
-        // Complete onboarding
-        $this->completeOnboarding($onboarding);
+        $booking = $onboarding->booking;
+        $baseDueDate = $booking->resolvePaymentDueDate() ?: now()->startOfDay();
+        $booking->update([
+            'payment_status' => 'pending',
+            'payment_date' => null,
+            'next_payment_due_date' => $baseDueDate->copy()->toDateString(),
+            'last_overdue_notified_at' => null,
+        ]);
 
-        return back()->with('success', 'Deposit paid successfully. Onboarding completed!');
+        $this->notifyLandlordOnboardingStep(
+            $onboarding,
+            'Onboarding payment submitted',
+            sprintf(
+                '%s submitted onboarding payment via %s for Room %s at %s. Review and approve the payment to complete onboarding.',
+                $onboarding->booking->student->full_name ?? 'A student',
+                ucfirst($selectedMethod),
+                $onboarding->booking->room->room_number ?? '—',
+                $onboarding->booking->room->property->name ?? 'Property'
+            )
+        );
+
+        return back()->with('success', ucfirst($selectedMethod) . ' payment submitted successfully. Waiting for landlord approval.');
     }
 
     // Landlord: view tenant onboarding
@@ -188,12 +376,14 @@ class TenantOnboardingController extends Controller
 
         $onboarding->load('booking.student', 'booking.room.property');
 
-        $action = $request->input('action');
+        $action = (string) $request->input('action');
 
         if ($action === 'approve') {
             $onboarding->update(['status' => 'documents_uploaded']);
             return back()->with('success', 'Documents approved.');
-        } else {
+        }
+
+        if ($action === 'reject') {
             // Reset to pending for re-upload
             $onboarding->update([
                 'status' => 'pending',
@@ -201,6 +391,87 @@ class TenantOnboardingController extends Controller
             ]);
             return back()->with('error', 'Documents rejected. Student needs to re-upload.');
         }
+
+        if ($action === 'approve_payment') {
+            if ((string) $onboarding->status !== 'deposit_paid') {
+                return back()->with('error', 'No payment submission is pending approval for this onboarding.');
+            }
+
+            $booking = $onboarding->booking;
+            $baseDueDate = $booking->resolvePaymentDueDate() ?: now()->startOfDay();
+
+            $onboarding->update([
+                'deposit_paid' => true,
+                'deposit_paid_at' => now(),
+            ]);
+
+            $booking->update([
+                'payment_status' => 'paid',
+                'payment_date' => now(),
+                'next_payment_due_date' => $baseDueDate->copy()->addMonthNoOverflow()->toDateString(),
+                'last_overdue_notified_at' => null,
+            ]);
+
+            $this->completeOnboarding($onboarding->fresh());
+
+            $this->notifyStudentOnboardingStep(
+                $onboarding,
+                'Onboarding payment approved',
+                sprintf(
+                    'Your onboarding payment for Room %s at %s was approved. Onboarding is now complete and tenant access is active.',
+                    $onboarding->booking->room->room_number ?? '—',
+                    $onboarding->booking->room->property->name ?? 'Property'
+                )
+            );
+
+            return back()->with('success', 'Payment approved. Onboarding is now completed and tenant access is enabled.');
+        }
+
+        if ($action === 'reject_payment') {
+            if ((string) $onboarding->status !== 'deposit_paid') {
+                return back()->with('error', 'No payment submission is pending rejection for this onboarding.');
+            }
+
+            if (!empty($onboarding->payment_proof_path)) {
+                Storage::disk('public')->delete($onboarding->payment_proof_path);
+            }
+
+            $onboarding->update([
+                'status' => 'contract_signed',
+                'deposit_amount' => null,
+                'advance_amount' => null,
+                'payment_method' => null,
+                'payment_reference' => null,
+                'payment_proof_path' => null,
+                'payment_notes' => null,
+                'payment_submitted_at' => null,
+                'deposit_paid' => false,
+                'deposit_paid_at' => null,
+            ]);
+
+            $booking = $onboarding->booking;
+            $baseDueDate = $booking->resolvePaymentDueDate() ?: now()->startOfDay();
+            $booking->update([
+                'payment_status' => 'pending',
+                'payment_date' => null,
+                'next_payment_due_date' => $baseDueDate->copy()->toDateString(),
+                'last_overdue_notified_at' => null,
+            ]);
+
+            $this->notifyStudentOnboardingStep(
+                $onboarding,
+                'Onboarding payment rejected',
+                sprintf(
+                    'Your onboarding payment for Room %s at %s was rejected. Please resubmit your payment details to continue onboarding.',
+                    $onboarding->booking->room->room_number ?? '—',
+                    $onboarding->booking->room->property->name ?? 'Property'
+                )
+            );
+
+            return back()->with('error', 'Payment was rejected. Student must resubmit payment details.');
+        }
+
+        return back()->with('error', 'Invalid onboarding review action.');
     }
 
     // Secure document viewing
@@ -242,30 +513,62 @@ class TenantOnboardingController extends Controller
         $room = $booking->room;
         $property = $room->property;
 
-        return "TENANCY AGREEMENT
+        $checkInLabel = $booking->check_in ? $booking->check_in->format('M d, Y') : 'Pending';
+        $checkOutLabel = $booking->check_out ? $booking->check_out->format('M d, Y') : 'Open Ended';
+        $durationDays = method_exists($booking, 'getDurationInDays') ? $booking->getDurationInDays() : 0;
+        $requestedLabel = $booking->created_at ? $booking->created_at->diffForHumans() : 'Recently';
+        $roomModeLabel = ucfirst((string) ($booking->occupancy_mode ?? 'Solo'));
+        $advancePaymentLabel = !empty($booking->include_advance_payment) ? 'Yes' : 'No';
+        $paymentStatusLabel = ucfirst((string) $booking->derivedPaymentStatus());
+        $fullPaymentAmount = $room->price;
 
-This Tenancy Agreement is made on " . now()->format('F d, Y') . "
+        return "RESIDENTIAL LEASE AGREEMENT
+    THIS AGREEMENT (\"Agreement\") is made and entered into on this " . now()->format('jS') . " day of " . now()->format('F, Y') . ", by and between {$property->landlord->name} (\"Landlord\") and {$student->name} (\"Tenant\").
 
-BETWEEN:
-Landlord: {$property->landlord->name}
-Property: {$property->name}
-Address: {$property->address}
+    1. PREMISES
+    The Landlord agrees to rent to the Tenant, and the Tenant agrees to rent from the Landlord, the property located at: {$property->name}, Room {$room->room_number} (the \"Premises\"), under the terms and conditions set forth below.
 
-AND
-Tenant: {$student->name}
-Student ID: {$student->student_id}
+    2. TERM AND OCCUPANCY
+    The Tenant agrees to occupy the Premises under the approved booking terms and to strictly adhere to all community policies established by the Landlord. This Agreement serves as the binding contract for the tenancy commencing upon the completion of the Onboarding Process.
 
-Room: {$room->room_number}
-Monthly Rent: ₱" . number_format($room->price, 2) . "
-Lease Period: {$booking->check_in->format('M d, Y')} to {$booking->check_out->format('M d, Y')}
+    3. RENT AND PAYMENT
+    3.1 Due Date. Rent is due on the 1st day of each month.
+    3.2 Method of Payment. All rent payments must be payable exclusively through the designated Platform.
+    3.3 Onboarding Payment. The full monthly rent is required to complete the onboarding process and will be recorded as the active payment basis for the lease term.
+    Monthly Rent: ₱" . number_format($room->price, 2) . "
+    Full Payment Due: ₱" . number_format($fullPaymentAmount, 2) . "
 
-Terms and Conditions:
-1. The Tenant agrees to pay rent on time.
-2. The Tenant agrees to maintain the property.
-3. The Landlord agrees to maintain habitable conditions.
+    4. COMMUNITY RULES AND MAINTENANCE
+    4.1 Quiet Hours. To ensure the comfort of all residents, quiet hours are enforced from 10:00 PM to 7:00 AM.
+    4.2 Guests. All guests must be registered with the Landlord prior to arrival.
+    4.3 Maintenance Requests. Maintenance requests must be submitted via the Platform within 24 hours of the Tenant noticing an issue.
 
-Signed by Tenant: " . ($onboarding->contract_signed ? $student->name : 'Pending') . "
-Date: " . ($onboarding->contract_signed_at ? $onboarding->contract_signed_at->format('M d, Y') : 'Pending');
+    5. EXECUTION AND MOVE-IN CONDITIONS
+    5.1 Binding Effect. This Contract becomes legally binding once all identity documents are verified and the electronic signature is submitted by both parties.
+    5.2 Payment Verification. Advance payment and payment status will be reviewed and verified prior to room handover.
+    5.3 Possession. Move-in is strictly subject to the confirmed check-in date and approved booking status.
+
+    Booking Snapshot:
+    Property: {$property->name}
+    Room: Room {$room->room_number}
+    Approved: " . ucfirst((string) ($booking->status ?? 'pending')) . "
+    Check-in: {$checkInLabel}
+    Check-out: {$checkOutLabel}
+    Duration: {$durationDays} days
+    Requested: {$requestedLabel}
+    Room Mode: {$roomModeLabel}
+    Monthly Rent: ₱" . number_format($room->price, 2) . "
+    Advance Payment: {$advancePaymentLabel}
+    Payment Status: {$paymentStatusLabel}
+
+    IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+    LANDLORD SIGNATURE
+    Name: {$property->landlord->name}
+    Date: Pending
+
+    TENANT SIGNATURE
+    Name: {$student->name}
+    Date: Pending";
     }
 
     private function completeOnboarding(TenantOnboarding $onboarding)
@@ -290,6 +593,90 @@ Date: " . ($onboarding->contract_signed_at ? $onboarding->contract_signed_at->fo
             'digital_id' => $digitalId,
             'status' => 'completed'
         ]);
+    }
+
+    private function storeContractSignatureDataUrl(string $signatureData, ?string $oldPath = null): ?string
+    {
+        $signatureData = trim($signatureData);
+        if ($signatureData === '') {
+            return null;
+        }
+
+        if (!preg_match('/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/i', $signatureData, $matches)) {
+            return null;
+        }
+
+        $mime = strtolower((string) $matches[1]);
+        $encoded = (string) $matches[2];
+        $binary = base64_decode($encoded, true);
+
+        if ($binary === false || $binary === '') {
+            return null;
+        }
+
+        if (strlen($binary) > (5 * 1024 * 1024)) {
+            return null;
+        }
+
+        $extension = $mime === 'jpg' ? 'jpeg' : $mime;
+        $path = 'contract-signatures/' . Str::uuid() . '.' . $extension;
+
+        Storage::disk('public')->put($path, $binary);
+
+        if (!empty($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $path;
+    }
+    private function notifyLandlordOnboardingStep(TenantOnboarding $onboarding, string $title, string $message): void
+    {
+        try {
+            $onboarding->loadMissing('booking.room.property.landlord');
+            $landlord = $onboarding->booking?->room?->property?->landlord;
+
+            if (!$landlord) {
+                return;
+            }
+
+            $landlord->notify(new SystemNotification(
+                $title,
+                $message,
+                route('landlord.onboarding.review', $onboarding),
+                [
+                    'onboarding_id' => $onboarding->id,
+                    'booking_id' => $onboarding->booking_id,
+                    'student_id' => $onboarding->booking?->student_id,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            // Ignore notification delivery errors to avoid blocking onboarding actions.
+        }
+    }
+
+    private function notifyStudentOnboardingStep(TenantOnboarding $onboarding, string $title, string $message): void
+    {
+        try {
+            $onboarding->loadMissing('booking.student');
+            $student = $onboarding->booking?->student;
+
+            if (!$student) {
+                return;
+            }
+
+            $student->notify(new SystemNotification(
+                $title,
+                $message,
+                route('student.onboarding.show', $onboarding),
+                [
+                    'onboarding_id' => $onboarding->id,
+                    'booking_id' => $onboarding->booking_id,
+                    'student_id' => $student->id,
+                ]
+            ));
+        } catch (\Throwable $e) {
+            // Ignore notification delivery errors to avoid blocking onboarding actions.
+        }
     }
 
     // Helper methods

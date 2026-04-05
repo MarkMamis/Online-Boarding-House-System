@@ -80,6 +80,28 @@ The Online Boarding House System (OBHS) is a role-based platform that connects s
 
 ## System Gaps and Opportunities
 
+## UI Implementation Standard
+
+### Mobile-First Policy
+All user-facing pages in OBHS should be built and refined mobile-first. Desktop layouts are an enhancement layer on top of a fully working mobile experience.
+
+### Required UI Practices
+- Start layouts at phone widths first (320px to 420px), then progressively enhance.
+- Keep core flows mobile-usable by default: booking, onboarding, messaging, requests, approvals.
+- Avoid table-heavy interactions on phones; prefer stacked cards, chips, and compact sections.
+- Use responsive spacing/typography and prevent text clipping on thin screens.
+- Ensure primary actions are prominent and easy to tap.
+- Use progressive disclosure for long sections (collapse/expand where appropriate).
+
+### QA Baseline For UI Changes
+- Test visual and functional behavior at:
+   - 360x800
+   - 390x844
+   - 768x1024
+   - desktop widths
+- Verify no horizontal overflow in primary workflows.
+- Verify forms and CTA buttons remain accessible without pinch-zoom.
+
 ### Functional Gaps
 - No global search or ranking for rooms beyond filters.
 - No automated payment gateway integration.

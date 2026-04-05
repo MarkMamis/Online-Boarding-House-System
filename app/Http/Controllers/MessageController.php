@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\Booking;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -86,6 +87,7 @@ class MessageController extends Controller
                 ->get();
         }
         $messageThreads = collect();
+        $participantCategories = [];
         if ($user->role === 'student') {
             $allMessages = Message::with(['sender:id,full_name', 'receiver:id,full_name', 'property:id,name'])
                 ->where(function ($q) use ($user) {
@@ -117,10 +119,73 @@ class MessageController extends Controller
                 $threads[$key]['messages'][] = $msg;
             }
             $messageThreads = collect(array_values($threads));
+        } elseif ($user->role === 'landlord') {
+            $participantIds = $messages
+                ->map(function ($msg) use ($user) {
+                    return (int) $msg->sender_id === (int) $user->id
+                        ? (int) $msg->receiver_id
+                        : (int) $msg->sender_id;
+                })
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values();
+
+            if ($participantIds->isNotEmpty()) {
+                $today = now()->toDateString();
+                $bookingRows = Booking::query()
+                    ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
+                    ->join('properties', 'rooms.property_id', '=', 'properties.id')
+                    ->where('properties.landlord_id', $user->id)
+                    ->whereIn('bookings.student_id', $participantIds->all())
+                    ->select('bookings.student_id', 'bookings.status', 'bookings.check_out')
+                    ->get();
+
+                foreach ($participantIds as $participantId) {
+                    $rows = $bookingRows->where('student_id', $participantId);
+
+                    $hasCurrentTenantBooking = $rows->contains(function ($row) use ($today) {
+                        return (string) $row->status === 'approved'
+                            && !empty($row->check_out)
+                            && (string) $row->check_out >= $today;
+                    });
+
+                    $hasPendingBooking = $rows->contains(function ($row) {
+                        return (string) $row->status === 'pending';
+                    });
+
+                    $hasFormerTenantBooking = $rows->contains(function ($row) use ($today) {
+                        return (string) $row->status === 'approved'
+                            && !empty($row->check_out)
+                            && (string) $row->check_out < $today;
+                    });
+
+                    if ($hasCurrentTenantBooking) {
+                        $participantCategories[(int) $participantId] = [
+                            'slug' => 'current_tenant',
+                            'label' => 'Current Tenant',
+                        ];
+                    } elseif ($hasPendingBooking) {
+                        $participantCategories[(int) $participantId] = [
+                            'slug' => 'prospective',
+                            'label' => 'Prospective Tenant',
+                        ];
+                    } elseif ($hasFormerTenantBooking) {
+                        $participantCategories[(int) $participantId] = [
+                            'slug' => 'former_tenant',
+                            'label' => 'Former Tenant',
+                        ];
+                    } else {
+                        $participantCategories[(int) $participantId] = [
+                            'slug' => 'direct',
+                            'label' => 'Direct Inquiry',
+                        ];
+                    }
+                }
+            }
         }
 
         return $user->role === 'landlord'
-            ? view('landlord.messages.index', compact('messages', 'recipients', 'user'))
+            ? view('landlord.messages.index', compact('messages', 'recipients', 'user', 'participantCategories'))
             : view('messages.index', compact('messages', 'recipients', 'user', 'messageProperties', 'messageThreads'));
     }
 

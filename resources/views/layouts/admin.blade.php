@@ -229,17 +229,17 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                z-index: 1055;
+                z-index: 1070;
                 background: rgba(255,255,255,.98);
                 border-top: 1px solid var(--line);
-                box-shadow: 0 -8px 24px rgba(2, 8, 20, .10);
+                box-shadow: none;
                 backdrop-filter: blur(8px);
                 -webkit-backdrop-filter: blur(8px);
             }
 
             .mobile-bottom-nav .nav-grid {
                 display: grid;
-                grid-template-columns: repeat(6, minmax(0, 1fr));
+                grid-template-columns: repeat(5, minmax(0, 1fr));
             }
 
             .mobile-bottom-nav .nav-link {
@@ -304,7 +304,77 @@
             .more-list .list-group-item i {
                 color: #64748b;
             }
+
+            #adminMoreSheet {
+                border-top-left-radius: 1rem;
+                border-top-right-radius: 1rem;
+                --bs-offcanvas-height: clamp(245px, 37vh, 380px);
+                height: clamp(245px, 37vh, 380px);
+                bottom: 0;
+                z-index: 1065;
+            }
+
+            #adminMoreSheet .offcanvas-body {
+                padding-top: .25rem;
+                overflow-y: auto;
+            }
+
+            .offcanvas-backdrop.show {
+                z-index: 1060;
+            }
+
+            .chatbot-widget,
+            .chatbot-panel {
+                z-index: 1040 !important;
+            }
         }
+
+        @media (max-width: 420px) {
+            .container,
+            .container-fluid {
+                padding-left: .75rem !important;
+                padding-right: .75rem !important;
+            }
+
+            .main-col {
+                padding: .65rem !important;
+            }
+
+            .dash-shell {
+                padding-top: 4rem;
+                padding-bottom: 5rem;
+            }
+
+            h1, .h1 { font-size: 1.35rem; }
+            h2, .h2 { font-size: 1.2rem; }
+            h3, .h3 { font-size: 1.08rem; }
+            h4, .h4 { font-size: 1rem; }
+
+            .card,
+            .metric-tile {
+                border-radius: .85rem !important;
+            }
+
+            .btn {
+                font-size: .86rem;
+                padding: .45rem .8rem;
+            }
+
+            .form-control,
+            .form-select {
+                font-size: .95rem;
+                padding: .5rem .68rem;
+            }
+
+            .table-responsive {
+                font-size: .86rem;
+            }
+
+            .top-meta {
+                display: none !important;
+            }
+        }
+
         @media (min-width: 992px) {
             .navbar-glass {
                 left: var(--sidebar-w);
@@ -354,6 +424,32 @@
         $usersOpen = is_string($routeName) && str_starts_with($routeName, 'admin.users.');
 
         $pendingApprovalsCount = \App\Models\Property::where('approval_status', 'pending')->count();
+        $pendingPermitApprovalsCount = \Illuminate\Support\Facades\Schema::hasColumn('landlord_profiles', 'business_permit_status')
+            ? \App\Models\LandlordProfile::where('business_permit_status', 'pending')->count()
+            : 0;
+            $pendingStudentVerificationCount = \Illuminate\Support\Facades\Schema::hasColumn('users', 'school_id_verification_status')
+                ? \App\Models\User::query()
+                    ->where('role', 'student')
+                    ->where(function ($docQuery) {
+                        $docQuery->where(function ($schoolIdQuery) {
+                            $schoolIdQuery->whereNotNull('school_id_path')
+                                ->where('school_id_path', '!=', '');
+                        });
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'enrollment_proof_path')) {
+                            $docQuery->orWhere(function ($proofQuery) {
+                                $proofQuery->whereNotNull('enrollment_proof_path')
+                                    ->where('enrollment_proof_path', '!=', '');
+                            });
+                        }
+                    })
+                    ->where(function ($query) {
+                        $query->where('school_id_verification_status', 'pending')
+                            ->orWhereNull('school_id_verification_status')
+                            ->orWhere('school_id_verification_status', '');
+                    })
+                    ->count()
+                : 0;
         $notificationsCount = \Illuminate\Support\Facades\Schema::hasTable('notifications')
             ? \Illuminate\Notifications\DatabaseNotification::query()
                 ->where('notifiable_type', get_class(Auth::user()))
@@ -466,11 +562,25 @@
                             )
                         ]) href="{{ route('admin.properties.pending') }}">
                             <i class="bi bi-check2-circle"></i>
-                            <span>Approvals</span>
+                            <span>Property Approvals</span>
                             @if($pendingApprovalsCount > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingApprovalsCount }}</span>
                             @endif
                         </a>
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.permits.')]) href="{{ route('admin.permits.index') }}">
+                            <i class="bi bi-file-earmark-check"></i>
+                            <span>Permit Approvals</span>
+                            @if($pendingPermitApprovalsCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPermitApprovalsCount }}</span>
+                            @endif
+                        </a>
+                            <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.')]) href="{{ route('admin.student_verifications.index') }}">
+                                <i class="bi bi-person-vcard"></i>
+                                <span>Student Verifications</span>
+                                @if($pendingStudentVerificationCount > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
+                                @endif
+                            </a>
                         <a @class(['list-group-item', 'active' => $routeName === 'admin.bookings.index']) href="{{ route('admin.bookings.index') }}">
                             <i class="bi bi-journal-check"></i>
                             <span>Bookings</span>
@@ -524,6 +634,8 @@
                 || str_starts_with($routeName, 'admin.properties.approve')
                 || str_starts_with($routeName, 'admin.properties.reject')
             );
+        $isPermitApprovalsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.permits.');
+        $isStudentVerificationsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.');
         $isBookingsRoute = $routeName === 'admin.bookings.index';
         $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
         $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
@@ -547,16 +659,52 @@
                 <i class="bi bi-check2-circle"></i>
                 <span>Approvals</span>
             </a>
-            <a @class(['nav-link', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
-                <i class="bi bi-journal-check"></i>
-                <span>Bookings</span>
-            </a>
-            <a @class(['nav-link', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
-                <i class="bi bi-clipboard-check"></i>
-                <span>Onboardings</span>
-            </a>
+            <button type="button" @class(['nav-link', 'active' => $isPermitApprovalsRoute || $isStudentVerificationsRoute || $isBookingsRoute || $isOnboardingsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+            </button>
         </div>
     </nav>
+
+    <div class="offcanvas offcanvas-bottom d-lg-none" tabindex="-1" id="adminMoreSheet" aria-labelledby="adminMoreSheetLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title fw-semibold" id="adminMoreSheetLabel">More</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="list-group more-list">
+                <a @class(['list-group-item', 'active' => $isPermitApprovalsRoute]) href="{{ route('admin.permits.index') }}">
+                    <i class="bi bi-file-earmark-check"></i>
+                    <span>Permits</span>
+                    @if($pendingPermitApprovalsCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPermitApprovalsCount }}</span>
+                    @endif
+                </a>
+                    <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.student_verifications.index') }}">
+                        <i class="bi bi-person-vcard"></i>
+                        <span>Student IDs</span>
+                        @if($pendingStudentVerificationCount > 0)
+                            <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
+                        @endif
+                    </a>
+                <a @class(['list-group-item', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
+                    <i class="bi bi-journal-check"></i>
+                    <span>Bookings</span>
+                </a>
+                <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Onboardings</span>
+                </a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="list-group-item text-danger bg-white">
+                        <i class="bi bi-box-arrow-right text-danger"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <x-toast />

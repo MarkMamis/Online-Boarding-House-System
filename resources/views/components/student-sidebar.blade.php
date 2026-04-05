@@ -17,7 +17,19 @@
 
     $tenantRoomId = $tenantOnboarding?->booking?->room_id;
     $tenantMode = !empty($tenantRoomId);
+    $pendingBookingsCount = isset($pendingBookingsCount)
+        ? (int) $pendingBookingsCount
+        : \App\Models\Booking::where('student_id', Auth::id())
+            ->where('status', 'pending')
+            ->count();
+    $hasApprovedBooking = \App\Models\Booking::where('student_id', Auth::id())
+        ->where('status', 'approved')
+        ->exists();
+    $showLimitedNavigation = !$tenantMode && !$hasApprovedBooking;
     $hideBrowse = $tenantMode || !empty($hasCurrentApprovedBooking);
+    $dashboardRoute = $tenantMode
+        ? route('student.tenant.dashboard')
+        : route('student.dashboard');
 @endphp
 
 <div class="glass-card rounded-4 p-3 sidepanel">
@@ -37,7 +49,7 @@
 
     <div class="list-group list-group-flush rounded-3 overflow-hidden student-nav-list">
         <div class="nav-section">Main</div>
-        <a href="{{ route('student.dashboard') }}" class="list-group-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
+        <a href="{{ $dashboardRoute }}" class="list-group-item {{ request()->routeIs('student.dashboard') || request()->routeIs('student.tenant.dashboard') ? 'active' : '' }}">
             <i class="bi bi-speedometer2"></i>
             <span>Dashboard</span>
         </a>
@@ -73,7 +85,7 @@
         <a href="{{ route('student.bookings.index') }}" class="list-group-item {{ request()->routeIs('student.bookings.*') ? 'active' : '' }}">
             <i class="bi bi-journal-check"></i>
             <span>Requests</span>
-            @if(isset($pendingBookingsCount) && $pendingBookingsCount > 0)
+            @if($pendingBookingsCount > 0)
                 <span class="badge rounded-pill text-bg-warning ms-auto">{{ $pendingBookingsCount }}</span>
             @endif
         </a>
@@ -84,35 +96,46 @@
                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadMessagesCount }}</span>
             @endif
         </a>
-        <a href="{{ route('student.onboarding.index') }}" class="list-group-item {{ request()->routeIs('student.onboarding.*') ? 'active' : '' }}">
-            <i class="bi bi-clipboard-check"></i>
-            <span>Tenant Onboarding</span>
-            @if(!empty($latestOnboarding) && ($latestOnboarding->status ?? '') !== 'completed')
-                <span class="badge rounded-pill text-bg-light ms-auto">In progress</span>
-            @endif
-        </a>
-        @php
-            $showRoommatesPanel = !empty($hasCurrentApprovedBooking)
-                && !empty($currentApprovedBooking)
-                && !empty($latestOnboarding)
-                && (int) ($latestOnboarding->booking_id ?? 0) === (int) ($currentApprovedBooking->id ?? 0);
-        @endphp
-        @if($showRoommatesPanel)
-            <a href="{{ route('student.dashboard') }}#roommates" class="list-group-item">
-                <i class="bi bi-people"></i>
-                <span>Roommates</span>
-                @if(isset($roommatesCount) && (int) $roommatesCount > 0)
-                    <span class="badge rounded-pill text-bg-light ms-auto">{{ (int) $roommatesCount }}</span>
-                @endif
+        @if($tenantMode && $tenantRoomId)
+            <a href="{{ route('student.rooms.feedback_page', $tenantRoomId) }}" class="list-group-item {{ request()->routeIs('student.rooms.feedback_page') ? 'active' : '' }}">
+                <i class="bi bi-star"></i>
+                <span>Feedback</span>
+            </a>
+            <a href="{{ route('student.payments.index') }}" class="list-group-item {{ request()->routeIs('student.payments.*') ? 'active' : '' }}">
+                <i class="bi bi-cash-stack"></i>
+                <span>Payments</span>
             </a>
         @endif
-        <a href="{{ route('student.reports.index') }}" class="list-group-item {{ request()->routeIs('student.reports.*') ? 'active' : '' }}">
-            <i class="bi bi-flag"></i>
-            <span>My Reports</span>
-            @if(isset($unreadResponsesCount) && $unreadResponsesCount > 0)
-                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadResponsesCount }}</span>
+        @if(!$showLimitedNavigation)
+            <a href="{{ route('student.onboarding.index') }}" class="list-group-item {{ request()->routeIs('student.onboarding.*') ? 'active' : '' }}">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Tenant Onboarding</span>
+                    @php
+                        $onboardingStatus = $latestOnboarding->status ?? null;
+                        $isPending = !empty($latestOnboarding) && ($onboardingStatus !== 'completed');
+                    @endphp
+                    @if($isPending)
+                        <span class="badge rounded-pill text-bg-warning ms-auto">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Requires Action
+                        </span>
+                @endif
+            </a>
+            @php
+                $showRoommatesPanel = !empty($hasCurrentApprovedBooking)
+                    && !empty($currentApprovedBooking)
+                    && !empty($latestOnboarding)
+                    && (int) ($latestOnboarding->booking_id ?? 0) === (int) ($currentApprovedBooking->id ?? 0);
+            @endphp
+            @if($showRoommatesPanel)
+                <a href="{{ route('student.dashboard') }}#roommates" class="list-group-item">
+                    <i class="bi bi-people"></i>
+                    <span>Roommates</span>
+                    @if(isset($roommatesCount) && (int) $roommatesCount > 0)
+                        <span class="badge rounded-pill text-bg-light ms-auto">{{ (int) $roommatesCount }}</span>
+                    @endif
+                </a>
             @endif
-        </a>
+        @endif
 
         <div class="nav-section">Account</div>
         <a href="{{ route('student.profile.show') }}" class="list-group-item {{ request()->routeIs('student.profile.*') ? 'active' : '' }}">
@@ -120,10 +143,24 @@
             <span>Profile</span>
         </a>
 
-        <div class="nav-section">Help</div>
-        <a href="{{ route('student.reports.create') }}" class="list-group-item {{ request()->routeIs('student.reports.create') ? 'active' : '' }}">
-            <i class="bi bi-question-circle"></i>
-            <span>Help / Report an issue</span>
-        </a>
+        @if(!$showLimitedNavigation)
+            <div class="nav-section">Help</div>
+            <a href="{{ route('student.reports.index') }}" class="list-group-item {{ request()->routeIs('student.reports.*') ? 'active' : '' }}">
+                <i class="bi bi-question-circle"></i>
+                <span>Help Center</span>
+                @if(isset($unreadResponsesCount) && $unreadResponsesCount > 0)
+                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadResponsesCount }}</span>
+                @endif
+            </a>
+        @endif
+
+        <div class="nav-section">Session</div>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="list-group-item w-100 text-start">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Logout</span>
+            </button>
+        </form>
     </div>
 </div>

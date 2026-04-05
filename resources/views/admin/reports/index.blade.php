@@ -112,9 +112,9 @@
             <h1 class="h3 mb-1 reports-page-title">Reports Management</h1>
             <p class="section-muted mb-0">Track student issues, priorities, and resolution progress.</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i>Dashboard
-        </a>
+        </a> -->
     </div>
 
     <div class="row g-3 mb-4">
@@ -177,18 +177,18 @@
                             </td>
                             <td>
                                 @if($report->priority === 'high')
-                                    <span class="badge priority-badge text-bg-danger">High</span>
+                                    <span class="badge priority-badge text-bg-danger">Critical</span>
                                 @elseif($report->priority === 'medium')
-                                    <span class="badge priority-badge text-bg-warning">Medium</span>
+                                    <span class="badge priority-badge text-bg-warning">Moderate</span>
                                 @else
-                                    <span class="badge priority-badge text-bg-success">Low</span>
+                                    <span class="badge priority-badge text-bg-success">Minor</span>
                                 @endif
                             </td>
                             <td>
                                 @if($report->status === 'pending')
-                                    <span class="badge status-badge text-bg-secondary">Pending</span>
+                                    <span class="badge status-badge text-bg-secondary">Submitted</span>
                                 @elseif($report->status === 'in_progress')
-                                    <span class="badge status-badge text-bg-primary">In Progress</span>
+                                    <span class="badge status-badge text-bg-primary">Reviewed</span>
                                 @else
                                     <span class="badge status-badge text-bg-success">Resolved</span>
                                 @endif

@@ -54,6 +54,75 @@
                                     <label class="form-label">Description</label>
                                     <textarea name="description" rows="4" class="form-control" placeholder="Optional">{{ old('description') }}</textarea>
                                 </div>
+                                <div class="col-12">
+                                    @php
+                                        $amenityCategories = (array) config('property_amenities.categories', []);
+                                        $selectedAmenities = collect(old('building_inclusions', []))
+                                            ->map(fn ($value) => (string) $value)
+                                            ->all();
+                                        $houseRuleCategories = (array) config('property_house_rules.categories', []);
+                                    @endphp
+                                    <label class="form-label">Building/Boarding House Inclusions</label>
+                                    <div class="border rounded-3 p-3 bg-light-subtle">
+                                        <div class="row g-3">
+                                            @foreach($amenityCategories as $category => $items)
+                                                <div class="col-12 col-md-4">
+                                                    <div class="small text-uppercase text-muted fw-semibold mb-2">{{ $category }}</div>
+                                                    @foreach($items as $amenityKey => $amenityLabel)
+                                                        <div class="form-check mb-1">
+                                                            <input
+                                                                class="form-check-input"
+                                                                type="checkbox"
+                                                                id="amenity_{{ $amenityKey }}"
+                                                                name="building_inclusions[]"
+                                                                value="{{ $amenityKey }}"
+                                                                @checked(in_array($amenityKey, $selectedAmenities, true))
+                                                            >
+                                                            <label class="form-check-label" for="amenity_{{ $amenityKey }}">{{ $amenityLabel }}</label>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @error('building_inclusions')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                    @error('building_inclusions.*')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">Property House Rules</label>
+                                    <div class="border rounded-3 p-3 bg-light-subtle">
+                                        <div class="row g-3">
+                                            @foreach($houseRuleCategories as $categoryKey => $categoryConfig)
+                                                @php
+                                                    $categoryLabel = (string) ($categoryConfig['label'] ?? $categoryKey);
+                                                    $ruleText = old(
+                                                        'house_rules.' . $categoryKey,
+                                                        implode(PHP_EOL, (array) ($categoryConfig['rules'] ?? []))
+                                                    );
+                                                @endphp
+                                                <div class="col-12 col-md-4">
+                                                    <label class="small text-uppercase text-muted fw-semibold mb-2" for="house_rules_{{ $categoryKey }}">{{ $categoryLabel }}</label>
+                                                    <textarea
+                                                        class="form-control"
+                                                        id="house_rules_{{ $categoryKey }}"
+                                                        name="house_rules[{{ $categoryKey }}]"
+                                                        rows="6"
+                                                        placeholder="One rule per line"
+                                                    >{{ $ruleText }}</textarea>
+                                                    @error('house_rules.' . $categoryKey)
+                                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Use one rule per line. These rules will appear in the booking flow.</div>
+                                </div>
                             </div>
 
                             <div class="alert alert-light border mb-0 mt-3">
@@ -88,6 +157,12 @@
                                     <label class="form-label">Property Location Map</label>
                                     <div id="property-map" class="map-box" style="height: 360px; width: 100%;"></div>
                                     <div class="form-text">Click anywhere on the map to set your property location.</div>
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2">
+                                        <button type="button" id="useCurrentLocationBtn" class="btn btn-sm btn-outline-primary rounded-pill">
+                                            <i class="fas fa-location-crosshairs me-1"></i>Use My Location
+                                        </button>
+                                        <span id="locationStatus" class="small text-muted"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -208,10 +283,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxNativeZoom: 19,
+        maxZoom: 22,
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     let marker = null;
+    const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
+    const locationStatus = document.getElementById('locationStatus');
+
+    function setLocationButtonLoading(isLoading) {
+        if (!useCurrentLocationBtn) return;
+        useCurrentLocationBtn.disabled = isLoading;
+        useCurrentLocationBtn.innerHTML = isLoading
+            ? '<i class="fas fa-spinner fa-spin me-1"></i>Locating...'
+            : '<i class="fas fa-location-crosshairs me-1"></i>Use My Location';
+    }
+
+    function setLocationStatus(message, isError = false) {
+        if (!locationStatus) return;
+        locationStatus.textContent = message;
+        locationStatus.classList.toggle('text-danger', isError);
+        locationStatus.classList.toggle('text-muted', !isError);
+    }
 
     // Function to update marker position
     function updateMarker(lat, lng) {
@@ -221,6 +315,35 @@ document.addEventListener('DOMContentLoaded', function() {
         marker = L.marker([lat, lng]).addTo(map);
         document.getElementById('latitude').value = lat.toFixed(6);
         document.getElementById('longitude').value = lng.toFixed(6);
+    }
+
+    function useCurrentLocation() {
+        if (!navigator.geolocation) {
+            setLocationStatus('Geolocation is not supported on this browser.', true);
+            return;
+        }
+
+        setLocationButtonLoading(true);
+
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            updateMarker(lat, lng);
+            map.setView([lat, lng], 15);
+            setLocationStatus('Current location captured.');
+            setLocationButtonLoading(false);
+        }, function(error) {
+            const messageByCode = {
+                1: 'Location permission denied.',
+                2: 'Location unavailable.',
+                3: 'Location request timed out.',
+            };
+            setLocationStatus(messageByCode[error.code] || 'Unable to get current location.', true);
+            setLocationButtonLoading(false);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+        });
     }
 
     // Handle map clicks
@@ -249,6 +372,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.addEventListener('click', function() {
+            useCurrentLocation();
+        });
+    }
+
     // Try to get user's current location for initial map position
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -257,8 +386,12 @@ document.addEventListener('DOMContentLoaded', function() {
             map.setView([lat, lng], 13);
         }, function(error) {
             console.log('Geolocation error:', error);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
         });
     }
+
 });
 </script>
 

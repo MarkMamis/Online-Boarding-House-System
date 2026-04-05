@@ -6,6 +6,7 @@ use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class StudentPropertyController extends Controller
@@ -16,7 +17,7 @@ class StudentPropertyController extends Controller
             abort(403);
         }
 
-        if (($property->approval_status ?? 'pending') !== 'approved') {
+        if (!Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
             abort(404);
         }
         // Load landlord and rooms
@@ -42,9 +43,15 @@ class StudentPropertyController extends Controller
         $maxPrice = $request->query('max_price');
         $minCapacity = $request->query('capacity');
         $search = $request->query('q');
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $amenityOptions = (array) config('property_amenities.flat', []);
+        $amenity = trim((string) $request->query('amenity', ''));
+        if (!$supportsBuildingInclusions || ($amenity !== '' && !array_key_exists($amenity, $amenityOptions))) {
+            $amenity = '';
+        }
 
         $allProperties = Property::with(['landlord:id,full_name'])
-            ->where('approval_status', 'approved')
+            ->visibleToAudience()
             ->withCount([
                 'rooms as rooms_total_live',
                 'rooms as rooms_available_live' => function ($q) {
@@ -57,6 +64,9 @@ class StudentPropertyController extends Controller
                        ->orWhere('address', 'like', "%$search%");
                 });
             })
+            ->when($amenity !== '', function ($q) use ($amenity) {
+                $q->whereJsonContains('building_inclusions', $amenity);
+            })
             ->orderBy('name')
             ->get();
 
@@ -65,7 +75,9 @@ class StudentPropertyController extends Controller
             'minPrice',
             'maxPrice',
             'minCapacity',
-            'search'
+            'search',
+            'amenity',
+            'amenityOptions'
         ));
     }
 
@@ -76,9 +88,20 @@ class StudentPropertyController extends Controller
         }
 
         $search = trim((string) $request->query('q', ''));
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $amenityOptions = (array) config('property_amenities.flat', []);
+        $amenity = trim((string) $request->query('amenity', ''));
+        if (!$supportsBuildingInclusions || ($amenity !== '' && !array_key_exists($amenity, $amenityOptions))) {
+            $amenity = '';
+        }
+
+        $selectColumns = ['id', 'name', 'address', 'latitude', 'longitude', 'image_path', 'price_min', 'price_max'];
+        if ($supportsBuildingInclusions) {
+            $selectColumns[] = 'building_inclusions';
+        }
 
         $properties = Property::query()
-            ->where('approval_status', 'approved')
+            ->visibleToAudience()
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->when($search !== '', function ($q) use ($search) {
@@ -87,20 +110,29 @@ class StudentPropertyController extends Controller
                         ->orWhere('address', 'like', "%{$search}%");
                 });
             })
+            ->when($amenity !== '', function ($q) use ($amenity) {
+                $q->whereJsonContains('building_inclusions', $amenity);
+            })
             ->withCount([
                 'rooms as available_rooms' => function ($q) {
                     $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
             ->orderBy('name')
-            ->get(['id', 'name', 'address', 'latitude', 'longitude', 'image_path', 'price_min', 'price_max']);
+            ->get($selectColumns);
 
-        $payload = $properties->map(function ($p) {
+        $payload = $properties->map(function ($p) use ($amenityOptions) {
             $imagePath = ltrim((string) ($p->image_path ?? ''), '/');
             $imageExists = $imagePath !== '' && (
                 Storage::disk('public')->exists($imagePath)
                 || file_exists(public_path('storage/' . $imagePath))
             );
+
+            $inclusions = collect((array) ($p->building_inclusions ?? []))
+                ->map(fn ($key) => $amenityOptions[$key] ?? null)
+                ->filter()
+                ->values()
+                ->all();
 
             return [
                 'id' => $p->id,
@@ -112,6 +144,7 @@ class StudentPropertyController extends Controller
                 'price_min' => $p->price_min !== null ? (float) $p->price_min : null,
                 'price_max' => $p->price_max !== null ? (float) $p->price_max : null,
                 'image_url' => $imageExists ? asset('storage/' . $imagePath) : null,
+                'inclusions' => $inclusions,
             ];
         })->values();
 
@@ -126,7 +159,7 @@ class StudentPropertyController extends Controller
             abort(403);
         }
 
-        if (($property->approval_status ?? 'pending') !== 'approved') {
+        if (!Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
             abort(404);
         }
 

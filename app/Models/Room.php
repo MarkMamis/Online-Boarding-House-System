@@ -18,6 +18,7 @@ class Room extends Model
         'status',
         'image_path',
         'inclusions',
+        'requires_advance_payment',
         'maintenance_reason',
         'maintenance_date',
     ];
@@ -25,6 +26,7 @@ class Room extends Model
     protected $casts = [
         'maintenance_date' => 'datetime',
         'slots_available' => 'integer',
+        'requires_advance_payment' => 'boolean',
     ];
 
     public function property()

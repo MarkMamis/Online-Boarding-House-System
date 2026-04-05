@@ -77,6 +77,28 @@
             white-space: nowrap;
         }
 
+        .permit-spotlight {
+            border: 1px solid rgba(21, 128, 61, .18);
+            border-radius: 18px;
+            background:
+                radial-gradient(620px 220px at 105% -40%, rgba(245, 158, 11, .14), transparent 60%),
+                linear-gradient(180deg, rgba(248, 250, 252, .95), rgba(255, 255, 255, .98));
+            box-shadow: 0 14px 28px rgba(15, 23, 42, .06);
+        }
+
+        .permit-spotlight .mini-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            border-radius: 999px;
+            padding: .34rem .62rem;
+            font-size: .78rem;
+            border: 1px solid rgba(15, 23, 42, .10);
+            background: #fff;
+            color: rgba(15, 23, 42, .72);
+            font-weight: 600;
+        }
+
         .kpi {
             position: relative;
             border: 1px solid var(--line);
@@ -296,6 +318,7 @@
                     <div class="d-flex flex-wrap gap-2 mt-3">
                         <span class="hero-chip"><i class="bi bi-people"></i> {{ $totalUsers }} users</span>
                         <span class="hero-chip"><i class="bi bi-check2-circle"></i> {{ $pendingApprovals }} approvals pending</span>
+                        <span class="hero-chip"><i class="bi bi-file-earmark-check"></i> {{ $pendingPermitApprovals ?? 0 }} permits pending</span>
                         <span class="hero-chip"><i class="bi bi-journal-check"></i> {{ $totalBookings ?? 0 }} bookings tracked</span>
                     </div>
                 </div>
@@ -307,12 +330,18 @@
                             <span class="badge text-bg-danger ms-1">{{ $pendingApprovals }}</span>
                         @endif
                     </a>
+                    <a class="btn btn-outline-success" href="{{ route('admin.permits.index') }}">
+                        <i class="bi bi-file-earmark-check me-1"></i> Review Permits
+                        @if(($pendingPermitApprovals ?? 0) > 0)
+                            <span class="badge text-bg-danger ms-1">{{ $pendingPermitApprovals }}</span>
+                        @endif
+                    </a>
                     <a class="btn btn-outline-secondary" href="{{ route('admin.bookings.index') }}">
                         <i class="bi bi-journal-check me-1"></i> Monitor Bookings
                     </a>
-                    <button class="btn btn-brand" onclick="location.reload()">
+                    <!-- <button class="btn btn-brand" onclick="location.reload()">
                         <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                    </button>
+                    </button> -->
                 </div>
             </div>
 
@@ -395,6 +424,28 @@
                                 <div class="kpi-meta">Active: {{ $activeOnboardings }} • Completed: {{ $completedOnboardings }}</div>
                             </div>
                         </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="permit-spotlight p-3 p-lg-4 mb-4">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <div class="small muted text-uppercase fw-semibold" style="letter-spacing:.08em;">Permit Approvals</div>
+                    <div class="fw-semibold" style="font-size:1.02rem;">Landlord business permit review status</div>
+                    <div class="small muted">Track pending verification decisions directly from the dashboard.</div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="mini-pill"><i class="bi bi-hourglass-split text-warning"></i> Pending: <strong>{{ $pendingPermitApprovals ?? 0 }}</strong></span>
+                    <span class="mini-pill"><i class="bi bi-check-circle text-success"></i> Approved: <strong>{{ $approvedPermitApprovals ?? 0 }}</strong></span>
+                    <span class="mini-pill"><i class="bi bi-x-circle text-danger"></i> Rejected: <strong>{{ $rejectedPermitApprovals ?? 0 }}</strong></span>
+                </div>
+
+                <div>
+                    <a href="{{ route('admin.permits.index') }}" class="btn btn-success rounded-pill px-3">
+                        <i class="bi bi-arrow-right-circle me-1"></i> Open Permit Queue
                     </a>
                 </div>
             </div>
@@ -782,7 +833,8 @@
                 });
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
+                    maxNativeZoom: 19,
+                    maxZoom: 22,
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(map);
 

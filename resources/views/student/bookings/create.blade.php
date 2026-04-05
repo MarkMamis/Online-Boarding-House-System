@@ -388,6 +388,30 @@
     $studentName     = $student->full_name ?? $student->name ?? 'Tenant';
     $today           = now()->format('F d, Y');
     $refNo           = 'OBHS-' . strtoupper(substr(md5($room->id . now()->timestamp), 0, 8));
+    $advanceRequiredByLandlord = (bool) ($room->requires_advance_payment ?? false);
+    $initialIncludeAdvance = old('include_advance_payment', '0');
+    if ($advanceRequiredByLandlord) {
+        $initialIncludeAdvance = '1';
+    }
+
+    $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
+    $propertyHouseRules = (array) ($room->property->house_rules ?? []);
+    $houseRuleSections = collect($defaultHouseRuleCategories)
+        ->map(function ($categoryConfig, $categoryKey) use ($propertyHouseRules) {
+            $fallbackRules = (array) ($categoryConfig['rules'] ?? []);
+            $rules = collect((array) ($propertyHouseRules[$categoryKey] ?? $fallbackRules))
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+
+            return [
+                'label' => (string) ($categoryConfig['label'] ?? $categoryKey),
+                'icon' => (string) ($categoryConfig['icon'] ?? 'dot'),
+                'rules' => $rules,
+            ];
+        })
+        ->filter(fn ($section) => $section['rules']->isNotEmpty())
+        ->values();
 @endphp
 
 <div class="bk-page">
@@ -463,31 +487,23 @@
                         </div>
                     </div>
 
-                    <div class="bk-rules-section">
-                        <div class="bk-rules-section-header"><i class="bi bi-clock-history" style="font-size:.85rem;"></i> Occupancy</div>
-                        <ul class="bk-rules-list">
-                            <li><span class="bk-rules-list-icon">01</span> <span class="bk-rules-list-text">Overnight guests are prohibited without prior written consent of the landlord.</span></li>
-                            <li><span class="bk-rules-list-icon">02</span> <span class="bk-rules-list-text">Observe the curfew (10:00 PM – 5:00 AM) at all times.</span></li>
-                            <li><span class="bk-rules-list-icon">03</span> <span class="bk-rules-list-text">The tenant shall not sublet or transfer the room to any other person.</span></li>
-                        </ul>
-                    </div>
-
-                    <div class="bk-rules-section">
-                        <div class="bk-rules-section-header"><i class="bi bi-house-door" style="font-size:.85rem;"></i> Maintenance & Safety</div>
-                        <ul class="bk-rules-list">
-                            <li><span class="bk-rules-list-icon">04</span> <span class="bk-rules-list-text">Keep the room and common areas clean and orderly at all times.</span></li>
-                            <li><span class="bk-rules-list-icon">05</span> <span class="bk-rules-list-text">Report any damage or maintenance issue to the landlord within 24 hours.</span></li>
-                            <li><span class="bk-rules-list-icon">06</span> <span class="bk-rules-list-text">Do not alter, paint, or modify any part of the room without written consent.</span></li>
-                        </ul>
-                    </div>
-
-                    <div class="bk-rules-section">
-                        <div class="bk-rules-section-header"><i class="bi bi-fire" style="font-size:.85rem;"></i> Prohibited Activities</div>
-                        <ul class="bk-rules-list">
-                            <li><span class="bk-rules-list-icon">07</span> <span class="bk-rules-list-text">Noise disturbance after 10:00 PM (parties, loud music) is strictly prohibited.</span></li>
-                            <li><span class="bk-rules-list-icon">08</span> <span class="bk-rules-list-text">Cooking inside the room is not allowed unless a designated area is provided.</span></li>
-                        </ul>
-                    </div>
+                    @php $ruleNumber = 1; @endphp
+                    @forelse($houseRuleSections as $section)
+                        <div class="bk-rules-section">
+                            <div class="bk-rules-section-header"><i class="bi bi-{{ $section['icon'] }}" style="font-size:.85rem;"></i> {{ $section['label'] }}</div>
+                            <ul class="bk-rules-list">
+                                @foreach($section['rules'] as $rule)
+                                    <li>
+                                        <span class="bk-rules-list-icon">{{ str_pad((string) $ruleNumber, 2, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="bk-rules-list-text">{{ $rule }}</span>
+                                    </li>
+                                    @php $ruleNumber++; @endphp
+                                @endforeach
+                            </ul>
+                        </div>
+                    @empty
+                        <div class="small text-muted">No house rules configured for this property yet.</div>
+                    @endforelse
                 </div>
 
                 {{-- Hidden real form --}}
@@ -496,7 +512,7 @@
                     <input type="hidden" name="check_in"             id="fCheckIn"  value="{{ old('check_in') }}">
                     <input type="hidden" name="check_out"            id="fCheckOut" value="{{ old('check_out') }}">
                     <input type="hidden" name="notes"                id="fNotes"    value="{{ old('notes') }}">
-                    <input type="hidden" name="include_advance_payment" id="fIncludeAdvance" value="{{ old('include_advance_payment', '0') }}">
+                    <input type="hidden" name="include_advance_payment" id="fIncludeAdvance" value="{{ $initialIncludeAdvance }}">
                     <input type="hidden" name="occupancy_mode" id="fOccupancyMode" value="{{ old('occupancy_mode', 'solo') }}">
                     <input type="hidden" name="agreed_to_contract"   value="1">
                 </form>
@@ -574,13 +590,23 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <input class="form-check-input" type="checkbox" id="includeAdvanceDisplay" {{ old('include_advance_payment', '0') === '1' ? 'checked' : '' }}>
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="includeAdvanceDisplay"
+                            @checked($initialIncludeAdvance === '1')
+                            @disabled($advanceRequiredByLandlord)
+                        >
                         <label class="form-check-label" for="includeAdvanceDisplay" style="font-size:.83rem;color:rgba(2,8,20,.72);">
                             Include 1 month advance in move-in payment
                         </label>
                     </div>
                     <div style="font-size:.76rem;color:rgba(2,8,20,.52);margin-top:.25rem;">
-                        You can choose to pay advance now or pay it later based on your arrangement with the landlord.
+                        @if($advanceRequiredByLandlord)
+                            This room requires advance payment, based on the landlord's billing rule.
+                        @else
+                            You can choose to pay advance now or pay it later based on your arrangement with the landlord.
+                        @endif
                     </div>
 
                     <hr class="bk-summary-divider">
@@ -685,7 +711,7 @@
                             </label>
                             @endif
                             <label class="bk-plan-option">
-                                <input type="checkbox" id="confirmIncludeAdvance">
+                                <input type="checkbox" id="confirmIncludeAdvance" @disabled($advanceRequiredByLandlord)>
                                 <span>Include 1 month advance in move-in total</span>
                             </label>
                         </div>
@@ -714,6 +740,7 @@
 <script>
     const baseMonthlyRent = {{ (float) $room->price }};
     const roomCapacity = Math.max(1, {{ (int) $room->capacity }});
+    const advanceRequiredByLandlord = @json($advanceRequiredByLandlord);
 
     function peso(amount) {
         return '₱' + new Intl.NumberFormat('en-PH', {
@@ -737,7 +764,13 @@
 
     function syncAdvanceOption() {
         const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
-        const includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
+        let includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
+        if (advanceRequiredByLandlord) {
+            includeAdvance = true;
+            if (includeAdvanceDisplay) {
+                includeAdvanceDisplay.checked = true;
+            }
+        }
         const monthlyRent = computedMonthlyRent();
         const advanceAmount = includeAdvance ? monthlyRent : 0;
         const moveInTotal = monthlyRent + advanceAmount;
@@ -877,6 +910,9 @@
         const confirmIncludeAdvance = document.getElementById('confirmIncludeAdvance');
         if (confirmIncludeAdvance && includeAdvanceDisplay) {
             confirmIncludeAdvance.checked = !!includeAdvanceDisplay.checked;
+            if (advanceRequiredByLandlord) {
+                confirmIncludeAdvance.checked = true;
+            }
         }
     }
 
@@ -892,7 +928,7 @@
         const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
         const confirmIncludeAdvance = document.getElementById('confirmIncludeAdvance');
         if (includeAdvanceDisplay && confirmIncludeAdvance) {
-            includeAdvanceDisplay.checked = !!confirmIncludeAdvance.checked;
+            includeAdvanceDisplay.checked = advanceRequiredByLandlord ? true : !!confirmIncludeAdvance.checked;
         }
 
         syncAdvanceOption();

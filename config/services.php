@@ -37,6 +37,7 @@ return [
 
     'huggingface' => [
         'token' => env('HF_TOKEN'),
+        'model' => env('HF_QWEN_MODEL', 'Qwen/Qwen2.5-7B-Instruct:together'),
     ],
 
 ];

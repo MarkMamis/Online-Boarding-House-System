@@ -43,6 +43,28 @@
             letter-spacing: .01em;
             font-weight: 700;
         }
+        .navbar-left {
+            display: inline-flex;
+            align-items: center;
+            gap: .6rem;
+        }
+        .mobile-menu-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: .65rem;
+            border: 1px solid rgba(2,8,20,.10);
+            background: #ffffff;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 14px rgba(2,8,20,.08);
+        }
+        .mobile-menu-btn:hover {
+            background: #f8fafc;
+            color: #14532d;
+            border-color: rgba(20,83,45,.22);
+        }
         .brand-mark {
             width: 34px;
             height: 34px;
@@ -206,8 +228,124 @@
             box-shadow: 0 0 0 .2rem rgba(22,101,52,.10);
         }
 
-        @media (max-width: 992px){ .dash-shell { padding-top:4.2rem; } }
+        .sidebar-mobile-header {
+            border-bottom: 1px solid rgba(148,163,184,.2);
+        }
+        .mobile-drawer-close {
+            width: 34px;
+            height: 34px;
+            border-radius: .55rem;
+            border: 1px solid rgba(20,83,45,.22);
+            background: rgba(255,255,255,.78);
+            color: #14532d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mobile-drawer-close:hover {
+            background: rgba(255,255,255,.95);
+            color: #166534;
+            border-color: rgba(20,83,45,.34);
+        }
+
+        @media (max-width: 992px){
+            .dash-shell { padding-top:4.2rem; }
+            .main-col { padding: .9rem; }
+
+            .sidepanel-col {
+                --bs-offcanvas-width: min(86vw, 320px);
+                background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 45%, #ecfdf5 100%);
+                color: #14532d;
+                border-right: 1px solid rgba(20,83,45,.18);
+            }
+            .sidepanel {
+                background: transparent;
+                border-right: none;
+                padding: .85rem .85rem 1.15rem;
+            }
+            .sidepanel .sidebar-head {
+                background: rgba(255,255,255,.72);
+                border-color: rgba(20,83,45,.22);
+            }
+            .sidepanel .panel-title,
+            .sidepanel .nav-section,
+            .sidepanel .sub-meta {
+                color: #4b5563;
+            }
+            .sidepanel .list-group-item {
+                color: #14532d;
+                border-color: transparent;
+            }
+            .sidepanel .list-group-item i {
+                color: #166534;
+            }
+            .sidepanel .list-group-item:hover {
+                background: rgba(255,255,255,.72);
+                border-color: rgba(20,83,45,.22);
+            }
+            .sidepanel .list-group-item.active {
+                background: rgba(4,120,87,.18);
+                border-color: rgba(5,150,105,.35);
+                color: #064e3b;
+            }
+            .sidepanel .list-group-item.active i {
+                color: #065f46;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .container,
+            .container-fluid {
+                padding-left: .75rem !important;
+                padding-right: .75rem !important;
+            }
+
+            .main-col {
+                padding: .65rem !important;
+            }
+
+            .dash-shell {
+                padding-top: 4rem;
+                padding-bottom: 1.2rem;
+            }
+
+            h1, .h1 { font-size: 1.35rem; }
+            h2, .h2 { font-size: 1.2rem; }
+            h3, .h3 { font-size: 1.08rem; }
+            h4, .h4 { font-size: 1rem; }
+
+            .card,
+            .glass-card,
+            .metric-tile {
+                border-radius: .85rem !important;
+            }
+
+            .btn {
+                font-size: .86rem;
+                padding: .45rem .8rem;
+            }
+
+            .form-control,
+            .form-select {
+                font-size: .95rem;
+                padding: .5rem .68rem;
+            }
+
+            .table-responsive {
+                font-size: .86rem;
+            }
+
+            .top-meta {
+                display: none !important;
+            }
+        }
+
         @media (min-width: 992px) {
+            .offcanvas-lg.offcanvas-start.sidepanel-col {
+                --bs-offcanvas-width: var(--sidebar-w);
+                width: var(--sidebar-w);
+                max-width: var(--sidebar-w);
+            }
             .navbar-glass {
                 left: var(--sidebar-w);
                 width: calc(100% - var(--sidebar-w));
@@ -260,16 +398,28 @@
 
     <nav class="navbar navbar-expand-lg navbar-light navbar-glass fixed-top">
         <div class="container-fluid px-3 px-lg-4">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('student.dashboard') }}">
-                <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
-                <span>Student Portal</span>
-            </a>
+            <div class="navbar-left">
+                <button
+                    class="mobile-menu-btn d-lg-none"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#studentSidebar"
+                    aria-controls="studentSidebar"
+                    aria-label="Open menu"
+                >
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="{{ route('student.dashboard') }}">
+                    <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
+                    <span>Student Portal</span>
+                </a>
+            </div>
             <div class="d-flex align-items-center gap-3 ms-auto">
                 <div class="top-meta d-none d-lg-block text-end">
                     <div>Workspace</div>
                     <div class="fw-semibold">Student Operations</div>
                 </div>
-                <span class="icon-btn-wrap d-none d-md-inline-flex">
+                <span class="icon-btn-wrap">
                     <a class="icon-btn" href="{{ route('notifications.index') }}" title="Notifications">
                         <i class="bi bi-bell"></i>
                     </a>
@@ -280,18 +430,26 @@
                 <a class="icon-btn d-none d-md-inline-flex" href="{{ route('student.profile.show') }}" title="Settings" aria-label="Settings">
                     <i class="bi bi-gear"></i>
                 </a>
-                <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-sm rounded-pill px-3 btn-logout">Logout</button>
-                </form>
             </div>
         </div>
     </nav>
 
     <main class="dash-shell container-fluid ps-0 pe-0">
         <div class="row g-0">
-            <div class="col-12 col-lg-3 col-xl-2 ps-0 sidepanel-col">
-                <x-student-sidebar />
+            <div class="offcanvas-lg offcanvas-start sidepanel-col" tabindex="-1" id="studentSidebar" aria-labelledby="studentSidebarLabel">
+                <div class="offcanvas-header d-lg-none sidebar-mobile-header">
+                    <div class="d-flex align-items-center gap-2" id="studentSidebarLabel">
+                        <img src="{{ asset('images/minsu3.png') }}" alt="MINSU" class="brand-mark">
+                        <span class="fw-semibold">Student Menu</span>
+                    </div>
+                    <button type="button" class="mobile-drawer-close" id="studentSidebarClose" data-bs-dismiss="offcanvas" aria-label="Close menu">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="offcanvas-body p-0">
+                    <x-student-sidebar />
+                </div>
             </div>
 
             <div class="col-12 col-lg-9 col-xl-10 main-col">
@@ -303,6 +461,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <x-toast />
     <x-chatbot />
+    <script>
+        (function () {
+            const sidebar = document.getElementById('studentSidebar');
+            if (!sidebar) return;
+
+            const closeBtn = document.getElementById('studentSidebarClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    const instance = bootstrap.Offcanvas.getOrCreateInstance(sidebar);
+                    instance.hide();
+                });
+            }
+
+            sidebar.querySelectorAll('a.list-group-item').forEach((link) => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth >= 992) return;
+                    const instance = bootstrap.Offcanvas.getOrCreateInstance(sidebar);
+                    if (instance) instance.hide();
+                });
+            });
+        })();
+    </script>
     @stack('scripts')
 </body>
 </html>

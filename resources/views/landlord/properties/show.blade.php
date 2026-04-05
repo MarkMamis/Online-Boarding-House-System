@@ -58,6 +58,30 @@
 </div>
 @endif
 
+@php
+  $amenityLabels = (array) config('property_amenities.flat', []);
+  $buildingInclusions = collect((array) ($property->building_inclusions ?? []))
+    ->map(fn ($key) => $amenityLabels[$key] ?? null)
+    ->filter()
+    ->values();
+@endphp
+<div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+  <div class="card-header bg-white border-0 py-3">
+    <strong>Building Inclusions</strong>
+  </div>
+  <div class="card-body pt-2">
+    @if($buildingInclusions->isNotEmpty())
+      <div class="d-flex flex-wrap gap-2">
+        @foreach($buildingInclusions as $inclusion)
+          <span class="item-chip">{{ $inclusion }}</span>
+        @endforeach
+      </div>
+    @else
+      <div class="text-muted small">No building inclusions selected yet.</div>
+    @endif
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card shadow-sm border-0 rounded-4 h-100 panel-card">
@@ -95,7 +119,7 @@
                 <span class="text-muted me-1">Tenant:</span>
                 @if($room->current_tenant)
                   <span class="fw-medium">{{ $room->current_tenant->full_name }}</span>
-                  <span class="text-muted">({{ $room->current_tenant->student_id }})</span>
+                  <span class="text-muted">(ID hidden)</span>
                 @else
                   <span class="text-muted">No tenant</span>
                 @endif
@@ -214,6 +238,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const map = L.map('propertyMap');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxNativeZoom: 19,
+    maxZoom: 22,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 

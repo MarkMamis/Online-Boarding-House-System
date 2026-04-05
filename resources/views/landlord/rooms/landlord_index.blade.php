@@ -102,7 +102,7 @@
                                     <div class="tenant-avatar"><i class="fas fa-user fa-xs"></i></div>
                                     <div>
                                         <div class="fw-semibold">{{ $room->current_tenant->full_name }}</div>
-                                        <div class="text-muted small">{{ $room->current_tenant->student_id }}</div>
+                                        <div class="text-muted small">Tenant identity details are hidden.</div>
                                     </div>
                                 </div>
                             @else

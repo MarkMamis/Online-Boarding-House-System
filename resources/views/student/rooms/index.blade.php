@@ -70,6 +70,23 @@
 @endpush
 
 @section('content')
+@php
+    $student = auth()->user();
+    $schoolIdVerificationStatus = (string) ($student->school_id_verification_status ?? '');
+    if ($schoolIdVerificationStatus === '') {
+        $hasVerificationDocument = filled($student->school_id_path) || filled($student->enrollment_proof_path);
+        $schoolIdVerificationStatus = $hasVerificationDocument ? 'pending' : 'not_submitted';
+    }
+
+    $showVerificationModal = $schoolIdVerificationStatus !== 'approved';
+    $verificationModalTitle = $schoolIdVerificationStatus === 'rejected'
+        ? 'Academic Verification Required'
+        : 'Academic Verification In Progress';
+    $verificationModalMessage = $schoolIdVerificationStatus === 'rejected'
+        ? 'Your verification document was not approved yet. Booking stays locked until your School ID or COR/COE is validated by admin.'
+        : 'Your academic verification is still in process. Booking stays locked until admin validation is completed.';
+@endphp
+
 <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
 
     {{-- Header + Search/Filter --}}
@@ -83,6 +100,12 @@
             <input type="number" step="0.01" min="0" name="min_price" value="{{ old('min_price', $minPrice) }}" class="form-control form-control-sm rounded-pill" style="width:100px;" placeholder="Min ₱">
             <input type="number" step="0.01" min="0" name="max_price" value="{{ old('max_price', $maxPrice) }}" class="form-control form-control-sm rounded-pill" style="width:100px;" placeholder="Max ₱">
             <input type="number" min="1" name="capacity" value="{{ old('capacity', $minCapacity) }}" class="form-control form-control-sm rounded-pill" style="width:90px;" placeholder="Pax">
+            <select name="amenity" class="form-select form-select-sm rounded-pill" style="min-width:180px;">
+                <option value="">Any amenity</option>
+                @foreach(($amenityOptions ?? []) as $amenityKey => $amenityLabel)
+                    <option value="{{ $amenityKey }}" @selected(($amenity ?? '') === $amenityKey)>{{ $amenityLabel }}</option>
+                @endforeach
+            </select>
             <button class="btn btn-sm btn-brand rounded-pill px-3" type="submit"><i class="bi bi-search me-1"></i>Filter</button>
             <a href="{{ route('student.rooms.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill">Reset</a>
         </form>
@@ -106,6 +129,10 @@
             @php
                 $rImg = $room->image_path ?: ($room->property->image_path ?? null);
                 $rInclusions = collect(preg_split('/[,\n;]+/', $room->inclusions ?? ''))->map('trim')->filter()->take(3);
+                $propertyInclusions = collect((array) ($room->property->building_inclusions ?? []))
+                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                    ->filter()
+                    ->take(3);
                 $availableSlots = $room->getAvailableSlots();
                 $occupancy = $room->getOccupancyDisplay();
                 $isFullCapacity = $availableSlots === 0;
@@ -132,7 +159,7 @@
                             <div class="d-flex justify-content-between align-items-start gap-1">
                                 <div class="fw-semibold text-dark" style="font-size:.9rem;">{{ $room->property->name }}</div>
                                 @if($room->updated_at && $room->updated_at->gte($newThreshold))
-                                    <span class="badge text-bg-primary flex-shrink-0" style="font-size:.62rem;">New</span>
+                                    <span class="badge text-bg-primary shrink-0" style="font-size:.62rem;">New</span>
                                 @endif
                             </div>
                             <div class="text-muted mt-1" style="font-size:.76rem;">
@@ -159,6 +186,11 @@
                                 </div>
                                 <div class="fw-bold {{ $isFullCapacity ? 'text-muted' : 'text-success' }}" style="font-size:.92rem;">₱{{ number_format($room->price, 0) }}<span class="text-muted fw-normal" style="font-size:.68rem;">/mo</span></div>
                             </div>
+                            @if($propertyInclusions->isNotEmpty())
+                                <div class="d-flex flex-wrap gap-1 mt-2">
+                                    @foreach($propertyInclusions as $inclusion)<span class="room-inc-chip">{{ $inclusion }}</span>@endforeach
+                                </div>
+                            @endif
                             @if($rInclusions->isNotEmpty())
                                 <div class="d-flex flex-wrap gap-1 mt-2">
                                     @foreach($rInclusions as $inc)<span class="room-inc-chip">{{ $inc }}</span>@endforeach
@@ -194,6 +226,10 @@
             @php
                 $rImg2 = $r->image_path ?: ($r->property->image_path ?? null);
                 $rInc2 = collect(preg_split('/[,\n;]+/', $r->inclusions ?? ''))->map('trim')->filter()->take(3);
+                $propertyInclusions2 = collect((array) ($r->property->building_inclusions ?? []))
+                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                    ->filter()
+                    ->take(3);
                 $availableSlots2 = $r->getAvailableSlots();
                 $occupancy2 = $r->getOccupancyDisplay();
                 $isFullCapacity2 = $availableSlots2 === 0;
@@ -246,6 +282,11 @@
                                     ₱{{ number_format($r->price, 0) }}<span class="text-muted fw-normal" style="font-size:.68rem;">/mo</span>
                                 </div>
                             </div>
+                            @if($propertyInclusions2->isNotEmpty())
+                                <div class="d-flex flex-wrap gap-1 mt-2">
+                                    @foreach($propertyInclusions2 as $inclusion)<span class="room-inc-chip">{{ $inclusion }}</span>@endforeach
+                                </div>
+                            @endif
                             @if($rInc2->isNotEmpty())
                                 <div class="d-flex flex-wrap gap-1 mt-2">
                                     @foreach($rInc2 as $inc)<span class="room-inc-chip">{{ $inc }}</span>@endforeach
@@ -270,10 +311,38 @@
     </div>
 </div>
 
+@if($showVerificationModal)
+<div class="modal fade" id="studentVerificationPendingModal" tabindex="-1" aria-labelledby="studentVerificationPendingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="studentVerificationPendingModalLabel">
+                    <i class="bi bi-shield-exclamation text-warning me-2"></i>{{ $verificationModalTitle }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="mb-2">{{ $verificationModalMessage }}</p>
+                <p class="small text-muted mb-0">You can continue browsing rooms and properties while waiting for validation.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const verificationModalEl = document.getElementById('studentVerificationPendingModal');
+        if (verificationModalEl && window.bootstrap) {
+            const verificationModal = bootstrap.Modal.getOrCreateInstance(verificationModalEl);
+            verificationModal.show();
+        }
+
         const filterNoticeEl = document.getElementById('propertyRoomFilterNotice');
         const filterNameEl = document.getElementById('propertyRoomFilterName');
         const clearFilterBtn = document.getElementById('clearPropertyRoomFilter');

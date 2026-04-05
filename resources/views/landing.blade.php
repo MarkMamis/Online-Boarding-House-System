@@ -35,12 +35,65 @@
         .navbar-green .nav-link:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
         .navbar-green .btn-link { color: rgba(255,255,255,.92) !important; font-weight: 600; }
         .navbar-green .btn-link:hover { color: #fff !important; }
-        .navbar-green .navbar-toggler { border-color: rgba(255,255,255,.4); }
-        .navbar-green .navbar-toggler-icon { filter: invert(1); }
+        .navbar-green .navbar-toggler {
+            border: 0;
+            outline: 0;
+            box-shadow: none !important;
+        }
+        .navbar-green .navbar-toggler:focus,
+        .navbar-green .navbar-toggler:active {
+            border: 0;
+            outline: 0;
+            box-shadow: none !important;
+        }
+        .navbar-green .navbar-toggler .hamburger-icon {
+            width: 30px;
+            height: 22px;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+        }
+        .navbar-green .navbar-toggler .hamburger-icon span {
+            display: block;
+            height: 2.5px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.95);
+            transform-origin: center;
+            transition: transform .28s ease, opacity .2s ease, width .22s ease;
+            align-self: flex-end;
+        }
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(1) {
+            width: 100%;
+        }
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(2) {
+            width: 66.6667%;
+        }
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(3) {
+            width: 33.3333%;
+        }
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(1) {
+            width: 100%;
+            align-self: center;
+            transform: translateY(7.5px) rotate(45deg);
+        }
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(2) {
+            opacity: 0;
+            width: 0;
+        }
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(3) {
+            width: 100%;
+            align-self: center;
+            transform: translateY(-7.5px) rotate(-45deg);
+        }
         .navbar-green .navbar-brand {
             position: relative;
             padding-left: 86px;
             margin-left: 0;
+        }
+        .navbar-brand-text {
+            display: inline-block;
+            vertical-align: middle;
         }
         .nav-logo-under {
             position: absolute;
@@ -60,16 +113,29 @@
         }
         @media (max-width: 991.98px) {
             .navbar-green .navbar-brand {
-                padding-left: 62px;
+                padding-left: 74px;
                 font-size: 1rem;
             }
+            #landingNav .navbar-nav {
+                margin-left: auto;
+                width: fit-content;
+                align-items: flex-end;
+                text-align: right;
+                padding-top: .5rem;
+            }
+            #landingNav .nav-item {
+                width: 100%;
+            }
+            #landingNav .btn {
+                margin-left: auto;
+            }
             .nav-logo-under {
-                top: -6px;
+                top: -9px;
             }
             .nav-logo-under img {
-                height: 56px;
-                width: 56px;
-                margin-bottom: -8px;
+                height: 68px;
+                width: 68px;
+                margin-bottom: -12px;
             }
         }
 
@@ -249,9 +315,120 @@
             .hero-card { margin-top: 1.25rem; }
         }
         @media (max-width: 575.98px) {
+            .hero {
+                padding-top: 5.1rem;
+                padding-bottom: 2.2rem;
+            }
+            .hero-title {
+                font-size: clamp(2rem, 10vw, 2.45rem);
+                line-height: 1.06;
+            }
+            .hero-sub {
+                font-size: .98rem;
+                line-height: 1.55;
+            }
+            .hero-kicker {
+                font-size: .74rem;
+                padding: .34rem .62rem;
+                line-height: 1.25;
+                border-radius: .85rem;
+            }
+            .hero-cta {
+                gap: .55rem !important;
+            }
+            .hero-cta .btn {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+            .hero-card {
+                border-radius: 1.05rem;
+                padding: .9rem;
+            }
+            .stat-chip {
+                font-size: .7rem;
+                padding: .28rem .58rem;
+            }
+            .section {
+                padding: 2.8rem 0;
+            }
+            .glass-card,
+            .role-strip {
+                border-radius: 1rem;
+                padding: 1rem;
+            }
+            .role-strip .btn {
+                width: 100%;
+                margin-top: .45rem;
+            }
             .preview-thumb {
                 width: 74px;
                 height: 74px;
+            }
+            .preview-card {
+                padding: .72rem;
+            }
+            .preview-card > .d-flex {
+                flex-direction: column;
+                gap: .65rem !important;
+            }
+            .preview-card > .d-flex > .d-flex {
+                gap: .6rem !important;
+            }
+            .preview-card .text-end {
+                text-align: left !important;
+            }
+            .preview-card .text-muted.small {
+                line-height: 1.35;
+            }
+        }
+        @media (max-width: 420px) {
+            .container {
+                padding-left: .72rem;
+                padding-right: .72rem;
+            }
+            .navbar-green .navbar-brand {
+                padding-left: 70px;
+                font-size: .95rem;
+            }
+            .navbar-brand-text {
+                display: inline-block;
+                max-width: calc(100vw - 188px);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .nav-logo-under {
+                top: -8px;
+            }
+            .nav-logo-under img {
+                height: 62px;
+                width: 62px;
+                margin-bottom: -10px;
+            }
+            .navbar-green .navbar-toggler {
+                padding: .28rem .5rem;
+                border-radius: .7rem;
+            }
+            .hero-title {
+                font-size: clamp(1.8rem, 9.2vw, 2.2rem);
+            }
+            .hero-sub {
+                font-size: .95rem;
+            }
+            .pill {
+                font-size: .7rem;
+                padding: .3rem .58rem;
+            }
+            .hero-card .fw-semibold {
+                font-size: .95rem;
+            }
+            .preview-price {
+                font-size: 1.2rem;
+            }
+            .preview-thumb {
+                width: 68px;
+                height: 68px;
             }
         }
     </style>
@@ -263,10 +440,14 @@
             <span class="nav-logo-under" aria-hidden="true">
                 <img src="{{ asset('images/minsu3.png') }}" alt="MINSU">
             </span>
-            &nbsp &nbsp Online Boarding House System
+            <span class="navbar-brand-text">Online Boarding House System</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNav" aria-controls="landingNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            <span class="hamburger-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
         </button>
         <div class="collapse navbar-collapse" id="landingNav">
             <ul class="navbar-nav ms-auto gap-lg-3 align-items-lg-center">

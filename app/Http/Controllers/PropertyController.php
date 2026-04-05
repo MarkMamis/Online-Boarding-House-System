@@ -9,8 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PropertyController extends Controller
 {
@@ -32,12 +34,95 @@ class PropertyController extends Controller
     {
         $this->ensureAdmin();
 
-        $properties = Property::with(['landlord'])
-            ->where('approval_status', 'pending')
-            ->orderBy('created_at', 'asc')
-            ->paginate(20);
+        $statusFilter = strtolower((string) request('status', 'pending'));
+        if (!in_array($statusFilter, ['pending', 'approved', 'rejected', 'all'], true)) {
+            $statusFilter = 'pending';
+        }
 
-        return view('admin.properties.pending', compact('properties'));
+        $propertiesQuery = Property::with(['landlord']);
+        if ($statusFilter !== 'all') {
+            $propertiesQuery->where('approval_status', $statusFilter);
+        }
+
+        $properties = $propertiesQuery
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $counts = [
+            'pending' => Property::where('approval_status', 'pending')->count(),
+            'approved' => Property::where('approval_status', 'approved')->count(),
+            'rejected' => Property::where('approval_status', 'rejected')->count(),
+            'all' => Property::count(),
+        ];
+
+        return view('admin.properties.pending', compact('properties', 'statusFilter', 'counts'));
+    }
+
+    public function adminShow(Property $property)
+    {
+        $this->ensureAdmin();
+
+        $today = now()->toDateString();
+
+        $property->load([
+            'landlord.landlordProfile',
+            'rooms' => function ($query) use ($today) {
+                $query->with(['roomImages'])
+                    ->withCount([
+                        'bookings as active_bookings_count' => function ($bookingQuery) use ($today) {
+                            $bookingQuery->where('status', 'approved')
+                                ->where('check_in', '<=', $today)
+                                ->where('check_out', '>', $today);
+                        },
+                    ])
+                    ->orderBy('room_number');
+            },
+        ])->loadCount([
+            'rooms as total_rooms',
+            'rooms as available_rooms' => function ($query) {
+                $query->where('status', 'available')->where('slots_available', '>', 0);
+            },
+            'rooms as occupied_rooms' => function ($query) use ($today) {
+                $query->whereHas('bookings', function ($bookingQuery) use ($today) {
+                    $bookingQuery->where('status', 'approved')
+                        ->where('check_in', '<=', $today)
+                        ->where('check_out', '>', $today);
+                });
+            },
+        ]);
+
+        $priceValues = $property->rooms
+            ->pluck('price')
+            ->filter(fn ($price) => is_numeric($price) && (float) $price > 0)
+            ->map(fn ($price) => (float) $price)
+            ->values();
+
+        $minPrice = $priceValues->isNotEmpty() ? $priceValues->min() : null;
+        $maxPrice = $priceValues->isNotEmpty() ? $priceValues->max() : null;
+
+        $servicesOffered = $property->rooms
+            ->flatMap(function ($room) {
+                return collect(preg_split('/[,\n;]+/', (string) $room->inclusions))
+                    ->map(fn ($item) => trim($item))
+                    ->filter();
+            })
+            ->map(fn ($item) => strtolower($item))
+            ->unique()
+            ->values()
+            ->map(fn ($item) => ucwords($item));
+
+        $occupancyRate = (int) ($property->total_rooms > 0
+            ? round((($property->occupied_rooms ?? 0) / $property->total_rooms) * 100)
+            : 0);
+
+        return view('admin.properties.show', compact(
+            'property',
+            'minPrice',
+            'maxPrice',
+            'servicesOffered',
+            'occupancyRate'
+        ));
     }
 
     public function adminApprove(Property $property)
@@ -162,6 +247,10 @@ class PropertyController extends Controller
         $this->ensureLandlord();
         $this->authorize('create', Property::class);
         Log::info('Property store called', ['user' => Auth::id(), 'data' => $request->all()]);
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $supportsHouseRules = Schema::hasColumn('properties', 'house_rules');
+        $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
+        $houseRuleCategories = (array) config('property_house_rules.categories', []);
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -169,12 +258,21 @@ class PropertyController extends Controller
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'building_inclusions' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusions.*' => $supportsBuildingInclusions ? ['string', Rule::in($allowedAmenities)] : 'nullable',
+            'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
             // Optional initial room
             'initial_room_number' => 'nullable|string|max:50',
             'initial_capacity' => 'nullable|integer|min:1',
             'initial_price' => 'nullable|numeric|min:0',
             'initial_status' => 'nullable|in:available,occupied,maintenance',
         ]);
+
+        foreach (array_keys($houseRuleCategories) as $categoryKey) {
+            $validator->addRules([
+                'house_rules.' . $categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
+            ]);
+        }
 
         try {
             if ($validator->fails()) {
@@ -194,7 +292,29 @@ class PropertyController extends Controller
             }
         }
 
-        $property = Property::create([
+        $selectedAmenities = collect($request->input('building_inclusions', []))
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => in_array($item, $allowedAmenities, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        $houseRulesPayload = [];
+        foreach (array_keys($houseRuleCategories) as $categoryKey) {
+            $rawLines = preg_split('/\r\n|\r|\n/', (string) $request->input('house_rules.' . $categoryKey, '')) ?: [];
+            $cleanedLines = collect($rawLines)
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($cleanedLines)) {
+                $houseRulesPayload[$categoryKey] = $cleanedLines;
+            }
+        }
+
+        $propertyData = [
             'landlord_id' => Auth::id(),
             'image_path' => $imagePath,
             'approval_status' => 'pending',
@@ -203,7 +323,15 @@ class PropertyController extends Controller
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'description' => $request->description,
-        ]);
+        ];
+        if ($supportsBuildingInclusions) {
+            $propertyData['building_inclusions'] = $selectedAmenities;
+        }
+        if ($supportsHouseRules) {
+            $propertyData['house_rules'] = empty($houseRulesPayload) ? null : $houseRulesPayload;
+        }
+
+        $property = Property::create($propertyData);
 
         // Geocode address only if coordinates not provided
         if (!$request->filled('latitude') || !$request->filled('longitude')) {
@@ -249,6 +377,10 @@ class PropertyController extends Controller
     {
         $this->ensureLandlord();
         $this->authorize('update', $property);
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $supportsHouseRules = Schema::hasColumn('properties', 'house_rules');
+        $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
+        $houseRuleCategories = (array) config('property_house_rules.categories', []);
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -256,7 +388,16 @@ class PropertyController extends Controller
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'building_inclusions' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusions.*' => $supportsBuildingInclusions ? ['string', Rule::in($allowedAmenities)] : 'nullable',
+            'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
         ]);
+
+        foreach (array_keys($houseRuleCategories) as $categoryKey) {
+            $validator->addRules([
+                'house_rules.' . $categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
+            ]);
+        }
 
         try {
             if ($validator->fails()) {
@@ -264,6 +405,28 @@ class PropertyController extends Controller
             }
         } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
             return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
+        }
+
+        $selectedAmenities = collect($request->input('building_inclusions', []))
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => in_array($item, $allowedAmenities, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        $houseRulesPayload = [];
+        foreach (array_keys($houseRuleCategories) as $categoryKey) {
+            $rawLines = preg_split('/\r\n|\r|\n/', (string) $request->input('house_rules.' . $categoryKey, '')) ?: [];
+            $cleanedLines = collect($rawLines)
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (!empty($cleanedLines)) {
+                $houseRulesPayload[$categoryKey] = $cleanedLines;
+            }
         }
 
         if ($request->hasFile('image')) {
@@ -285,6 +448,12 @@ class PropertyController extends Controller
         $originalAddress = $property->address;
         $validated = $validator->validated();
         unset($validated['image']);
+        if ($supportsBuildingInclusions) {
+            $validated['building_inclusions'] = $selectedAmenities;
+        }
+        if ($supportsHouseRules) {
+            $validated['house_rules'] = empty($houseRulesPayload) ? null : $houseRulesPayload;
+        }
         $property->fill($validated);
         $property->save();
 

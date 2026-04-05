@@ -214,9 +214,9 @@
                 <h1 class="h3 mb-1">Bookings Monitoring</h1>
                 <p class="section-muted mb-0">System-wide booking activity and occupancy requests.</p>
             </div>
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+            <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
                 <i class="bi bi-arrow-left me-1"></i>Dashboard
-            </a>
+            </a> -->
         </div>
 
         <div class="row g-3 mb-4">

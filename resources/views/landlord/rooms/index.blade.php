@@ -118,7 +118,7 @@
                                 <div class="text-muted mb-1">Current Tenant</div>
                                 @if($room->current_tenant)
                                     <div class="fw-semibold">{{ $room->current_tenant->full_name }}</div>
-                                    <div class="text-muted">{{ $room->current_tenant->student_id }}</div>
+                                    <div class="text-muted">Tenant identity details are hidden.</div>
                                 @else
                                     <div class="text-muted">No tenant assigned</div>
                                 @endif

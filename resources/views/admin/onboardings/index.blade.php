@@ -217,9 +217,9 @@
             <h1 class="h3 mb-1">Tenant Onboardings</h1>
             <p class="section-muted mb-0">Review and track all onboarding progress from request to completion.</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
+        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i>Dashboard
-        </a>
+        </a> -->
     </div>
 
     <div class="row g-3 mb-4">

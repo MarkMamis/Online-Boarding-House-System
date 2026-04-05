@@ -29,6 +29,40 @@
         .btn-brand:hover { background:var(--brand-dark); border-color:var(--brand-dark); }
         .quick-actions a { text-decoration:none; }
         @media (max-width: 992px){ .content-wrapper { padding-top:4rem; } }
+
+        @media (max-width: 420px) {
+            .container,
+            .container-fluid {
+                padding-left: .75rem !important;
+                padding-right: .75rem !important;
+            }
+
+            .content-wrapper {
+                padding-top: 3.7rem;
+                padding-bottom: 2.2rem;
+            }
+
+            h1, .h1 { font-size: 1.35rem; }
+            h2, .h2 { font-size: 1.2rem; }
+            h3, .h3 { font-size: 1.08rem; }
+            h4, .h4 { font-size: 1rem; }
+
+            .dash-card,
+            .stat-tile {
+                border-radius: .85rem;
+            }
+
+            .btn {
+                font-size: .86rem;
+                padding: .45rem .8rem;
+            }
+
+            .form-control,
+            .form-select {
+                font-size: .95rem;
+                padding: .5rem .68rem;
+            }
+        }
     </style>
     <noscript><style>.bg-dorm{background:linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.35)), url('{{ asset('images/mindoro-way-pic.jpg') }}') center/cover no-repeat;}</style></noscript>
     <script>

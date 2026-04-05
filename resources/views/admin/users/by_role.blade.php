@@ -102,6 +102,11 @@
             <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
                 All Users
             </a>
+            @if($role === 'landlord')
+                <a href="{{ route('admin.permits.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                    Permit Approvals
+                </a>
+            @endif
         </div>
     </div>
 

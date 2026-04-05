@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
             $this->commands([
                 \App\Console\Commands\GeocodeProperties::class,
                 \App\Console\Commands\AdminReset::class,
+                \App\Console\Commands\ExportDatabase::class,
+                \App\Console\Commands\ImportDatabase::class,
             ]);
         }
     }

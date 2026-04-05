@@ -29,6 +29,22 @@ class StudentProfileController extends Controller
     {
         $user = Auth::user();
 
+        $genderInput = trim((string) $request->input('gender', ''));
+        $genderMap = [
+            'male' => 'Male',
+            'female' => 'Female',
+            'other' => 'Other',
+            'rather not say' => 'Rather not say',
+        ];
+        $normalizedGender = null;
+
+        if ($genderInput !== '') {
+            $genderKey = strtolower($genderInput);
+            if (array_key_exists($genderKey, $genderMap)) {
+                $normalizedGender = $genderMap[$genderKey];
+            }
+        }
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
@@ -36,7 +52,8 @@ class StudentProfileController extends Controller
             'contact_number' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50|unique:users,student_id,' . $user->id,
             'course' => 'nullable|string|max:100',
-            'gender' => 'nullable|in:male,female',
+            'gender' => 'nullable|string|max:50',
+            'gender_custom' => 'nullable|string|max:100',
             'year_level' => 'nullable|string|max:20',
             'birth_date' => 'nullable|date|before:today',
             'address' => 'nullable|string|max:500',
@@ -45,13 +62,31 @@ class StudentProfileController extends Controller
             'emergency_contact_relationship' => 'nullable|string|max:100',
             'parent_contact_name' => 'nullable|string|max:255',
             'parent_contact_number' => 'nullable|string|max:20',
+            'parent_contact_address' => 'nullable|string|max:500',
+            'parent_contact_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072',
             'guardian_name' => 'nullable|string|max:255',
             'guardian_contact' => 'nullable|string|max:20',
             'blood_type' => 'nullable|string|max:10',
             'allergies' => 'nullable|string|max:500',
             'medications' => 'nullable|string|max:1000',
             'medical_conditions' => 'nullable|string|max:1000',
+        ], [
+            'gender.max' => 'Gender must not exceed 50 characters.',
         ]);
+
+        $validator->after(function ($validator) use ($genderInput, $normalizedGender, $request) {
+            if ($genderInput !== '' && $normalizedGender === null) {
+                $validator->errors()->add('gender', 'Please select a valid gender option.');
+                return;
+            }
+
+            if ($normalizedGender === 'Other') {
+                $customGender = trim((string) $request->input('gender_custom', ''));
+                if ($customGender === '') {
+                    $validator->errors()->add('gender_custom', 'Please specify your gender when choosing Other.');
+                }
+            }
+        });
 
         try {
             if ($validator->fails()) {
@@ -73,13 +108,24 @@ class StudentProfileController extends Controller
             }
         }
 
+        if ($request->hasFile('parent_contact_photo')) {
+            if (!empty($user->parent_contact_photo_path)) {
+                Storage::disk('public')->delete($user->parent_contact_photo_path);
+            }
+
+            try {
+                $user->parent_contact_photo_path = str_replace('\\', '/', $request->file('parent_contact_photo')->store('parent_contacts', 'public'));
+            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
+                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
+            }
+        }
+
         $user->fill($request->only([
             'full_name',
             'email',
             'contact_number',
             'student_id',
             'course',
-            'gender',
             'year_level',
             'birth_date',
             'address',
@@ -88,6 +134,7 @@ class StudentProfileController extends Controller
             'emergency_contact_relationship',
             'parent_contact_name',
             'parent_contact_number',
+            'parent_contact_address',
             'guardian_name',
             'guardian_contact',
             'blood_type',
@@ -95,6 +142,14 @@ class StudentProfileController extends Controller
             'medications',
             'medical_conditions',
         ]));
+
+        if ($normalizedGender === 'Other') {
+            $user->gender = trim((string) $request->input('gender_custom'));
+        } elseif ($normalizedGender !== null) {
+            $user->gender = $normalizedGender;
+        } else {
+            $user->gender = null;
+        }
 
         $user->save();
 

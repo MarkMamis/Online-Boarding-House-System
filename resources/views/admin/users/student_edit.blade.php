@@ -337,10 +337,30 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
+                            <label class="form-label">Parent Contact Name</label>
+                            <input type="text" class="form-input w-100 @error('parent_contact_name') is-invalid @enderror"
+                                   name="parent_contact_name" value="{{ old('parent_contact_name', $user->parent_contact_name) }}">
+                            @error('parent_contact_name')
+                            <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
                             <label class="form-label">Parent Contact Number</label>
                             <input type="text" class="form-input w-100 @error('parent_contact_number') is-invalid @enderror" 
                                    name="parent_contact_number" value="{{ old('parent_contact_number', $user->parent_contact_number) }}">
                             @error('parent_contact_number')
+                            <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-group">
+                            <label class="form-label">Parent/Guardian Address</label>
+                            <textarea class="form-input w-100 @error('parent_contact_address') is-invalid @enderror"
+                                      name="parent_contact_address" rows="2" placeholder="Emergency home address">{{ old('parent_contact_address', $user->parent_contact_address) }}</textarea>
+                            @error('parent_contact_address')
                             <div class="form-error">{{ $message }}</div>
                             @enderror
                         </div>

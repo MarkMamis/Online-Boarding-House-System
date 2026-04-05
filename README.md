@@ -1,78 +1,232 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# OBHS Tutorial
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+OBHS is a Laravel 12-based boarding house management system with modules for tenant onboarding, booking and billing workflows, landlord payment management, and admin operations.
 
-## About Laravel
+This guide covers:
 
-## Deploy to Render (Recommended)
+1. Installation
+2. Running locally
+3. Database setup
+4. Custom Artisan commands (including export and import)
 
-This project is a full Laravel (PHP) app and cannot run on Netlify alone. If you want an easy cloud deploy, use Render.
+## 1. Prerequisites
 
-### Steps
+Install the following first:
 
-1. Push this repo to GitHub.
-2. In Render, choose **New** → **Blueprint** and select the repo (it uses `render.yaml`).
-3. Set required env vars on the web service:
-	- `APP_URL` (your Render URL or custom domain)
-	- `APP_KEY` (generate locally with `php artisan key:generate --show`)
-4. Deploy. Render will run migrations automatically (`postdeploy`).
+1. PHP 8.2+
+2. Composer 2+
+3. Node.js 18+ and npm
+4. MySQL (Laragon or XAMPP is fine)
+5. Git
 
-### Notes
+## 2. Project Setup
 
-- This setup uses **external MySQL** (Render does not provide a managed MySQL database). Create a MySQL database in another provider, then set these env vars in Render:
-	- `DB_HOST`, `DB_PORT` (usually `3306`), `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
-- Static assets are built during the Docker image build (`npm ci` + `npm run build`).
+From the project root:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```bash
+composer install
+npm install
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Create environment file:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+cp .env.example .env
+```
 
-## Learning Laravel
+On Windows PowerShell:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```powershell
+Copy-Item .env.example .env
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Generate app key:
 
-## Laravel Sponsors
+```bash
+php artisan key:generate
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 3. Configure Database (.env)
 
-### Premium Partners
+Update these values in .env:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=boardinghouse_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Contributing
+Important:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. php artisan migrate does not create the database itself.
+2. Create DB_DATABASE manually in MySQL first, then run migrations.
 
-## Code of Conduct
+## 4. Run Migrations
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan migrate
+```
 
-## Security Vulnerabilities
+Optional, if you have seeders you want to run:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan db:seed
+```
 
-## License
+## 5. Run the Application
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Option A: Standard local run (multiple terminals)
+
+Terminal 1:
+
+```bash
+php artisan serve
+```
+
+Terminal 2:
+
+```bash
+php artisan queue:listen --tries=1
+```
+
+Terminal 3:
+
+```bash
+npm run dev
+```
+
+### Option B: Composer helper scripts
+
+Initial setup script:
+
+```bash
+composer run setup
+```
+
+Development script (server + queue + logs + vite):
+
+```bash
+composer run dev
+```
+
+Run tests:
+
+```bash
+composer run test
+```
+
+## 6. Custom Artisan Commands
+
+### A. Export Database
+
+Command:
+
+```bash
+php artisan export
+```
+
+Useful options:
+
+1. --stack=auto|laragon|xampp
+2. --schema-only
+3. --gzip
+4. --file=your_dump.sql
+5. --path=storage/app/exports
+6. --binary="full/path/to/mysqldump(.exe)"
+
+Examples:
+
+```bash
+php artisan export --stack=laragon
+php artisan export --stack=laragon --schema-only --file=schema_only.sql
+php artisan export --gzip --file=full_backup.sql.gz
+```
+
+### B. Import Database
+
+Command:
+
+```bash
+php artisan import
+```
+
+Behavior:
+
+1. If no file is given, it imports the latest .sql / .gz from storage/app/exports.
+2. By default, it asks for confirmation.
+
+Useful options:
+
+1. --stack=auto|laragon|xampp
+2. --binary="full/path/to/mysql(.exe)"
+3. --database=your_db_name
+4. --force (skip confirmation)
+
+Examples:
+
+```bash
+php artisan import --stack=laragon
+php artisan import storage/app/exports/boardinghouse_db_20260405_164113.sql --stack=laragon --force
+php artisan import storage/app/exports/backup.sql.gz --stack=laragon --database=boardinghouse_db --force
+```
+
+### C. Other Project Commands
+
+1. php artisan payments:notify-overdue - sends overdue payment alerts
+2. php artisan admin:reset - resets/creates admin account
+3. php artisan properties:geocode --force - geocodes property coordinates
+
+## 7. Dual SQL Stack Note (Laragon + XAMPP)
+
+If both are installed, client mismatch can happen (example: caching_sha2_password plugin errors).
+
+Use stack preference to avoid wrong binaries:
+
+```bash
+php artisan export --stack=laragon
+php artisan import --stack=laragon --force
+```
+
+If needed, pin exact binaries:
+
+```bash
+php artisan export --binary="C:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin\\mysqldump.exe"
+php artisan import --binary="C:\\laragon\\bin\\mysql\\mysql-8.4.3-winx64\\bin\\mysql.exe" --force
+```
+
+## 8. Mobile-First UI Standard
+
+For OBHS UI work, follow mobile-first implementation:
+
+1. Design first for 320px to 420px screens.
+2. Keep primary actions thumb-friendly.
+3. Prefer card-based layout over wide tables on mobile.
+4. Validate common breakpoints before finishing UI work:
+   1. 360x800
+   2. 390x844
+   3. 768x1024
+   4. Desktop
+
+## 9. Troubleshooting
+
+### mysqldump is not recognized
+
+1. Use stack flag (--stack=laragon or --stack=xampp).
+2. Or pass full --binary path.
+
+### Import/Export fails with MySQL authentication plugin errors
+
+1. Use a MySQL 8+ client matching your running server.
+2. Prefer Laragon binaries if your DB server is from Laragon.
+
+### Migration fails because database does not exist
+
+1. Create the database manually first.
+2. Re-run php artisan migrate.
+
+---
+
+For team onboarding, start at Section 2 and continue in order.

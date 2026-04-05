@@ -215,7 +215,7 @@
                                 </div>
                             @endif
 
-                            <form method="POST" action="{{ route('register') }}" novalidate>
+                            <form method="POST" action="{{ route('register') }}" id="landlordRegisterForm" enctype="multipart/form-data" novalidate>
                                 @csrf
                                 <input type="hidden" name="role" value="landlord">
 
@@ -269,6 +269,29 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-12">
+                                        <label for="business_permit" class="form-label">Business Permit <span class="text-danger">*</span></label>
+                                        <input type="file" class="form-control" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png" required>
+                                        <div class="form-text">Upload a clear PDF/JPG/PNG copy (max 2MB). This will be reviewed by admin.</div>
+                                    </div>
+
+                                    <input type="hidden" id="business_permit_acknowledged" name="business_permit_acknowledged" value="{{ old('business_permit_acknowledged') ? '1' : '0' }}">
+
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="terms_accepted" name="terms_accepted" value="1" {{ old('terms_accepted') ? 'checked' : '' }} required>
+                                            <label class="form-check-label" for="terms_accepted">
+                                                I have read and agree to the Terms and Data Privacy Notice.
+                                            </label>
+                                            <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline text-decoration-underline" data-bs-toggle="modal" data-bs-target="#termsPrivacyModal" style="color: rgba(255,255,255,.92);">
+                                                View terms
+                                            </button>
+                                        </div>
+                                        @error('terms_accepted')
+                                            <div class="text-danger small mt-1">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
                                     <div class="col-12 mt-2">
                                         <button type="submit" class="btn btn-brand btn-lg w-100">Create Landlord Account</button>
                                     </div>
@@ -276,12 +299,102 @@
                             </form>
                         </div>
                     </div>
-                    <p class="text-center text-white mt-3 mb-0 small">By creating an account, you agree to our Terms and Privacy Policy.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="termsPrivacyModal" tabindex="-1" aria-labelledby="termsPrivacyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="termsPrivacyModalLabel">Terms and Data Privacy Notice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Under Republic Act No. 10173 (Data Privacy Act of 2012), we process your personal data using these principles:</p>
+                    <ul class="small mb-3">
+                        <li><strong>Transparency:</strong> You are informed about what data we collect and why.</li>
+                        <li><strong>Legitimate Purpose:</strong> Data is used for account setup, permit verification, booking operations, and communication.</li>
+                        <li><strong>Proportionality:</strong> We collect only data needed to provide landlord platform services.</li>
+                    </ul>
+                    <p class="mb-2 small">By registering, you allow the system to process your information (e.g., name, email, contact details, credentials, property details, and permit files) to manage your account and deliver platform functions.</p>
+                    <p class="mb-0 small">You may request access, correction, or deletion of your data, subject to legal and operational requirements, and we apply reasonable safeguards to protect your information.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="landlordPermitConfirmModal" tabindex="-1" aria-labelledby="landlordPermitConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="landlordPermitConfirmModalLabel">
+                        <i class="bi bi-shield-exclamation text-warning me-2"></i>Landlord Permit Notice
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="small text-muted mb-3">
+                        Please upload a legal and correct business permit document. Admin will verify your file thoroughly, and incorrect or invalid submissions may be rejected.
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="permit_modal_confirm_checkbox">
+                        <label class="form-check-label small" for="permit_modal_confirm_checkbox">
+                            I confirm that the uploaded business permit is legal, valid, and belongs to my boarding house.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success rounded-pill px-3" id="permit_modal_confirm_btn" disabled>
+                        <i class="bi bi-check2 me-1"></i>Confirm Notice
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const form = document.getElementById('landlordRegisterForm');
+            const ackInput = document.getElementById('business_permit_acknowledged');
+            const permitModalEl = document.getElementById('landlordPermitConfirmModal');
+            const permitModalCheckbox = document.getElementById('permit_modal_confirm_checkbox');
+            const permitModalConfirmBtn = document.getElementById('permit_modal_confirm_btn');
+            const permitModal = permitModalEl ? new bootstrap.Modal(permitModalEl) : null;
+
+            permitModalEl?.addEventListener('show.bs.modal', () => {
+                if (permitModalCheckbox && ackInput) {
+                    permitModalCheckbox.checked = ackInput.value === '1';
+                    if (permitModalConfirmBtn) {
+                        permitModalConfirmBtn.disabled = !permitModalCheckbox.checked;
+                    }
+                }
+            });
+
+            permitModalCheckbox?.addEventListener('change', () => {
+                if (permitModalConfirmBtn) {
+                    permitModalConfirmBtn.disabled = !permitModalCheckbox.checked;
+                }
+            });
+
+            permitModalConfirmBtn?.addEventListener('click', () => {
+                if (!permitModalCheckbox?.checked || !ackInput) return;
+                ackInput.value = '1';
+                permitModal?.hide();
+            });
+
+            form?.addEventListener('submit', (event) => {
+                if (!ackInput || ackInput.value === '1') return;
+                event.preventDefault();
+                permitModal?.show();
+            });
+        })();
+    </script>
 </body>
 </html>

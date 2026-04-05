@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\Message;
+use App\Models\LandlordProfile;
 use App\Models\TenantOnboarding;
 use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class BookingController extends Controller
 {
@@ -41,6 +43,41 @@ class BookingController extends Controller
         if (!Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403, 'Unauthorized');
         }
+    }
+
+    protected function studentBookingEligibility(): array
+    {
+        /** @var \App\Models\User $student */
+        $student = Auth::user();
+        $status = (string) ($student->school_id_verification_status ?? '');
+
+        if ($status === '') {
+            $hasVerificationDocument = filled($student->school_id_path) || filled($student->enrollment_proof_path);
+            $status = $hasVerificationDocument ? 'pending' : 'not_submitted';
+        }
+
+        if ($status === 'approved') {
+            return [true, null];
+        }
+
+        if ($status === 'rejected') {
+            return [
+                false,
+                'Your academic verification document was rejected. Upload a valid School ID or COR/COE in Student Setup before booking.',
+            ];
+        }
+
+        if ($status === 'not_submitted') {
+            return [
+                false,
+                'Booking is locked until you upload your School ID or COR/COE and complete Student Setup. You can still browse rooms and properties.',
+            ];
+        }
+
+        return [
+            false,
+            'Booking is locked while your academic verification is pending admin approval. You can still browse rooms and properties.',
+        ];
     }
 
     // Student: browse available rooms
@@ -75,6 +112,11 @@ class BookingController extends Controller
         $this->ensureStudent();
         $this->authorize('create', Booking::class);
         $room->load(['property.landlord.landlordProfile', 'roomImages']);
+
+        [$canBook, $bookingBlockMessage] = $this->studentBookingEligibility();
+        if (!$canBook) {
+            return redirect()->route('student.rooms.show', $room->id)->with('error', $bookingBlockMessage);
+        }
 
         $today = now()->toDateString();
         
@@ -122,6 +164,15 @@ class BookingController extends Controller
         $room->load('property.landlord');
 
         $stayOnPage = $request->boolean('stay');
+
+        [$canBook, $bookingBlockMessage] = $this->studentBookingEligibility();
+        if (!$canBook) {
+            if ($stayOnPage) {
+                return back()->with('error', $bookingBlockMessage);
+            }
+
+            return redirect()->route('student.rooms.index')->with('error', $bookingBlockMessage);
+        }
 
         $today = now()->toDateString();
         $hasCurrentApprovedBooking = Booking::query()
@@ -180,7 +231,13 @@ class BookingController extends Controller
         $data['room_id'] = $room->id;
         $data['student_id'] = Auth::id();
         $data['status'] = 'pending';
-        $data['include_advance_payment'] = $request->boolean('include_advance_payment', true);
+
+        $roomRequiresAdvance = Schema::hasColumn('rooms', 'requires_advance_payment')
+            && (bool) ($room->requires_advance_payment ?? false);
+
+        $data['include_advance_payment'] = $roomRequiresAdvance
+            ? true
+            : $request->boolean('include_advance_payment', true);
 
         $occupancyMode = (string) $request->input('occupancy_mode', 'solo');
         $roomCapacity = max(1, (int) $room->capacity);
@@ -285,6 +342,11 @@ class BookingController extends Controller
     {
         $this->ensureLandlord();
 
+        $landlordProfile = Auth::user()->loadMissing('landlordProfile')->landlordProfile;
+        $privacySettings = $landlordProfile
+            ? $landlordProfile->resolvedTenantPrivacySettings()
+            : LandlordProfile::defaultTenantPrivacySettings();
+
         // Get all approved bookings (current tenants) for this landlord
         $tenants = Booking::with(['room.property', 'student'])
             ->where('status', 'approved')
@@ -294,7 +356,7 @@ class BookingController extends Controller
             ->orderBy('check_in')
             ->get();
 
-        return view('landlord.tenants.index', compact('tenants'));
+        return view('landlord.tenants.index', compact('tenants', 'privacySettings'));
     }
 
     // Landlord: approve booking
@@ -314,7 +376,12 @@ class BookingController extends Controller
                 abort(422, 'No available slots left for this room.');
             }
 
-            $booking->update(['status' => 'approved']);
+            $booking->update([
+                'status' => 'approved',
+                'payment_status' => $booking->payment_status ?: 'pending',
+                'next_payment_due_date' => $booking->next_payment_due_date ?: optional($booking->check_in)->toDateString(),
+                'last_overdue_notified_at' => null,
+            ]);
 
             $remainingSlots = max(0, (int) $room->slots_available - 1);
             $room->update([
@@ -371,7 +438,7 @@ class BookingController extends Controller
         TenantOnboarding::create([
             'booking_id' => $booking->id,
             'required_documents' => ['student_id', 'proof_of_income', 'emergency_contact'],
-            'deposit_amount' => $booking->room->price * 0.5, // 50% deposit
+            'deposit_amount' => $booking->room->price, // full payment
         ]);
 
         return back()->with('success', 'Booking approved. Tenant onboarding process initiated.');

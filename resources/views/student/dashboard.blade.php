@@ -121,6 +121,52 @@
             padding: .15rem .55rem;
             border-radius: 2rem;
         }
+
+        .dash-rec-card-row {
+            display: flex;
+            gap: .75rem;
+            align-items: flex-start;
+        }
+        .dash-rec-card-media {
+            width: 92px;
+            height: 92px;
+            flex: 0 0 92px;
+            border-radius: .75rem;
+            overflow: hidden;
+            border: 1px solid rgba(2,8,20,.1);
+            background: #f8fafc;
+        }
+        .dash-rec-card-action {
+            display: flex;
+            align-items: center;
+        }
+        .dash-rec-card-btn {
+            white-space: nowrap;
+            min-width: 96px;
+        }
+
+        @media (max-width: 575.98px) {
+            .dash-rec-card-row {
+                flex-wrap: wrap;
+                gap: .65rem;
+            }
+            .dash-rec-card-media {
+                width: 84px;
+                height: 84px;
+                flex: 0 0 84px;
+            }
+            .dash-rec-card-body {
+                flex: 1 1 calc(100% - 96px);
+                min-width: 0;
+            }
+            .dash-rec-card-action {
+                width: 100%;
+            }
+            .dash-rec-card-btn {
+                width: 100%;
+                min-width: 0;
+            }
+        }
     </style>
 @endpush
 
@@ -246,6 +292,16 @@
                     }
 
                     // Keep Recent Activity informative for first-time users.
+
+                    $nextActionUrl = match ((string) ($nextAction['panel'] ?? '')) {
+                        'requests' => route('student.bookings.index'),
+                        'messages' => route('messages.index'),
+                        'reports' => route('student.reports.index'),
+                        'onboarding' => route('student.onboarding.index'),
+                        'profile' => route('student.profile.show'),
+                        'property-map' => route('student.properties.map_view'),
+                        default => route('student.rooms.index'),
+                    };
                     if ($events->isEmpty()) {
                         $student = Auth::user();
                         $events->push([
@@ -300,18 +356,17 @@
                     </div>
                 </div>
 
-                @if($hasCurrentApprovedBooking && !empty($currentApprovedBooking))
-                    <div class="alert alert-success rounded-4 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                        <div>
-                            <div class="fw-semibold">Approved booking active</div>
-                            <div class="small">
-                                {{ $currentApprovedBooking->room?->property?->name ?? 'Property' }}
-                                • Room {{ $currentApprovedBooking->room?->room_number ?? '—' }}
-                                • {{ optional($currentApprovedBooking->check_in)->format('M d, Y') }} to {{ optional($currentApprovedBooking->check_out)->format('M d, Y') }}
-                            </div>
-                            <div class="small">Booking is disabled while you have an approved stay.</div>
+                @if(($ratingReminders ?? collect())->isNotEmpty())
+                    <div class="alert alert-warning rounded-4 mb-4">
+                        <div class="fw-semibold mb-1"><i class="bi bi-star-fill me-1"></i>Rate your completed stay</div>
+                        <div class="small mb-2">You have completed booking(s) that still need a star rating.</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach(($ratingReminders ?? collect())->take(3) as $reminder)
+                                <a href="{{ route('student.rooms.show', $reminder->room_id) }}" class="btn btn-sm btn-outline-dark rounded-pill">
+                                    {{ $reminder->room?->property?->name ?? 'Property' }} - Room {{ $reminder->room?->room_number ?? $reminder->room_id }}
+                                </a>
+                            @endforeach
                         </div>
-                        <button type="button" class="btn btn-brand rounded-pill px-4" data-panel-jump="onboarding">View onboarding</button>
                     </div>
                 @endif
 
@@ -408,7 +463,7 @@
                                 <div class="small text-muted">{{ $nextAction['desc'] }}</div>
                             </div>
                         </div>
-                        <a href="{{ route('student.rooms.index') }}" class="btn btn-brand rounded-pill px-4">{{ $nextAction['cta'] }}</a>
+                        <a href="{{ $nextActionUrl }}" class="btn btn-brand rounded-pill px-4">{{ $nextAction['cta'] }}</a>
                     </div>
                 </div>
 
@@ -422,15 +477,27 @@
 
                             @forelse($events as $e)
                                 <div class="activity-item">
-                                    <button type="button" class="w-100 text-start border-0 bg-transparent p-0" data-panel-jump="{{ $e['panel'] }}">
-                                        <div class="d-flex align-items-start gap-3">
-                                            <div class="activity-ic"><i class="bi {{ $e['icon'] }}"></i></div>
-                                            <div class="min-w-0">
-                                                <div class="fw-semibold text-truncate">{{ $e['title'] }}</div>
-                                                <div class="small text-muted">{{ $e['meta'] }} • {{ optional($e['ts'])->diffForHumans() }}</div>
+                                    @if(($e['panel'] ?? '') === 'requests')
+                                        <a href="{{ route('student.bookings.index') }}" class="w-100 text-start border-0 bg-transparent p-0 text-decoration-none d-block">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="activity-ic"><i class="bi {{ $e['icon'] }}"></i></div>
+                                                <div class="min-w-0">
+                                                    <div class="fw-semibold text-truncate text-body">{{ $e['title'] }}</div>
+                                                    <div class="small text-muted">{{ $e['meta'] }} • {{ optional($e['ts'])->diffForHumans() }}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </button>
+                                        </a>
+                                    @else
+                                        <button type="button" class="w-100 text-start border-0 bg-transparent p-0" data-panel-jump="{{ $e['panel'] }}">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="activity-ic"><i class="bi {{ $e['icon'] }}"></i></div>
+                                                <div class="min-w-0">
+                                                    <div class="fw-semibold text-truncate">{{ $e['title'] }}</div>
+                                                    <div class="small text-muted">{{ $e['meta'] }} • {{ optional($e['ts'])->diffForHumans() }}</div>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    @endif
                                 </div>
                             @empty
                                 <div class="text-muted">No recent activity yet.</div>
@@ -456,8 +523,8 @@
                                         @endphp
                                         <div class="col-12">
                                             <div class="border rounded-4 bg-white shadow-sm p-3">
-                                                <div class="d-flex gap-3 align-items-start">
-                                                    <div class="rounded-3 overflow-hidden border" style="width:92px;height:92px;flex:0 0 92px;background:#f8fafc;">
+                                                <div class="dash-rec-card-row">
+                                                    <div class="dash-rec-card-media">
                                                         @if($recImg)
                                                             <img src="{{ asset('storage/'.$recImg) }}" alt="Room image" style="width:100%;height:100%;object-fit:cover;display:block;">
                                                         @else
@@ -467,7 +534,7 @@
                                                         @endif
                                                     </div>
 
-                                                    <div class="flex-fill min-w-0">
+                                                    <div class="dash-rec-card-body flex-fill min-w-0">
                                                         <div class="small text-muted text-truncate">{{ $room->property->name }}</div>
                                                         <div class="fw-semibold">Room {{ $room->room_number }}</div>
                                                         <div class="small text-muted">Capacity: {{ $room->capacity }} • ₱ {{ number_format($room->price,2) }}</div>
@@ -481,8 +548,8 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="d-flex align-items-center">
-                                                        <a href="{{ route('student.rooms.show', $room->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">View more</a>
+                                                    <div class="dash-rec-card-action">
+                                                        <a href="{{ route('student.rooms.show', $room->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 dash-rec-card-btn">View more</a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -573,7 +640,7 @@
                                     </div>
 
                                     <div class="mt-3 d-flex gap-2 flex-wrap">
-                                        <button type="button" class="btn btn-sm btn-brand rounded-pill px-3" data-panel-jump="onboarding">Go to onboarding</button>
+                                        <a href="{{ route('student.onboarding.index') }}" class="btn btn-sm btn-brand rounded-pill px-3">Go to onboarding</a>
                                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-panel-jump="messages">Message landlord</button>
                                     </div>
                                 @else
@@ -653,7 +720,7 @@
                                         <div class="d-flex justify-content-between align-items-start gap-1">
                                             <div class="fw-semibold text-dark" style="font-size:.9rem;">{{ $room->property->name }}</div>
                                             @if($room->updated_at && $room->updated_at->gte($newThreshold))
-                                                <span class="badge text-bg-primary flex-shrink-0" style="font-size:.62rem;">New</span>
+                                                <span class="badge text-bg-primary shrink-0" style="font-size:.62rem;">New</span>
                                             @endif
                                         </div>
                                         <div class="text-muted mt-1" style="font-size:.76rem;">
@@ -943,7 +1010,7 @@
                                             class="list-group-item list-group-item-action px-3 py-2 text-start thread-btn {{ $isActive ? 'active' : '' }}"
                                             data-thread="{{ $tKey }}">
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0"
                                                  style="width:36px;height:36px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.2);">
                                                 <i class="bi bi-person" style="color:var(--brand);font-size:.85rem;"></i>
                                             </div>
@@ -986,7 +1053,7 @@
                                     <div class="thread-view d-flex flex-column {{ $isActive ? '' : 'd-none' }}" data-thread-view="{{ $tidx }}" style="height:100%;">
                                         {{-- header --}}
                                         <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2" style="background:#fafafa;">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0"
                                                  style="width:32px;height:32px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.18);">
                                                 <i class="bi bi-person" style="color:var(--brand);font-size:.8rem;"></i>
                                             </div>
@@ -1025,7 +1092,7 @@
                                                           class="form-control rounded-3 flex-fill"
                                                           placeholder="Type a reply…"
                                                           style="resize:none;font-size:.86rem;border-color:rgba(2,8,20,.12);"></textarea>
-                                                <button type="submit" class="btn btn-brand rounded-pill px-3 flex-shrink-0" style="font-size:.85rem;">
+                                                <button type="submit" class="btn btn-brand rounded-pill px-3 shrink-0" style="font-size:.85rem;">
                                                     <i class="bi bi-send"></i>
                                                 </button>
                                             </form>
@@ -1242,14 +1309,14 @@
                             <div class="col-12 col-md-6 col-lg-3">
                                 <div class="border rounded-4 p-3 h-100">
                                     <div class="small text-muted">Step 3</div>
-                                    <div class="fw-semibold">Pay deposit</div>
+                                    <div class="fw-semibold">Submit payment</div>
                                     <div class="small">@if($depositDone)<span class="text-success">Done</span>@else Pending @endif</div>
                                 </div>
                             </div>
                             <div class="col-12 col-md-6 col-lg-3">
                                 <div class="border rounded-4 p-3 h-100">
                                     <div class="small text-muted">Step 4</div>
-                                    <div class="fw-semibold">Complete</div>
+                                    <div class="fw-semibold">Landlord approval</div>
                                     <div class="small">@if($completeDone)<span class="text-success">Done</span>@else Pending @endif</div>
                                 </div>
                             </div>
@@ -1354,10 +1421,19 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="fw-semibold mb-0">My Reports</h4>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-brand rounded-pill px-3" data-open-report-form="1">New report</button>
+                        @if($canSubmitReport ?? false)
+                            <button type="button" class="btn btn-sm btn-brand rounded-pill px-3" data-open-report-form="1">New report</button>
+                        @endif
                     </div>
                 </div>
 
+                @if(!($canSubmitReport ?? false))
+                    <div class="alert alert-info rounded-4">
+                        Only verified tenants can submit reports. Reports and feedback are restricted to students with approved stays.
+                    </div>
+                @endif
+
+                @if($canSubmitReport ?? false)
                 <div id="newReportFormWrap" class="border rounded-4 bg-white shadow-sm p-4 mb-3" style="display:none;">
                     <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                         <div class="fw-semibold">Submit a new report</div>
@@ -1380,21 +1456,14 @@
                         @csrf
                         <input type="hidden" name="from_dashboard" value="1">
                         <div class="row g-3">
-                            <div class="col-12 col-lg-8">
+                            <div class="col-12">
                                 <label class="form-label small text-muted">Title</label>
                                 <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="e.g., Broken lock / Noise complaint" required>
-                            </div>
-                            <div class="col-12 col-lg-4">
-                                <label class="form-label small text-muted">Priority</label>
-                                <select name="priority" class="form-select" required>
-                                    <option value="low" @selected(old('priority', 'medium')==='low')>Low</option>
-                                    <option value="medium" @selected(old('priority', 'medium')==='medium')>Medium</option>
-                                    <option value="high" @selected(old('priority', 'medium')==='high')>High</option>
-                                </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label small text-muted">Description</label>
                                 <textarea name="description" class="form-control" rows="4" placeholder="Describe the issue clearly…" required>{{ old('description') }}</textarea>
+                                <div class="small text-muted mt-2">Priority is auto-detected by our AI triage model (Low, Medium, High).</div>
                             </div>
                         </div>
                         <div class="mt-3">
@@ -1402,6 +1471,7 @@
                         </div>
                     </form>
                 </div>
+                @endif
 
                 <div class="row g-3">
                     @forelse(($recentReports ?? collect()) as $r)
@@ -1410,7 +1480,21 @@
                                 <div class="d-flex justify-content-between align-items-start gap-2">
                                     <div class="fw-semibold">{{ $r->title }}</div>
                                     <div>
-                                        <span class="badge text-bg-light">{{ $r->status }}</span>
+                                        @php
+                                            $statusLabel = match ((string) $r->status) {
+                                                'pending' => 'Submitted',
+                                                'in_progress' => 'Reviewed',
+                                                'resolved' => 'Resolved',
+                                                default => ucfirst((string) $r->status),
+                                            };
+                                            $statusClass = match ((string) $r->status) {
+                                                'pending' => 'text-bg-secondary',
+                                                'in_progress' => 'text-bg-primary',
+                                                'resolved' => 'text-bg-success',
+                                                default => 'text-bg-light',
+                                            };
+                                        @endphp
+                                        <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
                                         @if(!empty($r->admin_response) && empty($r->response_read))
                                             <span class="badge text-bg-danger ms-1">New response</span>
                                         @endif
@@ -1545,6 +1629,42 @@
             </div>
         </div>
 
+        @if(!empty($showApprovedBookingModal) && !empty($currentApprovedBooking))
+            <div class="modal fade" id="approvedBookingModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                        <div class="p-4" style="background: linear-gradient(140deg, rgba(22,101,52,.14), rgba(167,243,208,.2)); border-bottom: 1px solid rgba(22,101,52,.14);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:46px;height:46px;background:rgba(22,101,52,.16);color:#166534;">
+                                    <i class="bi bi-house-check-fill" style="font-size:1.2rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold" style="color:#14532d;">Approved booking active</div>
+                                    <div class="small text-muted">Finish onboarding to complete your move-in flow.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="small mb-2">
+                                <span class="fw-semibold">{{ $currentApprovedBooking->room?->property?->name ?? 'Property' }}</span>
+                                • Room {{ $currentApprovedBooking->room?->room_number ?? '—' }}
+                            </div>
+                            <div class="small text-muted mb-3">
+                                {{ optional($currentApprovedBooking->check_in)->format('M d, Y') }} to {{ optional($currentApprovedBooking->check_out)->format('M d, Y') }}
+                            </div>
+                            <div class="alert alert-info rounded-3 mb-0" style="background: rgba(22,101,52,.08); border-color: rgba(22,101,52,.18); color:#14532d;">
+                                Booking is disabled while you have an approved stay. Continue your onboarding steps to proceed.
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Later</button>
+                            <a href="{{ route('student.onboarding.index') }}" class="btn btn-brand rounded-pill px-4">View onboarding</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <!-- Booking Request Modal (stay on dashboard) -->
         @unless($hasCurrentApprovedBooking)
         @php
@@ -1607,6 +1727,7 @@
             const bookingModalEl = document.getElementById('bookingRequestModal');
             const bookingForm = document.getElementById('bookingRequestForm');
             const bookingRoomLabel = document.getElementById('bookingRoomLabel');
+            const approvedBookingModalEl = document.getElementById('approvedBookingModal');
 
             document.querySelectorAll('[data-booking-modal]').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1622,6 +1743,13 @@
                 const modal = bootstrap.Modal.getOrCreateInstance(bookingModalEl);
                 modal.show();
             }
+
+            const shouldShowApprovedBookingModal = @json(!empty($showApprovedBookingModal) && !empty($currentApprovedBooking));
+            const openApprovedBookingModal = () => {
+                if (!shouldShowApprovedBookingModal || !approvedBookingModalEl) return;
+                const approvedModal = bootstrap.Modal.getOrCreateInstance(approvedBookingModalEl);
+                approvedModal.show();
+            };
 
             const sidebar = document.querySelector('.sidepanel');
             const sidebarButtons = sidebar ? sidebar.querySelectorAll('[data-panel-target]') : [];
@@ -1656,8 +1784,13 @@
                 }
                 if (panelId === 'dashboard') {
                     initMiniMapOnce();
+                    openApprovedBookingModal();
                 }
-                history.replaceState(null, '', '#' + panelId);
+                if (panelId === 'dashboard') {
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                } else {
+                    history.replaceState(null, '', '#' + panelId);
+                }
                 window.scrollTo({ top: 0, behavior: 'auto' });
             };
 
@@ -1867,17 +2000,19 @@
                         };
 
                         const map = L.map('propertiesMapMini', {
-                            zoomControl: false,
+                            zoomControl: true,
                             attributionControl: false,
-                            scrollWheelZoom: false,
-                            doubleClickZoom: false,
-                            boxZoom: false,
-                            keyboard: false,
+                            scrollWheelZoom: true,
+                            doubleClickZoom: true,
+                            boxZoom: true,
+                            keyboard: true,
                         });
                         miniMapInstance = map;
                         miniMapInitialized = true;
 
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxNativeZoom: 19,
+                            maxZoom: 22,
                             attribution: '&copy; OpenStreetMap contributors'
                         }).addTo(map);
 
@@ -1970,6 +2105,8 @@
                         const markers = [];
 
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxNativeZoom: 19,
+                            maxZoom: 22,
                             attribution: '&copy; OpenStreetMap contributors'
                         }).addTo(map);
 

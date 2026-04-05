@@ -7,6 +7,27 @@
         $occupiedRooms = max(0, (int) $totalRooms - (int) $vacantRooms);
         $occupancyPct = ((int) $totalRooms) > 0 ? (int) round(($occupiedRooms / (int) $totalRooms) * 100) : 0;
         $unreadMessagesSafe = (int) ($unreadMessages ?? 0);
+        $setupSnapshot = $setupSnapshot ?? [];
+        $landlordProfile = Auth::user()->landlordProfile;
+        $hasPermitFile = filled(optional($landlordProfile)->business_permit_path);
+        $permitStatus = $setupSnapshot['permit_status'] ?? (optional($landlordProfile)->business_permit_status ?: ($hasPermitFile ? 'pending' : 'not_submitted'));
+        $profileComplete = (bool) ($setupSnapshot['profile_complete'] ?? false);
+        $permitApproved = (bool) ($setupSnapshot['permit_approved'] ?? ($hasPermitFile && $permitStatus === 'approved'));
+        $billingComplete = (bool) ($setupSnapshot['billing_complete'] ?? false);
+        $landlordOperationsLocked = !$profileComplete || !$permitApproved;
+
+        $permitBadgeClass = match ($permitStatus) {
+            'approved' => 'text-bg-success',
+            'rejected' => 'text-bg-danger',
+            'pending' => 'text-bg-warning',
+            default => 'text-bg-secondary',
+        };
+
+        $permitStatusLabel = str_replace('_', ' ', $permitStatus);
+        $permitPending = $permitStatus === 'pending';
+        $setupFullyComplete = $profileComplete && $permitApproved && $billingComplete;
+        $tenantTrendCollection = collect($tenantTrend ?? []);
+        $tenantTrendMax = max(1, (int) $tenantTrendCollection->max('count'));
     @endphp
 
     <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
@@ -17,28 +38,65 @@
                     <span class="badge rounded-pill text-bg-light border">Landlord Dashboard</span>
                 </div>
                 <p class="mb-0 text-secondary mt-2">Track occupancy, requests, and messages across your properties.</p>
+                @if(!$setupFullyComplete)
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        @if(!$profileComplete)
+                            <span class="badge rounded-pill text-bg-secondary">Profile Incomplete</span>
+                        @endif
+                        @if(!$permitApproved)
+                            <span class="badge rounded-pill {{ $permitBadgeClass }}">Permit {{ $permitStatusLabel }}</span>
+                        @endif
+                        @if(!$billingComplete)
+                            <span class="badge rounded-pill text-bg-warning">Billing Needs Setup</span>
+                        @endif
+                    </div>
+                @endif
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-brand rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
-                    <i class="bi bi-plus-circle me-1"></i> Add Property
-                </button>
-                @if($propertiesCount > 0)
-                    <button type="button" class="btn btn-outline-brand rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+                @if($landlordOperationsLocked)
+                    <button type="button" class="btn btn-brand rounded-pill px-4" disabled title="Complete profile, permit, and billing setup first">
+                        <i class="bi bi-plus-circle me-1"></i> Add Property
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete profile, permit, and billing setup first">
                         <i class="bi bi-door-open me-1"></i> Add Room
                     </button>
                 @else
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled>
-                        <i class="bi bi-door-open me-1"></i> Add Room
+                    <button type="button" class="btn btn-brand rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                        <i class="bi bi-plus-circle me-1"></i> Add Property
                     </button>
-                @endif
-                <a href="{{ route('landlord.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
-                    <i class="bi bi-journal-check me-1"></i> Requests
-                    @if($pendingRequests > 0)
-                        <span class="badge rounded-pill text-bg-warning ms-1">{{ $pendingRequests }}</span>
+                    @if($propertiesCount > 0)
+                        <button type="button" class="btn btn-outline-brand rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+                            <i class="bi bi-door-open me-1"></i> Add Room
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled>
+                            <i class="bi bi-door-open me-1"></i> Add Room
+                        </button>
                     @endif
-                </a>
+                @endif
+                @if($landlordOperationsLocked)
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete setup first">
+                        <i class="bi bi-journal-check me-1"></i> Requests
+                    </button>
+                @else
+                    <a href="{{ route('landlord.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                        <i class="bi bi-journal-check me-1"></i> Requests
+                        @if($pendingRequests > 0)
+                            <span class="badge rounded-pill text-bg-warning ms-1">{{ $pendingRequests }}</span>
+                        @endif
+                    </a>
+                @endif
             </div>
         </div>
+
+        @if(($overduePaymentsCount ?? 0) > 0)
+            <div class="alert alert-danger rounded-4 mt-3 mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <strong>{{ $overduePaymentsCount }}</strong> tenant payment{{ $overduePaymentsCount === 1 ? '' : 's' }} marked overdue.
+                </div>
+                <a href="{{ route('landlord.payments.index', ['status' => 'overdue']) }}" class="btn btn-sm btn-outline-danger rounded-pill">Review Overdue Payments</a>
+            </div>
+        @endif
 
         <div class="row g-4 mt-3">
             <div class="col-6 col-lg-3">
@@ -85,6 +143,43 @@
                     </div>
                 </div>
             </div>
+
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-6 col-lg-4">
+                <div class="metric-tile h-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="metric-ic"><i class="bi bi-people-fill"></i></div>
+                        <div>
+                            <div class="h4 mb-0">{{ (int) ($activeTenantsCount ?? 0) }}</div>
+                            <div class="small metric-label">Active Tenants</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="metric-tile h-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="metric-ic"><i class="bi bi-calendar-check"></i></div>
+                        <div>
+                            <div class="h4 mb-0">{{ (int) ($recentCheckInsCount ?? 0) }}</div>
+                            <div class="small metric-label">Recent Check-ins (14d)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="metric-tile h-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="metric-ic"><i class="bi bi-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="h4 mb-0">{{ (int) ($overduePaymentsCount ?? 0) }}</div>
+                            <div class="small metric-label">Overdue Payments</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4 mt-1">
@@ -97,7 +192,11 @@
 
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.rooms.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.rooms.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-door-open"></i></div>
                                     <div class="min-w-0">
@@ -105,10 +204,14 @@
                                         <div class="small metric-label">Manage pricing and availability</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.bookings.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.bookings.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-journal-check"></i></div>
                                     <div class="min-w-0">
@@ -119,10 +222,14 @@
                                         <span class="badge rounded-pill text-bg-warning ms-auto">{{ $pendingRequests }}</span>
                                     @endif
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.messages.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.messages.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-chat-dots"></i></div>
                                     <div class="min-w-0">
@@ -133,10 +240,14 @@
                                         <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadMessages }}</span>
                                     @endif
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.tenants.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.tenants.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-people"></i></div>
                                     <div class="min-w-0">
@@ -144,10 +255,14 @@
                                         <div class="small metric-label">View current tenants</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.onboarding.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.onboarding.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-clipboard-check"></i></div>
                                     <div class="min-w-0">
@@ -155,10 +270,14 @@
                                         <div class="small metric-label">Review tenant documents</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.maintenance.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.maintenance.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-tools"></i></div>
                                     <div class="min-w-0">
@@ -166,10 +285,14 @@
                                         <div class="small metric-label">Track issues and repairs</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.payments.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.payments.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-cash-coin"></i></div>
                                     <div class="min-w-0">
@@ -177,10 +300,14 @@
                                         <div class="small metric-label">Review billing and dues</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                         <div class="col-12 col-md-6">
-                            <a href="{{ route('landlord.analytics.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @if($landlordOperationsLocked)
+                                <span class="text-decoration-none d-block metric-tile h-100 opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                            @else
+                                <a href="{{ route('landlord.analytics.index') }}" class="text-decoration-none d-block metric-tile h-100">
+                            @endif
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-graph-up"></i></div>
                                     <div class="min-w-0">
@@ -188,7 +315,7 @@
                                         <div class="small metric-label">View performance insights</div>
                                     </div>
                                 </div>
-                            </a>
+                            @if($landlordOperationsLocked)</span>@else</a>@endif
                         </div>
                     </div>
                 </div>
@@ -202,18 +329,41 @@
                     </div>
 
                     <div class="list-group list-group-flush rounded-3 overflow-hidden">
-                        <a href="{{ route('landlord.bookings.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        @if($landlordOperationsLocked)
+                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                        @else
+                            <a href="{{ route('landlord.bookings.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        @endif
                             <span><i class="bi bi-journal-check me-2"></i>Review booking requests</span>
                             <span class="badge rounded-pill {{ $pendingRequests > 0 ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ $pendingRequests }}</span>
-                        </a>
-                        <a href="{{ route('landlord.messages.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-chat-dots me-2"></i>Reply to messages</span>
-                            <span class="badge rounded-pill {{ $unreadMessagesSafe > 0 ? 'text-bg-danger' : 'text-bg-secondary' }}">{{ $unreadMessagesSafe }}</span>
-                        </a>
-                        <a href="{{ route('landlord.rooms.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        @if($landlordOperationsLocked)</span>@else</a>@endif
+                        @if($landlordOperationsLocked)
+                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                        @else
+                            <a href="{{ route('landlord.payments.index', ['status' => 'overdue']) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        @endif
+                            <span><i class="bi bi-exclamation-triangle me-2"></i>Review overdue payments</span>
+                            <span class="badge rounded-pill {{ (int) ($overduePaymentsCount ?? 0) > 0 ? 'text-bg-danger' : 'text-bg-secondary' }}">{{ (int) ($overduePaymentsCount ?? 0) }}</span>
+                        @if($landlordOperationsLocked)</span>@else</a>@endif
+                        @if($permitPending)
+                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Messages unlock after permit approval" style="cursor:not-allowed;">
+                                <span><i class="bi bi-chat-dots me-2"></i>Reply to messages</span>
+                                <span class="badge rounded-pill text-bg-secondary">Locked</span>
+                            </span>
+                        @else
+                            <a href="{{ route('landlord.messages.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-chat-dots me-2"></i>Reply to messages</span>
+                                <span class="badge rounded-pill {{ $unreadMessagesSafe > 0 ? 'text-bg-danger' : 'text-bg-secondary' }}">{{ $unreadMessagesSafe }}</span>
+                            </a>
+                        @endif
+                        @if($landlordOperationsLocked)
+                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Complete setup first" style="cursor:not-allowed;">
+                        @else
+                            <a href="{{ route('landlord.rooms.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        @endif
                             <span><i class="bi bi-door-open me-2"></i>Update room availability</span>
                             <span class="badge rounded-pill {{ $vacantRooms > 0 ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $vacantRooms }}</span>
-                        </a>
+                        @if($landlordOperationsLocked)</span>@else</a>@endif
                     </div>
 
                     <div class="mt-4">
@@ -237,6 +387,93 @@
         </div>
     </div>
 
+    <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
+        <div class="row g-4">
+            <div class="col-12 col-xl-4">
+                <h5 class="fw-semibold mb-2">Monthly Tenant Trend</h5>
+                <p class="small text-muted mb-3">Active tenant count at each month-end.</p>
+
+                <div class="d-grid gap-2">
+                    @forelse($tenantTrendCollection as $trendItem)
+                        @php
+                            $trendCount = (int) ($trendItem['count'] ?? 0);
+                            $trendPct = (int) round(($trendCount / max(1, $tenantTrendMax)) * 100);
+                        @endphp
+                        <div class="border rounded-3 p-2 bg-white">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">{{ $trendItem['label'] ?? '-' }}</span>
+                                <span class="fw-semibold">{{ $trendCount }}</span>
+                            </div>
+                            <div class="progress" style="height: 7px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ $trendPct }}%; background: var(--brand);"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="small text-muted">No trend data available yet.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-8">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-semibold mb-0">Real-time Occupancy by Property</h5>
+                    <span class="small text-muted">Click each room to reveal current tenant names</span>
+                </div>
+
+                <div class="d-grid gap-3">
+                    @forelse(($propertyOccupancyBreakdown ?? []) as $propertyOccupancy)
+                        <div class="border rounded-4 bg-white p-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <div class="fw-semibold">{{ $propertyOccupancy['property_name'] ?? 'Property' }}</div>
+                                <div class="small text-muted">
+                                    Active tenants: {{ (int) ($propertyOccupancy['active_tenants'] ?? 0) }}
+                                    <span class="mx-1">|</span>
+                                    Rooms: {{ (int) ($propertyOccupancy['rooms_total'] ?? 0) }}
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                @forelse(($propertyOccupancy['rooms'] ?? []) as $roomOccupancy)
+                                    @php
+                                        $roomCapacity = max(1, (int) ($roomOccupancy['capacity'] ?? 1));
+                                        $roomOccupied = max(0, (int) ($roomOccupancy['occupied'] ?? 0));
+                                        $roomPct = (int) round(($roomOccupied / $roomCapacity) * 100);
+                                        $tenantNames = collect($roomOccupancy['tenant_names'] ?? []);
+                                    @endphp
+                                    <details class="border rounded-3 p-2" title="Click to view current occupants">
+                                        <summary class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="cursor: pointer; list-style: none;">
+                                            <span class="fw-semibold">Room {{ $roomOccupancy['room_number'] ?? '-' }}</span>
+                                            <span class="small text-muted">{{ $roomOccupied }}/{{ $roomCapacity }} occupied</span>
+                                        </summary>
+                                        <div class="mt-2">
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar" role="progressbar" style="width: {{ $roomPct }}%; background: var(--brand);"></div>
+                                            </div>
+                                            @if($tenantNames->isNotEmpty())
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    @foreach($tenantNames as $tenantName)
+                                                        <span class="badge rounded-pill text-bg-light border">{{ $tenantName }}</span>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <div class="small text-muted mt-2">No active tenants in this room.</div>
+                                            @endif
+                                        </div>
+                                    </details>
+                                @empty
+                                    <div class="small text-muted">No rooms recorded for this property yet.</div>
+                                @endforelse
+                            </div>
+                        </div>
+                    @empty
+                        <div class="small text-muted">Add properties and rooms to view occupancy breakdown.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if(!$permitPending)
     <div class="row g-4 mb-4">
         <div class="col-12 col-xl-8">
             <div class="glass-card rounded-4 p-4 p-md-5 h-100">
@@ -399,31 +636,95 @@
 
         <div class="small text-muted mt-3">Only the latest 5 messages per section are shown here. Open inbox to view full history.</div>
     </div>
+    @endif
 
 @push('modals')
-    @if(!empty($needsPaymentSetup))
-        <div class="modal fade" id="paymentSetupReminderModal" tabindex="-1" aria-labelledby="paymentSetupReminderModalLabel" aria-hidden="true">
+    @if(!empty($needsLandlordSetup))
+        @php
+            $setupProgress = (int) round((($setupCompletedCount ?? 0) / max(1, (int) ($setupTotalCount ?? 1))) * 100);
+        @endphp
+        <div class="modal fade" id="landlordSetupReminderModal" tabindex="-1" aria-labelledby="landlordSetupReminderModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content rounded-4">
                     <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title fw-semibold" id="paymentSetupReminderModalLabel">
-                            <i class="bi bi-exclamation-circle text-warning me-2"></i>Set Up Your Payment Method
+                        <h5 class="modal-title fw-semibold" id="landlordSetupReminderModalLabel">
+                            <i class="bi bi-clipboard-check text-warning me-2"></i>Complete Landlord Setup
                         </h5>
                     </div>
                     <div class="modal-body pt-2">
-                        <p class="mb-3">Please select your preferred payment method(s) and complete required payment details before receiving tenant payments.</p>
-                        <div class="small text-muted mb-2">Required setup options:</div>
-                        <ul class="small mb-0">
-                            <li>Bank: <strong>Bank Name</strong> and <strong>Account Name</strong></li>
-                            <li>GCash: <strong>GCash Name</strong>, <strong>GCash Number</strong>, and <strong>GCash QR Code</strong></li>
-                            <li>Cash: select <strong>Cash</strong> as a preferred method</li>
-                        </ul>
+                        <p class="mb-3">Setup onboarding is now handled in three steps: Profile, Permit, and Billing. Property and room actions unlock after permit approval.</p>
+
+                        <div class="d-flex justify-content-between align-items-center small mb-2">
+                            <span class="text-muted">Setup progress</span>
+                            <span class="fw-semibold">{{ $setupCompletedCount ?? 0 }}/{{ $setupTotalCount ?? 0 }}</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ $setupProgress }}%; background: var(--brand);"></div>
+                        </div>
+
+                        @php
+                            $setupItems = $setupChecklist ?? [];
+                            $permitGateActive = !$permitApproved;
+                        @endphp
+                        <div class="d-grid gap-2">
+                            @foreach($setupItems as $item)
+                                @php
+                                    $title = $item['title'] ?? '';
+                                    $isCompleted = !empty($item['completed']);
+                                    $lockedItem = $permitGateActive && in_array($title, ['Add property location', 'Set room availability'], true);
+                                    $isPermitItem = $title === 'Upload business permit';
+                                    $permitBadgeClass = $permitStatus === 'approved'
+                                        ? 'text-bg-success'
+                                        : ($permitStatus === 'rejected' ? 'text-bg-danger' : ($permitStatus === 'pending' ? 'text-bg-warning' : 'text-bg-secondary'));
+                                @endphp
+
+                                <div class="border rounded-3 p-2 d-flex justify-content-between align-items-start gap-2 {{ $lockedItem ? 'bg-light opacity-75 border-secondary-subtle' : 'bg-white' }}" @if($lockedItem) style="pointer-events:none; filter:grayscale(15%);" @endif>
+                                    <div>
+                                        <div class="fw-semibold small mb-1 {{ $lockedItem ? 'text-muted' : '' }}">
+                                            @if($isPermitItem && $permitStatus === 'pending')
+                                                <i class="bi bi-hourglass-split text-warning me-1"></i>
+                                            @elseif($isPermitItem && $permitStatus === 'rejected')
+                                                <i class="bi bi-x-octagon-fill text-danger me-1"></i>
+                                            @elseif($isCompleted)
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                            @elseif($lockedItem)
+                                                <i class="bi bi-lock-fill text-muted me-1"></i>
+                                            @else
+                                                <i class="bi bi-dot text-warning me-1"></i>
+                                            @endif
+                                            {{ $item['title'] ?? 'Setup Item' }}
+                                        </div>
+                                        <div class="small {{ $lockedItem ? 'text-muted' : 'text-muted' }}">{{ $item['description'] ?? '' }}</div>
+                                    </div>
+                                    @if($lockedItem)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled>Pending permit</button>
+                                    @elseif($isPermitItem)
+                                        <span class="badge rounded-pill {{ $permitBadgeClass }}">
+                                            {{ $permitStatus === 'approved' ? 'Approved' : ($permitStatus === 'rejected' ? 'Rejected' : ($permitStatus === 'pending' ? 'Pending' : 'Not submitted')) }}
+                                        </span>
+                                    @elseif(!$isCompleted)
+                                        <a href="{{ $item['action_url'] ?? '#' }}" class="btn btn-sm btn-outline-brand rounded-pill">{{ $item['action_label'] ?? 'Open' }}</a>
+                                    @else
+                                        <span class="badge text-bg-success rounded-pill">Done</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
                     </div>
                     <div class="modal-footer border-0 pt-0">
+                        @php
+                            $setupSubmitted = (bool) ($setupSnapshot['setup_submitted'] ?? false);
+                            $waitingPermitApproval = $setupSubmitted && ($permitStatus === 'pending');
+                        @endphp
                         <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Later</button>
-                        <a href="{{ route('landlord.profile.edit') }}" class="btn btn-brand rounded-pill px-4">
-                            <i class="bi bi-gear me-1"></i>Set Up Now
-                        </a>
+                        @if($waitingPermitApproval)
+                            <span class="small text-muted fw-semibold px-2">Waiting for permit approval</span>
+                        @else
+                            <a href="{{ route('landlord.setup.show') }}" class="btn btn-brand rounded-pill px-4">
+                                <i class="bi bi-gear me-1"></i>Open Setup Form
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -569,11 +870,11 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        @if(!empty($needsPaymentSetup))
-            const paymentSetupModalEl = document.getElementById('paymentSetupReminderModal');
-            if (paymentSetupModalEl && window.bootstrap?.Modal) {
-                const paymentSetupModal = new bootstrap.Modal(paymentSetupModalEl);
-                paymentSetupModal.show();
+        @if(!empty($needsLandlordSetup))
+            const landlordSetupModalEl = document.getElementById('landlordSetupReminderModal');
+            if (landlordSetupModalEl && window.bootstrap?.Modal) {
+                const landlordSetupModal = new bootstrap.Modal(landlordSetupModalEl);
+                landlordSetupModal.show();
             }
         @endif
 
