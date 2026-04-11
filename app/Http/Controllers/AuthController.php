@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\SystemNotification;
+use App\Services\AcademicCatalogService;
 
 class AuthController extends Controller
 {
@@ -88,17 +89,19 @@ class AuthController extends Controller
 
     public function showRegisterForm()
     {
-        return view('auth.register');
+        $academicCatalog = $this->registrationAcademicCatalog();
+
+        return view('auth.register', compact('academicCatalog'));
     }
 
     public function showRegisterStudentForm()
     {
-        return view('auth.register_student');
+        return redirect()->route('register', ['role' => 'student', 'direct' => '1']);
     }
 
     public function showRegisterLandlordForm()
     {
-        return view('auth.register_landlord');
+        return redirect()->route('register', ['role' => 'landlord', 'direct' => '1']);
     }
 
     public function showRegisterAdminForm()
@@ -108,19 +111,25 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $academicCatalog = $this->registrationAcademicCatalog();
+        $programCatalog = $academicCatalog['programs'];
+        $majorCatalog = $academicCatalog['majors'];
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8|confirmed',
             'contact_number' => 'required|string|max:20',
             'terms_accepted' => 'accepted',
-            'course' => 'required_if:role,student|string|max:255',
+            'college' => 'required_if:role,student|in:CCS,CBM,CTE,CAS,CCJE',
+            'program' => 'required_if:role,student|string|max:255',
+            'major' => 'nullable|string|max:255',
             'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
             'gender' => 'required_if:role,student|in:Male,Female,Other,Rather not say',
             'gender_custom' => 'nullable|string|max:100',
             'boarding_house_name' => 'required_if:role,landlord|string|max:255',
             'business_permit' => 'required_if:role,landlord|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'business_permit_acknowledged' => 'required_if:role,landlord|accepted',
+            'business_permit_acknowledged' => 'exclude_unless:role,landlord|accepted',
             // Role is now hidden in the form
             'role' => 'required|in:landlord,student',
         ], [
@@ -137,6 +146,34 @@ class AuthController extends Controller
         $role = in_array($request->input('role'), ['landlord','student'], true)
             ? $request->input('role')
             : 'student';
+
+        $college = null;
+        $program = null;
+        $major = null;
+
+        if ($role === 'student') {
+            $college = (string) $request->input('college');
+            $program = (string) $request->input('program');
+            $major = trim((string) $request->input('major', ''));
+
+            $allowedPrograms = $programCatalog[$college] ?? [];
+            if (!in_array($program, $allowedPrograms, true)) {
+                return back()
+                    ->withErrors(['program' => 'The selected program is not valid for the selected college.'])
+                    ->withInput();
+            }
+
+            $allowedMajors = $majorCatalog[$program] ?? [];
+            if (!empty($allowedMajors)) {
+                if ($major === '' || !in_array($major, $allowedMajors, true)) {
+                    return back()
+                        ->withErrors(['major' => 'Please select a valid major for the selected program.'])
+                        ->withInput();
+                }
+            } else {
+                $major = null;
+            }
+        }
 
         // Handle gender field - if "Other" is selected, use the custom value
         $gender = null;
@@ -156,7 +193,9 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'contact_number' => $request->contact_number,
-            'course' => $role === 'student' ? $request->course : null,
+            'college' => $role === 'student' ? $college : null,
+            'program' => $role === 'student' ? $program : null,
+            'major' => $role === 'student' ? $major : null,
             'year_level' => $role === 'student' ? $request->year_level : null,
             'gender' => $gender,
             'boarding_house_name' => $role === 'landlord' ? $request->boarding_house_name : 'N/A',
@@ -306,15 +345,7 @@ class AuthController extends Controller
             ->limit(8)
             ->get();
 
-        $boardedByProgram = (clone $activeBoardingsBase)
-            ->select(
-                DB::raw("COALESCE(NULLIF(TRIM(students.course), ''), 'Not specified') as program"),
-                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
-            )
-            ->groupBy('program')
-            ->orderByDesc('total_students')
-            ->limit(10)
-            ->get();
+        $boardedByAcademic = $this->buildBoardedByAcademic($activeBoardingsBase);
 
         $activeBoardedStudents = (clone $activeBoardingsBase)
             ->distinct('bookings.student_id')
@@ -328,12 +359,14 @@ class AuthController extends Controller
         ];
 
         if (Schema::hasColumn('users', 'gender')) {
+            $genderExpression = "LOWER(COALESCE(NULLIF(TRIM(students.gender), ''), 'unspecified'))";
+
             $genderBreakdown = (clone $activeBoardingsBase)
                 ->select(
-                    DB::raw("LOWER(COALESCE(NULLIF(TRIM(students.gender), ''), 'unspecified')) as gender_key"),
+                    DB::raw($genderExpression . ' as gender_key'),
                     DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
                 )
-                ->groupBy('gender_key')
+                ->groupByRaw($genderExpression)
                 ->pluck('total_students', 'gender_key');
 
             $genderCounts['male'] = (int) ($genderBreakdown['male'] ?? 0);
@@ -375,8 +408,83 @@ class AuthController extends Controller
             'totalOnboardings', 'pendingOnboardings', 'completedOnboardings', 'activeOnboardings', 'totalProperties', 'activeProperties',
             'pendingApprovals', 'totalBookings', 'pendingBookings', 'approvedBookings',
             'pendingPermitApprovals', 'approvedPermitApprovals', 'rejectedPermitApprovals',
-            'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByProgram', 'genderCounts', 'landlordMapPoints'
+            'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByAcademic', 'genderCounts', 'landlordMapPoints'
         ));
+    }
+
+    private function registrationAcademicCatalog(): array
+    {
+        return AcademicCatalogService::getCatalog();
+    }
+
+    private function buildBoardedByAcademic($activeBoardingsBase)
+    {
+        $academicCatalog = $this->registrationAcademicCatalog();
+        $collegeCatalog = $academicCatalog['colleges'] ?? [];
+        $programCatalog = $academicCatalog['programs'] ?? [];
+
+        $programCollegeLookup = [];
+        foreach ($programCatalog as $collegeCode => $programs) {
+            foreach ((array) $programs as $programName) {
+                $programCollegeLookup[(string) $programName] = (string) $collegeCode;
+            }
+        }
+
+        $collegeExpression = "COALESCE(NULLIF(TRIM(students.college), ''), 'Not specified')";
+        $programExpression = "COALESCE(NULLIF(TRIM(students.program), ''), 'Not specified')";
+
+        $academicRows = (clone $activeBoardingsBase)
+            ->select(
+                DB::raw($collegeExpression . ' as college_code'),
+                DB::raw($programExpression . ' as program_name'),
+                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
+            )
+            ->groupByRaw($collegeExpression)
+            ->groupByRaw($programExpression)
+            ->orderByDesc('total_students')
+            ->get();
+
+        return $academicRows
+            ->map(function ($row) use ($programCollegeLookup) {
+                $collegeCode = trim((string) $row->college_code);
+                $programName = trim((string) $row->program_name);
+
+                if ($collegeCode === '' || strcasecmp($collegeCode, 'Not specified') === 0) {
+                    $collegeCode = $programCollegeLookup[$programName] ?? 'Not specified';
+                }
+
+                if ($programName === '') {
+                    $programName = 'Not specified';
+                }
+
+                return [
+                    'college_code' => $collegeCode,
+                    'program_name' => $programName,
+                    'total_students' => (int) $row->total_students,
+                ];
+            })
+            ->groupBy('college_code')
+            ->map(function ($rows, $collegeCode) use ($collegeCatalog) {
+                $programs = collect($rows)
+                    ->groupBy('program_name')
+                    ->map(function ($programRows, $programName) {
+                        return [
+                            'name' => $programName,
+                            'total_students' => collect($programRows)->sum('total_students'),
+                        ];
+                    })
+                    ->sortByDesc('total_students')
+                    ->values();
+
+                return (object) [
+                    'college_code' => $collegeCode,
+                    'college_name' => $collegeCatalog[$collegeCode] ?? ($collegeCode === 'Not specified' ? 'Not specified' : $collegeCode),
+                    'total_students' => (int) $programs->sum('total_students'),
+                    'programs' => $programs,
+                ];
+            })
+            ->sortByDesc('total_students')
+            ->values();
     }
 
     public function adminDashboardStats(Request $request)
@@ -457,6 +565,36 @@ class AuthController extends Controller
             $roomStatus[$status] = (int) ($roomCounts[$status] ?? 0);
         }
 
+        $today = Carbon::today()->toDateString();
+        $activeBoardingsBase = DB::table('bookings')
+            ->join('rooms', 'rooms.id', '=', 'bookings.room_id')
+            ->join('properties', 'properties.id', '=', 'rooms.property_id')
+            ->join('users as students', 'students.id', '=', 'bookings.student_id')
+            ->where('bookings.status', 'approved')
+            ->whereDate('bookings.check_in', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('bookings.check_out')
+                    ->orWhereDate('bookings.check_out', '>', $today);
+            });
+
+        $boardedByAcademic = $this->buildBoardedByAcademic($activeBoardingsBase)
+            ->map(function ($college) {
+                return [
+                    'college_code' => (string) ($college->college_code ?? 'Not specified'),
+                    'college_name' => (string) ($college->college_name ?? 'Not specified'),
+                    'total_students' => (int) ($college->total_students ?? 0),
+                    'programs' => collect($college->programs ?? [])
+                        ->map(function ($program) {
+                            return [
+                                'name' => (string) ($program['name'] ?? 'Not specified'),
+                                'total_students' => (int) ($program['total_students'] ?? 0),
+                            ];
+                        })
+                        ->values(),
+                ];
+            })
+            ->values();
+
         return response()->json([
             'range' => [
                 'days' => $days,
@@ -471,6 +609,7 @@ class AuthController extends Controller
             ],
             'bookingStatus' => $bookingStatus,
             'roomStatus' => $roomStatus,
+            'boardedByAcademic' => $boardedByAcademic,
         ]);
     }
 
@@ -492,15 +631,8 @@ class AuthController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%' . $search . '%';
                 $query->where(function ($inner) use ($like, $search) {
-                    if (ctype_digit($search)) {
-                        $inner->orWhere('id', (int) $search)
-                            ->orWhere('student_id', 'like', $like);
-                    }
-
                     $inner->orWhere('full_name', 'like', $like)
-                        ->orWhere('name', 'like', $like)
-                        ->orWhere('email', 'like', $like)
-                        ->orWhere('contact_number', 'like', $like);
+                        ->orWhere('name', 'like', $like);
                 });
             })
             ->paginate(20)
@@ -518,10 +650,76 @@ class AuthController extends Controller
         $role = $request->route()->getName() === 'admin.users.students' ? 'student' :
                ($request->route()->getName() === 'admin.users.landlords' ? 'landlord' : 'admin');
 
-        $users = User::with('landlordProfile')
+         $selectedNameSearch = trim((string) $request->query('search', ''));
+        $selectedCollege = trim((string) $request->query('college', ''));
+        $selectedProgram = trim((string) $request->query('program', ''));
+        $selectedMajor = trim((string) $request->query('major', ''));
+
+        $collegeOptions = [];
+        $programOptions = [];
+        $majorOptions = [];
+        $catalogProgramsByCollege = [];
+        $catalogMajorsByProgram = [];
+
+        if ($role === 'student') {
+            $catalog = AcademicCatalogService::getCatalog();
+            $collegeOptions = is_array($catalog['colleges'] ?? null) ? $catalog['colleges'] : [];
+            $catalogProgramsByCollege = is_array($catalog['programs'] ?? null) ? $catalog['programs'] : [];
+            $catalogMajorsByProgram = is_array($catalog['majors'] ?? null) ? $catalog['majors'] : [];
+
+            $programOptions = $selectedCollege !== ''
+                ? AcademicCatalogService::programsForCollege($selectedCollege)
+                : [];
+
+            if ($selectedCollege !== '' && $selectedProgram === '' && count($programOptions) === 1) {
+                $selectedProgram = (string) $programOptions[0];
+            }
+
+            $majorOptions = $selectedProgram !== ''
+                ? AcademicCatalogService::majorsForProgram($selectedProgram)
+                : [];
+
+            if ($selectedProgram !== '' && $selectedMajor === '' && count($majorOptions) === 1) {
+                $selectedMajor = (string) $majorOptions[0];
+            }
+        }
+
+        $usersQuery = User::with('landlordProfile')
             ->where('role', $role)
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->orderBy('created_at', 'desc');
+
+        if ($role === 'student') {
+            if ($selectedNameSearch !== '') {
+                $like = '%' . $selectedNameSearch . '%';
+                $usersQuery->where(function ($query) use ($like) {
+                    $query->where('full_name', 'like', $like)
+                        ->orWhere('name', 'like', $like);
+                });
+            }
+
+            if ($selectedCollege !== '') {
+                $usersQuery->where('college', $selectedCollege);
+            }
+
+            if ($selectedProgram !== '') {
+                $usersQuery->where('program', $selectedProgram);
+            }
+
+            if ($selectedMajor !== '') {
+                $usersQuery->where('major', $selectedMajor);
+            }
+        }
+
+        $users = $usersQuery->paginate(20);
+
+        if ($role === 'student') {
+            $users->appends([
+                'search' => $selectedNameSearch,
+                'college' => $selectedCollege,
+                'program' => $selectedProgram,
+                'major' => $selectedMajor,
+            ]);
+        }
 
         // Add tenant count for landlords
         if ($role === 'landlord') {
@@ -563,7 +761,20 @@ class AuthController extends Controller
 
         $roleTitle = ucfirst($role) . 's';
 
-        return view('admin.users.by_role', compact('users', 'role', 'roleTitle'));
+        return view('admin.users.by_role', compact(
+            'users',
+            'role',
+            'roleTitle',
+            'selectedNameSearch',
+            'selectedCollege',
+            'selectedProgram',
+            'selectedMajor',
+            'collegeOptions',
+            'programOptions',
+            'majorOptions',
+            'catalogProgramsByCollege',
+            'catalogMajorsByProgram'
+        ));
     }
 
     public function adminLandlordDetails(User $user)
@@ -650,7 +861,7 @@ class AuthController extends Controller
                 'room_number' => $booking->room->room_number,
                 'check_in' => $booking->check_in->format('M d, Y'),
                 'check_out' => $booking->check_out->format('M d, Y'),
-                'course' => $booking->student->course,
+                'program' => $booking->student->program,
                 'year_level' => $booking->student->year_level,
             ];
         });
@@ -1055,6 +1266,10 @@ class AuthController extends Controller
             abort(404);
         }
 
+        if (!$request->filled('program') && $request->filled('course')) {
+            $request->merge(['program' => $request->input('course')]);
+        }
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
@@ -1062,7 +1277,7 @@ class AuthController extends Controller
             'gender_other' => 'nullable|string|max:100',
             'contact_number' => 'nullable|string|max:20',
             'student_id' => 'nullable|string|max:50',
-            'course' => 'nullable|string|max:100',
+            'program' => 'nullable|string|max:255',
             'year_level' => 'nullable|in:1st Year,2nd Year,3rd Year,4th Year',
             'birth_date' => 'nullable|date',
             'address' => 'nullable|string|max:255',

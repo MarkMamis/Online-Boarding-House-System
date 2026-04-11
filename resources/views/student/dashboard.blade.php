@@ -1404,7 +1404,7 @@
                                                     <span class="badge rounded-pill text-bg-success ms-1">You</span>
                                                 @endif
                                             </div>
-                                            <div class="small text-muted">Course/Department: {{ $rb->student?->course ?? '—' }}</div>
+                                            <div class="small text-muted">Program/Department: {{ $rb->student?->program ?? '—' }}</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -1609,8 +1609,8 @@
                             <div class="fw-semibold">{{ Auth::user()->contact_number ?: '—' }}</div>
                         </div>
                         <div class="col-12 col-md-6">
-                            <div class="small text-muted">Course</div>
-                            <div class="fw-semibold">{{ Auth::user()->course ?: '—' }}</div>
+                            <div class="small text-muted">Program</div>
+                            <div class="fw-semibold">{{ Auth::user()->program ?: '—' }}</div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="small text-muted">Year level</div>

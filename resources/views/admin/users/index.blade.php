@@ -52,6 +52,11 @@
         box-shadow: 0 8px 20px rgba(2, 8, 20, .05);
         overflow: hidden;
     }
+    .filters-card {
+        overflow: visible;
+        position: relative;
+        z-index: 30;
+    }
     .section-header {
         border-bottom: 1px solid rgba(2, 8, 20, .08);
         background: #fff;
@@ -93,6 +98,81 @@
         flex-shrink: 0;
         margin-right: .75rem;
     }
+    .avatar-photo {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 1px solid rgba(22, 101, 52, .22);
+        margin-right: .75rem;
+        flex-shrink: 0;
+        background: #f8fafc;
+    }
+    .custom-filter-select {
+        position: relative;
+        width: 100%;
+    }
+    .custom-filter-toggle {
+        width: 100%;
+        height: calc(1.5em + .75rem + 2px);
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+        background: #fff;
+        color: #212529;
+        padding: .375rem .75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: .95rem;
+        text-align: left;
+    }
+    .custom-filter-toggle-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: .5rem;
+    }
+    .custom-filter-menu {
+        position: absolute;
+        top: calc(100% + .35rem);
+        left: 0;
+        right: 0;
+        z-index: 25;
+        border: 1px solid rgba(2, 8, 20, .12);
+        border-radius: .6rem;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(2, 8, 20, .12);
+        max-height: 230px;
+        overflow-y: auto;
+        padding: .35rem;
+        display: none;
+    }
+    .custom-filter-menu.open {
+        display: block;
+    }
+    .custom-filter-option {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        border-radius: .45rem;
+        padding: .45rem .5rem;
+        color: #212529;
+        font-size: .9rem;
+    }
+    .custom-filter-option:hover {
+        background: rgba(22, 101, 52, .08);
+    }
+    .custom-filter-option.active {
+        background: rgba(22, 101, 52, .14);
+        color: #14532d;
+        font-weight: 600;
+    }
+    .records-loading {
+        opacity: .55;
+        pointer-events: none;
+        transition: opacity .15s ease;
+    }
 
     .filter-desktop-label-row {
         display: grid;
@@ -113,89 +193,14 @@
         align-items: center;
     }
 
-    .mobile-filter-toolbar {
-        display: flex;
-        gap: .5rem;
-        align-items: center;
-    }
-
-    .mobile-filter-toolbar .input-group {
-        flex: 1 1 auto;
-    }
-
-    .mobile-settings-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 auto;
-    }
-
-    .mobile-filter-sheet {
-        border-top-left-radius: 1.2rem;
-        border-top-right-radius: 1.2rem;
-        --bs-offcanvas-height: min(540px, calc(100vh - 4.5rem));
-        z-index: 11020;
-    }
-
-    .offcanvas-backdrop.show {
-        z-index: 11010;
-    }
-
-    body.users-filter-open #chatbotWidget {
-        display: none !important;
-    }
-
-    .mobile-filter-sheet .offcanvas-header {
-        border-bottom: 1px solid rgba(2, 8, 20, .08);
-    }
-
-    .mobile-filter-handle {
-        width: 42px;
-        height: 4px;
-        background: rgba(148, 163, 184, .6);
-        border-radius: 999px;
-        margin: .2rem auto .7rem;
-    }
-
-    .filter-sheet-label {
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        color: rgba(2, 8, 20, .56);
-        margin-bottom: .35rem;
-        font-weight: 700;
-    }
-
     @media (max-width: 767.98px) {
         .users-shell { padding: .95rem; }
         .metric-value { font-size: 1.75rem; }
         .metric-tile { padding: 1rem; }
 
-        .desktop-only {
-            display: none !important;
-        }
-
-        .mobile-filter-sheet {
-            bottom: 0;
-            --bs-offcanvas-height: min(560px, calc(100vh - 4.25rem));
-        }
-
-        .mobile-filter-sheet .offcanvas-body {
-            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-        }
-    }
-
-    @media (min-width: 768px) {
-        .mobile-only,
-        .mobile-settings-btn {
-            display: none !important;
-        }
-
-        .mobile-filter-toolbar {
-            display: block;
+        .filter-desktop-label-row,
+        .filter-desktop-controls {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -235,7 +240,7 @@
                         <div class="metric-tile" style="text-align: center;">
                             <div class="metric-label"><i class="bi bi-mortarboard"></i></div>
                             <div class="metric-value text-success">{{ $users->where('role', 'student')->count() }}</div>
-                            <div class="metric-subtitle">Students</div>
+                            <div class="metric-subtitle">Click here to view only students</div>
                         </div>
                     </a>
                 </div>
@@ -244,7 +249,7 @@
                         <div class="metric-tile" style="text-align: center;">
                             <div class="metric-label"><i class="bi bi-building"></i></div>
                             <div class="metric-value" style="color: #FFC107;">{{ $users->where('role', 'landlord')->count() }}</div>
-                            <div class="metric-subtitle">Landlords</div>
+                            <div class="metric-subtitle">Click here to view only landlords</div>
                         </div>
                     </a>
                 </div>
@@ -253,102 +258,45 @@
     </div>
 
     <!-- Users Table -->
-    <div class="section-card mb-3">
+    <div class="section-card filters-card mb-3">
         <div class="section-header fw-semibold"><i class="bi bi-funnel me-2"></i> Filters</div>
         <div class="p-3">
-            <form method="GET" action="{{ route('admin.users.index') }}">
-                <div class="desktop-only">
-                    <div class="filter-desktop-label-row">
-                        <span>Search</span>
-                        <span>Role</span>
-                        <span>Actions</span>
-                    </div>
-                    <div class="filter-desktop-controls">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                            <input
-                                type="text"
-                                class="form-control"
-                                name="search"
-                                value="{{ $search ?? '' }}"
-                                placeholder="Name, email, contact, student ID"
-                            >
-                        </div>
-                        <select class="form-select" name="role">
-                            <option value="all" @selected(($roleFilter ?? 'all') === 'all')>All</option>
-                            <option value="student" @selected(($roleFilter ?? 'all') === 'student')>Student</option>
-                            <option value="landlord" @selected(($roleFilter ?? 'all') === 'landlord')>Landlord</option>
-                        </select>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-success flex-fill">
-                                <i class="bi bi-check2-circle me-1"></i>Apply
-                            </button>
-                            <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Reset</a>
-                        </div>
-                    </div>
+            <form method="GET" action="{{ route('admin.users.index') }}" id="usersFilterForm">
+                <div class="filter-desktop-label-row">
+                    <span>Name Search</span>
+                    <span>Role</span>
+                    <span>Reset</span>
                 </div>
-
-                <div class="mobile-only mobile-filter-toolbar">
+                <div class="filter-desktop-controls">
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                         <input
                             type="text"
                             class="form-control"
-                            id="usersSearchInput"
-                            name="search_preview"
+                            name="search"
                             value="{{ $search ?? '' }}"
-                            placeholder="Search users"
+                            placeholder="Search name"
                         >
                     </div>
-                    <button
-                        class="btn btn-outline-secondary mobile-settings-btn"
-                        type="button"
-                        data-bs-toggle="offcanvas"
-                        data-bs-target="#mobileUsersFilterSheet"
-                        aria-expanded="false"
-                        aria-controls="mobileUsersFilterSheet"
-                        title="Filter settings"
-                    >
-                        <i class="bi bi-sliders"></i>
-                    </button>
+                    <div>
+                        <input type="hidden" id="usersRoleFilter" name="role" value="{{ $roleFilter ?? 'all' }}">
+                        <div class="custom-filter-select">
+                            <button type="button" class="custom-filter-toggle" id="usersRoleToggle" aria-haspopup="listbox" aria-expanded="false">
+                                <span class="custom-filter-toggle-label">All</span>
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                            <div class="custom-filter-menu" id="usersRoleMenu" role="listbox" aria-label="Filter by role"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary" id="resetUsersFilters">Reset</a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <form method="GET" action="{{ route('admin.users.index') }}" class="mobile-only" id="mobileUsersFilterForm">
-        <div class="offcanvas offcanvas-bottom mobile-filter-sheet" tabindex="-1" id="mobileUsersFilterSheet" aria-labelledby="mobileUsersFilterSheetLabel">
-            <div class="offcanvas-header pb-2">
-                <div class="w-100">
-                    <div class="mobile-filter-handle"></div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="offcanvas-title mb-0" id="mobileUsersFilterSheetLabel">Filter by</h5>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-link text-decoration-none p-0">Reset</a>
-                    </div>
-                </div>
-                <button type="button" class="btn-close ms-2" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-            </div>
-            <div class="offcanvas-body pt-3">
-                <input type="hidden" name="search" id="mobileUsersSearchInput" value="{{ $search ?? '' }}">
-
-                <div class="mb-3">
-                    <label class="filter-sheet-label">Role</label>
-                    <select class="form-select" name="role">
-                        <option value="all" @selected(($roleFilter ?? 'all') === 'all')>All</option>
-                        <option value="student" @selected(($roleFilter ?? 'all') === 'student')>Student</option>
-                        <option value="landlord" @selected(($roleFilter ?? 'all') === 'landlord')>Landlord</option>
-                    </select>
-                </div>
-
-                <div class="d-flex gap-2 mt-4">
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary flex-fill">Reset All</a>
-                    <button type="submit" class="btn btn-success flex-fill">Apply Filters</button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-    <div class="section-card">
+    <div class="section-card" id="usersRecordsSection">
         <div class="section-header d-flex justify-content-between align-items-center">
             <div class="fw-semibold"><i class="bi bi-person-lines-fill me-2"></i> All Users</div>
             <span class="badge text-bg-secondary">{{ $users->total() }} users</span>
@@ -358,7 +306,6 @@
                 <thead>
                     <tr>
                         <th class="ps-3">Name</th>
-                        <th>Email</th>
                         <th>Role</th>
                         <th>Contact</th>
                         <th>Registered</th>
@@ -371,14 +318,17 @@
                         <tr>
                             <td class="ps-3">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-item">{{ strtoupper(substr($user->full_name, 0, 1)) }}</div>
+                                    @if(!empty($user->profile_image_path))
+                                        <img src="{{ asset('storage/' . $user->profile_image_path) }}" alt="{{ $user->full_name }}" class="avatar-photo">
+                                    @else
+                                        <div class="avatar-item">{{ strtoupper(substr($user->full_name, 0, 1)) }}</div>
+                                    @endif
                                     <div>
                                         <div class="fw-semibold small">{{ $user->full_name }}</div>
-                                        <div class="text-muted small" style="font-size: .75rem;">{{ $user->name }}</div>
+                                        <div class="text-muted small" style="font-size: .75rem;">{{ $user->email }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="small">{{ $user->email }}</td>
                             <td>
                                 <span class="badge text-bg-{{ $user->role === 'landlord' ? 'warning' : 'success' }}">
                                     {{ ucfirst($user->role) }}
@@ -405,7 +355,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
+                            <td colspan="6" class="text-center text-muted py-5">
                                 <div><i class="bi bi-inbox" style="font-size: 2.5rem; opacity: 0.3;"></i></div>
                                 <p class="mb-0 mt-2">No users found.</p>
                             </td>
@@ -425,26 +375,176 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var searchInput = document.getElementById('usersSearchInput');
-        var mobileSearchInput = document.getElementById('mobileUsersSearchInput');
-        var mobileFilterSheet = document.getElementById('mobileUsersFilterSheet');
-        if (!searchInput || !mobileSearchInput) return;
+        var filterForm = document.getElementById('usersFilterForm');
+        var searchInput = filterForm ? filterForm.querySelector('input[name="search"]') : null;
+        var roleInput = document.getElementById('usersRoleFilter');
+        var roleToggle = document.getElementById('usersRoleToggle');
+        var roleMenu = document.getElementById('usersRoleMenu');
+        var recordsSection = document.getElementById('usersRecordsSection');
+        var resetButton = document.getElementById('resetUsersFilters');
 
-        var syncSearch = function () {
-            mobileSearchInput.value = searchInput.value || '';
+        if (!filterForm || !searchInput || !roleInput || !roleToggle || !roleMenu || !recordsSection || !resetButton) {
+            return;
+        }
+
+        var roleOptions = [
+            { value: 'all', label: 'All' },
+            { value: 'student', label: 'Student' },
+            { value: 'landlord', label: 'Landlord' }
+        ];
+
+        var activeRequestController = null;
+
+        var setRoleLabel = function (value) {
+            var selected = roleOptions.find(function (opt) { return opt.value === value; }) || roleOptions[0];
+            var labelEl = roleToggle.querySelector('.custom-filter-toggle-label');
+            if (labelEl) {
+                labelEl.textContent = selected.label;
+            }
         };
 
-        syncSearch();
-        searchInput.addEventListener('input', syncSearch);
+        var closeRoleMenu = function () {
+            roleMenu.classList.remove('open');
+            roleToggle.setAttribute('aria-expanded', 'false');
+        };
 
-        if (mobileFilterSheet) {
-            mobileFilterSheet.addEventListener('show.bs.offcanvas', function () {
-                document.body.classList.add('users-filter-open');
+        var renderRoleMenu = function () {
+            roleMenu.innerHTML = '';
+            roleOptions.forEach(function (item) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'custom-filter-option' + (roleInput.value === item.value ? ' active' : '');
+                button.textContent = item.label;
+                button.addEventListener('click', function () {
+                    roleInput.value = item.value;
+                    setRoleLabel(item.value);
+                    renderRoleMenu();
+                    closeRoleMenu();
+                    updateRecords();
+                });
+                roleMenu.appendChild(button);
             });
-            mobileFilterSheet.addEventListener('hidden.bs.offcanvas', function () {
-                document.body.classList.remove('users-filter-open');
+        };
+
+        var buildFilterUrl = function () {
+            var params = new URLSearchParams(new FormData(filterForm));
+            if (!params.get('search')) {
+                params.delete('search');
+            }
+            if (!params.get('role') || params.get('role') === 'all') {
+                params.delete('role');
+            }
+
+            var queryString = params.toString();
+            return queryString ? (filterForm.action + '?' + queryString) : filterForm.action;
+        };
+
+        var bindPagination = function () {
+            recordsSection.querySelectorAll('.pagination a').forEach(function (linkEl) {
+                linkEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    var nextUrl = linkEl.getAttribute('href');
+                    if (!nextUrl) {
+                        return;
+                    }
+                    updateRecords(nextUrl);
+                });
             });
-        }
+        };
+
+        var updateRecords = async function (targetUrl) {
+            var fetchUrl = targetUrl || buildFilterUrl();
+
+            if (activeRequestController) {
+                activeRequestController.abort();
+            }
+            activeRequestController = new AbortController();
+
+            recordsSection.classList.add('records-loading');
+
+            try {
+                var response = await fetch(fetchUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    signal: activeRequestController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                var html = await response.text();
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var nextRecords = doc.getElementById('usersRecordsSection');
+
+                if (!nextRecords) {
+                    window.location.href = fetchUrl;
+                    return;
+                }
+
+                recordsSection.innerHTML = nextRecords.innerHTML;
+                bindPagination();
+                window.history.replaceState({}, '', fetchUrl);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    window.location.href = fetchUrl;
+                }
+            } finally {
+                recordsSection.classList.remove('records-loading');
+            }
+        };
+
+        filterForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            updateRecords();
+        });
+
+        roleToggle.addEventListener('click', function (event) {
+            event.stopPropagation();
+            var willOpen = !roleMenu.classList.contains('open');
+            closeRoleMenu();
+            if (willOpen) {
+                roleMenu.classList.add('open');
+                roleToggle.setAttribute('aria-expanded', 'true');
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.custom-filter-select')) {
+                closeRoleMenu();
+            }
+        });
+
+        var searchDebounce;
+        var lastSearchValue = (searchInput.value || '').trim();
+
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(function () {
+                var currentValue = (searchInput.value || '').trim();
+                if (currentValue === lastSearchValue) {
+                    return;
+                }
+                lastSearchValue = currentValue;
+                updateRecords();
+            }, 320);
+        });
+
+        resetButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            searchInput.value = '';
+            lastSearchValue = '';
+            roleInput.value = 'all';
+            setRoleLabel('all');
+            renderRoleMenu();
+            updateRecords(filterForm.action);
+        });
+
+        setRoleLabel(roleInput.value || 'all');
+        renderRoleMenu();
+        bindPagination();
     });
 </script>
 @endpush

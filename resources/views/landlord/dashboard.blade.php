@@ -27,7 +27,6 @@
         $permitPending = $permitStatus === 'pending';
         $setupFullyComplete = $profileComplete && $permitApproved && $billingComplete;
         $tenantTrendCollection = collect($tenantTrend ?? []);
-        $tenantTrendMax = max(1, (int) $tenantTrendCollection->max('count'));
     @endphp
 
     <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
@@ -124,17 +123,6 @@
             <div class="col-6 col-lg-3">
                 <div class="metric-tile h-100">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="metric-ic"><i class="bi bi-check2-circle"></i></div>
-                        <div>
-                            <div class="h4 mb-0">{{ $vacantRooms }}</div>
-                            <div class="small metric-label">Vacant Rooms</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-3">
-                <div class="metric-tile h-100">
-                    <div class="d-flex align-items-center gap-3">
                         <div class="metric-ic"><i class="bi bi-hourglass-split"></i></div>
                         <div>
                             <div class="h4 mb-0">{{ $pendingRequests }}</div>
@@ -143,33 +131,7 @@
                     </div>
                 </div>
             </div>
-
-        </div>
-
-        <div class="row g-4 mt-1">
-            <div class="col-6 col-lg-4">
-                <div class="metric-tile h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="metric-ic"><i class="bi bi-people-fill"></i></div>
-                        <div>
-                            <div class="h4 mb-0">{{ (int) ($activeTenantsCount ?? 0) }}</div>
-                            <div class="small metric-label">Active Tenants</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-lg-4">
-                <div class="metric-tile h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="metric-ic"><i class="bi bi-calendar-check"></i></div>
-                        <div>
-                            <div class="h4 mb-0">{{ (int) ($recentCheckInsCount ?? 0) }}</div>
-                            <div class="small metric-label">Recent Check-ins (14d)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 col-lg-4">
+            <div class="col-6 col-lg-3">
                 <div class="metric-tile h-100">
                     <div class="d-flex align-items-center gap-3">
                         <div class="metric-ic"><i class="bi bi-exclamation-triangle"></i></div>
@@ -180,6 +142,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         <div class="row g-4 mt-1">
@@ -389,85 +352,22 @@
 
     <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
         <div class="row g-4">
-            <div class="col-12 col-xl-4">
+            <div class="col-12 col-xl-5">
                 <h5 class="fw-semibold mb-2">Monthly Tenant Trend</h5>
-                <p class="small text-muted mb-3">Active tenant count at each month-end.</p>
-
-                <div class="d-grid gap-2">
-                    @forelse($tenantTrendCollection as $trendItem)
-                        @php
-                            $trendCount = (int) ($trendItem['count'] ?? 0);
-                            $trendPct = (int) round(($trendCount / max(1, $tenantTrendMax)) * 100);
-                        @endphp
-                        <div class="border rounded-3 p-2 bg-white">
-                            <div class="d-flex justify-content-between small mb-1">
-                                <span class="text-muted">{{ $trendItem['label'] ?? '-' }}</span>
-                                <span class="fw-semibold">{{ $trendCount }}</span>
-                            </div>
-                            <div class="progress" style="height: 7px;">
-                                <div class="progress-bar" role="progressbar" style="width: {{ $trendPct }}%; background: var(--brand);"></div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="small text-muted">No trend data available yet.</div>
-                    @endforelse
+                <p class="small text-muted mb-3">Active tenant count by month-end (last 6 months).</p>
+                <div class="border rounded-4 bg-white p-3" style="height: 340px;">
+                    <canvas id="chartLandlordTenantTrend"></canvas>
                 </div>
             </div>
 
-            <div class="col-12 col-xl-8">
+            <div class="col-12 col-xl-7">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h5 class="fw-semibold mb-0">Real-time Occupancy by Property</h5>
-                    <span class="small text-muted">Click each room to reveal current tenant names</span>
+                    <span class="small text-muted">Occupied vs vacant beds</span>
                 </div>
-
-                <div class="d-grid gap-3">
-                    @forelse(($propertyOccupancyBreakdown ?? []) as $propertyOccupancy)
-                        <div class="border rounded-4 bg-white p-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                                <div class="fw-semibold">{{ $propertyOccupancy['property_name'] ?? 'Property' }}</div>
-                                <div class="small text-muted">
-                                    Active tenants: {{ (int) ($propertyOccupancy['active_tenants'] ?? 0) }}
-                                    <span class="mx-1">|</span>
-                                    Rooms: {{ (int) ($propertyOccupancy['rooms_total'] ?? 0) }}
-                                </div>
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                @forelse(($propertyOccupancy['rooms'] ?? []) as $roomOccupancy)
-                                    @php
-                                        $roomCapacity = max(1, (int) ($roomOccupancy['capacity'] ?? 1));
-                                        $roomOccupied = max(0, (int) ($roomOccupancy['occupied'] ?? 0));
-                                        $roomPct = (int) round(($roomOccupied / $roomCapacity) * 100);
-                                        $tenantNames = collect($roomOccupancy['tenant_names'] ?? []);
-                                    @endphp
-                                    <details class="border rounded-3 p-2" title="Click to view current occupants">
-                                        <summary class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="cursor: pointer; list-style: none;">
-                                            <span class="fw-semibold">Room {{ $roomOccupancy['room_number'] ?? '-' }}</span>
-                                            <span class="small text-muted">{{ $roomOccupied }}/{{ $roomCapacity }} occupied</span>
-                                        </summary>
-                                        <div class="mt-2">
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar" role="progressbar" style="width: {{ $roomPct }}%; background: var(--brand);"></div>
-                                            </div>
-                                            @if($tenantNames->isNotEmpty())
-                                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                                    @foreach($tenantNames as $tenantName)
-                                                        <span class="badge rounded-pill text-bg-light border">{{ $tenantName }}</span>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <div class="small text-muted mt-2">No active tenants in this room.</div>
-                                            @endif
-                                        </div>
-                                    </details>
-                                @empty
-                                    <div class="small text-muted">No rooms recorded for this property yet.</div>
-                                @endforelse
-                            </div>
-                        </div>
-                    @empty
-                        <div class="small text-muted">Add properties and rooms to view occupancy breakdown.</div>
-                    @endforelse
+                <p class="small text-muted mb-3">Stacked occupancy view based on current room capacities and active tenants.</p>
+                <div class="border rounded-4 bg-white p-3" style="height: 340px;">
+                    <canvas id="chartLandlordPropertyOccupancy"></canvas>
                 </div>
             </div>
         </div>
@@ -868,6 +768,7 @@
 @endpush
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         @if(!empty($needsLandlordSetup))
@@ -884,6 +785,143 @@
                 const pid = this.querySelector('select[name="property_id"]').value;
                 this.action = `/landlord/dashboard/properties/${pid}/rooms`;
             });
+        }
+
+        if (typeof Chart !== 'undefined') {
+            const trendCanvas = document.getElementById('chartLandlordTenantTrend');
+            const occupancyCanvas = document.getElementById('chartLandlordPropertyOccupancy');
+
+            const trendRows = @json($tenantTrendCollection->values());
+            const trendLabels = trendRows.map((row) => String(row?.label || '-'));
+            const trendData = trendRows.map((row) => Number(row?.count || 0));
+
+            if (trendCanvas) {
+                const trendGradient = trendCanvas.getContext('2d').createLinearGradient(0, 0, 0, 280);
+                trendGradient.addColorStop(0, 'rgba(20,83,45,0.30)');
+                trendGradient.addColorStop(1, 'rgba(20,83,45,0.04)');
+
+                new Chart(trendCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels.length ? trendLabels : ['No data'],
+                        datasets: [{
+                            label: 'Active tenants',
+                            data: trendData.length ? trendData : [0],
+                            borderColor: 'rgba(20,83,45,0.95)',
+                            backgroundColor: trendGradient,
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: 'rgba(20,83,45,0.95)',
+                            pointBorderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => `Active tenants: ${ctx.raw}`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 },
+                                grid: { color: 'rgba(148,163,184,0.18)' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (occupancyCanvas) {
+                const occupancyRowsRaw = @json($propertyOccupancyBreakdown ?? []);
+                const occupancyRows = (Array.isArray(occupancyRowsRaw) ? occupancyRowsRaw : [])
+                    .map((property) => {
+                        const rooms = Array.isArray(property?.rooms) ? property.rooms : [];
+                        const occupiedBeds = rooms.reduce((sum, room) => sum + Math.max(0, Number(room?.occupied || 0)), 0);
+                        const capacityBeds = rooms.reduce((sum, room) => sum + Math.max(1, Number(room?.capacity || 1)), 0);
+                        const vacantBeds = Math.max(0, capacityBeds - occupiedBeds);
+
+                        return {
+                            name: String(property?.property_name || 'Property'),
+                            occupiedBeds,
+                            vacantBeds,
+                        };
+                    })
+                    .filter((row) => row.occupiedBeds > 0 || row.vacantBeds > 0);
+
+                new Chart(occupancyCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: occupancyRows.length ? occupancyRows.map((row) => row.name) : ['No data'],
+                        datasets: [
+                            {
+                                label: 'Occupied beds',
+                                data: occupancyRows.length ? occupancyRows.map((row) => row.occupiedBeds) : [0],
+                                backgroundColor: 'rgba(20,83,45,0.78)',
+                                borderColor: 'rgba(20,83,45,1)',
+                                borderWidth: 1,
+                                borderRadius: 7,
+                            },
+                            {
+                                label: 'Vacant beds',
+                                data: occupancyRows.length ? occupancyRows.map((row) => row.vacantBeds) : [0],
+                                backgroundColor: 'rgba(148,163,184,0.62)',
+                                borderColor: 'rgba(100,116,139,0.95)',
+                                borderWidth: 1,
+                                borderRadius: 7,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                }
+                            },
+                            tooltip: {
+                                mode: 'nearest',
+                                intersect: true,
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: { precision: 0 },
+                                grid: { color: 'rgba(148,163,184,0.18)' }
+                            },
+                            y: {
+                                stacked: true,
+                                grid: { display: false },
+                            }
+                        }
+                    }
+                });
+            }
         }
     });
 </script>

@@ -9,6 +9,7 @@ use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\PublicPropertyMapController;
 use App\Http\Controllers\StudentPropertyController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\StudentSetupController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
 use App\Models\Room;
 use App\Models\Property;
+use App\Models\User;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -78,8 +80,10 @@ Route::get('/', function () {
         })
         ->where('rooms.status', 'available')
         ->where('rooms.slots_available', '>', 0)
+        ->withAvg('feedbacks as average_rating', 'rating')
+        ->withCount('feedbacks as ratings_count')
         ->with([
-            'property:id,name,address,landlord_id,image_path,average_rating,ratings_count',
+            'property:id,name,address,latitude,longitude,landlord_id,image_path,average_rating,ratings_count',
             'property.landlord:id,full_name',
         ])
         ->orderBy('rooms.price')
@@ -96,17 +100,50 @@ Route::get('/', function () {
             },
         ])
         ->withMin('rooms', 'price')
+        ->with([
+            'landlord:id,full_name,contact_number,profile_image_path,boarding_house_name',
+            'landlord.landlordProfile:id,user_id,boarding_house_name,about,business_permit_status',
+        ])
         ->orderByDesc('average_rating')
         ->orderByDesc('ratings_count')
         ->orderByDesc('created_at')
         ->limit(3)
         ->get();
 
-    return view('landing', compact('availableRooms', 'featuredProperties'));
+    $trustedLandlords = User::query()
+        ->where('role', 'landlord')
+        ->whereHas('properties', function ($query) {
+            $query->visibleToAudience();
+        })
+        ->with([
+            'landlordProfile:id,user_id,contact_number,boarding_house_name,about,business_permit_status',
+            'properties' => function ($query) {
+                $query
+                    ->visibleToAudience()
+                    ->select('id', 'landlord_id', 'name', 'average_rating', 'ratings_count')
+                    ->withCount('rooms')
+                    ->withCount([
+                        'rooms as available_rooms_count' => function ($roomQuery) {
+                            $roomQuery->where('status', 'available')->where('slots_available', '>', 0);
+                        },
+                    ])
+                    ->orderByDesc('average_rating')
+                    ->orderByDesc('ratings_count')
+                    ->orderByDesc('created_at');
+            },
+        ])
+        ->orderBy('full_name')
+        ->get(['id', 'full_name', 'contact_number', 'profile_image_path', 'boarding_house_name']);
+
+    return view('landing', compact('availableRooms', 'featuredProperties', 'trustedLandlords'));
 })->name('landing');
 
 // Public room details (from landing page)
 Route::get('/rooms/{room}', [RoomController::class, 'publicShow'])->name('rooms.public.show');
+Route::get('/browse-map', [PublicPropertyMapController::class, 'index'])->name('public.properties.map');
+Route::get('/browse-map/data', [PublicPropertyMapController::class, 'mapData'])->name('public.properties.map_data');
+Route::get('/browse-map/suggestions', [PublicPropertyMapController::class, 'suggestions'])->name('public.properties.suggestions');
+Route::get('/browse-map/properties/{property}/rooms', [PublicPropertyMapController::class, 'propertyRooms'])->name('public.properties.rooms');
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -209,6 +246,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     // Admin bookings monitoring
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->name('admin.bookings.index');
+    Route::get('/admin/boarded-students', [AdminBookingController::class, 'boardedStudents'])->name('admin.boarded_students.index');
 
     // Property approval workflow
     Route::get('/admin/properties/approval', [PropertyController::class, 'adminPending'])->name('admin.properties.pending');

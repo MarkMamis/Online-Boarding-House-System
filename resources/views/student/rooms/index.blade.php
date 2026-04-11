@@ -130,7 +130,7 @@
                 $rImg = $room->image_path ?: ($room->property->image_path ?? null);
                 $rInclusions = collect(preg_split('/[,\n;]+/', $room->inclusions ?? ''))->map('trim')->filter()->take(3);
                 $propertyInclusions = collect((array) ($room->property->building_inclusions ?? []))
-                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? trim((string) $key))
                     ->filter()
                     ->take(3);
                 $availableSlots = $room->getAvailableSlots();
@@ -227,7 +227,7 @@
                 $rImg2 = $r->image_path ?: ($r->property->image_path ?? null);
                 $rInc2 = collect(preg_split('/[,\n;]+/', $r->inclusions ?? ''))->map('trim')->filter()->take(3);
                 $propertyInclusions2 = collect((array) ($r->property->building_inclusions ?? []))
-                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                    ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? trim((string) $key))
                     ->filter()
                     ->take(3);
                 $availableSlots2 = $r->getAvailableSlots();

@@ -207,7 +207,7 @@
                             </td>
                             <td>
                                 <div class="small">{{ $student->student_id ?: 'No student ID' }}</div>
-                                <div class="small muted">{{ $student->course ?: 'No course provided' }}</div>
+                                <div class="small muted">{{ $student->program ?: 'No program provided' }}</div>
                             </td>
                             <td>
                                 <div class="verification-docs-grid">

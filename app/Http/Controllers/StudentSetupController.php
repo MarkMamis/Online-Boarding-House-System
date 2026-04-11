@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Services\AcademicCatalogService;
 
 class StudentSetupController extends Controller
 {
@@ -22,13 +23,15 @@ class StudentSetupController extends Controller
         $completedCount = collect($checklist)->where('completed', true)->count();
         $totalCount = count($checklist);
         $missingFields = $user->missingStudentSetupFields();
+        $academicCatalog = AcademicCatalogService::getCatalog();
 
         return view('student.setup.index', compact(
             'user',
             'checklist',
             'completedCount',
             'totalCount',
-            'missingFields'
+            'missingFields',
+            'academicCatalog'
         ));
     }
 
@@ -36,6 +39,11 @@ class StudentSetupController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+
+        if (!$request->filled('program') && $request->filled('course')) {
+            $request->merge(['program' => $request->input('course')]);
+        }
+
         $isFirstYear = (string) $request->input('year_level') === '1st Year';
 
         $profileImageRule = filled($user->profile_image_path)
@@ -58,6 +66,12 @@ class StudentSetupController extends Controller
             ? 'required|in:cor,coe'
             : 'nullable|in:cor,coe';
 
+        $academicCatalog = AcademicCatalogService::getCatalog();
+        $collegeOptions = array_keys($academicCatalog['colleges'] ?? []);
+        $collegeRule = empty($collegeOptions)
+            ? 'required|string|max:20'
+            : 'required|in:' . implode(',', $collegeOptions);
+
         if ($request->hasFile('enrollment_proof_file') || filled($user->enrollment_proof_path)) {
             $enrollmentProofTypeRule = 'required|in:cor,coe';
         }
@@ -70,7 +84,9 @@ class StudentSetupController extends Controller
             'full_name' => 'required|string|max:255',
             'contact_number' => 'required|regex:/^09\d{9}$/',
             'student_id' => $studentIdRule,
-            'course' => 'required|string|max:100',
+            'college' => $collegeRule,
+            'program' => 'required|string|max:255',
+            'major' => 'nullable|string|max:255',
             'year_level' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
             'gender' => 'required|in:Male,Female,Other,Rather not say',
             'gender_custom' => 'nullable|string|max:100',
@@ -94,6 +110,28 @@ class StudentSetupController extends Controller
             'student_id.required' => 'Student ID is required for 2nd year and above.',
             'enrollment_proof_file.required' => 'COR or COE file is required for 1st year students.',
         ]);
+
+        $validator->after(function ($validator) use ($request, $academicCatalog) {
+            $college = trim((string) $request->input('college', ''));
+            $program = trim((string) $request->input('program', ''));
+            $major = trim((string) $request->input('major', ''));
+            $catalogPrograms = $academicCatalog['programs'] ?? [];
+            $catalogMajors = $academicCatalog['majors'] ?? [];
+
+            if ($college !== '' && $program !== '') {
+                $allowedPrograms = $catalogPrograms[$college] ?? [];
+                if (!in_array($program, $allowedPrograms, true)) {
+                    $validator->errors()->add('program', 'The selected program is not valid for the selected college.');
+                }
+            }
+
+            if ($major !== '') {
+                $allowedMajors = $catalogMajors[$program] ?? [];
+                if (!in_array($major, $allowedMajors, true)) {
+                    $validator->errors()->add('major', 'The selected major is not valid for the selected program.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -155,12 +193,23 @@ class StudentSetupController extends Controller
             $user->parent_contact_photo_path = str_replace('\\', '/', $request->file('parent_contact_photo')->store('parent_contacts', 'public'));
         }
 
+        $college = trim((string) $request->input('college', ''));
+        $program = trim((string) $request->input('program', ''));
+        $major = trim((string) $request->input('major', ''));
+
+        $allowedMajors = $academicCatalog['majors'][$program] ?? [];
+        if (!in_array($major, $allowedMajors, true)) {
+            $major = '';
+        }
+
         $user->fill([
             'full_name' => $request->input('full_name'),
             'name' => $request->input('full_name'),
             'contact_number' => $request->input('contact_number'),
             'student_id' => $request->filled('student_id') ? $request->input('student_id') : null,
-            'course' => $request->input('course'),
+            'college' => $college !== '' ? $college : null,
+            'program' => $program,
+            'major' => $major !== '' ? $major : null,
             'year_level' => $request->input('year_level'),
             'gender' => $gender,
             'birth_date' => $request->input('birth_date'),
@@ -195,10 +244,11 @@ class StudentSetupController extends Controller
                     && filled($user->address),
             ],
             [
-                'title' => 'Academic identity',
-                'description' => 'Set student profile details and upload your verification files (School ID; COR or COE for 1st year).',
+                'title' => 'Academic verification',
+                'description' => 'Set college, program, optional major, and upload your verification files (School ID; COR or COE for 1st year).',
                 'completed' => (($user->year_level === '1st Year') || filled($user->student_id))
-                    && filled($user->course)
+                    && filled($user->college)
+                    && filled($user->program)
                     && filled($user->year_level)
                     && filled($user->gender)
                     && (($user->year_level === '1st Year')

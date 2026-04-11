@@ -104,6 +104,32 @@
         letter-spacing: .04em;
     }
 
+    .contract-list {
+        padding-left: 1.1rem;
+        margin-bottom: 0;
+    }
+
+    .rules-section {
+        background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
+        border: 1.5px solid #bbf7d0;
+        border-radius: .85rem;
+        padding: 1rem;
+    }
+
+    .rules-group-title {
+        font-size: .76rem;
+        font-weight: 700;
+        color: #14532d;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: .5rem;
+    }
+
+    .rules-list {
+        margin: 0;
+        padding-left: 1rem;
+    }
+
     .print-only {
         display: none;
     }
@@ -138,6 +164,51 @@
     }
 </style>
 
+@php
+    $booking = $onboarding->booking;
+    $student = $booking->student;
+    $room = $booking->room;
+    $property = $room->property;
+    $landlord = $property->landlord;
+
+    $monthlyRentAmount = is_numeric($booking->monthly_rent_amount)
+        ? (float) $booking->monthly_rent_amount
+        : (float) ($room->price ?? 0);
+    $selectedAdvanceAmount = !empty($booking->include_advance_payment) ? $monthlyRentAmount : 0.0;
+    $expectedOnboardingAmount = $monthlyRentAmount + $selectedAdvanceAmount;
+    $submittedOnboardingAmount = is_numeric($onboarding->deposit_amount) && (float) $onboarding->deposit_amount > 0
+        ? (float) $onboarding->deposit_amount
+        : 0.0;
+    $effectiveDepositAmount = max($expectedOnboardingAmount, $submittedOnboardingAmount);
+
+    $checkInLabel = optional($booking->check_in)->format('M d, Y') ?: 'Pending';
+    $checkOutLabel = optional($booking->check_out)->format('M d, Y') ?: 'Open Ended';
+    $bookingStatusLabel = ucfirst((string) ($booking->status ?? 'pending'));
+    $requestedLabel = optional($booking->created_at)->diffForHumans() ?: 'Recently';
+    $durationDays = method_exists($booking, 'getDurationInDays') ? $booking->getDurationInDays() : 0;
+    $roomModeLabel = ucfirst((string) ($booking->occupancy_mode ?? 'Solo'));
+    $advancePaymentLabel = !empty($booking->include_advance_payment) ? 'Yes' : 'No';
+    $paymentStatusLabel = ucfirst((string) $booking->derivedPaymentStatus());
+
+    $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
+    $propertyHouseRules = (array) ($property->house_rules ?? []);
+    $houseRuleSections = collect($defaultHouseRuleCategories)
+        ->map(function ($categoryConfig, $categoryKey) use ($propertyHouseRules) {
+            $fallbackRules = (array) ($categoryConfig['rules'] ?? []);
+            $rules = collect((array) ($propertyHouseRules[$categoryKey] ?? $fallbackRules))
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+
+            return [
+                'label' => (string) ($categoryConfig['label'] ?? $categoryKey),
+                'rules' => $rules,
+            ];
+        })
+        ->filter(fn ($section) => $section['rules']->isNotEmpty())
+        ->values();
+@endphp
+
 <div class="contract-shell container-fluid py-2">
     <div class="contract-hero mb-4 no-print">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
@@ -163,15 +234,15 @@
 
     <div class="agreement-card">
         <div class="agreement-head">
-            <div class="agreement-title h4">TENANCY AGREEMENT</div>
-            <div class="text-muted">Official Rental Contract</div>
+            <div class="agreement-title h4">RESIDENTIAL LEASE AGREEMENT</div>
+            <div class="text-muted">Legal Contract Preview</div>
         </div>
 
         <div class="p-3 p-lg-4 contract-content">
             <div class="print-only mb-3 small text-muted">Generated on {{ now()->format('M d, Y h:i A') }}</div>
 
             <p class="mb-4">
-                This Tenancy Agreement is made on <strong>{{ now()->format('F d, Y') }}</strong> between the Landlord and the Tenant identified below.
+                This Residential Lease Agreement is made on <strong>{{ now()->format('F d, Y') }}</strong> between the Landlord and the Tenant identified below.
             </p>
 
             <div class="row g-3 mb-4">
@@ -179,41 +250,97 @@
                     <div class="party-card">
                         <div class="section-tag">Party</div>
                         <div class="party-heading">Landlord</div>
-                        <div><strong>Name:</strong> {{ $onboarding->booking->room->property->landlord->full_name }}</div>
-                        <div><strong>Email:</strong> {{ $onboarding->booking->room->property->landlord->email }}</div>
-                        <div><strong>Phone:</strong> {{ $onboarding->booking->room->property->landlord->phone ?? 'Not provided' }}</div>
+                        <div><strong>Name:</strong> {{ $landlord->full_name ?? $landlord->name }}</div>
+                        <div><strong>Email:</strong> {{ $landlord->email }}</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="party-card">
                         <div class="section-tag">Party</div>
                         <div class="party-heading">Tenant</div>
-                        <div><strong>Name:</strong> {{ $onboarding->booking->student->full_name }}</div>
-                        <div><strong>Student ID:</strong> {{ $onboarding->booking->student->student_id }}</div>
-                        <div><strong>Email:</strong> {{ $onboarding->booking->student->email }}</div>
-                        <div><strong>Phone:</strong> {{ $onboarding->booking->student->phone ?? 'Not provided' }}</div>
+                        <div><strong>Name:</strong> {{ $student->full_name ?? $student->name }}</div>
+                        <div><strong>Student ID:</strong> {{ $student->student_id }}</div>
+                        <div><strong>Email:</strong> {{ $student->email }}</div>
                     </div>
                 </div>
             </div>
 
             <div class="clause-card mb-4">
-                <div class="section-tag">Property Details</div>
-                <div><strong>Property Name:</strong> {{ $onboarding->booking->room->property->name }}</div>
-                <div><strong>Address:</strong> {{ $onboarding->booking->room->property->address }}</div>
-                <div><strong>Room Number:</strong> {{ $onboarding->booking->room->room_number }}</div>
-                <div><strong>Monthly Rent:</strong> PHP {{ number_format($onboarding->booking->room->price, 2) }}</div>
-                <div><strong>Lease Period:</strong> {{ $onboarding->booking->check_in->format('M d, Y') }} to {{ $onboarding->booking->check_out->format('M d, Y') }}</div>
+                <div class="section-tag">Booking Snapshot</div>
+                <div class="row g-2 small">
+                    <div class="col-12 col-md-6"><strong>Property:</strong> {{ $property->name }}</div>
+                    <div class="col-12 col-md-6"><strong>Room:</strong> {{ $room->room_number }}</div>
+                    <div class="col-12 col-md-6"><strong>Approved:</strong> {{ $bookingStatusLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Check-in:</strong> {{ $checkInLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Check-out:</strong> {{ $checkOutLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Duration:</strong> {{ $durationDays }} days</div>
+                    <div class="col-12 col-md-6"><strong>Requested:</strong> {{ $requestedLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Room Mode:</strong> {{ $roomModeLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Monthly Rent:</strong> ₱{{ number_format($monthlyRentAmount, 2) }}</div>
+                    <div class="col-12 col-md-6"><strong>Advance Payment:</strong> {{ $advancePaymentLabel }}</div>
+                    <div class="col-12 col-md-6"><strong>Advance Amount:</strong> ₱{{ number_format($selectedAdvanceAmount, 2) }}</div>
+                    <div class="col-12 col-md-6"><strong>Full Payment Due:</strong> ₱{{ number_format($effectiveDepositAmount, 2) }}</div>
+                    <div class="col-12 col-md-6"><strong>Payment Status:</strong> {{ $paymentStatusLabel }}</div>
+                </div>
             </div>
 
             <div class="clause-card mb-4">
-                <div class="section-tag">Terms and Conditions</div>
-                <ol class="mb-0 ps-3">
-                    <li>The Tenant agrees to pay rent on time as specified in this agreement.</li>
-                    <li>The Tenant agrees to maintain the property in good condition and report any damages promptly.</li>
-                    <li>The Landlord agrees to maintain habitable conditions and address maintenance issues in a timely manner.</li>
-                    <li>The Tenant shall not sublet the room without written permission from the Landlord.</li>
-                    <li>This agreement may be terminated by either party with appropriate notice as per local regulations.</li>
-                </ol>
+                <div class="section-tag">1. Premises</div>
+                <p class="mb-0">
+                    The Landlord agrees to rent to the Tenant, and the Tenant agrees to rent from the Landlord, the property located at
+                    <strong>{{ $property->name }}</strong>, Room <strong>{{ $room->room_number }}</strong> (the "Premises"), under the terms and conditions set forth in this Agreement.
+                </p>
+            </div>
+
+            <div class="clause-card mb-4">
+                <div class="section-tag">2. Term and Occupancy</div>
+                <p class="mb-0">
+                    The Tenant agrees to occupy the Premises under the approved booking terms and to strictly adhere to all community policies established by the Landlord.
+                    This Agreement serves as the binding contract for the tenancy commencing upon the completion of the Onboarding Process.
+                </p>
+            </div>
+
+            <div class="clause-card mb-4">
+                <div class="section-tag">3. Rent and Payment</div>
+                <ul class="contract-list">
+                    <li><strong>Due Date.</strong> Rent is due on the 1st day of each month.</li>
+                    <li><strong>Method of Payment.</strong> All rent payments must be payable exclusively through the designated Platform.</li>
+                    <li><strong>Onboarding Payment.</strong> The move-in payment equals monthly rent plus any selected/required advance payment and is required to complete onboarding.</li>
+                </ul>
+            </div>
+
+            <div class="clause-card mb-4">
+                <div class="section-tag">4. Community Rules and Maintenance</div>
+                <div class="rules-section">
+                    @php $ruleNumber = 1; @endphp
+                    @forelse($houseRuleSections as $section)
+                        <div class="mb-3">
+                            <div class="rules-group-title">{{ $section['label'] }}</div>
+                            <ol class="rules-list">
+                                @foreach($section['rules'] as $rule)
+                                    <li>{{ $rule }}</li>
+                                    @php $ruleNumber++; @endphp
+                                @endforeach
+                            </ol>
+                        </div>
+                    @empty
+                        <div class="small text-muted">No house rules configured for this property yet.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="clause-card mb-4">
+                <div class="section-tag">5. Execution and Move-In Conditions</div>
+                <ul class="contract-list">
+                    <li><strong>Binding Effect.</strong> This Contract becomes legally binding once all identity documents are verified and the electronic signature is submitted by both parties.</li>
+                    <li><strong>Payment Verification.</strong> Advance payment and payment status will be reviewed and verified prior to room handover.</li>
+                    <li><strong>Possession.</strong> Move-in is strictly subject to the confirmed check-in date and approved booking status.</li>
+                </ul>
+            </div>
+
+            <div class="clause-card mb-4">
+                <div class="section-tag">IN WITNESS WHEREOF</div>
+                <p class="mb-0">The parties have executed this Agreement as of the date first written above.</p>
             </div>
 
             <div class="row g-3 mb-4">
@@ -222,7 +349,7 @@
                         <div class="section-tag">Signature</div>
                         <div class="fw-semibold mb-2">Landlord Signature</div>
                         <div class="signature-line"></div>
-                        <div class="small text-muted">{{ $onboarding->booking->room->property->landlord->full_name }}</div>
+                        <div class="small text-muted">{{ $landlord->full_name ?? $landlord->name }}</div>
                         <div class="small text-muted">Date: {{ now()->format('M d, Y') }}</div>
                     </div>
                 </div>
@@ -233,7 +360,7 @@
                         <div class="signature-line"></div>
                         <div class="small text-muted">
                             @if($onboarding->contract_signed)
-                                {{ $onboarding->booking->student->full_name }}
+                                {{ $student->full_name ?? $student->name }}
                             @else
                                 <span class="text-danger">Pending Signature</span>
                             @endif

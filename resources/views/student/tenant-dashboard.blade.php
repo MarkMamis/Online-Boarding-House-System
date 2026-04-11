@@ -120,7 +120,7 @@
                                             <span class="badge rounded-pill text-bg-success ms-1">You</span>
                                         @endif
                                     </div>
-                                    <div class="small text-muted">{{ $rb->student?->course ?? 'Course not set' }}</div>
+                                    <div class="small text-muted">{{ $rb->student?->program ?? 'Program not set' }}</div>
                                 </div>
                                 <div class="small text-muted">Since {{ optional($rb->check_in)->format('M d, Y') }}</div>
                             </div>

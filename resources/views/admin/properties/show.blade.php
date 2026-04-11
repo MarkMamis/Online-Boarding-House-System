@@ -103,7 +103,72 @@
         display: inline-flex;
         align-items: center;
         font-size: .78rem;
-        padding: .28rem .6rem;
+        gap: .3rem;
+        padding: .32rem .62rem;
+    }
+    .services-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+    }
+    .services-list .service-chip i {
+        font-size: .72rem;
+        opacity: .82;
+    }
+    .property-overview-row {
+        align-items: flex-start;
+    }
+    .right-rail {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        height: 100%;
+    }
+    .inclusion-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .quick-check-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 180px;
+    }
+    .quick-check-list {
+        display: grid;
+        gap: .5rem;
+    }
+    .quick-check-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem;
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: .7rem;
+        background: #fff;
+        padding: .48rem .62rem;
+    }
+    .quick-check-label {
+        font-size: .84rem;
+        color: #334155;
+        font-weight: 600;
+    }
+    .quick-check-state {
+        font-size: .74rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: .18rem .55rem;
+    }
+    .quick-check-state.ok {
+        background: rgba(22, 163, 74, .12);
+        color: #166534;
+        border: 1px solid rgba(22, 163, 74, .26);
+    }
+    .quick-check-state.missing {
+        background: rgba(245, 158, 11, .16);
+        color: #92400e;
+        border: 1px solid rgba(245, 158, 11, .3);
     }
     .room-thumb {
         width: 52px;
@@ -188,6 +253,53 @@
     .map-wrap {
         height: 300px;
     }
+    .property-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: start;
+    }
+    .property-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .5rem;
+    }
+    .property-summary {
+        min-width: 0;
+        flex: 1 1 560px;
+    }
+    .summary-top {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: rgba(2, 8, 20, .56);
+        font-weight: 700;
+        margin-bottom: .15rem;
+    }
+    .summary-main {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.15;
+        margin-bottom: .15rem;
+    }
+    .summary-sub {
+        font-size: 1.05rem;
+        font-weight: 500;
+        color: #334155;
+    }
+    @media (max-width: 991.98px) {
+        .property-header {
+            flex-direction: column;
+        }
+        .property-header-actions {
+            justify-content: flex-start;
+        }
+        .summary-main {
+            font-size: 1.65rem;
+        }
+    }
     @media (max-width: 767.98px) {
         .admin-property-shell { padding: .95rem; }
         .map-wrap { height: 240px; }
@@ -195,26 +307,30 @@
 </style>
 
 @php
-    $permitStatus = optional(optional($property->landlord)->landlordProfile)->business_permit_status ?? 'not_submitted';
-    $permitBadgeClass = $permitStatus === 'approved'
-        ? 'text-bg-success'
-        : ($permitStatus === 'rejected' ? 'text-bg-danger' : ($permitStatus === 'pending' ? 'text-bg-warning' : 'text-bg-secondary'));
-
-    $approvalStatus = $property->approval_status ?? 'pending';
+    $approvalStatus = strtolower((string) ($property->approval_status ?? 'pending'));
+    $isPendingApproval = $approvalStatus === 'pending';
     $approvalBadgeClass = $approvalStatus === 'approved'
         ? 'text-bg-success'
         : ($approvalStatus === 'rejected' ? 'text-bg-danger' : 'text-bg-warning');
 @endphp
 
 <div class="admin-property-shell">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <div class="text-uppercase small section-muted fw-semibold">Management</div>
-            <h1 class="h4 mb-1">{{ $property->name }}</h1>
-            <div class="section-muted small">{{ $property->address }}</div>
+    <div class="property-header mb-4">
+        <div class="property-summary">
+            <div class="summary-top">Landlord: {{ optional($property->landlord)->full_name ?: 'Not provided' }}</div>
+            <div class="summary-main">{{ $property->name ?: 'Not provided' }}</div>
+            <div class="summary-sub">{{ $property->address ?: 'Not provided' }}</div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.properties.pending') }}" class="btn btn-outline-secondary rounded-pill px-3">Pending Queue</a>
+
+        <div class="property-header-actions">
+            @if($isPendingApproval)
+                <form method="POST" action="{{ route('admin.properties.approve', $property) }}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success rounded-pill px-3">
+                        <i class="bi bi-check2-circle me-1"></i>Approve
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('admin.properties.index') }}" class="btn btn-outline-secondary rounded-pill px-3">All Properties</a>
             <a href="#roomsSection" class="btn btn-outline-success rounded-pill px-3">View Rooms</a>
         </div>
@@ -253,7 +369,7 @@
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4 property-overview-row">
         <div class="col-lg-8">
             <div class="section-card h-100">
                 <div class="section-header fw-semibold"><i class="bi bi-building me-1"></i> Property Overview</div>
@@ -291,141 +407,170 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="section-card h-100">
-                <div class="section-header fw-semibold"><i class="bi bi-person-vcard me-1"></i> Landlord & Compliance</div>
+            <div class="right-rail">
+                <div class="section-card inclusion-card">
+                <div class="section-header d-flex justify-content-between align-items-center gap-2">
+                    <div class="fw-semibold"><i class="bi bi-stars me-1"></i> Building Inclusions</div>
+                    @if($servicesOffered->isNotEmpty())
+                        <span class="badge text-bg-light border">{{ $servicesOffered->count() }}</span>
+                    @endif
+                </div>
                 <div class="p-3">
-                    <div class="mb-2 fw-semibold">{{ optional($property->landlord)->full_name }}</div>
-                    <div class="small section-muted mb-2">{{ optional($property->landlord)->email }}</div>
-                    <div class="small mb-2"><strong>Contact:</strong> {{ optional($property->landlord)->contact_number ?: 'Not provided' }}</div>
-                    <div class="small mb-3"><strong>Boarding House:</strong> {{ optional($property->landlord)->boarding_house_name ?: 'Not provided' }}</div>
+                    @if($servicesOffered->isNotEmpty())
+                        <div class="small section-muted mb-2">Configured amenities at property level.</div>
+                        <div class="services-list">
+                            @foreach($servicesOffered as $service)
+                                <span class="service-chip"><i class="bi bi-check2-circle"></i>{{ $service }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="section-muted">No building inclusions listed yet.</div>
+                    @endif
+                </div>
+            </div>
 
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small fw-semibold">Permit Status</span>
-                        <span class="badge {{ $permitBadgeClass }}">{{ str_replace('_', ' ', $permitStatus) }}</span>
+                <div class="section-card quick-check-card">
+                    <div class="section-header fw-semibold"><i class="bi bi-clipboard2-check me-1"></i> Property Quick Check</div>
+                    <div class="p-3">
+                        <div class="quick-check-list">
+                            <div class="quick-check-item">
+                                <span class="quick-check-label">Image Uploaded</span>
+                                <span class="quick-check-state {{ !empty($property->image_path) ? 'ok' : 'missing' }}">{{ !empty($property->image_path) ? 'Yes' : 'Missing' }}</span>
+                            </div>
+                            <div class="quick-check-item">
+                                <span class="quick-check-label">Description</span>
+                                <span class="quick-check-state {{ filled($property->description) ? 'ok' : 'missing' }}">{{ filled($property->description) ? 'Added' : 'Missing' }}</span>
+                            </div>
+                            <div class="quick-check-item">
+                                <span class="quick-check-label">Map Coordinates</span>
+                                <span class="quick-check-state {{ !empty($property->latitude) && !empty($property->longitude) ? 'ok' : 'missing' }}">{{ !empty($property->latitude) && !empty($property->longitude) ? 'Pinned' : 'Missing' }}</span>
+                            </div>
+                            <div class="quick-check-item">
+                                <span class="quick-check-label">Rooms Added</span>
+                                <span class="quick-check-state {{ $property->rooms->count() > 0 ? 'ok' : 'missing' }}">{{ $property->rooms->count() > 0 ? $property->rooms->count() . ' room(s)' : 'None' }}</span>
+                            </div>
+                        </div>
                     </div>
-
-                    <a href="{{ route('admin.users.landlords.show', $property->landlord_id) }}" class="btn btn-sm btn-outline-secondary rounded-pill w-100">
-                        <i class="bi bi-eye me-1"></i>View Landlord Details
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    @if(!empty($property->latitude) && !empty($property->longitude))
-        <div class="section-card mb-4">
-            <div class="section-header fw-semibold"><i class="bi bi-map me-1"></i> Property Location</div>
-            <div id="propertyMap" class="map-wrap"></div>
-        </div>
-    @endif
-
-    <div class="section-card mb-4">
-        <div class="section-header fw-semibold"><i class="bi bi-stars me-1"></i> Services Offered</div>
-        <div class="p-3">
-            @if($servicesOffered->isNotEmpty())
-                <div class="d-flex flex-wrap gap-2">
-                    @foreach($servicesOffered as $service)
-                        <span class="service-chip">{{ $service }}</span>
-                    @endforeach
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="section-card h-100" id="roomsSection">
+                <div class="section-header d-flex justify-content-between align-items-center gap-2">
+                    <div class="fw-semibold"><i class="bi bi-door-open me-1"></i> Room Pricing & Services</div>
+                    <span class="badge text-bg-secondary">{{ $property->rooms->count() }} rooms</span>
                 </div>
-            @else
-                <div class="section-muted">No room services/inclusions listed yet.</div>
-            @endif
-        </div>
-    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-3">Room</th>
+                                <th>Status</th>
+                                <th>Capacity</th>
+                                <th>Price</th>
+                                <th>Services</th>
+                                <th>Photo</th>
+                                <th class="pe-3">View</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($property->rooms as $room)
+                                @php
+                                    $status = $room->status ?? 'available';
+                                    $statusClass = $status === 'available'
+                                        ? 'text-bg-success'
+                                        : ($status === 'occupied' ? 'text-bg-secondary' : 'text-bg-warning');
 
-    <div class="section-card" id="roomsSection">
-        <div class="section-header d-flex justify-content-between align-items-center gap-2">
-            <div class="fw-semibold"><i class="bi bi-door-open me-1"></i> Room Pricing & Services</div>
-            <span class="badge text-bg-secondary">{{ $property->rooms->count() }} rooms</span>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-3">Room</th>
-                        <th>Status</th>
-                        <th>Capacity</th>
-                        <th>Price</th>
-                        <th>Services</th>
-                        <th>Photo</th>
-                        <th class="pe-3">View</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($property->rooms as $room)
-                        @php
-                            $status = $room->status ?? 'available';
-                            $statusClass = $status === 'available'
-                                ? 'text-bg-success'
-                                : ($status === 'occupied' ? 'text-bg-secondary' : 'text-bg-warning');
-
-                            $roomImagePath = $room->image_path ?: optional($room->roomImages->first())->image_path;
-                            $roomImages = collect([]);
-                            if (!empty($room->image_path)) {
-                                $roomImages->push($room->image_path);
-                            }
-                            $roomImages = $roomImages
-                                ->merge($room->roomImages->pluck('image_path'))
-                                ->filter()
-                                ->unique()
-                                ->values();
-                            $services = collect(preg_split('/[,\n;]+/', (string) $room->inclusions))
-                                ->map(fn ($item) => trim($item))
-                                ->filter();
-                        @endphp
-                        <tr>
-                            <td class="ps-3">
-                                <div class="fw-semibold">Room {{ $room->room_number }}</div>
-                                <div class="small section-muted">Active tenants: {{ (int) ($room->active_bookings_count ?? 0) }}</div>
-                            </td>
-                            <td><span class="badge {{ $statusClass }}">{{ ucfirst($status) }}</span></td>
-                            <td>
-                                <div>{{ $room->getOccupancyDisplay() }}</div>
-                                <div class="small section-muted">{{ $room->getAvailableSlots() }} slots available</div>
-                            </td>
-                            <td class="fw-semibold">PHP {{ number_format((float) $room->price, 2) }}</td>
-                            <td>
-                                @if($services->isNotEmpty())
-                                    <div class="d-flex flex-wrap gap-1">
-                                        @foreach($services->take(3) as $service)
-                                            <span class="badge text-bg-light border">{{ $service }}</span>
-                                        @endforeach
-                                        @if($services->count() > 3)
-                                            <span class="badge text-bg-light border">+{{ $services->count() - 3 }} more</span>
+                                    $roomImagePath = $room->image_path ?: optional($room->roomImages->first())->image_path;
+                                    $roomImages = collect([]);
+                                    if (!empty($room->image_path)) {
+                                        $roomImages->push($room->image_path);
+                                    }
+                                    $roomImages = $roomImages
+                                        ->merge($room->roomImages->pluck('image_path'))
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
+                                    $services = collect(preg_split('/[,\n;]+/', (string) $room->inclusions))
+                                        ->map(fn ($item) => trim($item))
+                                        ->filter();
+                                @endphp
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                        <div class="small section-muted">Active tenants: {{ (int) ($room->active_bookings_count ?? 0) }}</div>
+                                    </td>
+                                    <td><span class="badge {{ $statusClass }}">{{ ucfirst($status) }}</span></td>
+                                    <td>
+                                        <div>{{ $room->getOccupancyDisplay() }}</div>
+                                        <div class="small section-muted">{{ $room->getAvailableSlots() }} slots available</div>
+                                    </td>
+                                    <td class="fw-semibold">PHP {{ number_format((float) $room->price, 2) }}</td>
+                                    <td>
+                                        @if($services->isNotEmpty())
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach($services->take(3) as $service)
+                                                    <span class="badge text-bg-light border">{{ $service }}</span>
+                                                @endforeach
+                                                @if($services->count() > 3)
+                                                    <span class="badge text-bg-light border">+{{ $services->count() - 3 }} more</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="small section-muted">None listed</span>
                                         @endif
-                                    </div>
-                                @else
-                                    <span class="small section-muted">None listed</span>
-                                @endif
-                            </td>
-                            <td class="pe-3">
-                                @if(!empty($roomImagePath))
-                                    <a href="{{ asset('storage/' . $roomImagePath) }}" target="_blank" rel="noopener" title="View room photo">
-                                        <img src="{{ asset('storage/' . $roomImagePath) }}" alt="Room photo" class="room-thumb">
-                                    </a>
-                                @else
-                                    <div class="small section-muted">No photo</div>
-                                @endif
-                            </td>
-                            <td class="pe-3">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-success room-view-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#roomDetailModal{{ $room->id }}"
-                                >
-                                    <i class="bi bi-eye me-1"></i>View room
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-4 section-muted">No rooms added for this property yet.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                    </td>
+                                    <td class="pe-3">
+                                        @if(!empty($roomImagePath))
+                                            <a href="{{ asset('storage/' . $roomImagePath) }}" target="_blank" rel="noopener" title="View room photo">
+                                                <img src="{{ asset('storage/' . $roomImagePath) }}" alt="Room photo" class="room-thumb">
+                                            </a>
+                                        @else
+                                            <div class="small section-muted">No photo</div>
+                                        @endif
+                                    </td>
+                                    <td class="pe-3">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-success room-view-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#roomDetailModal{{ $room->id }}"
+                                        >
+                                            <i class="bi bi-eye me-1"></i>View room
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 section-muted">No rooms added for this property yet.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="section-card h-100">
+                <div class="section-header fw-semibold"><i class="bi bi-map me-1"></i> Property Location</div>
+                <div class="p-3">
+                    @if(!empty($property->latitude) && !empty($property->longitude))
+                        <div id="propertyMap" class="map-wrap rounded"></div>
+                        <div class="small section-muted mt-2">
+                            <i class="bi bi-geo-alt me-1"></i>{{ $property->address ?: 'Address not provided' }}
+                        </div>
+                    @else
+                        <div class="property-cover-placeholder" style="height: 240px;">
+                            <span><i class="bi bi-geo-alt me-1"></i>No map coordinates available</span>
+                        </div>
+                        <div class="small section-muted mt-2">Set latitude and longitude to display the map here.</div>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 

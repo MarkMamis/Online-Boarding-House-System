@@ -17,7 +17,7 @@
             --gold:#f59e0b;
             --ink:#0f172a;
             --nav-h:68px;
-            --sidebar-w:264px;
+            --sidebar-w:280px;
             --surface:#ffffff;
             --shell:#f8fafc;
             --line:#e5e7eb;
@@ -160,9 +160,19 @@
             gap: .6rem;
             padding: .74rem .9rem;
             width:100%;
+            min-width: 0;
             text-align: left;
             border-radius: .7rem;
             transition: all .18s ease;
+        }
+        .sidepanel .list-group-item > span:not(.badge) {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .sidepanel .list-group-item > .badge {
+            flex-shrink: 0;
         }
         .sidepanel .list-group-item:hover {
             background: rgba(167,243,208,.22);
@@ -396,6 +406,7 @@
                 padding-right: 0;
                 overflow-y: auto;
                 overflow-x: hidden;
+                scrollbar-gutter: stable;
                 scrollbar-width: thin;
             }
             .sidepanel {
@@ -528,7 +539,7 @@
                             <span>Dashboard</span>
                         </a>
 
-                        <div class="nav-section">Management</div>
+                        <div class="nav-section">User Management</div>
                         <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navUsers" aria-expanded="{{ $usersOpen ? 'true' : 'false' }}" aria-controls="navUsers">
                             <i class="bi bi-people"></i>
                             <span>Users</span>
@@ -545,6 +556,8 @@
                                 <i class="bi bi-building"></i> Landlords
                             </a>
                         </div>
+
+                        <div class="nav-section">Property and Operations</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName)
                             && str_starts_with($routeName, 'admin.properties.')
                             && !str_starts_with($routeName, 'admin.properties.pending')
@@ -554,6 +567,20 @@
                             <i class="bi bi-buildings"></i>
                             <span>Properties</span>
                         </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.bookings.index']) href="{{ route('admin.bookings.index') }}">
+                            <i class="bi bi-journal-check"></i>
+                            <span>Bookings</span>
+                        </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.boarded_students.index']) href="{{ route('admin.boarded_students.index') }}">
+                            <i class="bi bi-door-open"></i>
+                            <span>Boarded Students</span>
+                        </a>
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.')]) href="{{ route('admin.onboardings.index') }}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Onboardings</span>
+                        </a>
+
+                        <div class="nav-section">Approvals</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName)
                             && (
                                 str_starts_with($routeName, 'admin.properties.pending')
@@ -574,21 +601,15 @@
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPermitApprovalsCount }}</span>
                             @endif
                         </a>
-                            <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.')]) href="{{ route('admin.student_verifications.index') }}">
-                                <i class="bi bi-person-vcard"></i>
-                                <span>Student Verifications</span>
-                                @if($pendingStudentVerificationCount > 0)
-                                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
-                                @endif
-                            </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'admin.bookings.index']) href="{{ route('admin.bookings.index') }}">
-                            <i class="bi bi-journal-check"></i>
-                            <span>Bookings</span>
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.')]) href="{{ route('admin.student_verifications.index') }}">
+                            <i class="bi bi-person-vcard"></i>
+                            <span>Student Verifications</span>
+                            @if($pendingStudentVerificationCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
+                            @endif
                         </a>
-                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.')]) href="{{ route('admin.onboardings.index') }}">
-                            <i class="bi bi-clipboard-check"></i>
-                            <span>Onboardings</span>
-                        </a>
+
+                        <div class="nav-section">Insights</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.reports.')]) href="{{ route('admin.reports.index') }}">
                             <i class="bi bi-flag"></i>
                             <span>Reports</span>
@@ -637,6 +658,7 @@
         $isPermitApprovalsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.permits.');
         $isStudentVerificationsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.');
         $isBookingsRoute = $routeName === 'admin.bookings.index';
+        $isBoardedStudentsRoute = $routeName === 'admin.boarded_students.index';
         $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
         $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
     @endphp
@@ -659,7 +681,7 @@
                 <i class="bi bi-check2-circle"></i>
                 <span>Approvals</span>
             </a>
-            <button type="button" @class(['nav-link', 'active' => $isPermitApprovalsRoute || $isStudentVerificationsRoute || $isBookingsRoute || $isOnboardingsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
+            <button type="button" @class(['nav-link', 'active' => $isPermitApprovalsRoute || $isStudentVerificationsRoute || $isBookingsRoute || $isBoardedStudentsRoute || $isOnboardingsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
                 <i class="bi bi-three-dots"></i>
                 <span>More</span>
             </button>
@@ -690,6 +712,10 @@
                 <a @class(['list-group-item', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
                     <i class="bi bi-journal-check"></i>
                     <span>Bookings</span>
+                </a>
+                <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarded_students.index') }}">
+                    <i class="bi bi-door-open"></i>
+                    <span>Boarded Students</span>
                 </a>
                 <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
                     <i class="bi bi-clipboard-check"></i>

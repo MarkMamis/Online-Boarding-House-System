@@ -96,7 +96,7 @@
                 $occupancyRate = $total > 0 ? (int) round(($occupied / $total) * 100) : 0;
                 $amenityLabels = (array) config('property_amenities.flat', []);
                 $buildingInclusions = collect((array) ($prop->building_inclusions ?? []))
-                    ->map(fn ($key) => $amenityLabels[$key] ?? null)
+                    ->map(fn ($key) => $amenityLabels[$key] ?? trim((string) $key))
                     ->filter()
                     ->values();
             @endphp

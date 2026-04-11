@@ -162,7 +162,7 @@
     $inclusions = collect(preg_split('/[,\n;]+/', $room->inclusions ?? ''))->map('trim')->filter()->values();
     $propertyInclusionLabels = (array) config('property_amenities.flat', []);
     $propertyInclusions = collect((array) ($room->property->building_inclusions ?? []))
-        ->map(fn ($key) => $propertyInclusionLabels[$key] ?? null)
+        ->map(fn ($key) => $propertyInclusionLabels[$key] ?? trim((string) $key))
         ->filter()
         ->values();
     $detailPhotos = $room->roomImages ?? collect();

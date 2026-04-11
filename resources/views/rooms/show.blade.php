@@ -68,12 +68,110 @@
 
         .navbar-green .nav-link:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 
+        .navbar-green .btn-link {
+            color: rgba(255,255,255,.92) !important;
+            font-weight: 600;
+        }
+
+        .navbar-green .btn-link:hover {
+            color: #fff !important;
+        }
+
+        .navbar-green .navbar-toggler {
+            border: 0;
+            outline: 0;
+            box-shadow: none !important;
+        }
+
+        .navbar-green .navbar-toggler:focus,
+        .navbar-green .navbar-toggler:active {
+            border: 0;
+            outline: 0;
+            box-shadow: none !important;
+        }
+
+        .navbar-green .navbar-toggler .hamburger-icon {
+            width: 30px;
+            height: 22px;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .navbar-green .navbar-toggler .hamburger-icon span {
+            display: block;
+            height: 2.5px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.95);
+            transform-origin: center;
+            transition: transform .28s ease, opacity .2s ease, width .22s ease;
+            align-self: flex-end;
+        }
+
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(1) {
+            width: 100%;
+        }
+
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(2) {
+            width: 66.6667%;
+        }
+
+        .navbar-green .navbar-toggler .hamburger-icon span:nth-child(3) {
+            width: 33.3333%;
+        }
+
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(1) {
+            width: 100%;
+            align-self: center;
+            transform: translateY(7.5px) rotate(45deg);
+        }
+
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(2) {
+            opacity: 0;
+            width: 0;
+        }
+
+        .navbar-green .navbar-toggler[aria-expanded="true"] .hamburger-icon span:nth-child(3) {
+            width: 100%;
+            align-self: center;
+            transform: translateY(-7.5px) rotate(-45deg);
+        }
+
         .navbar-green .navbar-brand {
             position: relative;
             padding-left: 86px;
             margin-left: 0;
             color: #fff;
             font-weight: 700;
+        }
+
+        .navbar-brand-text {
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: .12rem;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
+        .navbar-brand-text .brand-line-top {
+            font-size: 1.35rem;
+            font-weight: 900;
+            letter-spacing: .01em;
+            text-transform: none;
+            color: #ffffff;
+            line-height: 1;
+        }
+
+        .navbar-brand-text .brand-line-bottom {
+            font-size: .86rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: none;
+            color: rgba(236, 253, 245, .86);
+            line-height: 1;
         }
 
         .nav-logo-under {
@@ -246,8 +344,31 @@
 
         @media (max-width: 991.98px) {
             .navbar-green .navbar-brand {
-                padding-left: 62px;
-                font-size: 1rem;
+                padding-left: 84px;
+            }
+
+            .navbar-brand-text .brand-line-top {
+                font-size: 1.08rem;
+            }
+
+            .navbar-brand-text .brand-line-bottom {
+                font-size: .7rem;
+            }
+
+            #landingNav .navbar-nav {
+                margin-left: auto;
+                width: fit-content;
+                align-items: flex-end;
+                text-align: right;
+                padding-top: .5rem;
+            }
+
+            #landingNav .nav-item {
+                width: 100%;
+            }
+
+            #landingNav .btn {
+                margin-left: auto;
             }
 
             .nav-logo-under {
@@ -268,21 +389,7 @@
 </head>
 <body class="room-show-bg">
 
-    <nav class="navbar navbar-expand-lg navbar-green fixed-top">
-        <div class="container-xl py-2">
-            <a class="navbar-brand" href="{{ route('landing') }}">
-                <span class="nav-logo-under" aria-hidden="true">
-                    <img src="{{ asset('images/minsu3.png') }}" alt="MINSU">
-                </span>
-                Online Boarding House System
-            </a>
-            <div class="ms-auto">
-                <a href="{{ route('landing') }}" class="btn room-back-btn btn-sm px-3">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
-            </div>
-        </div>
-    </nav>
+    <x-public-topnav />
 
     @php
         $roomImage = $room->image_path;

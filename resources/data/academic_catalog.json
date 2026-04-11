@@ -1,0 +1,50 @@
+{
+  "colleges": {
+    "CAS": "College of Arts and Studies",
+    "CBM": "College of Business Management",
+    "CCS": "College Of Computer Studies",
+    "CCJE": "College of Criminal Justice Education",
+    "CTE": "College of Teacher Education"
+  },
+  "programs": {
+    "CAS": [
+      "Bachelor of Arts in English Language",
+      "Bachelor of Arts in Psychology"
+    ],
+    "CBM": [
+      "Bachelor of Science in Tourism Management",
+      "Bachelor of Science in Hospitality Management"
+    ],
+    "CCS": [
+      "Bachelor of Science in Information Technology"
+    ],
+    "CCJE": [
+      "Bachelor of Science in Criminology"
+    ],
+    "CTE": [
+      "Bachelor of Secondary Education",
+      "Bachelor of Technical-Vocational Teacher Education",
+      "Bachelor of Technology and Livelihood Education"
+    ]
+  },
+  "majors": {
+    "Bachelor of Secondary Education": [
+      "English",
+      "Filipino",
+      "Mathematics",
+      "Science"
+    ],
+    "Bachelor of Technical-Vocational Teacher Education": [
+      "Food and Service Management",
+      "Electronics Technology",
+      "Electrical Technology",
+      "Automotive Technology",
+      "Drafting Technology",
+      "Fashion and Garments Technology"
+    ],
+    "Bachelor of Technology and Livelihood Education": [
+      "Industrial Arts",
+      "Home Economics"
+    ]
+  }
+}

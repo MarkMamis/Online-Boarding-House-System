@@ -448,7 +448,7 @@
                                 <span class="step-badge">2</span>
                                 <div class="step-copy">
                                     <div class="step-label">Step 2</div>
-                                    <div class="step-title">Academic Identity</div>
+                                    <div class="step-title">Academic Verification</div>
                                 </div>
                             </div>
                             <div class="step-chip" data-step-nav="2">
@@ -475,6 +475,14 @@
                             $isFirstYearSelected = $selectedYearLevel === '1st Year';
                             $selectedEnrollmentProofType = old('enrollment_proof_type', $user->enrollment_proof_type);
                             $hasEnrollmentProof = !empty($user->enrollment_proof_path);
+                            $collegeMap = $academicCatalog['colleges'] ?? [];
+                            $programMap = $academicCatalog['programs'] ?? [];
+                            $majorMap = $academicCatalog['majors'] ?? [];
+                            $selectedCollege = old('college', $user->college);
+                            $selectedProgram = old('program', $user->program);
+                            $selectedMajor = old('major', $user->major);
+                            $programOptions = $programMap[$selectedCollege] ?? [];
+                            $majorOptions = $majorMap[$selectedProgram] ?? [];
                         @endphp
 
                         <section class="step-panel active" data-step="0">
@@ -540,19 +548,51 @@
 
                         <section class="step-panel" data-step="1">
                             <div class="section-card step-panel-enter">
-                                <div class="section-title">Academic Identity</div>
-                                <div class="section-sub">Confirm your academic information so admin and housing records match.</div>
+                                <div class="section-title">Academic Verification</div>
+                                <div class="section-sub">Confirm your academic details and verification documents so admin and housing records match.</div>
                                 <div class="row g-3">
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">Student ID</label>
                                         <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }}>
                                         <div id="student_id_help" class="form-text {{ $isFirstYearSelected ? '' : 'd-none' }}">Optional for 1st Year while official ID release is pending.</div>
                                     </div>
-                                    <div class="col-12 col-md-4">
-                                        <label class="form-label">Course</label>
-                                        <input type="text" name="course" class="form-control @error('course') is-invalid @enderror" value="{{ old('course', $user->course) }}" required>
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label">College</label>
+                                        <select id="college" name="college" class="form-select @error('college') is-invalid @enderror" required>
+                                            <option value="">Select college</option>
+                                            @foreach($collegeMap as $collegeCode => $collegeName)
+                                                <option value="{{ $collegeCode }}" @selected($selectedCollege === $collegeCode)>
+                                                    {{ $collegeCode }} - {{ $collegeName }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('college')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
-                                    <div class="col-12 col-md-4">
+
+                                    <div class="col-12 col-md-3">
+                                        <label class="form-label">Program</label>
+                                        <select id="program" name="program" class="form-select @error('program') is-invalid @enderror" data-initial-program="{{ $selectedProgram }}" required>
+                                            <option value="">Select program</option>
+                                            @foreach($programOptions as $programName)
+                                                <option value="{{ $programName }}" @selected($selectedProgram === $programName)>{{ $programName }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('program')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+
+                                    <div class="col-12 col-md-3" id="major_group" style="{{ empty($majorOptions) ? 'display:none;' : '' }}">
+                                        <label class="form-label">Major (Optional)</label>
+                                        <select id="major" name="major" class="form-select @error('major') is-invalid @enderror" data-initial-major="{{ $selectedMajor }}">
+                                            <option value="">Select major</option>
+                                            @foreach($majorOptions as $majorName)
+                                                <option value="{{ $majorName }}" @selected($selectedMajor === $majorName)>{{ $majorName }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('major')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+
+                                    <div class="col-12 col-md-3">
                                         <label class="form-label">Year Level</label>
                                         <select id="year_level" name="year_level" class="form-select @error('year_level') is-invalid @enderror" required>
                                             <option value="" disabled {{ $selectedYearLevel ? '' : 'selected' }}>Select year</option>
@@ -816,6 +856,67 @@
                     schoolIdPreview.src = URL.createObjectURL(file);
                     schoolIdPreview.classList.remove('d-none');
                 });
+            }
+
+            const collegeSelect = document.getElementById('college');
+            const programSelect = document.getElementById('program');
+            const majorSelect = document.getElementById('major');
+            const majorGroup = document.getElementById('major_group');
+            const catalog = @json($academicCatalog ?? ['programs' => [], 'majors' => []]);
+
+            if (collegeSelect && programSelect && majorSelect && majorGroup) {
+                const initialProgram = programSelect.dataset.initialProgram || programSelect.value;
+                const initialMajor = majorSelect.dataset.initialMajor || majorSelect.value;
+
+                const populatePrograms = function (selectedCollege, preferredProgram) {
+                    const programs = (catalog.programs && catalog.programs[selectedCollege]) ? catalog.programs[selectedCollege] : [];
+
+                    programSelect.innerHTML = '<option value="">Select program</option>';
+                    programs.forEach((programName) => {
+                        const option = document.createElement('option');
+                        option.value = programName;
+                        option.textContent = programName;
+                        option.selected = preferredProgram === programName;
+                        programSelect.appendChild(option);
+                    });
+
+                    if (preferredProgram && !programs.includes(preferredProgram)) {
+                        programSelect.value = '';
+                    }
+                };
+
+                const populateMajors = function (selectedProgram, preferredMajor) {
+                    const majors = (catalog.majors && catalog.majors[selectedProgram]) ? catalog.majors[selectedProgram] : [];
+
+                    majorSelect.innerHTML = '<option value="">Select major</option>';
+                    majors.forEach((majorName) => {
+                        const option = document.createElement('option');
+                        option.value = majorName;
+                        option.textContent = majorName;
+                        option.selected = preferredMajor === majorName;
+                        majorSelect.appendChild(option);
+                    });
+
+                    const showMajor = majors.length > 0;
+                    majorGroup.style.display = showMajor ? '' : 'none';
+                    majorSelect.required = false;
+
+                    if (preferredMajor && !majors.includes(preferredMajor)) {
+                        majorSelect.value = '';
+                    }
+                };
+
+                collegeSelect.addEventListener('change', function () {
+                    populatePrograms(collegeSelect.value, '');
+                    populateMajors('', '');
+                });
+
+                programSelect.addEventListener('change', function () {
+                    populateMajors(programSelect.value, '');
+                });
+
+                populatePrograms(collegeSelect.value, initialProgram);
+                populateMajors(programSelect.value, initialMajor);
             }
 
             const yearLevelInput = document.getElementById('year_level');

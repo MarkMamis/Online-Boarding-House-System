@@ -97,4 +97,77 @@ class AdminBookingController extends Controller
             'activeTenants'
         ));
     }
+
+    public function boardedStudents(Request $request)
+    {
+        $this->ensureAdmin();
+
+        $search = trim((string) $request->query('search', ''));
+        $today = now()->toDateString();
+
+        $applyActiveBoardingFilter = function ($query) use ($today) {
+            return $query
+                ->where('bookings.status', 'approved')
+                ->whereDate('bookings.check_in', '<=', $today)
+                ->where(function ($inner) use ($today) {
+                    $inner->whereNull('bookings.check_out')
+                        ->orWhereDate('bookings.check_out', '>', $today);
+                });
+        };
+
+        $metricsBaseQuery = $applyActiveBoardingFilter(Booking::query());
+
+        $activeBoardings = (clone $metricsBaseQuery)->count();
+        $activeTenants = (clone $metricsBaseQuery)->distinct('bookings.student_id')->count('bookings.student_id');
+        $activeRooms = (clone $metricsBaseQuery)->distinct('bookings.room_id')->count('bookings.room_id');
+        $activeProperties = (clone $metricsBaseQuery)
+            ->join('rooms as metric_rooms', 'metric_rooms.id', '=', 'bookings.room_id')
+            ->distinct('metric_rooms.property_id')
+            ->count('metric_rooms.property_id');
+
+        $boardedStudentsQuery = $applyActiveBoardingFilter(
+            Booking::query()
+                ->with(['student', 'room.property'])
+        );
+
+        if ($search !== '') {
+            $boardedStudentsQuery->where(function ($query) use ($search) {
+                if (ctype_digit($search)) {
+                    $query->orWhere('id', (int) $search)
+                        ->orWhere('student_id', (int) $search);
+                }
+
+                $like = '%' . $search . '%';
+
+                $query->orWhereHas('student', function ($studentQuery) use ($like) {
+                    $studentQuery->where('full_name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('contact_number', 'like', $like);
+                });
+
+                $query->orWhereHas('room', function ($roomQuery) use ($like) {
+                    $roomQuery->where('room_number', 'like', $like);
+                });
+
+                $query->orWhereHas('room.property', function ($propertyQuery) use ($like) {
+                    $propertyQuery->where('name', 'like', $like)
+                        ->orWhere('address', 'like', $like);
+                });
+            });
+        }
+
+        $boardedStudents = $boardedStudentsQuery
+            ->orderBy('check_in')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.boarded_students.index', compact(
+            'boardedStudents',
+            'search',
+            'activeBoardings',
+            'activeTenants',
+            'activeRooms',
+            'activeProperties'
+        ));
+    }
 }

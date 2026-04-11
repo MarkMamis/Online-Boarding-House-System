@@ -275,11 +275,65 @@
             white-space: nowrap;
         }
 
+        .academic-college {
+            border: 1px solid rgba(15, 23, 42, .10);
+            border-radius: .9rem;
+            background: rgba(248, 250, 252, .86);
+            padding: .7rem;
+        }
+
+        .academic-programs {
+            margin-top: .55rem;
+            display: grid;
+            gap: .42rem;
+        }
+
+        .academic-program {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .8rem;
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: .7rem;
+            background: #fff;
+            padding: .45rem .58rem;
+        }
+
+        .academic-program-name {
+            font-size: .82rem;
+            font-weight: 600;
+            color: rgba(15, 23, 42, .84);
+        }
+
         .gender-pill {
             border: 1px solid rgba(15, 23, 42, .10);
             border-radius: .75rem;
             background: rgba(248, 250, 252, .9);
             padding: .6rem .7rem;
+        }
+
+        .academic-summary-card {
+            border: 1px solid rgba(15, 23, 42, .10);
+            border-radius: .8rem;
+            background: rgba(248, 250, 252, .92);
+            padding: .6rem .7rem;
+            min-height: 72px;
+        }
+
+        .academic-summary-label {
+            font-size: .72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            font-weight: 700;
+            margin-bottom: .2rem;
+        }
+
+        .academic-summary-value {
+            font-size: .95rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.25;
         }
 
         .map-wrap {
@@ -484,19 +538,81 @@
             <div class="col-12 col-xl-7">
                 <div class="section-card h-100">
                     <div class="card-header d-flex align-items-center justify-content-between px-3 px-lg-4 py-3">
-                        <div class="header-title"><i class="bi bi-mortarboard me-2"></i>Boarded Students Per Program</div>
-                        <div class="status-chip">Academic profile</div>
+                        <div class="header-title"><i class="bi bi-mortarboard me-2"></i>Boarded Student Academic Profile</div>
+                        <div class="status-chip">College and program basis</div>
                     </div>
                     <div class="card-body px-3 px-lg-4 py-4">
-                        <div class="analytics-list mb-3">
-                            @forelse($boardedByProgram as $program)
-                                <div class="analytics-item">
-                                    <div class="name">{{ $program->program }}</div>
-                                    <span class="count">{{ $program->total_students }}</span>
+                        @php
+                            $academicColleges = collect($boardedByAcademic ?? []);
+                            $academicCollegeCount = $academicColleges->count();
+                            $programTotals = [];
+
+                            foreach ($academicColleges as $college) {
+                                foreach ((array) ($college->programs ?? []) as $program) {
+                                    $programName = trim((string) ($program['name'] ?? 'Not specified'));
+                                    if ($programName === '') {
+                                        $programName = 'Not specified';
+                                    }
+
+                                    $programTotals[$programName] = ($programTotals[$programName] ?? 0) + (int) ($program['total_students'] ?? 0);
+                                }
+                            }
+
+                            arsort($programTotals);
+                            $academicProgramCount = count($programTotals);
+
+                            $topCollege = $academicColleges
+                                ->sortByDesc(fn ($college) => (int) ($college->total_students ?? 0))
+                                ->first();
+
+                            $topCollegeLabel = $topCollege
+                                ? (($topCollege->college_name ?? 'Not specified') . ' (' . ((int) ($topCollege->total_students ?? 0)) . ')')
+                                : 'No data';
+
+                            $topProgramName = array_key_first($programTotals);
+                            $topProgramLabel = $topProgramName
+                                ? ($topProgramName . ' (' . ((int) ($programTotals[$topProgramName] ?? 0)) . ')')
+                                : 'No data';
+                        @endphp
+
+                        <div class="row g-2 mb-3" id="academicSummaryCards">
+                            <div class="col-6 col-lg-3">
+                                <div class="academic-summary-card text-center">
+                                    <div class="academic-summary-label">Colleges</div>
+                                    <div class="academic-summary-value" id="academicCollegeCount">{{ $academicCollegeCount }}</div>
                                 </div>
-                            @empty
-                                <div class="text-muted small">No program data yet.</div>
-                            @endforelse
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="academic-summary-card text-center">
+                                    <div class="academic-summary-label">Programs/Majors</div>
+                                    <div class="academic-summary-value" id="academicProgramCount">{{ $academicProgramCount }}</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-3">
+                                <div class="academic-summary-card">
+                                    <div class="academic-summary-label">Top College</div>
+                                    <div class="academic-summary-value" id="academicTopCollege">{{ $topCollegeLabel }}</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-3">
+                                <div class="academic-summary-card">
+                                    <div class="academic-summary-label">Top Program/Major</div>
+                                    <div class="academic-summary-value" id="academicTopProgram">{{ $topProgramLabel }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-xl-6">
+                                <div class="chart-wrap">
+                                    <canvas id="chartAcademicColleges"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12 col-xl-6">
+                                <div class="chart-wrap">
+                                    <canvas id="chartAcademicPrograms"></canvas>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="small muted">Male/Female distribution (active boarders)</div>
@@ -594,71 +710,6 @@
             <div class="col-12 col-xl-6">
                 <div class="section-card h-100">
                     <div class="card-header d-flex align-items-center justify-content-between px-3 px-lg-4 py-3">
-                        <div class="header-title"><i class="bi bi-door-open me-2"></i> Room Status</div>
-                        <div class="status-chip">All-time</div>
-                    </div>
-                    <div class="card-body px-3 px-lg-4 py-4">
-                        <div class="chart-wrap">
-                            <canvas id="chartRooms"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 g-lg-4 mb-4">
-            <div class="col-12 col-xl-7">
-                <div class="section-card">
-                    <div class="card-header d-flex align-items-center justify-content-between px-3 px-lg-4 py-3">
-                        <div class="header-title">
-                            <i class="bi bi-activity me-2"></i> Activity Snapshot
-                        </div>
-                        <div class="status-chip">Last 7 days + today</div>
-                    </div>
-                    <div class="card-body px-3 px-lg-4 py-4">
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
-                                <div class="p-3 rounded-4" style="background: rgba(22,101,52,.07); border: 1px solid rgba(22,101,52,.16);">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <div class="small muted">Growth (7d)</div>
-                                            <div class="h2 fw-bold mb-0">{{ $growthPct }}%</div>
-                                        </div>
-                                        <div class="kpi-icon" style="background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.26); color: rgba(180,83,9,1);"><i class="bi bi-graph-up"></i></div>
-                                    </div>
-                                    <div class="small muted mt-2">{{ $last7DaysNew }} new users in the last 7 days.</div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="p-3 rounded-4" style="background: rgba(2,8,20,.03); border: 1px solid rgba(2,8,20,.06);">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <div class="small muted">New Today</div>
-                                            <div class="h2 fw-bold mb-0">{{ $todayNew }}</div>
-                                        </div>
-                                        <div class="kpi-icon" style="background: rgba(2,8,20,.06); border-color: rgba(2,8,20,.10); color: rgba(2,8,20,.70);"><i class="bi bi-calendar2-plus"></i></div>
-                                    </div>
-                                    <div class="small muted mt-2">Registrations within the last 24 hours.</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-4">
-                            <div class="header-title mb-2"><i class="bi bi-gear me-2"></i> System Status</div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="status-chip"><i class="bi bi-collection-play"></i> Queue: {{ $systemStatus['queue'] }}</span>
-                                <span class="status-chip"><i class="bi bi-hdd-rack"></i> Cache: {{ $systemStatus['cache'] }}</span>
-                                <span class="status-chip"><i class="bi bi-envelope-paper"></i> Mail: {{ $systemStatus['mail'] }}</span>
-                                <span class="status-chip"><i class="bi bi-layers"></i> Laravel: {{ $systemStatus['version'] }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-xl-5">
-                <div class="section-card h-100">
-                    <div class="card-header d-flex align-items-center justify-content-between px-3 px-lg-4 py-3">
                         <div class="header-title"><i class="bi bi-flag me-2"></i> Reports</div>
                         <a class="small text-decoration-none fw-semibold" href="{{ route('admin.reports.index') }}">View all</a>
                     </div>
@@ -743,6 +794,9 @@
     <script>
         (function () {
             const landlordPoints = @json($landlordMapPoints ?? []);
+            const initialAcademicData = @json($boardedByAcademic ?? []);
+            let chartAcademicCollegesInstance = null;
+            let chartAcademicProgramsInstance = null;
 
             const colors = {
                 brand: 'rgba(22,101,52,1)',
@@ -755,6 +809,8 @@
                 gray: 'rgba(2,8,20,.55)',
             };
 
+            const academicProgramChartMode = 'stacked-bar';
+
             const fmt = (iso) => {
                 const d = new Date(iso + 'T00:00:00');
                 return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -763,6 +819,98 @@
             const setRangeLabel = (text) => {
                 const el = document.getElementById('rangeLabel');
                 if (el) el.textContent = text;
+            };
+
+            const setText = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            };
+
+            const aggregateAcademicData = (colleges) => {
+                const normalized = Array.isArray(colleges) ? colleges : [];
+
+                const collegeSeries = normalized.map((college) => ({
+                    name: String(college?.college_name || 'Not specified'),
+                    code: String(college?.college_code || 'Not specified'),
+                    total: Number(college?.total_students || 0),
+                })).filter((item) => item.total > 0);
+
+                const programTotals = new Map();
+                const programCollegeTotals = new Map();
+                normalized.forEach((college) => {
+                    const programs = Array.isArray(college?.programs) ? college.programs : [];
+                    programs.forEach((program) => {
+                        const name = String(program?.name || 'Not specified').trim() || 'Not specified';
+                        const total = Number(program?.total_students || 0);
+                        if (total > 0) {
+                            programTotals.set(name, (programTotals.get(name) || 0) + total);
+
+                            const collegeCode = String(college?.college_code || 'Not specified');
+                            if (!programCollegeTotals.has(name)) {
+                                programCollegeTotals.set(name, new Map());
+                            }
+                            const collegeMap = programCollegeTotals.get(name);
+                            collegeMap.set(collegeCode, (collegeMap.get(collegeCode) || 0) + total);
+                        }
+                    });
+                });
+
+                const sortedColleges = [...collegeSeries].sort((a, b) => b.total - a.total);
+                const sortedPrograms = [...programTotals.entries()]
+                    .map(([name, total]) => ({ name, total }))
+                    .sort((a, b) => b.total - a.total);
+
+                const topColleges = sortedColleges.slice(0, 6);
+                const otherCollegeTotal = sortedColleges.slice(6).reduce((sum, item) => sum + item.total, 0);
+                if (otherCollegeTotal > 0) {
+                    topColleges.push({ name: 'Other colleges', code: 'OTHER', total: otherCollegeTotal });
+                }
+
+                const topPrograms = sortedPrograms.slice(0, 8).map((program) => {
+                    const collegeMap = programCollegeTotals.get(program.name) || new Map();
+                    let collegeCode = 'Not specified';
+                    let maxTotal = -1;
+
+                    collegeMap.forEach((count, code) => {
+                        if (count > maxTotal) {
+                            maxTotal = count;
+                            collegeCode = code;
+                        }
+                    });
+
+                    return {
+                        ...program,
+                        collegeCode,
+                    };
+                });
+
+                const topAreaColleges = sortedColleges.slice(0, 5);
+                const programCollegeDatasets = topAreaColleges.map((college) => ({
+                    name: college.name,
+                    code: college.code,
+                    data: topPrograms.map((program) => {
+                        const collegeMap = programCollegeTotals.get(program.name) || new Map();
+                        return Number(collegeMap.get(college.code) || 0);
+                    })
+                }));
+
+                return {
+                    topColleges,
+                    topPrograms,
+                    programCollegeDatasets,
+                    collegeLabels: topColleges.map((item) => item.name),
+                    collegeData: topColleges.map((item) => item.total),
+                    programLabels: topPrograms.map((item) => item.name),
+                    programData: topPrograms.map((item) => item.total),
+                    summary: {
+                        collegeCount: sortedColleges.length,
+                        programCount: sortedPrograms.length,
+                        topCollege: sortedColleges.length ? `${sortedColleges[0].name} (${sortedColleges[0].total})` : 'No data',
+                        topProgram: sortedPrograms.length ? `${sortedPrograms[0].name} (${sortedPrograms[0].total})` : 'No data',
+                    }
+                };
             };
 
             const buildLine = (ctx, labels, data) => {
@@ -1029,6 +1177,263 @@
                 }
             });
 
+            const buildProgramArea = (ctx, labels, series) => {
+                return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: series.map((item, index) => {
+                        const color = getCollegeColor(item.name, item.code);
+                        const fillAlpha = Math.max(0.03, 0.10 - (index * 0.01));
+
+                        return {
+                            label: item.name,
+                            data: item.data,
+                            borderColor: withAlpha(color, 0.95),
+                            backgroundColor: withAlpha(color, fillAlpha),
+                            fill: true,
+                            tension: 0,
+                            borderWidth: 2,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 6,
+                            pointHitRadius: 12,
+                            pointBackgroundColor: withAlpha(color, 0.95),
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1.5
+                        };
+                    })
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 850, easing: 'easeOutQuart' },
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: true,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                color: colors.gray,
+                                padding: 12,
+                                font: { size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'nearest',
+                            intersect: true,
+                            callbacks: {
+                                title: (items) => (items[0] ? items[0].label : ''),
+                                label: (context) => `${context.dataset.label}: ${context.raw}`
+                            },
+                            backgroundColor: 'rgba(2,8,20,.86)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#f8fafc',
+                            padding: 10,
+                            cornerRadius: 10
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, padding: 8, font: { size: 11 } },
+                            grid: { color: 'rgba(148,163,184,0.18)', drawBorder: false }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: colors.gray,
+                                padding: 6,
+                                font: { size: 10 },
+                                maxRotation: 0,
+                                minRotation: 0,
+                                callback: function (value) {
+                                    const label = this.getLabelForValue(value);
+                                    if (typeof label !== 'string') return label;
+                                    return label.length > 20 ? `${label.slice(0, 20)}...` : label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            };
+
+            const buildProgramStackedBar = (ctx, labels, series) => {
+                return new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: series.map((item) => {
+                            const color = getCollegeColor(item.name, item.code);
+                            return {
+                                label: item.name,
+                                data: item.data,
+                                backgroundColor: withAlpha(color, 0.48),
+                                borderColor: withAlpha(color, 0.95),
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                borderSkipped: false,
+                                maxBarThickness: 36,
+                            };
+                        })
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 850, easing: 'easeOutQuart' },
+                        interaction: {
+                            mode: 'nearest',
+                            intersect: true,
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    color: colors.gray,
+                                    padding: 12,
+                                    font: { size: 11, weight: '600' }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'nearest',
+                                intersect: true,
+                                callbacks: {
+                                    title: (items) => (items[0] ? items[0].label : ''),
+                                    label: (context) => `${context.dataset.label}: ${context.raw}`
+                                },
+                                backgroundColor: 'rgba(2,8,20,.86)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#f8fafc',
+                                padding: 10,
+                                cornerRadius: 10
+                            }
+                        },
+                        scales: {
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: { precision: 0, color: colors.gray, padding: 8, font: { size: 11 } },
+                                grid: { color: 'rgba(148,163,184,0.18)', drawBorder: false }
+                            },
+                            x: {
+                                stacked: true,
+                                grid: { display: false },
+                                ticks: {
+                                    color: colors.gray,
+                                    padding: 6,
+                                    font: { size: 10 },
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                    callback: function (value) {
+                                        const label = this.getLabelForValue(value);
+                                        if (typeof label !== 'string') return label;
+                                        return label.length > 20 ? `${label.slice(0, 20)}...` : label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const normalizeCollegeCode = (label, code = '') => {
+                const rawCode = String(code || '').trim().toUpperCase();
+                if (rawCode && rawCode !== 'NOT SPECIFIED') {
+                    return rawCode;
+                }
+
+                const normalizedLabel = String(label || '').toLowerCase();
+                if (normalizedLabel.includes('arts and studies')) return 'CAS';
+                if (normalizedLabel.includes('business management')) return 'CBM';
+                if (normalizedLabel.includes('computer studies')) return 'CCS';
+                if (normalizedLabel.includes('criminal justice')) return 'CCJE';
+                if (normalizedLabel.includes('teacher education')) return 'CTE';
+                if (normalizedLabel.includes('not specified')) return 'NOT_SPECIFIED';
+                return rawCode || 'OTHER';
+            };
+
+            const getCollegeColor = (label, code = '') => {
+                const collegeCode = normalizeCollegeCode(label, code);
+                const colorMap = {
+                    CAS: 'rgba(107,114,128,.88)',
+                    CBM: 'rgba(236,72,153,.88)',
+                    CCS: 'rgba(245,158,11,.88)',
+                    CCJE: 'rgba(34,197,94,.88)',
+                    CTE: 'rgba(59,130,246,.88)',
+                    NOT_SPECIFIED: 'rgba(128,0,0,.88)',
+                    OTHER: 'rgba(148,163,184,.82)'
+                };
+
+                return colorMap[collegeCode] || colorMap.OTHER;
+            };
+
+            const withAlpha = (color, alpha) => {
+                const match = String(color).match(/rgba?\(([^)]+)\)/i);
+                if (!match) {
+                    return color;
+                }
+
+                const channels = match[1].split(',').map((value) => value.trim());
+                const r = channels[0] || '148';
+                const g = channels[1] || '163';
+                const b = channels[2] || '184';
+                return `rgba(${r},${g},${b},${alpha})`;
+            };
+
+            const renderAcademicCharts = (colleges) => {
+                const collegeCanvas = document.getElementById('chartAcademicColleges');
+                const programCanvas = document.getElementById('chartAcademicPrograms');
+                if (!collegeCanvas || !programCanvas || typeof Chart === 'undefined') {
+                    return;
+                }
+
+                const { topColleges, programCollegeDatasets, collegeLabels, collegeData, programLabels, summary } = aggregateAcademicData(colleges);
+
+                setText('academicCollegeCount', String(summary.collegeCount));
+                setText('academicProgramCount', String(summary.programCount));
+                setText('academicTopCollege', summary.topCollege);
+                setText('academicTopProgram', summary.topProgram);
+
+                if (chartAcademicCollegesInstance) {
+                    chartAcademicCollegesInstance.destroy();
+                    chartAcademicCollegesInstance = null;
+                }
+                if (chartAcademicProgramsInstance) {
+                    chartAcademicProgramsInstance.destroy();
+                    chartAcademicProgramsInstance = null;
+                }
+
+                const safeCollegeLabels = collegeLabels.length ? collegeLabels : ['No data'];
+                const safeCollegeData = collegeData.length ? collegeData : [1];
+                const collegePalette = safeCollegeLabels.length === 1 && safeCollegeLabels[0] === 'No data'
+                    ? ['rgba(148,163,184,.6)']
+                    : topColleges.map((college) => getCollegeColor(college.name, college.code));
+
+                chartAcademicCollegesInstance = buildDoughnut(collegeCanvas, safeCollegeLabels, safeCollegeData, collegePalette);
+
+                const safeProgramLabels = programLabels.length ? programLabels : ['No data'];
+                const safeProgramSeries = safeProgramLabels[0] === 'No data'
+                    ? [{ name: 'No data', code: 'OTHER', data: [0] }]
+                    : programCollegeDatasets.filter((dataset) => dataset.data.some((value) => value > 0));
+
+                const resolvedSeries = safeProgramSeries.length ? safeProgramSeries : [{ name: 'No data', code: 'OTHER', data: [0] }];
+                chartAcademicProgramsInstance = academicProgramChartMode === 'line'
+                    ? buildProgramArea(programCanvas, safeProgramLabels, resolvedSeries)
+                    : buildProgramStackedBar(programCanvas, safeProgramLabels, resolvedSeries);
+            };
+
             async function init() {
                 try {
                     const res = await fetch("{{ route('admin.dashboard.stats') }}?days=30", {
@@ -1079,6 +1484,8 @@
                             ]
                         );
                     }
+
+                    renderAcademicCharts(stats.boardedByAcademic || []);
                 } catch (e) {
                     setRangeLabel('Stats unavailable');
                     console.error(e);
@@ -1087,10 +1494,12 @@
 
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
+                    renderAcademicCharts(initialAcademicData);
                     init();
                     initLandlordMap();
                 });
             } else {
+                renderAcademicCharts(initialAcademicData);
                 init();
                 initLandlordMap();
             }

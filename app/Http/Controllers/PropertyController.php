@@ -101,7 +101,25 @@ class PropertyController extends Controller
         $minPrice = $priceValues->isNotEmpty() ? $priceValues->min() : null;
         $maxPrice = $priceValues->isNotEmpty() ? $priceValues->max() : null;
 
-        $servicesOffered = $property->rooms
+        $amenityLabelMap = collect((array) config('property_amenities.flat', []))
+            ->mapWithKeys(fn ($label, $key) => [strtolower((string) $key) => (string) $label]);
+
+        $buildingServices = collect((array) ($property->building_inclusions ?? []))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->map(function (string $item) use ($amenityLabelMap): string {
+                $normalized = strtolower($item);
+
+                if ($amenityLabelMap->has($normalized)) {
+                    return (string) $amenityLabelMap->get($normalized);
+                }
+
+                return preg_match('/[A-Z]/', $item)
+                    ? $item
+                    : ucwords(str_replace(['_', '-'], ' ', $item));
+            });
+
+        $roomServices = $property->rooms
             ->flatMap(function ($room) {
                 return collect(preg_split('/[,\n;]+/', (string) $room->inclusions))
                     ->map(fn ($item) => trim($item))
@@ -111,6 +129,13 @@ class PropertyController extends Controller
             ->unique()
             ->values()
             ->map(fn ($item) => ucwords($item));
+
+        $servicesOffered = $buildingServices
+            ->concat($roomServices)
+            ->filter()
+            ->values()
+            ->unique(fn ($item) => strtolower((string) $item))
+            ->values();
 
         $occupancyRate = (int) ($property->total_rooms > 0
             ? round((($property->occupied_rooms ?? 0) / $property->total_rooms) * 100)
@@ -251,6 +276,7 @@ class PropertyController extends Controller
         $supportsHouseRules = Schema::hasColumn('properties', 'house_rules');
         $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
+        $isDashboardQuickCreate = $request->boolean('from_dashboard');
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -260,12 +286,15 @@ class PropertyController extends Controller
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
             'building_inclusions' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
             'building_inclusions.*' => $supportsBuildingInclusions ? ['string', Rule::in($allowedAmenities)] : 'nullable',
+            'building_inclusion_custom' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusion_custom.*' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusion_custom.*.*' => $supportsBuildingInclusions ? 'nullable|string|max:100' : 'nullable',
             'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
-            // Optional initial room
-            'initial_room_number' => 'nullable|string|max:50',
-            'initial_capacity' => 'nullable|integer|min:1',
-            'initial_price' => 'nullable|numeric|min:0',
-            'initial_status' => 'nullable|in:available,occupied,maintenance',
+            // First room is required on full create flow, optional on dashboard quick create
+            'initial_room_number' => [Rule::requiredIf(!$isDashboardQuickCreate), 'string', 'max:50'],
+            'initial_capacity' => [Rule::requiredIf(!$isDashboardQuickCreate), 'integer', 'min:1'],
+            'initial_price' => [Rule::requiredIf(!$isDashboardQuickCreate), 'numeric', 'min:0'],
+            'initial_status' => [Rule::requiredIf(!$isDashboardQuickCreate), 'in:available,occupied,maintenance'],
         ]);
 
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
@@ -299,9 +328,44 @@ class PropertyController extends Controller
             ->values()
             ->all();
 
+        $customAmenities = collect((array) $request->input('building_inclusion_custom', []))
+            ->flatMap(fn ($items) => collect((array) $items))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->unique(fn ($item) => strtolower((string) $item))
+            ->values()
+            ->all();
+
+        $submittedCustomInclusionPayload = $request->boolean('building_inclusion_custom_present') || $request->has('building_inclusion_custom');
+        if (!$submittedCustomInclusionPayload) {
+            $existingCustomAmenities = collect((array) ($property->building_inclusions ?? []))
+                ->map(fn ($item) => trim((string) $item))
+                ->filter(fn ($item) => $item !== '' && !in_array($item, $allowedAmenities, true))
+                ->values()
+                ->all();
+
+            $customAmenities = collect($customAmenities)
+                ->concat($existingCustomAmenities)
+                ->unique(fn ($item) => strtolower((string) $item))
+                ->values()
+                ->all();
+        }
+
+        $selectedAmenities = collect($selectedAmenities)
+            ->concat($customAmenities)
+            ->unique(fn ($item) => strtolower((string) $item))
+            ->values()
+            ->all();
+
         $houseRulesPayload = [];
+        $hasHouseRuleInput = false;
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
-            $rawLines = preg_split('/\r\n|\r|\n/', (string) $request->input('house_rules.' . $categoryKey, '')) ?: [];
+            $rawValue = (string) $request->input('house_rules.' . $categoryKey, '');
+            if (trim($rawValue) !== '') {
+                $hasHouseRuleInput = true;
+            }
+
+            $rawLines = preg_split('/\r\n|\r|\n/', $rawValue) ?: [];
             $cleanedLines = collect($rawLines)
                 ->map(fn ($line) => trim((string) $line))
                 ->filter()
@@ -390,6 +454,9 @@ class PropertyController extends Controller
             'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
             'building_inclusions' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
             'building_inclusions.*' => $supportsBuildingInclusions ? ['string', Rule::in($allowedAmenities)] : 'nullable',
+            'building_inclusion_custom' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusion_custom.*' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
+            'building_inclusion_custom.*.*' => $supportsBuildingInclusions ? 'nullable|string|max:100' : 'nullable',
             'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
         ]);
 
@@ -414,9 +481,29 @@ class PropertyController extends Controller
             ->values()
             ->all();
 
+        $customAmenities = collect((array) $request->input('building_inclusion_custom', []))
+            ->flatMap(fn ($items) => collect((array) $items))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->unique(fn ($item) => strtolower((string) $item))
+            ->values()
+            ->all();
+
+        $selectedAmenities = collect($selectedAmenities)
+            ->concat($customAmenities)
+            ->unique(fn ($item) => strtolower((string) $item))
+            ->values()
+            ->all();
+
         $houseRulesPayload = [];
+        $hasHouseRuleInput = false;
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
-            $rawLines = preg_split('/\r\n|\r|\n/', (string) $request->input('house_rules.' . $categoryKey, '')) ?: [];
+            $rawValue = (string) $request->input('house_rules.' . $categoryKey, '');
+            if (trim($rawValue) !== '') {
+                $hasHouseRuleInput = true;
+            }
+
+            $rawLines = preg_split('/\r\n|\r|\n/', $rawValue) ?: [];
             $cleanedLines = collect($rawLines)
                 ->map(fn ($line) => trim((string) $line))
                 ->filter()
@@ -452,7 +539,9 @@ class PropertyController extends Controller
             $validated['building_inclusions'] = $selectedAmenities;
         }
         if ($supportsHouseRules) {
-            $validated['house_rules'] = empty($houseRulesPayload) ? null : $houseRulesPayload;
+            $validated['house_rules'] = $hasHouseRuleInput
+                ? (empty($houseRulesPayload) ? null : $houseRulesPayload)
+                : $property->house_rules;
         }
         $property->fill($validated);
         $property->save();

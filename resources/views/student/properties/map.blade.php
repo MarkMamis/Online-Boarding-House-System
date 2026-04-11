@@ -283,7 +283,7 @@
 
                     @php
                         $propertyInclusions = collect((array) ($prop->building_inclusions ?? []))
-                            ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? null)
+                            ->map(fn ($key) => ($amenityOptions ?? [])[$key] ?? trim((string) $key))
                             ->filter()
                             ->take(5);
                     @endphp

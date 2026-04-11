@@ -232,10 +232,10 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="form-label">Course</label>
-                            <input type="text" class="form-input w-100 @error('course') is-invalid @enderror" 
-                                   name="course" value="{{ old('course', $user->course) }}">
-                            @error('course')
+                            <label class="form-label">Program</label>
+                            <input type="text" class="form-input w-100 @error('program') is-invalid @enderror" 
+                                   name="program" value="{{ old('program', $user->program) }}">
+                            @error('program')
                             <div class="form-error">{{ $message }}</div>
                             @enderror
                         </div>

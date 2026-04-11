@@ -61,7 +61,7 @@
 @php
   $amenityLabels = (array) config('property_amenities.flat', []);
   $buildingInclusions = collect((array) ($property->building_inclusions ?? []))
-    ->map(fn ($key) => $amenityLabels[$key] ?? null)
+    ->map(fn ($key) => $amenityLabels[$key] ?? trim((string) $key))
     ->filter()
     ->values();
 @endphp
