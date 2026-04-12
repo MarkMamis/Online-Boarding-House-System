@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Notifications\SystemNotification;
 use App\Services\AcademicCatalogService;
 
@@ -1557,15 +1558,11 @@ class AuthController extends Controller
             'payment_gcash_number' => 'nullable|string|max:20',
             'payment_gcash_name' => 'nullable|string|max:255',
             'payment_gcash_qr' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'contract_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'contract_signature_data' => 'nullable|string',
             'payment_instructions' => 'nullable|string|max:1000',
             'preferred_payment_methods' => 'nullable|array',
             'preferred_payment_methods.*' => 'in:bank,gcash,cash',
-            'tenant_privacy_settings' => 'nullable|array',
-            'tenant_privacy_settings.show_tenant_email' => 'nullable|boolean',
-            'tenant_privacy_settings.show_guardian_contact' => 'nullable|boolean',
-            'tenant_privacy_settings.show_guardian_address' => 'nullable|boolean',
-            'tenant_privacy_settings.show_guardian_photo' => 'nullable|boolean',
-            'tenant_privacy_settings.show_emergency_contact' => 'nullable|boolean',
             'current_password' => 'nullable|required_with:new_password',
             'new_password' => 'nullable|min:8|confirmed',
         ]);
@@ -1605,15 +1602,6 @@ class AuthController extends Controller
             return back()->withErrors($validationErrors)->withInput();
         }
 
-        $defaultPrivacySettings = LandlordProfile::defaultTenantPrivacySettings();
-        $tenantPrivacySettings = [
-            'show_tenant_email' => $request->boolean('tenant_privacy_settings.show_tenant_email', (bool) ($defaultPrivacySettings['show_tenant_email'] ?? true)),
-            'show_guardian_contact' => $request->boolean('tenant_privacy_settings.show_guardian_contact', (bool) ($defaultPrivacySettings['show_guardian_contact'] ?? false)),
-            'show_guardian_address' => $request->boolean('tenant_privacy_settings.show_guardian_address', (bool) ($defaultPrivacySettings['show_guardian_address'] ?? false)),
-            'show_guardian_photo' => $request->boolean('tenant_privacy_settings.show_guardian_photo', (bool) ($defaultPrivacySettings['show_guardian_photo'] ?? false)),
-            'show_emergency_contact' => $request->boolean('tenant_privacy_settings.show_emergency_contact', (bool) ($defaultPrivacySettings['show_emergency_contact'] ?? false)),
-        ];
-
         // Update basic info
         $user->update([
             'full_name' => $request->full_name,
@@ -1641,7 +1629,6 @@ class AuthController extends Controller
             'payment_gcash_name' => $request->payment_gcash_name,
             'payment_instructions' => $request->payment_instructions,
             'preferred_payment_methods' => $preferredPaymentMethods->all(),
-            'tenant_privacy_settings' => $tenantPrivacySettings,
         ];
 
         if ($request->hasFile('business_permit')) {
@@ -1660,6 +1647,27 @@ class AuthController extends Controller
                 Storage::disk('public')->delete($landlordProfile->payment_gcash_qr_path);
             }
             $profileData['payment_gcash_qr_path'] = str_replace('\\', '/', $request->file('payment_gcash_qr')->store('payment_qr_codes', 'public'));
+        }
+
+        $signatureData = trim((string) $request->input('contract_signature_data', ''));
+        if ($signatureData !== '') {
+            $storedSignaturePath = $this->storeLandlordProfileSignatureDataUrl(
+                $signatureData,
+                $landlordProfile->contract_signature_path
+            );
+
+            if (!$storedSignaturePath) {
+                return back()->withErrors([
+                    'contract_signature_data' => 'Invalid signature drawing. Please draw again or upload an image file.',
+                ])->withInput();
+            }
+
+            $profileData['contract_signature_path'] = $storedSignaturePath;
+        } elseif ($request->hasFile('contract_signature_image')) {
+            if (!empty($landlordProfile->contract_signature_path)) {
+                Storage::disk('public')->delete($landlordProfile->contract_signature_path);
+            }
+            $profileData['contract_signature_path'] = str_replace('\\', '/', $request->file('contract_signature_image')->store('landlord-signatures', 'public'));
         }
 
         $profileCompleted = filled($request->contact_number)
@@ -1711,6 +1719,41 @@ class AuthController extends Controller
         }
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    private function storeLandlordProfileSignatureDataUrl(string $signatureData, ?string $oldPath = null): ?string
+    {
+        $signatureData = trim($signatureData);
+        if ($signatureData === '') {
+            return null;
+        }
+
+        if (!preg_match('/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/i', $signatureData, $matches)) {
+            return null;
+        }
+
+        $mime = strtolower((string) $matches[1]);
+        $encoded = (string) $matches[2];
+        $binary = base64_decode($encoded, true);
+
+        if ($binary === false || $binary === '') {
+            return null;
+        }
+
+        if (strlen($binary) > (5 * 1024 * 1024)) {
+            return null;
+        }
+
+        $extension = $mime === 'jpg' ? 'jpeg' : $mime;
+        $path = 'landlord-signatures/' . Str::uuid() . '.' . $extension;
+
+        Storage::disk('public')->put($path, $binary);
+
+        if (!empty($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $path;
     }
 
     public function adminSettings()

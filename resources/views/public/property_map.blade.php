@@ -303,7 +303,7 @@
             top: calc(100% - .14rem);
             left: 0;
             right: 0;
-            z-index: 820;
+            z-index: 2500;
             margin-top: 0;
             border: 1px solid rgba(2, 8, 20, .12);
             border-radius: .9rem;
@@ -640,7 +640,7 @@
             top: calc(100% + 6px);
             left: 0;
             right: 0;
-            z-index: 900;
+            z-index: 2500;
             border: 1px solid rgba(2, 8, 20, .14);
             border-radius: .8rem;
             background: #fff;
@@ -1010,7 +1010,7 @@
             </div>
 
             <div class="hero-search-band">
-                <form method="GET" action="{{ route('public.properties.map') }}" class="hero-search-form" aria-label="Map search">
+                <form method="GET" action="{{ route('public.properties.map') }}" class="hero-search-form" id="heroMapSearchForm" aria-label="Map search">
                     <div class="hero-search-row">
                         <i class="bi bi-search hero-search-icon" aria-hidden="true"></i>
                     <input
@@ -1026,7 +1026,7 @@
                         <button type="submit" class="btn hero-search-submit" aria-label="Search">
                             <i class="bi bi-arrow-right"></i>
                         </button>
-                        <a href="{{ route('public.properties.map') }}" class="btn hero-search-reset" aria-label="Reset search">
+                        <a href="{{ route('public.properties.map') }}" class="btn hero-search-reset" id="heroSearchReset" aria-label="Reset search">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     </div>
@@ -1076,7 +1076,7 @@
                             </button>
                         </div>
 
-                        <div class="room-list">
+                        <div class="room-list" id="publicRoomList">
                             @forelse($publicRooms as $room)
                                 @php
                                     $roomImage = ltrim((string) ($room->image_path ?? ''), '/');
@@ -1176,7 +1176,10 @@
                     <aside class="filter-panel offcanvas-xl offcanvas-bottom" id="publicMapFilterSheet" tabindex="-1" aria-labelledby="publicMapFilterLabel">
                         <div class="d-flex align-items-center justify-content-between mb-2 filter-sheet-header">
                             <h2 class="h6 mb-0" id="publicMapFilterLabel">Filters</h2>
-                            <button type="button" id="publicMapFilterClose" class="btn-close d-xl-none" aria-label="Close"></button>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ route('public.properties.map') }}" class="btn btn-sm btn-outline-secondary d-none d-xl-inline-flex" data-filter-reset>Reset</a>
+                                <button type="button" id="publicMapFilterClose" class="btn-close d-xl-none" aria-label="Close"></button>
+                            </div>
                         </div>
 
                         <div class="offcanvas-body p-0">
@@ -1272,10 +1275,11 @@
                                 <input id="filterMaxPrice" type="hidden" name="max_price" value="{{ $maxPrice !== null ? (int) $maxPrice : '' }}">
                             </div>
 
-                            <div class="d-flex gap-2 mt-3 filter-actions">
-                                <button type="submit" class="btn btn-brand flex-fill">Apply Filters</button>
-                                <a href="{{ route('public.properties.map') }}" class="btn btn-outline-secondary">Reset</a>
+                            <div class="d-flex gap-2 mt-3 filter-actions d-xl-none">
+                                <button type="button" class="btn btn-brand flex-fill" id="publicMapFilterApplyMobile">Apply Filters</button>
+                                <a href="{{ route('public.properties.map') }}" class="btn btn-outline-secondary" data-filter-reset>Reset</a>
                             </div>
+
                         </form>
 
                         </div>
@@ -1387,7 +1391,13 @@
                     button.addEventListener('click', () => {
                         input.value = item;
                         close();
-                        input.form?.submit();
+                        if (input.form) {
+                            if (typeof input.form.requestSubmit === 'function') {
+                                input.form.requestSubmit();
+                            } else {
+                                input.form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                            }
+                        }
                     });
                     menu.appendChild(button);
                 });
@@ -1481,31 +1491,33 @@
         };
 
         if (minSlider && maxSlider) {
-            minSlider.addEventListener('input', () => {
-                if (Number(minSlider.value) > Number(maxSlider.value)) {
-                    maxSlider.value = minSlider.value;
-                }
-                updatePriceFilter();
-            });
-
-            maxSlider.addEventListener('input', () => {
-                if (Number(maxSlider.value) < Number(minSlider.value)) {
-                    minSlider.value = maxSlider.value;
-                }
-                updatePriceFilter();
-            });
-
             updatePriceFilter();
         }
 
         const mapElement = document.getElementById('publicPropertiesMap');
         const emptyElement = document.getElementById('publicPropertiesMapEmpty');
-        if (!mapElement) {
+        const roomListElement = document.getElementById('publicRoomList');
+        const heroForm = document.getElementById('heroMapSearchForm');
+        const heroSearchInput = document.getElementById('heroSearchInput');
+        const heroSearchReset = document.getElementById('heroSearchReset');
+        const filterForm = document.getElementById('publicMapFilterForm');
+        const filterSearchInput = document.getElementById('filterSearch');
+        const filterResetButtons = Array.from(document.querySelectorAll('[data-filter-reset]'));
+        const filterApplyMobileButton = document.getElementById('publicMapFilterApplyMobile');
+
+        if (!mapElement || !filterForm || !heroSearchInput || !filterSearchInput) {
             return;
         }
 
-        const query = new URLSearchParams(window.location.search || '');
-        const dataUrl = mapElement.dataset.mapUrl + (query.toString() ? `?${query.toString()}` : '');
+        const mapDataBaseUrl = mapElement.dataset.mapUrl;
+        const pageBaseUrl = filterForm.getAttribute('action') || window.location.pathname;
+
+        let map = null;
+        let markerLayer = null;
+        let activeFetchController = null;
+        let mapFetchToken = 0;
+        const markerByPropertyId = new Map();
+        const mapWrap = document.querySelector('.map-wrap');
 
         const escapeHtml = (value) => {
             return String(value ?? '')
@@ -1514,6 +1526,56 @@
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
+        };
+
+        const scrollToMap = () => {
+            if (!mapWrap) return;
+            const topOffset = Math.max(0, Math.round((mapWrap.getBoundingClientRect().top + window.scrollY) - 94));
+            window.scrollTo({ top: topOffset, behavior: 'smooth' });
+        };
+
+        const closeFilterSheet = () => {
+            if (!filterSheetElement || !filterSheetElement.classList.contains('show') || typeof bootstrap === 'undefined' || !bootstrap.Offcanvas) {
+                return;
+            }
+
+            bootstrap.Offcanvas.getOrCreateInstance(filterSheetElement).hide();
+        };
+
+        const syncSearchInputs = (source) => {
+            const sourceValue = String(source?.value || '');
+            heroSearchInput.value = sourceValue;
+            filterSearchInput.value = sourceValue;
+        };
+
+        const collectFilterParams = () => {
+            const params = new URLSearchParams();
+            const queryText = String(filterSearchInput.value || '').trim();
+            if (queryText !== '') {
+                params.set('q', queryText);
+            }
+
+            filterForm.querySelectorAll('input[name="amenities[]"]:checked').forEach((input) => {
+                if (input.value) {
+                    params.append('amenities[]', input.value);
+                }
+            });
+
+            const minRatingInput = filterForm.querySelector('input[name="min_rating"]:checked');
+            if (minRatingInput && String(minRatingInput.value || '').trim() !== '') {
+                params.set('min_rating', String(minRatingInput.value).trim());
+            }
+
+            const minPriceValue = String(minPriceInput?.value || '').trim();
+            const maxPriceValue = String(maxPriceInput?.value || '').trim();
+            if (minPriceValue !== '') {
+                params.set('min_price', minPriceValue);
+            }
+            if (maxPriceValue !== '') {
+                params.set('max_price', maxPriceValue);
+            }
+
+            return params;
         };
 
         const formatPriceLabel = (minPrice, maxPrice) => {
@@ -1557,93 +1619,335 @@
             `;
         };
 
-        fetch(dataUrl)
-            .then((response) => response.json())
-            .then((payload) => {
-                const properties = payload.properties || [];
+        const ensureMap = () => {
+            if (map) return map;
 
-                if (!properties.length) {
-                    mapElement.style.display = 'none';
-                    if (emptyElement) {
-                        emptyElement.style.display = 'flex';
-                    }
-                    return;
-                }
+            map = L.map('publicPropertiesMap', {
+                zoomControl: true,
+            }).setView([13.4115, 121.1806], 11);
 
-                mapElement.style.display = 'block';
-                if (emptyElement) {
-                    emptyElement.style.display = 'none';
-                }
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxNativeZoom: 19,
+                maxZoom: 22,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
 
-                const map = L.map('publicPropertiesMap', {
-                    zoomControl: true,
-                }).setView([13.4115, 121.1806], 11);
+            markerLayer = L.layerGroup().addTo(map);
+            return map;
+        };
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxNativeZoom: 19,
-                    maxZoom: 22,
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
+        const renderMap = (properties) => {
+            const mapItems = Array.isArray(properties) ? properties : [];
 
-                const markerByPropertyId = new Map();
-                const bounds = [];
-                const mapWrap = document.querySelector('.map-wrap');
-
-                const scrollToMap = () => {
-                    if (!mapWrap) return;
-                    const topOffset = Math.max(0, Math.round((mapWrap.getBoundingClientRect().top + window.scrollY) - 94));
-                    window.scrollTo({ top: topOffset, behavior: 'smooth' });
-                };
-
-                properties.forEach((property) => {
-                    const markerLabel = formatPriceLabel(property.price_min, property.price_max);
-                    const markerWidth = Math.max(74, Math.min(170, Math.round(markerLabel.length * 7.2 + 24)));
-
-                    const markerIcon = L.divIcon({
-                        className: 'price-pill-wrap',
-                        html: `<div class="price-pill-marker ${property.price_min === null && property.price_max === null ? 'is-empty' : ''}">${escapeHtml(markerLabel)}</div>`,
-                        iconSize: [markerWidth, 30],
-                        iconAnchor: [Math.round(markerWidth / 2), 15],
-                        popupAnchor: [0, -12],
-                    });
-
-                    const marker = L.marker([property.lat, property.lng], { icon: markerIcon })
-                        .addTo(map)
-                        .bindPopup(buildPopupHtml(property));
-
-                    markerByPropertyId.set(Number(property.id), marker);
-                    bounds.push([property.lat, property.lng]);
-                });
-
-                if (bounds.length > 1) {
-                    map.fitBounds(bounds, { padding: [26, 26] });
-                } else if (bounds.length === 1) {
-                    map.setView(bounds[0], 15);
-                }
-
-                document.querySelectorAll('.js-focus-map').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const propertyId = Number(button.dataset.propertyId || 0);
-                        const marker = markerByPropertyId.get(propertyId);
-                        if (!marker) return;
-
-                        scrollToMap();
-                        const markerLatLng = marker.getLatLng();
-                        map.flyTo(markerLatLng, 15, { duration: 0.6 });
-                        marker.openPopup();
-                        setTimeout(() => {
-                            map.invalidateSize();
-                        }, 260);
-                    });
-                });
-            })
-            .catch(() => {
+            if (!mapItems.length) {
                 mapElement.style.display = 'none';
                 if (emptyElement) {
                     emptyElement.style.display = 'flex';
-                    emptyElement.innerHTML = '<i class="bi bi-exclamation-circle fs-3"></i><div>Unable to load map data right now.</div>';
+                    emptyElement.innerHTML = '<i class="bi bi-map fs-3"></i><div>No map locations available for your selected filters.</div>';
                 }
+                markerByPropertyId.clear();
+                if (markerLayer) {
+                    markerLayer.clearLayers();
+                }
+                return;
+            }
+
+            mapElement.style.display = 'block';
+            if (emptyElement) {
+                emptyElement.style.display = 'none';
+            }
+
+            const mapInstance = ensureMap();
+            markerLayer.clearLayers();
+            markerByPropertyId.clear();
+
+            const bounds = [];
+
+            mapItems.forEach((property) => {
+                const markerLabel = formatPriceLabel(property.price_min, property.price_max);
+                const markerWidth = Math.max(74, Math.min(170, Math.round(markerLabel.length * 7.2 + 24)));
+
+                const markerIcon = L.divIcon({
+                    className: 'price-pill-wrap',
+                    html: `<div class="price-pill-marker ${property.price_min === null && property.price_max === null ? 'is-empty' : ''}">${escapeHtml(markerLabel)}</div>`,
+                    iconSize: [markerWidth, 30],
+                    iconAnchor: [Math.round(markerWidth / 2), 15],
+                    popupAnchor: [0, -12],
+                });
+
+                const marker = L.marker([property.lat, property.lng], { icon: markerIcon })
+                    .addTo(markerLayer)
+                    .bindPopup(buildPopupHtml(property));
+
+                markerByPropertyId.set(Number(property.id), marker);
+                bounds.push([property.lat, property.lng]);
             });
+
+            if (bounds.length > 1) {
+                mapInstance.fitBounds(bounds, { padding: [26, 26] });
+            } else if (bounds.length === 1) {
+                mapInstance.setView(bounds[0], 15);
+            }
+
+            setTimeout(() => {
+                mapInstance.invalidateSize();
+            }, 60);
+        };
+
+        const buildRoomCardHtml = (room) => {
+            const imageHtml = room.display_image_url
+                ? `<img src="${escapeHtml(room.display_image_url)}" alt="Room photo" loading="lazy">`
+                : '<i class="bi bi-building fs-4"></i>';
+
+            const inclusions = Array.isArray(room.inclusions) ? room.inclusions : [];
+            const inclusionHtml = inclusions.length
+                ? `<div class="chip-row">${inclusions.map((label) => `<span class="amenity-chip"><i class="bi bi-check-circle"></i>${escapeHtml(label)}</span>`).join('')}</div>`
+                : '';
+
+            const ratingText = room.rating === null
+                ? 'No rating'
+                : `${Number(room.rating).toFixed(1)}`;
+
+            const statusClass = room.is_available ? 'text-success' : 'text-secondary';
+            const statusLabel = room.is_available ? 'Available' : escapeHtml(room.status_label || room.status || 'Unavailable');
+            const locateDisabled = room.can_focus_map ? '' : 'disabled';
+            const propertyAddress = room.property_address && String(room.property_address).trim() !== ''
+                ? room.property_address
+                : 'Address not available';
+
+            return `
+                <article class="room-item" data-property-id="${Number(room.property_id || 0)}">
+                    <div class="room-thumb">${imageHtml}</div>
+                    <div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="room-name">Room ${escapeHtml(room.room_number || '-')}</div>
+                                <div class="property-name">${escapeHtml(room.property_name || '')}</div>
+                                <div class="room-address"><i class="bi bi-geo-alt"></i> ${escapeHtml(propertyAddress)}</div>
+                            </div>
+                            <span class="meta-chip" title="Current occupancy">
+                                <i class="bi bi-people"></i>${escapeHtml(room.occupancy || '0')} / ${Number(room.capacity || 0)} pax
+                            </span>
+                        </div>
+
+                        <div class="chip-row">
+                            <span class="meta-chip"><i class="bi bi-cash"></i>₱${Math.round(Number(room.price || 0)).toLocaleString()}/mo</span>
+                            <span class="meta-chip"><i class="bi bi-door-open"></i>${Number(room.available_slots || 0)} slot${Number(room.available_slots || 0) === 1 ? '' : 's'}</span>
+                            <span class="meta-chip"><i class="bi bi-star-fill text-warning"></i>${escapeHtml(ratingText)} (${Number(room.ratings_count || 0)})</span>
+                            <span class="meta-chip"><i class="bi bi-circle-fill ${statusClass}" style="font-size:.5rem;"></i>${statusLabel}</span>
+                        </div>
+
+                        ${inclusionHtml}
+
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill js-focus-map" data-property-id="${Number(room.property_id || 0)}" ${locateDisabled}>
+                                <i class="bi bi-crosshair2 me-1"></i>Locate on map
+                            </button>
+                            <a class="btn btn-sm btn-outline-success rounded-pill" href="${escapeHtml(room.property_rooms_url || '#')}">View Property Rooms</a>
+                            <a class="btn btn-sm btn-brand rounded-pill" href="${escapeHtml(room.room_url || '#')}">View Room</a>
+                        </div>
+                    </div>
+                </article>
+            `;
+        };
+
+        const renderRoomList = (rooms) => {
+            if (!roomListElement) return;
+
+            const roomItems = Array.isArray(rooms) ? rooms : [];
+            if (!roomItems.length) {
+                roomListElement.innerHTML = `
+                    <div class="empty-list">
+                        <i class="bi bi-search fs-3"></i>
+                        <div>No rooms matched your filters.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            roomListElement.innerHTML = roomItems.map((room) => buildRoomCardHtml(room)).join('');
+        };
+
+        const focusPropertyOnMap = (propertyId) => {
+            if (!map) return;
+            const marker = markerByPropertyId.get(Number(propertyId || 0));
+            if (!marker) return;
+
+            scrollToMap();
+            const markerLatLng = marker.getLatLng();
+            map.flyTo(markerLatLng, 15, { duration: 0.6 });
+            marker.openPopup();
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 260);
+        };
+
+        const applyFiltersAjax = ({ pushHistory = true } = {}) => {
+            const params = collectFilterParams();
+            const queryString = params.toString();
+            const requestUrl = mapDataBaseUrl + (queryString ? `?${queryString}` : '');
+            const requestToken = ++mapFetchToken;
+
+            if (activeFetchController) {
+                activeFetchController.abort();
+            }
+
+            activeFetchController = new AbortController();
+
+            if (roomListElement) {
+                roomListElement.innerHTML = '<div class="empty-list"><i class="bi bi-hourglass-split fs-3"></i><div>Updating results...</div></div>';
+            }
+
+            fetch(requestUrl, { signal: activeFetchController.signal })
+                .then((response) => response.json())
+                .then((payload) => {
+                    if (requestToken !== mapFetchToken) {
+                        return;
+                    }
+
+                    renderMap(payload.properties || []);
+                    renderRoomList(payload.rooms || []);
+
+                    if (pushHistory) {
+                        const nextUrl = pageBaseUrl + (queryString ? `?${queryString}` : '');
+                        window.history.replaceState({}, '', nextUrl);
+                    }
+                })
+                .catch((error) => {
+                    if (error && error.name === 'AbortError') {
+                        return;
+                    }
+
+                    mapElement.style.display = 'none';
+                    if (emptyElement) {
+                        emptyElement.style.display = 'flex';
+                        emptyElement.innerHTML = '<i class="bi bi-exclamation-circle fs-3"></i><div>Unable to load map data right now.</div>';
+                    }
+                    if (roomListElement) {
+                        roomListElement.innerHTML = '<div class="empty-list"><i class="bi bi-exclamation-circle fs-3"></i><div>Unable to load room list right now.</div></div>';
+                    }
+                });
+        };
+
+        const debounce = (fn, delay = 260) => {
+            let timer = null;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        };
+
+        const debouncedApplyFilters = debounce(() => {
+            applyFiltersAjax({ pushHistory: true });
+        }, 260);
+
+        const resetAllFilters = ({ closeSheet = false } = {}) => {
+            syncSearchInputs({ value: '' });
+
+            filterForm.querySelectorAll('input[name="amenities[]"]').forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+
+            const anyRatingRadio = filterForm.querySelector('input[name="min_rating"][value=""]');
+            if (anyRatingRadio) {
+                anyRatingRadio.checked = true;
+            }
+
+            if (minSlider && maxSlider) {
+                minSlider.value = minSlider.min;
+                maxSlider.value = maxSlider.max;
+                updatePriceFilter();
+            }
+
+            applyFiltersAjax({ pushHistory: true });
+
+            if (closeSheet) {
+                closeFilterSheet();
+            }
+        };
+
+        if (roomListElement) {
+            roomListElement.addEventListener('click', (event) => {
+                const button = event.target.closest('.js-focus-map');
+                if (!button || button.disabled) return;
+                event.preventDefault();
+                focusPropertyOnMap(button.dataset.propertyId);
+            });
+        }
+
+        if (heroForm) {
+            heroForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                syncSearchInputs(heroSearchInput);
+                applyFiltersAjax({ pushHistory: true });
+            });
+        }
+
+        filterForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            syncSearchInputs(filterSearchInput);
+            applyFiltersAjax({ pushHistory: true });
+            closeFilterSheet();
+        });
+
+        filterSearchInput.addEventListener('input', () => {
+            syncSearchInputs(filterSearchInput);
+            debouncedApplyFilters();
+        });
+
+        filterForm.querySelectorAll('input[name="amenities[]"], input[name="min_rating"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                debouncedApplyFilters();
+            });
+        });
+
+        if (heroSearchInput) {
+            heroSearchInput.addEventListener('input', () => {
+                filterSearchInput.value = heroSearchInput.value;
+            });
+        }
+
+        if (heroSearchReset) {
+            heroSearchReset.addEventListener('click', (event) => {
+                event.preventDefault();
+                resetAllFilters();
+            });
+        }
+
+        filterResetButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                resetAllFilters({ closeSheet: true });
+            });
+        });
+
+        if (filterApplyMobileButton) {
+            filterApplyMobileButton.addEventListener('click', () => {
+                syncSearchInputs(filterSearchInput);
+                applyFiltersAjax({ pushHistory: true });
+                closeFilterSheet();
+            });
+        }
+
+        if (minSlider && maxSlider) {
+            minSlider.addEventListener('input', () => {
+                if (Number(minSlider.value) > Number(maxSlider.value)) {
+                    maxSlider.value = minSlider.value;
+                }
+                updatePriceFilter();
+                debouncedApplyFilters();
+            });
+
+            maxSlider.addEventListener('input', () => {
+                if (Number(maxSlider.value) < Number(minSlider.value)) {
+                    minSlider.value = maxSlider.value;
+                }
+                updatePriceFilter();
+                debouncedApplyFilters();
+            });
+        }
+
+        applyFiltersAjax({ pushHistory: false });
     });
 </script>
 </body>

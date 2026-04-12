@@ -162,36 +162,16 @@ class PublicPropertyMapController extends Controller
     {
         $term = trim((string) $request->query('q', ''));
 
-        $rawSuggestions = Property::query()
+        $suggestions = Property::query()
             ->visibleToAudience()
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
             ->when($term !== '', function ($q) use ($term) {
-                $q->where(function ($qq) use ($term) {
-                    $qq->where('name', 'like', "%{$term}%")
-                        ->orWhere('address', 'like', "%{$term}%");
-                });
+                $q->where('address', 'like', "%{$term}%");
             })
-            ->orderBy('name')
-            ->limit(10)
-            ->get(['name', 'address']);
-
-        $suggestions = $rawSuggestions
-            ->flatMap(function ($property) {
-                $name = trim((string) ($property->name ?? ''));
-                $address = trim((string) ($property->address ?? ''));
-
-                $items = [];
-                if ($name !== '') {
-                    $items[] = $name;
-                }
-                if ($address !== '') {
-                    $items[] = $address;
-                }
-                if ($name !== '' && $address !== '') {
-                    $items[] = $name . ' - ' . $address;
-                }
-
-                return $items;
-            })
+            ->orderBy('address')
+            ->limit(20)
+            ->pluck('address')
             ->map(fn ($entry) => trim((string) $entry))
             ->filter(fn ($entry) => $entry !== '')
             ->unique()
@@ -352,8 +332,132 @@ class PublicPropertyMapController extends Controller
             ];
         })->values();
 
+        $propertySelectColumns = [
+            'id',
+            'name',
+            'address',
+            'image_path',
+            'average_rating',
+            'ratings_count',
+            'latitude',
+            'longitude',
+        ];
+        if ($supportsBuildingInclusions) {
+            $propertySelectColumns[] = 'building_inclusions';
+        }
+
+        $rooms = Room::query()
+            ->with([
+                'property' => function ($query) use ($propertySelectColumns) {
+                    $query->select($propertySelectColumns);
+                },
+            ])
+            ->withAvg('feedbacks', 'rating')
+            ->withCount('feedbacks')
+            ->where('status', '!=', 'maintenance')
+            ->whereHas('property', function ($q) use ($search, $selectedAmenities, $minRating) {
+                $q->visibleToAudience()
+                    ->when($search !== '', function ($propertyQuery) use ($search) {
+                        $propertyQuery->where(function ($qq) use ($search) {
+                            $qq->where('name', 'like', "%{$search}%")
+                                ->orWhere('address', 'like', "%{$search}%");
+                        });
+                    })
+                    ->when(!empty($selectedAmenities), function ($propertyQuery) use ($selectedAmenities) {
+                        $propertyQuery->where(function ($qq) use ($selectedAmenities) {
+                            foreach ($selectedAmenities as $amenityKey) {
+                                $qq->orWhereJsonContains('building_inclusions', $amenityKey);
+                            }
+                        });
+                    })
+                    ->when($minRating !== null, function ($propertyQuery) use ($minRating) {
+                        $propertyQuery->where('average_rating', '>=', $minRating);
+                    });
+            })
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('room_number', 'like', "%{$search}%")
+                        ->orWhereHas('property', function ($propertyQuery) use ($search) {
+                            $propertyQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('address', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($minPrice !== null, function ($q) use ($minPrice) {
+                $q->where('price', '>=', $minPrice);
+            })
+            ->when($maxPrice !== null, function ($q) use ($maxPrice) {
+                $q->where('price', '<=', $maxPrice);
+            })
+            ->orderBy('price')
+            ->orderBy('room_number')
+            ->get();
+
+        $roomsPayload = $rooms->map(function ($room) use ($amenityOptions, $supportsBuildingInclusions) {
+            $roomImage = ltrim((string) ($room->image_path ?? ''), '/');
+            $propertyImage = ltrim((string) ($room->property->image_path ?? ''), '/');
+
+            $roomImageExists = $roomImage !== '' && (
+                Storage::disk('public')->exists($roomImage)
+                || file_exists(public_path('storage/' . $roomImage))
+            );
+            $propertyImageExists = $propertyImage !== '' && (
+                Storage::disk('public')->exists($propertyImage)
+                || file_exists(public_path('storage/' . $propertyImage))
+            );
+
+            $displayImage = $roomImageExists
+                ? asset('storage/' . $roomImage)
+                : ($propertyImageExists ? asset('storage/' . $propertyImage) : null);
+
+            $propertyInclusions = collect((array) ($supportsBuildingInclusions ? ($room->property->building_inclusions ?? []) : []))
+                ->map(fn ($key) => $amenityOptions[$key] ?? trim((string) $key))
+                ->filter()
+                ->take(3)
+                ->values()
+                ->all();
+
+            $availableSlots = (int) $room->getAvailableSlots();
+            $occupancy = (string) $room->getOccupancyDisplay();
+            $isAvailable = $room->status === 'available' && $availableSlots > 0;
+
+            $ratingValue = $room->feedbacks_avg_rating !== null
+                ? (float) $room->feedbacks_avg_rating
+                : (($room->property->average_rating ?? null) !== null ? (float) $room->property->average_rating : null);
+
+            $ratingCount = (int) ($room->feedbacks_count ?? 0);
+            if ($ratingCount === 0) {
+                $ratingCount = (int) ($room->property->ratings_count ?? 0);
+            }
+
+            $hasMapLocation = $room->property->latitude !== null && $room->property->longitude !== null;
+
+            return [
+                'id' => (int) $room->id,
+                'room_number' => (string) $room->room_number,
+                'capacity' => (int) $room->capacity,
+                'price' => (float) $room->price,
+                'status' => (string) $room->status,
+                'status_label' => ucfirst((string) $room->status),
+                'is_available' => $isAvailable,
+                'available_slots' => $availableSlots,
+                'occupancy' => $occupancy,
+                'rating' => $ratingValue !== null ? round((float) $ratingValue, 1) : null,
+                'ratings_count' => $ratingCount,
+                'property_id' => (int) $room->property_id,
+                'property_name' => (string) ($room->property->name ?? ''),
+                'property_address' => (string) ($room->property->address ?? ''),
+                'can_focus_map' => $hasMapLocation,
+                'display_image_url' => $displayImage,
+                'inclusions' => $propertyInclusions,
+                'property_rooms_url' => route('public.properties.rooms', $room->property_id),
+                'room_url' => route('rooms.public.show', $room->id),
+            ];
+        })->values();
+
         return response()->json([
             'properties' => $payload,
+            'rooms' => $roomsPayload,
         ]);
     }
 

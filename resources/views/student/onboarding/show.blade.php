@@ -131,6 +131,33 @@
     color: var(--brand);
   }
 
+  .progress-step.step-viewable {
+    cursor: pointer;
+  }
+
+  .progress-step.step-viewable .step-icon,
+  .progress-step.step-viewable .step-label {
+    transition: transform .18s ease, box-shadow .18s ease, color .18s ease;
+  }
+
+  .progress-step.step-viewable:hover .step-icon,
+  .progress-step.step-viewable:focus-visible .step-icon {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(22,101,52,.08);
+  }
+
+  .progress-step.step-viewable:focus-visible {
+    outline: none;
+  }
+
+  .completed-step-panel {
+    display: none;
+  }
+
+  .completed-step-panel.is-visible {
+    display: block;
+  }
+
   .content-card {
     background: #fff;
     border: 1px solid rgba(2,8,20,.08);
@@ -1064,24 +1091,6 @@
   $stepsDone = (int) $docsDone + (int) $contractDone + (int) $depositDone + (int) $completeDone;
   $progressPct = (int) round(($stepsDone / 4) * 100);
 
-  $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
-  $propertyHouseRules = (array) ($onboarding->booking->room->property->house_rules ?? []);
-  $houseRuleSections = collect($defaultHouseRuleCategories)
-    ->map(function ($categoryConfig, $categoryKey) use ($propertyHouseRules) {
-      $fallbackRules = (array) ($categoryConfig['rules'] ?? []);
-      $rules = collect((array) ($propertyHouseRules[$categoryKey] ?? $fallbackRules))
-        ->map(fn ($line) => trim((string) $line))
-        ->filter()
-        ->values();
-
-      return [
-        'label' => (string) ($categoryConfig['label'] ?? $categoryKey),
-        'icon' => (string) ($categoryConfig['icon'] ?? 'dot'),
-        'rules' => $rules,
-      ];
-    })
-    ->filter(fn ($section) => $section['rules']->isNotEmpty())
-    ->values();
 @endphp
 
 <div class="onb-shell mb-4">
@@ -1130,7 +1139,7 @@
 
     <!-- Progress Steps -->
     <div class="progress-steps">
-      <div class="progress-step @if(in_array($onboarding->status, ['documents_uploaded', 'contract_signed', 'deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'pending') active @endif">
+      <div class="progress-step @if(in_array($onboarding->status, ['documents_uploaded', 'contract_signed', 'deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'pending') active @endif @if($completeDone) step-viewable @endif" data-step-target="1" @if($completeDone) data-step-viewable="1" tabindex="0" role="button" aria-label="View documents step" @endif>
         <div class="step-icon">
           @if(in_array($onboarding->status, ['documents_uploaded', 'contract_signed', 'deposit_paid', 'completed']))
             <i class="bi bi-check"></i>
@@ -1141,7 +1150,7 @@
         <div class="step-label">Documents</div>
       </div>
 
-      <div class="progress-step @if(in_array($onboarding->status, ['contract_signed', 'deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'documents_uploaded') active @endif">
+      <div class="progress-step @if(in_array($onboarding->status, ['contract_signed', 'deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'documents_uploaded') active @endif @if($completeDone) step-viewable @endif" data-step-target="2" @if($completeDone) data-step-viewable="1" tabindex="0" role="button" aria-label="View contract step" @endif>
         <div class="step-icon">
           @if(in_array($onboarding->status, ['contract_signed', 'deposit_paid', 'completed']))
             <i class="bi bi-check"></i>
@@ -1152,7 +1161,7 @@
         <div class="step-label">Contract</div>
       </div>
 
-      <div class="progress-step @if(in_array($onboarding->status, ['deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'contract_signed') active @endif">
+      <div class="progress-step @if(in_array($onboarding->status, ['deposit_paid', 'completed'])) completed @endif @if($onboarding->status === 'contract_signed') active @endif @if($completeDone) step-viewable @endif" data-step-target="3" @if($completeDone) data-step-viewable="1" tabindex="0" role="button" aria-label="View deposit step" @endif>
         <div class="step-icon">
           @if(in_array($onboarding->status, ['deposit_paid', 'completed']))
             <i class="bi bi-check"></i>
@@ -1163,7 +1172,7 @@
         <div class="step-label">Deposit</div>
       </div>
 
-      <div class="progress-step @if($onboarding->status === 'completed') completed @elseif($onboarding->status === 'deposit_paid') active @endif">
+      <div class="progress-step @if($onboarding->status === 'completed') completed @elseif($onboarding->status === 'deposit_paid') active @endif @if($completeDone) step-viewable @endif" data-step-target="4" @if($completeDone) data-step-viewable="1" tabindex="0" role="button" aria-label="View completion step" @endif>
         <div class="step-icon">
           @if($onboarding->status === 'completed')
             <i class="bi bi-check"></i>
@@ -1175,6 +1184,154 @@
       </div>
     </div>
   </div>
+
+  @if($completeDone)
+    <div class="content-card completed-step-panel" data-step-panel="1">
+      <h4 class="mb-3">
+        <i class="bi bi-file-check me-2" style="color: var(--brand);"></i>
+        Step 1: Documents
+      </h4>
+      <div class="text-muted mb-3">Uploaded onboarding requirements for landlord verification.</div>
+
+      @if($onboarding->uploaded_documents && count($onboarding->uploaded_documents) > 0)
+        <div class="row g-3">
+          @foreach($onboarding->uploaded_documents as $index => $doc)
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="document-card">
+                @php
+                  $fileName = basename($doc);
+                  $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                  $fileSize = Storage::disk('public')->size($doc);
+                  $fileSizeFormatted = $fileSize < 1024 ? $fileSize . ' B' : ($fileSize < 1048576 ? round($fileSize / 1024, 1) . ' KB' : round($fileSize / 1048576, 1) . ' MB');
+                @endphp
+
+                <div class="mb-2">
+                  @if(in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif']))
+                    <i class="bi bi-image" style="font-size: 2rem; color: var(--brand);"></i>
+                  @elseif($fileExtension === 'pdf')
+                    <i class="bi bi-file-pdf" style="font-size: 2rem; color: #dc2626;"></i>
+                  @else
+                    <i class="bi bi-file-earmark" style="font-size: 2rem; color: #3b82f6;"></i>
+                  @endif
+                </div>
+
+                <h6 class="fw-600 document-file-name" title="{{ $fileName }}">{{ $fileName }}</h6>
+                <p class="text-muted small mb-3">{{ $fileSizeFormatted }}</p>
+
+                <div class="d-flex gap-2 justify-content-center">
+                  <a href="{{ route('documents.view', ['onboarding' => $onboarding->id, 'filename' => $fileName]) }}" target="_blank" class="btn btn-sm btn-brand rounded-pill px-3">
+                    <i class="bi bi-eye me-1"></i>View
+                  </a>
+                  <a href="{{ route('documents.view', ['onboarding' => $onboarding->id, 'filename' => $fileName]) }}?download=1" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-download me-1"></i>Download
+                  </a>
+                </div>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      @else
+        <div class="alert alert-light border rounded-3 mb-0">
+          <i class="bi bi-info-circle me-2"></i>No uploaded documents were found for this onboarding record.
+        </div>
+      @endif
+    </div>
+
+    <div class="content-card completed-step-panel" data-step-panel="2">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h4 class="mb-0">
+          <i class="bi bi-file-earmark-text me-2" style="color: var(--brand);"></i>
+          Step 2: Contract
+        </h4>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ route('student.onboarding.contract', $onboarding) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-file-earmark-text me-1"></i>Document View
+          </a>
+          <a href="{{ route('student.onboarding.contract_pdf', ['onboarding' => $onboarding, 'download' => 1]) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-filetype-pdf me-1"></i>Download PDF
+          </a>
+        </div>
+      </div>
+
+      <x-onboarding.contract-document
+        :onboarding="$onboarding"
+        :agreement-date="$onboarding->contract_signed_at ?: now()"
+        :collapsible-rules="true"
+      />
+
+      <div class="mb-0">
+        <label class="form-label fw-600 mb-2">E-signature</label>
+        <div class="signature-grid">
+          <div>
+            <div class="signature-card">
+              @if(!empty($onboarding->contract_signature_path))
+                <img class="signature-preview" src="{{ asset('storage/' . $onboarding->contract_signature_path) }}" alt="Saved signature" />
+              @else
+                <div class="signature-preview-placeholder">No signature on file</div>
+              @endif
+            </div>
+            @if(!empty($onboarding->contract_signature_path))
+              <div class="signature-actions mt-2">
+                <a href="{{ asset('storage/' . $onboarding->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Open Signature
+                </a>
+              </div>
+            @endif
+          </div>
+          <div>
+            <label class="form-label fw-600">Typed Signature</label>
+            <input type="text" class="form-control" value="{{ $onboarding->contract_signature_name ?: (auth()->user()->name ?? '') }}" readonly />
+            <label class="form-label fw-600 mt-3">Date Signed</label>
+            <input type="text" class="form-control" value="{{ optional($onboarding->contract_signed_at)->format('F j, Y') ?: 'Not recorded' }}" readonly />
+            <div class="small text-success mt-2">Contract status: {{ $onboarding->contract_signed ? 'Signed' : 'Pending' }}.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-card completed-step-panel" data-step-panel="3">
+      <h4 class="mb-3">
+        <i class="bi bi-credit-card me-2" style="color: var(--brand);"></i>
+        Step 3: Deposit
+      </h4>
+
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="small text-muted">Payment Method</div>
+            <div class="fw-semibold">{{ ucfirst((string) ($onboarding->payment_method ?? 'Not recorded')) }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="small text-muted">Reference Number</div>
+            <div class="fw-semibold">{{ $onboarding->payment_reference ?: 'Not recorded' }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="small text-muted">Submitted At</div>
+            <div class="fw-semibold">{{ optional($onboarding->payment_submitted_at)->format('M d, Y h:i A') ?: 'Not recorded' }}</div>
+          </div>
+        </div>
+      </div>
+
+      @if(!empty($onboarding->payment_proof_path))
+        <div class="mt-3">
+          <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
+            <i class="bi bi-receipt me-1"></i>View Submitted Payment Proof
+          </a>
+        </div>
+      @endif
+
+      @if(!empty($onboarding->payment_notes))
+        <div class="alert alert-light border rounded-3 mt-3 mb-0">
+          <div class="fw-semibold small text-muted mb-1">Payment Notes</div>
+          <div>{{ $onboarding->payment_notes }}</div>
+        </div>
+      @endif
+    </div>
+  @endif
 
   <!-- Step 1: Document Upload -->
   @if($onboarding->status === 'pending')
@@ -1276,126 +1433,27 @@
   <!-- Step 2: Contract Signing -->
   @if($onboarding->status === 'documents_uploaded')
     <div class="content-card">
-      <h4>
-        <i class="bi bi-file-check me-2" style="color: var(--brand);"></i>
-        Step 2: Review and Sign Contract
-      </h4>
-      <p class="text-muted mb-3">Please review the lease contract carefully before signing:</p>
-
-      <div class="contract-shell legal-document mb-4">
-        <div class="contract-header">
-          <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
-            <div>
-              <div class="text-uppercase small text-muted">Residential Lease Agreement</div>
-              <h5 class="fw-bold mb-1">Legal Contract Preview</h5>
-              <div class="text-muted small">Generated for onboarding #{{ $onboarding->id }}</div>
-            </div>
-            <div class="contract-highlight">
-              Agreement Date: {{ now()->format('F j, Y') }}
-            </div>
-          </div>
-          <div class="contract-meta mt-3">
-            <div><strong>Property:</strong> {{ $property->name }}</div>
-            <div><strong>Room:</strong> {{ $room->room_number }}</div>
-            <div><strong>Monthly Rent:</strong> ₱{{ number_format($monthlyRentAmount, 2) }}</div>
-            <div><strong>Advance Amount:</strong> ₱{{ number_format($selectedAdvanceAmount, 2) }}</div>
-            <div><strong>Full Payment Due:</strong> ₱{{ number_format($effectiveDepositAmount, 2) }}</div>
-          </div>
-        </div>
-
-        <div class="contract-section">
-          <h6>Booking Snapshot</h6>
-          <div class="contract-meta snapshot-grid">
-            <div><strong>Approved:</strong> {{ $bookingStatusLabel }}</div>
-            <div><strong>Check-in:</strong> {{ $checkInLabel }}</div>
-            <div><strong>Check-out:</strong> {{ $checkOutLabel }}</div>
-            <div><strong>Duration:</strong> {{ $durationDays }} days</div>
-            <div><strong>Requested:</strong> {{ $requestedLabel }}</div>
-            <div><strong>Room Mode:</strong> {{ $roomModeLabel }}</div>
-            <div><strong>Advance Payment:</strong> {{ $advancePaymentLabel }}</div>
-            <div><strong>Payment Status:</strong> {{ $paymentStatusLabel }}</div>
-          </div>
-        </div>
-
-        <div class="contract-section">
-          <h6>1. Premises</h6>
-          <p class="mb-0">
-            The Landlord agrees to rent to the Tenant, and the Tenant agrees to rent from the Landlord, the property located at
-            <strong>{{ $property->name }}</strong>, Room <strong>{{ $room->room_number }}</strong> (the "Premises"), under the terms and conditions set forth in this Agreement.
-          </p>
-        </div>
-
-        <div class="contract-section">
-          <h6>2. Term and Occupancy</h6>
-          <p class="mb-0">
-            The Tenant agrees to occupy the Premises under the approved booking terms and to strictly adhere to all community policies established by the Landlord.
-            This Agreement serves as the binding contract for the tenancy commencing upon the completion of the Onboarding Process.
-          </p>
-        </div>
-
-        <div class="contract-section">
-          <h6>3. Rent and Payment</h6>
-          <ul class="contract-list mb-0">
-            <li><strong>Due Date.</strong> Rent is due on the 1st day of each month.</li>
-            <li><strong>Method of Payment.</strong> All rent payments must be payable exclusively through the designated Platform.</li>
-            <li><strong>Onboarding Payment.</strong> The move-in payment equals monthly rent plus any selected/required advance payment and is required to complete onboarding.</li>
-          </ul>
-        </div>
-
-        <details class="contract-section rules-toggle">
-          <summary>
-            <span class="rules-toggle-label">
-              <i class="bi bi-house-check"></i>
-              4. Community Rules and Maintenance
-            </span>
-            <span class="rules-toggle-hint">Show rules <i class="bi bi-chevron-down"></i></span>
-          </summary>
-
-          <div class="bk-rules mt-3 mb-0">
-            <div class="bk-rules-header">
-              <i class="bi bi-file-text bk-rules-icon"></i>
-              <div>
-                <h5 class="bk-rules-title">Property House Rules</h5>
-                <div class="bk-rules-subtitle">These rules form part of this legal lease agreement.</div>
-              </div>
-            </div>
-
-            @php $ruleNumber = 1; @endphp
-            @forelse($houseRuleSections as $section)
-              <div class="bk-rules-section">
-                <div class="bk-rules-section-header"><i class="bi bi-{{ $section['icon'] }}" style="font-size:.85rem;"></i> {{ $section['label'] }}</div>
-                <ul class="bk-rules-list">
-                  @foreach($section['rules'] as $rule)
-                    <li>
-                      <span class="bk-rules-list-icon">{{ str_pad((string) $ruleNumber, 2, '0', STR_PAD_LEFT) }}</span>
-                      <span class="bk-rules-list-text">{{ $rule }}</span>
-                    </li>
-                    @php $ruleNumber++; @endphp
-                  @endforeach
-                </ul>
-              </div>
-            @empty
-              <div class="small text-muted">No house rules configured for this property yet.</div>
-            @endforelse
-          </div>
-        </details>
-
-        <div class="contract-section">
-          <h6>5. Execution and Move-In Conditions</h6>
-          <ul class="contract-list mb-0">
-            <li><strong>Binding Effect.</strong> This Contract becomes legally binding once all identity documents are verified and the electronic signature is submitted by both parties.</li>
-            <li><strong>Payment Verification.</strong> Advance payment and payment status will be reviewed and verified prior to room handover.</li>
-            <li><strong>Possession.</strong> Move-in is strictly subject to the confirmed check-in date and approved booking status.</li>
-          </ul>
-        </div>
-
-        <div class="contract-section mb-0">
-          <h6>IN WITNESS WHEREOF</h6>
-          <p class="mb-0">
-            The parties have executed this Agreement as of the date first written above.
-          </p>
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h4 class="mb-0">
+          <i class="bi bi-file-check me-2" style="color: var(--brand);"></i>
+          Step 2: Review and Sign Contract
+        </h4>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ route('student.onboarding.contract', $onboarding) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-file-earmark-text me-1"></i>Document View
+          </a>
+          <a href="{{ route('student.onboarding.contract_pdf', ['onboarding' => $onboarding, 'download' => 1]) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="bi bi-filetype-pdf me-1"></i>Download PDF
+          </a>
         </div>
       </div>
+      <p class="text-muted mb-3">Please review the lease contract carefully before signing:</p>
+
+      <x-onboarding.contract-document
+        :onboarding="$onboarding"
+        :agreement-date="now()"
+        :collapsible-rules="true"
+      />
 
       <div class="mb-4">
         <label class="form-label fw-600 mb-2">E-signature</label>
@@ -1687,117 +1745,119 @@
 
   <!-- Completion Status -->
   @if($onboarding->status === 'completed')
-    <div class="completion-banner">
-      <i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i>
-      <h3>Onboarding Completed!</h3>
-      <p class="mb-0">You're all set to move into your new home.</p>
-    </div>
-
-    <div class="content-card completion-card">
-      @if($onboarding->digital_id)
-        <div class="mb-4">
-          <h5 class="fw-600 mb-2">Your Digital Tenant ID</h5>
-          <div class="digital-id-box">
-            {{ $onboarding->digital_id }}
-          </div>
-          <small class="text-muted">
-            <i class="bi bi-info-circle me-1"></i>
-            Keep this ID safe — you'll need it for check-in and other services
-          </small>
-        </div>
-      @endif
-
-      <div class="completion-status-row">
-        <span class="completion-pill"><i class="bi bi-file-earmark-check"></i>Documents Verified</span>
-        <span class="completion-pill"><i class="bi bi-pen"></i>Contract Signed</span>
-        <span class="completion-pill"><i class="bi bi-wallet2"></i>Payment Settled</span>
-        <span class="completion-pill"><i class="bi bi-house-check"></i>Move-in Ready</span>
+    <div class="completed-step-panel is-visible" data-step-panel="4">
+      <div class="completion-banner">
+        <i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i>
+        <h3>Onboarding Completed!</h3>
+        <p class="mb-0">You're all set to move into your new home.</p>
       </div>
 
-      <div class="completion-kpi-grid">
-        <div class="completion-kpi">
-          <div class="completion-kpi-label">Property</div>
-          <div class="completion-kpi-value">{{ $onboarding->booking->room->property->name }}</div>
-        </div>
-        <div class="completion-kpi">
-          <div class="completion-kpi-label">Room</div>
-          <div class="completion-kpi-value">{{ $onboarding->booking->room->room_number }}</div>
-        </div>
-        <div class="completion-kpi">
-          <div class="completion-kpi-label">Lease Period</div>
-          <div class="completion-kpi-value">{{ $onboarding->booking->check_in->format('M d, Y') }} — {{ $onboarding->booking->check_out->format('M d, Y') }}</div>
-        </div>
-        <div class="completion-kpi">
-          <div class="completion-kpi-label">Total Paid</div>
-          <div class="completion-kpi-value">₱{{ number_format($onboarding->deposit_amount, 2) }}</div>
-        </div>
-        @if(!empty($onboarding->payment_method))
-          <div class="completion-kpi">
-            <div class="completion-kpi-label">Payment Method</div>
-            <div class="completion-kpi-value">{{ ucfirst((string) $onboarding->payment_method) }}</div>
+      <div class="content-card completion-card">
+        @if($onboarding->digital_id)
+          <div class="mb-4">
+            <h5 class="fw-600 mb-2">Your Digital Tenant ID</h5>
+            <div class="digital-id-box">
+              {{ $onboarding->digital_id }}
+            </div>
+            <small class="text-muted">
+              <i class="bi bi-info-circle me-1"></i>
+              Keep this ID safe — you'll need it for check-in and other services
+            </small>
           </div>
         @endif
-        @if(!empty($onboarding->payment_reference))
+
+        <div class="completion-status-row">
+          <span class="completion-pill"><i class="bi bi-file-earmark-check"></i>Documents Verified</span>
+          <span class="completion-pill"><i class="bi bi-pen"></i>Contract Signed</span>
+          <span class="completion-pill"><i class="bi bi-wallet2"></i>Payment Settled</span>
+          <span class="completion-pill"><i class="bi bi-house-check"></i>Move-in Ready</span>
+        </div>
+
+        <div class="completion-kpi-grid">
           <div class="completion-kpi">
-            <div class="completion-kpi-label">Transaction Reference</div>
-            <div class="completion-kpi-value">{{ $onboarding->payment_reference }}</div>
+            <div class="completion-kpi-label">Property</div>
+            <div class="completion-kpi-value">{{ $onboarding->booking->room->property->name }}</div>
           </div>
-        @endif
-      </div>
-
-      @if(!empty($onboarding->payment_proof_path))
-        <div class="completion-proof-link">
-          <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
-            <i class="bi bi-receipt me-1"></i>View Submitted Payment Proof
-          </a>
-        </div>
-      @endif
-      @if(!empty($onboarding->payment_notes))
-        <div class="alert alert-light border rounded-3 mt-3 mb-0">
-          <div class="fw-semibold small text-muted mb-1">Payment Notes</div>
-          <div>{{ $onboarding->payment_notes }}</div>
-        </div>
-      @endif
-
-      <div class="completion-map-card">
-        <div class="completion-map-header">
-          <div class="completion-map-title"><i class="bi bi-geo-alt-fill me-1 text-success"></i>Property Location</div>
-          @if($mapOpenUrl)
-            <a href="{{ $mapOpenUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
-              <i class="bi bi-box-arrow-up-right me-1"></i>Open in Maps
-            </a>
+          <div class="completion-kpi">
+            <div class="completion-kpi-label">Room</div>
+            <div class="completion-kpi-value">{{ $onboarding->booking->room->room_number }}</div>
+          </div>
+          <div class="completion-kpi">
+            <div class="completion-kpi-label">Lease Period</div>
+            <div class="completion-kpi-value">{{ $onboarding->booking->check_in->format('M d, Y') }} — {{ $onboarding->booking->check_out->format('M d, Y') }}</div>
+          </div>
+          <div class="completion-kpi">
+            <div class="completion-kpi-label">Total Paid</div>
+            <div class="completion-kpi-value">₱{{ number_format($onboarding->deposit_amount, 2) }}</div>
+          </div>
+          @if(!empty($onboarding->payment_method))
+            <div class="completion-kpi">
+              <div class="completion-kpi-label">Payment Method</div>
+              <div class="completion-kpi-value">{{ ucfirst((string) $onboarding->payment_method) }}</div>
+            </div>
+          @endif
+          @if(!empty($onboarding->payment_reference))
+            <div class="completion-kpi">
+              <div class="completion-kpi-label">Transaction Reference</div>
+              <div class="completion-kpi-value">{{ $onboarding->payment_reference }}</div>
+            </div>
           @endif
         </div>
-        <div class="small text-muted mb-2">
-          {{ $propertyAddress !== '' ? $propertyAddress : ($property->name ?? 'Property location unavailable') }}
-        </div>
-        @if($mapEmbedUrl)
-          <div class="ratio ratio-16x9 completion-map-frame">
-            <iframe
-              src="{{ $mapEmbedUrl }}"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              allowfullscreen
-              title="Property location map"
-            ></iframe>
-          </div>
-        @else
-          <div class="alert alert-warning rounded-3 mb-0">
-            <i class="bi bi-exclamation-circle me-2"></i>Map preview is unavailable because this property has no saved location yet.
+
+        @if(!empty($onboarding->payment_proof_path))
+          <div class="completion-proof-link">
+            <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
+              <i class="bi bi-receipt me-1"></i>View Submitted Payment Proof
+            </a>
           </div>
         @endif
-      </div>
+        @if(!empty($onboarding->payment_notes))
+          <div class="alert alert-light border rounded-3 mt-3 mb-0">
+            <div class="fw-semibold small text-muted mb-1">Payment Notes</div>
+            <div>{{ $onboarding->payment_notes }}</div>
+          </div>
+        @endif
 
-      <div class="alert alert-success rounded-3 mt-3 mb-0">
-        <i class="bi bi-info-circle me-2"></i>
-        Next step: coordinate your exact arrival time with your landlord before check-in.
+        <div class="completion-map-card">
+          <div class="completion-map-header">
+            <div class="completion-map-title"><i class="bi bi-geo-alt-fill me-1 text-success"></i>Property Location</div>
+            @if($mapOpenUrl)
+              <a href="{{ $mapOpenUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Open in Maps
+              </a>
+            @endif
+          </div>
+          <div class="small text-muted mb-2">
+            {{ $propertyAddress !== '' ? $propertyAddress : ($property->name ?? 'Property location unavailable') }}
+          </div>
+          @if($mapEmbedUrl)
+            <div class="ratio ratio-16x9 completion-map-frame">
+              <iframe
+                src="{{ $mapEmbedUrl }}"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen
+                title="Property location map"
+              ></iframe>
+            </div>
+          @else
+            <div class="alert alert-warning rounded-3 mb-0">
+              <i class="bi bi-exclamation-circle me-2"></i>Map preview is unavailable because this property has no saved location yet.
+            </div>
+          @endif
+        </div>
+
+        <div class="alert alert-success rounded-3 mt-3 mb-0">
+          <i class="bi bi-info-circle me-2"></i>
+          Next step: coordinate your exact arrival time with your landlord before check-in.
+        </div>
       </div>
     </div>
   @endif
 
 
   <!-- Uploaded Documents (if any) -->
-  @if($onboarding->uploaded_documents && count($onboarding->uploaded_documents) > 0 && in_array($onboarding->status, ['pending', 'completed'], true))
+  @if($onboarding->uploaded_documents && count($onboarding->uploaded_documents) > 0 && $onboarding->status === 'pending')
     <div class="content-card">
       <h4 class="mb-4">
         <i class="bi bi-file-check me-2" style="color: var(--brand);"></i>
@@ -1897,6 +1957,61 @@
     let hasStroke = false;
     let orientationLockActive = false;
     const studentPrintedName = @json((string) (auth()->user()->name ?? ''));
+    const completedStepNavs = Array.from(document.querySelectorAll('.progress-step.step-viewable[data-step-target]'));
+    const completedStepPanels = Array.from(document.querySelectorAll('.completed-step-panel[data-step-panel]'));
+
+    const setCompletedStepPanel = function (stepNumber) {
+      if (!completedStepNavs.length || !completedStepPanels.length) return;
+
+      const availableSteps = completedStepPanels
+        .map(function (panel) {
+          return Number(panel.dataset.stepPanel);
+        })
+        .filter(function (step) {
+          return Number.isFinite(step);
+        });
+
+      const fallbackStep = availableSteps.includes(4) ? 4 : availableSteps[0];
+      const activeStep = availableSteps.includes(stepNumber) ? stepNumber : fallbackStep;
+
+      completedStepPanels.forEach(function (panel) {
+        const panelStep = Number(panel.dataset.stepPanel);
+        panel.classList.toggle('is-visible', panelStep === activeStep);
+      });
+
+      completedStepNavs.forEach(function (nav) {
+        const navStep = Number(nav.dataset.stepTarget);
+        const isActive = navStep === activeStep;
+        nav.classList.toggle('active', isActive);
+        nav.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        nav.setAttribute('aria-current', isActive ? 'step' : 'false');
+      });
+
+      if (activeStep) {
+        window.history.replaceState(null, '', '#onboarding-step-' + activeStep);
+      }
+    };
+
+    if (completedStepNavs.length && completedStepPanels.length) {
+      const hashMatch = window.location.hash.match(/^#onboarding-step-(\d)$/);
+      const initialStep = hashMatch ? Number(hashMatch[1]) : 4;
+      setCompletedStepPanel(initialStep);
+
+      completedStepNavs.forEach(function (nav) {
+        const targetStep = Number(nav.dataset.stepTarget);
+
+        nav.addEventListener('click', function () {
+          setCompletedStepPanel(targetStep);
+        });
+
+        nav.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setCompletedStepPanel(targetStep);
+          }
+        });
+      });
+    }
 
     const syncNextButtonState = function () {
       if (!docsForm || !docsNextBtn) return;

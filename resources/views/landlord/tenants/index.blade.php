@@ -3,12 +3,6 @@
 @section('content')
 <div class="tenants-shell">
     @php
-        $showTenantEmail = (bool) ($privacySettings['show_tenant_email'] ?? true);
-        $showGuardianContact = (bool) ($privacySettings['show_guardian_contact'] ?? false);
-        $showGuardianAddress = (bool) ($privacySettings['show_guardian_address'] ?? false);
-        $showGuardianPhoto = (bool) ($privacySettings['show_guardian_photo'] ?? false);
-        $showEmergencyContact = (bool) ($privacySettings['show_emergency_contact'] ?? false);
-
         $totalTenants = $tenants->count();
         $paidTenants = $tenants->filter(fn ($t) => $t->derivedPaymentStatus() === 'paid')->count();
         $pendingPayments = $tenants->filter(fn ($t) => $t->derivedPaymentStatus() === 'pending')->count();
@@ -100,13 +94,13 @@
 
                 $searchBlob = strtolower(trim(implode(' ', [
                     $student->full_name ?? '',
-                    $showTenantEmail ? ($student->email ?? '') : '',
+                    $student->year_level ?? '',
                     $room->room_number ?? '',
                     $property->name ?? '',
-                    $showEmergencyContact ? ($student->emergency_contact_name ?? '') : '',
-                    $showGuardianContact ? ($student->parent_contact_name ?? '') : '',
-                    $showGuardianContact ? ($student->parent_contact_number ?? '') : '',
-                    $showGuardianAddress ? ($student->parent_contact_address ?? '') : '',
+                    $student->emergency_contact_name ?? '',
+                    $student->emergency_contact_number ?? '',
+                    $student->parent_contact_name ?? '',
+                    $student->parent_contact_address ?? '',
                 ])));
             @endphp
 
@@ -120,11 +114,7 @@
                             <div class="min-w-0">
                                 <div class="tenant-name text-truncate">{{ $student->full_name ?? 'Unknown Tenant' }}</div>
                                 <div class="tenant-email text-truncate">
-                                    @if($showTenantEmail)
-                                        {{ $student->email ?? 'No email available' }}
-                                    @else
-                                        Hidden by privacy setting
-                                    @endif
+                                    Year Level: {{ $student->year_level ?: 'Not provided' }}
                                 </div>
                             </div>
                         </div>
@@ -141,44 +131,26 @@
                         <div class="tenant-contact-item">
                             <span class="tenant-contact-label">Emergency Contact</span>
                             <span class="tenant-contact-value">
-                                @if($showEmergencyContact)
-                                    {{ $student->emergency_contact_name ?: 'Not provided' }}
-                                @elseif($showGuardianContact)
-                                    {{ $student->parent_contact_name ?: 'Not provided' }}
-                                @else
-                                    Hidden by privacy setting
-                                @endif
+                                {{ $student->emergency_contact_name ?: 'Not provided' }}
                             </span>
                         </div>
                         <div class="tenant-contact-item">
-                            <span class="tenant-contact-label">Contact Number</span>
+                            <span class="tenant-contact-label">Emergency Contact Number</span>
                             <span class="tenant-contact-value">
-                                @if($showGuardianContact)
-                                    {{ $student->parent_contact_number ?: ($student->emergency_contact_number ?: 'Not provided') }}
-                                @else
-                                    Hidden by privacy setting
-                                @endif
+                                {{ $student->emergency_contact_number ?: 'Not provided' }}
+                            </span>
+                        </div>
+                        <div class="tenant-contact-item">
+                            <span class="tenant-contact-label">Parent/Guardian Name</span>
+                            <span class="tenant-contact-value">
+                                {{ $student->parent_contact_name ?: 'Not provided' }}
                             </span>
                         </div>
                         <div class="tenant-contact-item">
                             <span class="tenant-contact-label">Parent Address</span>
                             <span class="tenant-contact-value">
-                                @if($showGuardianAddress)
-                                    {{ $student->parent_contact_address ?: 'Not provided' }}
-                                @else
-                                    Hidden by privacy setting
-                                @endif
+                                {{ $student->parent_contact_address ?: 'Not provided' }}
                             </span>
-                        </div>
-                        <div class="tenant-contact-item">
-                            <span class="tenant-contact-label">Parent ID/Photo</span>
-                            @if($showGuardianPhoto && !empty($student->parent_contact_photo_path))
-                                <a class="tenant-contact-value" href="{{ asset('storage/' . $student->parent_contact_photo_path) }}" target="_blank" rel="noopener">View file</a>
-                            @elseif($showGuardianPhoto)
-                                <span class="tenant-contact-value">Not provided</span>
-                            @else
-                                <span class="tenant-contact-value">Hidden by privacy setting</span>
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -193,11 +165,6 @@
                     </div>
 
                     <div class="tenant-actions">
-                    @if($showTenantEmail)
-                    <a href="mailto:{{ $student->email }}" class="btn btn-sm btn-outline-secondary rounded-pill action-btn" title="Email tenant">
-                        <i class="bi bi-envelope"></i><span>Email</span>
-                    </a>
-                    @endif
                     <a href="{{ route('landlord.messages.index') }}?to={{ $student->id }}" class="btn btn-sm btn-brand rounded-pill action-btn" title="Send message">
                         <i class="bi bi-chat-dots"></i><span>Message</span>
                     </a>

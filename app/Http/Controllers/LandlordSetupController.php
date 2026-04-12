@@ -67,6 +67,7 @@ class LandlordSetupController extends Controller
             'boarding_house_name' => 'required|string|max:255',
             'about' => 'required|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'contract_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'business_permit' => $permitRule,
             'preferred_payment_methods' => 'required|array|min:1',
             'preferred_payment_methods.*' => 'in:bank,gcash,cash',
@@ -172,6 +173,14 @@ class LandlordSetupController extends Controller
             }
 
             $profileData['payment_gcash_qr_path'] = str_replace('\\', '/', $request->file('payment_gcash_qr')->store('payment_qr_codes', 'public'));
+        }
+
+        if ($request->hasFile('contract_signature_image')) {
+            if (!empty($landlordProfile->contract_signature_path)) {
+                Storage::disk('public')->delete($landlordProfile->contract_signature_path);
+            }
+
+            $profileData['contract_signature_path'] = str_replace('\\', '/', $request->file('contract_signature_image')->store('landlord-signatures', 'public'));
         }
 
         $profileComplete = filled($request->input('contact_number'))

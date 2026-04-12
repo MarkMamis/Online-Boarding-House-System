@@ -11,8 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --brand: #15803d;
-            --brand-dark: #166534;
+            --brand: #10b981;
+            --brand-dark: #047857;
+            --brand-gold: #f4b740;
+            --brand-gold-deep: #d18a00;
+            --brand-ink-deep: #052e16;
             --ink: #0f172a;
             --muted: #64748b;
             --paper: #f8fafc;
@@ -21,7 +24,7 @@
         body.room-show-bg {
             min-height: 100vh;
             position: relative;
-            color: var(--ink);
+            color: #e2e8f0;
             font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
@@ -45,8 +48,9 @@
             position: fixed;
             inset: 0;
             background:
-                radial-gradient(900px circle at 8% 5%, rgba(22, 101, 52, .28), transparent 60%),
-                linear-gradient(180deg, rgba(248,250,252,.42), rgba(248,250,252,.84));
+                radial-gradient(900px circle at 8% 5%, rgba(16, 185, 129, .22), transparent 60%),
+                radial-gradient(760px circle at 95% 4%, rgba(244, 183, 64, .14), transparent 58%),
+                linear-gradient(180deg, rgba(2, 8, 20, .64), rgba(2, 8, 20, .78));
             z-index: 0;
             pointer-events: none;
         }
@@ -342,6 +346,435 @@
             font-size: .94rem;
         }
 
+        .room-main {
+            max-width: 1220px;
+        }
+
+        .room-hero-shell {
+            border: 1px solid rgba(255,255,255,.28);
+            border-radius: 1.2rem;
+            padding: 1rem;
+            background:
+                linear-gradient(145deg, rgba(15, 23, 42, .42), rgba(15, 23, 42, .34));
+            box-shadow: 0 26px 44px rgba(2, 8, 20, .3);
+            backdrop-filter: blur(12px) saturate(1.08);
+            -webkit-backdrop-filter: blur(12px) saturate(1.08);
+            animation: riseIn .55s ease both;
+        }
+
+        .room-hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .26rem .72rem;
+            border-radius: 999px;
+            font-size: .74rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #064e3b;
+            background: rgba(167, 243, 208, .55);
+            border: 1px solid rgba(16, 185, 129, .35);
+        }
+
+        .media-stage {
+            position: relative;
+            isolation: isolate;
+        }
+
+        .media-stage::after {
+            content: "";
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            bottom: -12px;
+            height: 26px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(5, 46, 22, .22), transparent 70%);
+            z-index: -1;
+        }
+
+        .media-chip-row {
+            position: absolute;
+            top: .9rem;
+            left: .9rem;
+            right: .9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            pointer-events: none;
+        }
+
+        .media-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border-radius: 999px;
+            padding: .28rem .66rem;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #f8fafc;
+            border: 1px solid rgba(255,255,255,.4);
+            background: rgba(2, 8, 20, .42);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .room-headline {
+            font-size: clamp(1.9rem, 3.2vw, 2.7rem);
+            line-height: 1.05;
+            color: #f8fafc;
+            margin-bottom: .3rem;
+        }
+
+        .room-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .6rem;
+            margin-bottom: .35rem;
+        }
+
+        .room-title-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: .55rem;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .room-title-wrap .room-headline {
+            margin-bottom: 0;
+        }
+
+        .title-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: .22rem;
+            font-size: .95rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1;
+        }
+
+        .title-rating .bi-star-fill {
+            color: #f59e0b;
+            font-size: .85rem;
+        }
+
+        .room-subline {
+            color: rgba(226, 232, 240, .88);
+            font-size: .94rem;
+            font-weight: 600;
+            margin-bottom: .7rem;
+        }
+
+        .room-meta-line {
+            color: rgba(226, 232, 240, .82);
+            font-size: .9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: .42rem;
+            margin-bottom: .2rem;
+        }
+
+        .room-rating-pill {
+            margin-top: .75rem;
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: .8rem;
+            padding: .55rem .65rem;
+            background: rgba(15, 23, 42, .36);
+        }
+
+        .room-rating-score {
+            font-size: 1.18rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1;
+        }
+
+        .status-pill {
+            border-radius: 999px;
+            padding: .42rem .86rem;
+            font-size: .79rem;
+            font-weight: 700;
+            box-shadow: 0 8px 16px rgba(2, 8, 20, .1);
+            margin-top: .2rem;
+        }
+
+        .stat-block {
+            background: linear-gradient(180deg, rgba(15, 23, 42, .44), rgba(15, 23, 42, .36));
+            border: 1px solid rgba(255,255,255,.2);
+        }
+
+        .stat-block .stat-label {
+            color: rgba(226, 232, 240, .74);
+        }
+
+        .stat-block .stat-value {
+            color: #f8fafc;
+        }
+
+        .book-btn {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            background: linear-gradient(125deg, var(--brand) 0%, var(--brand-dark) 100%);
+            border: 1px solid rgba(16, 185, 129, .82);
+            border-radius: 999px;
+            box-shadow: 0 14px 24px rgba(4, 120, 87, .24);
+            transform: translateY(0) scale(1);
+            transition: transform .22s ease, box-shadow .24s ease, background .22s ease, border-color .22s ease, color .22s ease;
+        }
+
+        .book-btn::after,
+        .secondary-action-btn::after {
+            content: "";
+            position: absolute;
+            top: -130%;
+            bottom: -130%;
+            left: -45%;
+            width: 38%;
+            background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,.55) 50%, transparent 90%);
+            transform: translateX(-190%) rotate(18deg);
+            transition: transform .55s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .book-btn:hover {
+            background: linear-gradient(125deg, #0ea770 0%, #046246 100%);
+            border-color: #0ea770;
+            color: #fff;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 16px 34px rgba(4, 120, 87, .45);
+        }
+
+        .book-btn:hover::after,
+        .secondary-action-btn:hover::after {
+            transform: translateX(430%) rotate(18deg);
+        }
+
+        .book-btn:active,
+        .secondary-action-btn:active {
+            transform: translateY(0) scale(.985);
+        }
+
+        .book-btn:focus-visible,
+        .secondary-action-btn:focus-visible {
+            outline: 2px solid rgba(255,255,255,.72);
+            outline-offset: 2px;
+        }
+
+        .secondary-action-btn {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 183, 64, .52);
+            color: #fde68a;
+            background: linear-gradient(125deg, rgba(244, 183, 64, .24), rgba(244, 183, 64, .14));
+            font-weight: 700;
+            transform: translateY(0) scale(1);
+            transition: transform .22s ease, box-shadow .24s ease, background .22s ease, border-color .22s ease, color .22s ease;
+            box-shadow: 0 8px 20px rgba(2,8,20,.24);
+        }
+
+        .secondary-action-btn:hover {
+            background: linear-gradient(125deg, rgba(244, 183, 64, .32), rgba(244, 183, 64, .18));
+            border-color: rgba(255,255,255,.74);
+            color: #fff;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 14px 30px rgba(2,8,20,.32);
+        }
+
+        .section-card {
+            border: 1px solid rgba(255,255,255,.22);
+            background: linear-gradient(180deg, rgba(15, 23, 42, .44), rgba(15, 23, 42, .36));
+            box-shadow: 0 20px 32px rgba(2, 8, 20, .28);
+            backdrop-filter: blur(10px) saturate(1.04);
+            -webkit-backdrop-filter: blur(10px) saturate(1.04);
+        }
+
+        .section-headline {
+            font-size: 1.08rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: .12rem;
+        }
+
+        .section-sub {
+            color: rgba(226, 232, 240, .76);
+            font-size: .83rem;
+        }
+
+        .feedback-item {
+            background: linear-gradient(180deg, rgba(15, 23, 42, .4), rgba(15, 23, 42, .32));
+            border: 1px solid rgba(255,255,255,.18);
+        }
+
+        .feedback-meta {
+            color: rgba(226, 232, 240, .74);
+        }
+
+        .feedback-comment {
+            color: #e2e8f0;
+        }
+
+        .room-info-card {
+            border: 1px solid rgba(255,255,255,.22);
+            background: linear-gradient(180deg, rgba(15, 23, 42, .48), rgba(15, 23, 42, .38));
+            box-shadow: 0 24px 44px rgba(2, 8, 20, .28);
+            backdrop-filter: blur(10px) saturate(1.04);
+            -webkit-backdrop-filter: blur(10px) saturate(1.04);
+        }
+
+        .room-info-card .text-muted,
+        .section-card .text-muted {
+            color: rgba(226, 232, 240, .76) !important;
+        }
+
+        .inclusion-badge {
+            background: rgba(15, 23, 42, .34);
+            border: 1px solid rgba(255,255,255,.18);
+            color: #e2e8f0;
+        }
+
+        .reveal-up {
+            animation: riseIn .48s ease both;
+        }
+
+        .reveal-up.delay-1 {
+            animation-delay: .08s;
+        }
+
+        .reveal-up.delay-2 {
+            animation-delay: .16s;
+        }
+
+        @keyframes riseIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .booking-access-modal .modal-content {
+            border: 1px solid rgba(148, 163, 184, .34);
+            border-radius: 1.05rem;
+            box-shadow: 0 22px 48px rgba(2, 8, 20, .55);
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(15, 23, 42, .98), rgba(2, 6, 23, .98));
+        }
+
+        .booking-access-head {
+            background:
+                radial-gradient(520px circle at 8% -35%, rgba(16, 185, 129, .28), transparent 52%),
+                radial-gradient(420px circle at 100% -35%, rgba(14, 165, 233, .24), transparent 48%),
+                linear-gradient(145deg, rgba(15, 23, 42, .96) 0%, rgba(30, 41, 59, .96) 100%);
+            border-bottom: 1px solid rgba(148, 163, 184, .22);
+            padding: 1rem 1.1rem .95rem;
+            position: relative;
+        }
+
+        .booking-modal-close {
+            position: absolute;
+            top: .62rem;
+            right: .68rem;
+            width: 30px;
+            height: 30px;
+            border: 1px solid rgba(226, 232, 240, .3);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, .56);
+            color: #f8fafc;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .booking-modal-close:hover {
+            background: rgba(30, 41, 59, .88);
+            border-color: rgba(226, 232, 240, .6);
+            color: #ffffff;
+        }
+
+        .booking-access-kicker {
+            font-size: .74rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #7dd3fc;
+            font-weight: 800;
+            margin-bottom: .25rem;
+        }
+
+        .booking-access-title {
+            margin: 0;
+            font-size: 1.18rem;
+            font-weight: 800;
+            color: #f8fafc;
+            font-family: 'Bricolage Grotesque', 'Manrope', sans-serif;
+        }
+
+        .booking-access-sub {
+            margin-top: .3rem;
+            color: rgba(226, 232, 240, .9);
+            font-size: .9rem;
+            line-height: 1.45;
+        }
+
+        .booking-access-body {
+            padding: 1rem 1.1rem 1.1rem;
+            background: transparent;
+        }
+
+        .booking-info-card {
+            border: 1px solid rgba(125, 211, 252, .28);
+            border-radius: .85rem;
+            background: rgba(15, 23, 42, .58);
+            padding: .78rem .85rem;
+            margin-bottom: .82rem;
+        }
+
+        .booking-info-card p {
+            margin: 0;
+            color: rgba(226, 232, 240, .92);
+            font-size: .9rem;
+        }
+
+        .booking-steps {
+            margin: 0;
+            padding-left: 1.1rem;
+            color: rgba(226, 232, 240, .95);
+            font-size: .9rem;
+            line-height: 1.45;
+        }
+
+        .booking-steps li {
+            margin-bottom: .36rem;
+        }
+
+        .booking-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .55rem;
+            margin-top: .92rem;
+        }
+
+        .booking-actions .btn {
+            border-radius: .72rem;
+            font-weight: 700;
+            padding: .58rem .78rem;
+            font-size: .9rem;
+            width: 100%;
+        }
+
         @media (max-width: 991.98px) {
             .navbar-green .navbar-brand {
                 padding-left: 84px;
@@ -382,6 +815,14 @@
             }
 
             .room-main { padding-top: 6.7rem !important; }
+
+            .room-hero-shell {
+                padding: .8rem;
+            }
+
+            .room-headline {
+                font-size: clamp(1.5rem, 8vw, 2rem);
+            }
 
             .cover-img, .cover-placeholder { height: 300px; }
         }
@@ -426,108 +867,122 @@
     <main class="container-xl room-main py-4 pb-5">
 
         {{-- Cover + Info --}}
-        <div class="row g-4 align-items-start">
+        <div class="room-hero-shell mb-4 reveal-up">
+            <div class="row g-4 align-items-start">
 
-            <div class="col-12 col-lg-6">
-                @if(!empty($img))
-                    <img src="{{ asset('storage/' . $img) }}" alt="Room cover" class="cover-img shadow">
-                @else
-                    <div class="cover-placeholder shadow">
-                        <span><i class="bi bi-image fs-2 d-block text-center mb-2"></i>No cover photo</span>
-                    </div>
-                @endif
-            </div>
-
-            <div class="col-12 col-lg-6">
-                <div class="card border-0 shadow rounded-4 room-info-card">
-                    <div class="card-body p-4">
-
-                        <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
-                            <div>
-                                <h1 class="h3 fw-bold mb-1">Room {{ $displayRoomNumber }}</h1>
-                                <div class="text-muted small d-flex align-items-center gap-1">
-                                    <i class="bi bi-building"></i> {{ $room->property->name ?? '—' }}
-                                </div>
-                                <div class="text-muted small d-flex align-items-center gap-1 mt-1">
-                                    <i class="bi bi-geo-alt"></i> {{ $room->property->address ?? '—' }}
-                                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="media-stage">
+                        @if(!empty($img))
+                            <img src="{{ asset('storage/' . $img) }}" alt="Room cover" class="cover-img shadow">
+                        @else
+                            <div class="cover-placeholder shadow">
+                                <span><i class="bi bi-image fs-2 d-block text-center mb-2"></i>No cover photo</span>
                             </div>
-                            <span class="badge rounded-pill {{ $sc['bg'] }} d-flex align-items-center gap-1 px-3 py-2">
-                                <i class="bi {{ $sc['icon'] }}"></i> {{ ucfirst($room->status ?? 'unknown') }}
-                            </span>
+                        @endif
+                        <div class="media-chip-row">
+                            <span class="media-chip"><i class="bi bi-images"></i> {{ $detailPhotos->count() }} Photo{{ $detailPhotos->count() === 1 ? '' : 's' }}</span>
                         </div>
+                    </div>
+                </div>
 
-                        <hr class="my-3">
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <div class="stat-block">
-                                    <div class="stat-label">Capacity</div>
-                                    <div class="stat-value"><i class="bi bi-people text-primary me-1"></i>{{ (int) $room->capacity }} pax</div>
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow rounded-4 room-info-card">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                <div class="room-title-row w-100">
+                                    <div class="room-title-wrap">
+                                        <h1 class="room-headline display-font">Room {{ $displayRoomNumber }}</h1>
+                                        <span class="title-rating" aria-label="Room rating">
+                                            {{ number_format($avgRating, 1) }}<i class="bi bi-star-fill" aria-hidden="true"></i>
+                                        </span>
+                                    </div>
+                                    <span class="badge status-pill {{ $sc['bg'] }} d-inline-flex align-items-center gap-1">
+                                        <i class="bi {{ $sc['icon'] }}"></i> {{ ucfirst($room->status ?? 'unknown') }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="stat-block">
-                                    <div class="stat-label">Monthly Rent</div>
-                                    <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format((float) $room->price, 2) }}</div>
+
+                            <div class="room-meta-line"><i class="bi bi-building"></i> {{ $room->property->name ?? '—' }}</div>
+                            <div class="room-meta-line"><i class="bi bi-geo-alt"></i> {{ $room->property->address ?? '—' }}</div>
+
+                            <div class="row g-2 my-3">
+                                <div class="col-6">
+                                    <div class="stat-block">
+                                        <div class="stat-label">Capacity</div>
+                                        <div class="stat-value"><i class="bi bi-people text-primary me-1"></i>{{ (int) $room->capacity }} pax</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="stat-block">
-                                    <div class="stat-label">Landlord</div>
-                                    <div class="stat-value" style="font-size:.95rem;">
-                                        <i class="bi bi-person-circle text-secondary me-1"></i>
-                                        {{ $room->property->landlord->full_name ?? 'N/A' }}
+                                <div class="col-6">
+                                    <div class="stat-block">
+                                        <div class="stat-label">Monthly Rent</div>
+                                        <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format((float) $room->price, 2) }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="stat-block">
+                                        <div class="stat-label">Landlord</div>
+                                        <div class="stat-value" style="font-size:.95rem;">
+                                            <i class="bi bi-person-circle text-secondary me-1"></i>
+                                            {{ $room->property->landlord->full_name ?? 'N/A' }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        @if($inclusions->isNotEmpty())
-                            <div class="mb-3">
-                                <div class="text-muted mb-2" style="font-size:.72rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase;">Inclusions</div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @php
-                                        $inclusionIcons = [
-                                            'wifi' => 'bi-wifi', 'aircon' => 'bi-thermometer-snow',
-                                            'electric' => 'bi-lightning-charge', 'fan' => 'bi-wind',
-                                            'water' => 'bi-droplet', 'parking' => 'bi-p-circle',
-                                            'cable' => 'bi-tv', 'laundry' => 'bi-bag',
-                                            'kitchen' => 'bi-egg-fried', 'ref' => 'bi-snow2',
-                                            'refrigerator' => 'bi-snow2',
-                                        ];
-                                    @endphp
-                                    @foreach($inclusions as $inc)
+                            @if($inclusions->isNotEmpty())
+                                <div class="mb-3">
+                                    <div class="text-muted mb-2" style="font-size:.72rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase;">Inclusions</div>
+                                    <div class="d-flex flex-wrap gap-2">
                                         @php
-                                            $key = strtolower($inc);
-                                            $icon = collect($inclusionIcons)->first(fn($v,$k) => str_contains($key,$k)) ?? 'bi-check2-circle';
+                                            $inclusionIcons = [
+                                                'wifi' => 'bi-wifi', 'aircon' => 'bi-thermometer-snow',
+                                                'electric' => 'bi-lightning-charge', 'fan' => 'bi-wind',
+                                                'water' => 'bi-droplet', 'parking' => 'bi-p-circle',
+                                                'cable' => 'bi-tv', 'laundry' => 'bi-bag',
+                                                'kitchen' => 'bi-egg-fried', 'ref' => 'bi-snow2',
+                                                'refrigerator' => 'bi-snow2',
+                                            ];
                                         @endphp
-                                        <span class="inclusion-badge"><i class="bi {{ $icon }}"></i> {{ $inc }}</span>
-                                    @endforeach
+                                        @foreach($inclusions as $inc)
+                                            @php
+                                                $key = strtolower($inc);
+                                                $icon = collect($inclusionIcons)->first(fn($v,$k) => str_contains($key,$k)) ?? 'bi-check2-circle';
+                                            @endphp
+                                            <span class="inclusion-badge"><i class="bi {{ $icon }}"></i> {{ $inc }}</span>
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
-                        @endif
+                            @endif
 
-                        @if($room->status === 'available')
-                            @auth
-                                @if(auth()->user()->role === 'student')
-                                    <a href="{{ route('bookings.create', $room->id) }}"
-                                       class="btn book-btn text-white w-100 rounded-pill fw-semibold mt-1">
-                                        <i class="bi bi-calendar-check me-1"></i> Book This Room
-                                    </a>
+                            <div class="d-flex flex-column flex-sm-row gap-2 mt-2">
+                                @if($room->status === 'available')
+                                    @auth
+                                        @if(auth()->user()->role === 'student')
+                                            <a href="{{ route('bookings.create', $room->id) }}"
+                                               class="btn book-btn text-white flex-fill fw-semibold">
+                                                <i class="bi bi-calendar-check me-1"></i> Book This Room
+                                            </a>
+                                        @endif
+                                    @else
+                                        <button type="button"
+                                           class="btn book-btn text-white flex-fill fw-semibold"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#bookingAccessModal">
+                                            <i class="bi bi-calendar-check me-1"></i> Book This Room
+                                        </button>
+                                    @endauth
+                                @else
+                                    <button class="btn btn-secondary flex-fill fw-semibold" disabled>
+                                        <i class="bi bi-slash-circle me-1"></i> Not Available
+                                    </button>
                                 @endif
-                            @else
-                                <a href="{{ route('login') }}"
-                                   class="btn book-btn text-white w-100 rounded-pill fw-semibold mt-1">
-                                    <i class="bi bi-calendar-check me-1"></i> Book This Room
-                                </a>
-                            @endauth
-                        @else
-                            <button class="btn btn-secondary w-100 rounded-pill fw-semibold mt-1" disabled>
-                                <i class="bi bi-slash-circle me-1"></i> Not Available
-                            </button>
-                        @endif
 
+                                <a href="{{ route('public.properties.map') }}" class="btn secondary-action-btn flex-fill">
+                                    <i class="bi bi-compass me-1"></i> Browse More Listings
+                                </a>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
@@ -535,12 +990,12 @@
 
         <div class="row g-4 mt-1">
             <div class="col-12 col-lg-6">
-                <div class="section-card h-100">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-images text-success me-2"></i>Room Photos</h5>
+                <div class="section-card h-100 reveal-up delay-1">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                        <div class="section-headline"><i class="bi bi-images text-success me-2"></i>Room Photos</div>
                         <span class="badge text-bg-light border">{{ $detailPhotos->count() }} photo{{ $detailPhotos->count() > 1 ? 's' : '' }}</span>
                     </div>
-                    <div class="text-muted small mb-3">Tap any photo to open gallery view.</div>
+                    <div class="section-sub mb-3">Tap any photo to open the full gallery view.</div>
 
                     @if($detailPhotos->isNotEmpty())
                         <div class="detail-grid">
@@ -564,11 +1019,11 @@
             </div>
 
             <div class="col-12 col-lg-6">
-                <div class="section-card h-100">
+                <div class="section-card h-100 reveal-up delay-2">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                         <div>
-                            <h5 class="fw-bold mb-1"><i class="bi bi-chat-left-text text-success me-2"></i>Feedback</h5>
-                            <div class="text-muted small">Experiences shared by students who stayed in this room.</div>
+                            <div class="section-headline"><i class="bi bi-chat-left-text text-success me-2"></i>Feedback</div>
+                            <div class="section-sub">Experiences shared by students who stayed in this room.</div>
                         </div>
                         <div class="text-end">
                             <div class="h5 mb-0">{{ number_format($avgRating, 1) }} <span class="text-muted small">/ 5</span></div>
@@ -610,6 +1065,42 @@
         </div>
 
     </main>
+
+    <div class="modal fade booking-access-modal" id="bookingAccessModal" tabindex="-1" aria-labelledby="bookingAccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="booking-access-head">
+                    <button type="button" class="booking-modal-close" data-bs-dismiss="modal" aria-label="Close booking notice">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="booking-access-kicker">Booking Access Notice</div>
+                    <h5 class="booking-access-title" id="bookingAccessModalLabel">Room Booking Requires Student Credentials</h5>
+                    <div class="booking-access-sub">To proceed with an official room reservation, please sign in using your account credentials or create a verified student account.</div>
+                </div>
+
+                <div class="booking-access-body">
+                    <div class="booking-info-card">
+                        <p><strong>Academic Booking Process:</strong> Account verification supports identity validation, onboarding compliance, and official tenancy records within the OBHS platform.</p>
+                    </div>
+
+                    <ol class="booking-steps">
+                        <li>Sign in using your existing student account credentials.</li>
+                        <li>Review booking terms, room conditions, and required onboarding documents.</li>
+                        <li>Submit your booking and proceed to contract-signing and payment confirmation.</li>
+                    </ol>
+
+                    <div class="booking-actions">
+                        <a href="{{ route('login') }}" class="btn book-btn text-white fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Go To Login
+                        </a>
+                        <a href="{{ route('register.student') }}" class="btn secondary-action-btn fw-semibold">
+                            <i class="bi bi-person-plus me-1"></i>Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- Lightbox --}}
     <div id="lightbox" onclick="closeLightbox(event)">

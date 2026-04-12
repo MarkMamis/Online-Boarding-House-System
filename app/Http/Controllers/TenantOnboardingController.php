@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use App\Models\Booking;
 use App\Models\TenantOnboarding;
 use App\Notifications\SystemNotification;
@@ -77,6 +79,90 @@ class TenantOnboardingController extends Controller
         $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
 
         return view('student.onboarding.show', compact('onboarding'));
+    }
+
+    // Shared: contract document viewer for student, landlord, and admin
+    public function viewContract(TenantOnboarding $onboarding)
+    {
+        $this->authorize('view', $onboarding);
+
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
+
+        $role = strtolower((string) (Auth::user()->role ?? 'student'));
+
+        $backUrl = match ($role) {
+            'admin' => route('admin.onboardings.show', $onboarding),
+            'landlord' => route('landlord.onboarding.review', $onboarding),
+            default => route('student.onboarding.show', $onboarding),
+        };
+
+        $pdfRouteName = match ($role) {
+            'admin' => 'admin.onboardings.contract_pdf',
+            'landlord' => 'landlord.onboarding.contract_pdf',
+            default => 'student.onboarding.contract_pdf',
+        };
+
+        $pdfPreviewUrl = route($pdfRouteName, ['onboarding' => $onboarding]);
+        $pdfDownloadUrl = route($pdfRouteName, ['onboarding' => $onboarding, 'download' => 1]);
+
+        return view('onboarding.contract_view', [
+            'onboarding' => $onboarding,
+            'agreementDate' => $onboarding->contract_signed_at ?: now(),
+            'role' => $role,
+            'backUrl' => $backUrl,
+            'pdfPreviewUrl' => $pdfPreviewUrl,
+            'pdfDownloadUrl' => $pdfDownloadUrl,
+        ]);
+    }
+
+    // Shared: stream onboarding contract PDF (inline preview by default, optional download)
+    public function downloadContractPdf(Request $request, TenantOnboarding $onboarding)
+    {
+        $this->authorize('view', $onboarding);
+
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
+
+        $agreementDate = $onboarding->contract_signed_at ?: now();
+        $digitalTenantId = trim((string) ($onboarding->digital_id ?? ''));
+        $safeDigitalTenantId = preg_replace('/[^A-Za-z0-9\-]/', '', $digitalTenantId) ?: ('ONBOARDING-' . $onboarding->id);
+        $fileName = $safeDigitalTenantId . '-ResidentialLeaseAgreement.pdf';
+
+        $html = view('onboarding.pdf.contract_page', [
+            'onboarding' => $onboarding,
+            'agreementDate' => $agreementDate,
+        ])->render();
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+
+        $publicPath = realpath(base_path('public'));
+        if ($publicPath !== false) {
+            $dompdf->setBasePath($publicPath);
+        }
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('legal', 'portrait');
+        $dompdf->render();
+
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->getFont('Helvetica', 'normal');
+        $canvas->page_text(
+            $canvas->get_width() - 120,
+            $canvas->get_height() - 26,
+            'Page {PAGE_NUM} of {PAGE_COUNT}',
+            $font,
+            9,
+            [0.2, 0.29, 0.38]
+        );
+
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $fileName . '"',
+        ]);
     }
 
     // Student: upload documents
@@ -364,9 +450,60 @@ class TenantOnboardingController extends Controller
     {
         $this->authorize('reviewDocuments', $onboarding);
 
-        $onboarding->load('booking.student', 'booking.room.property');
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
 
         return view('landlord.onboarding.review', compact('onboarding'));
+    }
+
+    // Landlord: sign contract using landlord profile e-signature
+    public function signContractAsLandlord(TenantOnboarding $onboarding)
+    {
+        $this->authorize('signContractAsLandlord', $onboarding);
+
+        $onboarding->load('booking.student', 'booking.room.property.landlord.landlordProfile');
+
+        if (!$onboarding->contract_signed) {
+            return back()->with('error', 'Tenant must sign the contract first before landlord signing.');
+        }
+
+        $landlord = $onboarding->booking?->room?->property?->landlord;
+        $landlordProfile = $landlord?->landlordProfile;
+        $profileSignaturePath = trim((string) ($landlordProfile->contract_signature_path ?? ''));
+
+        if ($profileSignaturePath === '' || !Storage::disk('public')->exists($profileSignaturePath)) {
+            return back()->with('error', 'Please upload your e-signature in Profile first before signing the contract.');
+        }
+
+        $storedSignaturePath = $this->copySignatureFromPublicDisk(
+            $profileSignaturePath,
+            $onboarding->landlord_contract_signature_path,
+            'landlord-' . $onboarding->id
+        );
+
+        if (!$storedSignaturePath) {
+            return back()->with('error', 'Unable to save landlord signature at this time. Please try again.');
+        }
+
+        $landlordSignatureName = trim((string) ($landlord->full_name ?? $landlord->name ?? 'Landlord'));
+
+        $onboarding->update([
+            'landlord_contract_signed' => true,
+            'landlord_contract_signed_at' => now(),
+            'landlord_contract_signature_path' => $storedSignaturePath,
+            'landlord_contract_signature_name' => $landlordSignatureName !== '' ? $landlordSignatureName : null,
+        ]);
+
+        $this->notifyStudentOnboardingStep(
+            $onboarding,
+            'Landlord signed onboarding contract',
+            sprintf(
+                'Your landlord signed the onboarding contract for Room %s at %s.',
+                $onboarding->booking->room->room_number ?? '—',
+                $onboarding->booking->room->property->name ?? 'Property'
+            )
+        );
+
+        return back()->with('success', 'Contract signed successfully as landlord.');
     }
 
     // Landlord: approve/reject documents
@@ -629,6 +766,33 @@ class TenantOnboardingController extends Controller
 
         return $path;
     }
+
+    private function copySignatureFromPublicDisk(string $sourcePath, ?string $oldPath = null, string $prefix = 'signature'): ?string
+    {
+        $sourcePath = trim($sourcePath);
+        if ($sourcePath === '' || !Storage::disk('public')->exists($sourcePath)) {
+            return null;
+        }
+
+        $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
+        if (!in_array($extension, ['png', 'jpg', 'jpeg', 'webp'], true)) {
+            $extension = 'png';
+        }
+
+        $targetPath = 'contract-signatures/' . $prefix . '-' . Str::uuid() . '.' . $extension;
+        $copied = Storage::disk('public')->copy($sourcePath, $targetPath);
+
+        if (!$copied || !Storage::disk('public')->exists($targetPath)) {
+            return null;
+        }
+
+        if (!empty($oldPath) && $oldPath !== $sourcePath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $targetPath;
+    }
+
     private function notifyLandlordOnboardingStep(TenantOnboarding $onboarding, string $title, string $message): void
     {
         try {
@@ -819,11 +983,7 @@ class TenantOnboardingController extends Controller
     // Admin: view contract for onboarding
     public function adminViewContract(TenantOnboarding $onboarding)
     {
-        $this->ensureAdmin();
-
-        $contract = $this->generateContract($onboarding);
-
-        return view('admin.onboardings.contract', compact('onboarding', 'contract'));
+        return $this->viewContract($onboarding);
     }
 
     private function ensureLandlord(TenantOnboarding $onboarding)

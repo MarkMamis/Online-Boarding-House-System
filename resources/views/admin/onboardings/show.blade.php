@@ -370,6 +370,9 @@
                     <a href="{{ route('admin.onboardings.contract', $onboarding) }}" target="_blank" class="btn btn-success rounded-pill px-3">
                         <i class="bi bi-eye me-1"></i>View Contract
                     </a>
+                    <a href="{{ route('admin.onboardings.contract_pdf', ['onboarding' => $onboarding, 'download' => 1]) }}" class="btn btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-filetype-pdf me-1"></i>Download PDF
+                    </a>
                 </div>
             </div>
         </div>

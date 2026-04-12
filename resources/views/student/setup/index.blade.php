@@ -291,6 +291,48 @@
             box-shadow: 0 0 0 .2rem rgba(20, 83, 45, .12);
         }
 
+        .address-suggest-wrap {
+            position: relative;
+        }
+
+        .address-suggestion-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            z-index: 40;
+            border: 1px solid rgba(2, 8, 20, .14);
+            border-radius: .75rem;
+            background: #fff;
+            box-shadow: 0 12px 24px rgba(2, 8, 20, .12);
+            padding: .3rem;
+            max-height: 230px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .address-suggestion-menu.is-open {
+            display: block;
+        }
+
+        .address-suggestion-item {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            text-align: left;
+            border-radius: .55rem;
+            padding: .42rem .55rem;
+            font-size: .86rem;
+            color: #0f172a;
+            line-height: 1.35;
+        }
+
+        .address-suggestion-item:hover,
+        .address-suggestion-item:focus {
+            background: rgba(167, 243, 208, .28);
+            outline: none;
+        }
+
         .upload-preview {
             width: 78px;
             height: 78px;
@@ -519,7 +561,12 @@
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Home Address</label>
-                                        <textarea name="address" rows="2" class="form-control @error('address') is-invalid @enderror" required>{{ old('address', $user->address) }}</textarea>
+                                        <div class="address-suggest-wrap">
+                                            <textarea id="homeAddressInput" name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Start typing barangay..." required>{{ old('address', $user->address) }}</textarea>
+                                            <div id="homeAddressSuggestMenu" class="address-suggestion-menu" role="listbox" aria-label="Home address suggestions"></div>
+                                        </div>
+                                        <div class="form-text">Format: Barangay, City/Municipality, Province (e.g., Masipit, Calapan City, Oriental Mindoro).</div>
+                                        <div id="homeAddressSuggestStatus" class="small text-muted mt-1"></div>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Profile Photo</label>
@@ -855,6 +902,223 @@
                     if (!file || !file.type || !file.type.startsWith('image/')) return;
                     schoolIdPreview.src = URL.createObjectURL(file);
                     schoolIdPreview.classList.remove('d-none');
+                });
+            }
+
+            const homeAddressInput = document.getElementById('homeAddressInput');
+            const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
+            const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
+
+            if (homeAddressInput && homeAddressSuggestMenu && homeAddressSuggestStatus) {
+                const psgcBaseUrl = 'https://psgc.gitlab.io/api';
+                let indexedBarangays = [];
+                let datasetsPromise = null;
+                let suggestionTimer = null;
+
+                const normalizeCode = function (value) {
+                    return typeof value === 'string' ? value : '';
+                };
+
+                const setAddressStatus = function (message, isError) {
+                    homeAddressSuggestStatus.textContent = message || '';
+                    homeAddressSuggestStatus.classList.toggle('text-danger', Boolean(isError));
+                    homeAddressSuggestStatus.classList.toggle('text-muted', !isError);
+                };
+
+                const closeSuggestionMenu = function () {
+                    homeAddressSuggestMenu.classList.remove('is-open');
+                    homeAddressSuggestMenu.innerHTML = '';
+                };
+
+                const fetchJson = function (endpoint) {
+                    return fetch(psgcBaseUrl + endpoint, {
+                        headers: {
+                            Accept: 'application/json'
+                        }
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Unable to load PSGC data.');
+                        }
+                        return response.json();
+                    });
+                };
+
+                const buildIndexRows = function (payload) {
+                    const barangays = Array.isArray(payload[0]) ? payload[0] : [];
+                    const cities = Array.isArray(payload[1]) ? payload[1] : [];
+                    const provinces = Array.isArray(payload[2]) ? payload[2] : [];
+
+                    const cityByCode = new Map();
+                    cities.forEach(function (cityItem) {
+                        const code = normalizeCode(cityItem?.code);
+                        if (!code) return;
+                        cityByCode.set(code, {
+                            name: String(cityItem?.name || '').trim(),
+                            provinceCode: normalizeCode(cityItem?.provinceCode),
+                        });
+                    });
+
+                    const provinceByCode = new Map();
+                    provinces.forEach(function (provinceItem) {
+                        const code = normalizeCode(provinceItem?.code);
+                        if (!code) return;
+                        provinceByCode.set(code, String(provinceItem?.name || '').trim());
+                    });
+
+                    indexedBarangays = barangays
+                        .map(function (barangayItem) {
+                            const barangayName = String(barangayItem?.name || '').trim();
+                            if (!barangayName) {
+                                return null;
+                            }
+
+                            const cityCode = normalizeCode(barangayItem?.cityCode) || normalizeCode(barangayItem?.municipalityCode) || normalizeCode(barangayItem?.subMunicipalityCode);
+                            const cityRecord = cityCode ? cityByCode.get(cityCode) : null;
+                            const cityName = String(cityRecord?.name || '').trim();
+
+                            const provinceCode = normalizeCode(barangayItem?.provinceCode) || normalizeCode(cityRecord?.provinceCode);
+                            const provinceName = provinceCode ? String(provinceByCode.get(provinceCode) || '').trim() : '';
+
+                            if (!cityName || !provinceName) {
+                                return null;
+                            }
+
+                            const fullAddress = [barangayName, cityName, provinceName].join(', ');
+
+                            return {
+                                address: fullAddress,
+                                barangayLower: barangayName.toLowerCase(),
+                                addressLower: fullAddress.toLowerCase(),
+                            };
+                        })
+                        .filter(Boolean);
+                };
+
+                const loadDatasets = function () {
+                    if (indexedBarangays.length > 0) {
+                        return Promise.resolve();
+                    }
+
+                    if (datasetsPromise) {
+                        return datasetsPromise;
+                    }
+
+                    setAddressStatus('Loading PH location suggestions...', false);
+
+                    datasetsPromise = Promise.all([
+                        fetchJson('/barangays.json'),
+                        fetchJson('/cities-municipalities.json'),
+                        fetchJson('/provinces.json')
+                    ]).then(function (payload) {
+                        buildIndexRows(payload);
+                        setAddressStatus('', false);
+                    }).catch(function () {
+                        setAddressStatus('Unable to load PSGC suggestions right now. You can still enter the address manually.', true);
+                        throw new Error('PSGC datasets unavailable');
+                    });
+
+                    return datasetsPromise;
+                };
+
+                const getSuggestions = function (term) {
+                    const needle = term.toLowerCase();
+                    const suggestions = [];
+                    const seen = new Set();
+
+                    for (let i = 0; i < indexedBarangays.length; i += 1) {
+                        const item = indexedBarangays[i];
+                        if (!item) continue;
+
+                        if (!item.barangayLower.includes(needle) && !item.addressLower.includes(needle)) {
+                            continue;
+                        }
+
+                        const key = item.addressLower;
+                        if (seen.has(key)) {
+                            continue;
+                        }
+
+                        seen.add(key);
+                        suggestions.push(item.address);
+
+                        if (suggestions.length >= 8) {
+                            break;
+                        }
+                    }
+
+                    return suggestions;
+                };
+
+                const renderSuggestions = function (items) {
+                    homeAddressSuggestMenu.innerHTML = '';
+
+                    if (!items.length) {
+                        closeSuggestionMenu();
+                        return;
+                    }
+
+                    items.forEach(function (item) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'address-suggestion-item';
+                        button.textContent = item;
+                        button.addEventListener('click', function () {
+                            homeAddressInput.value = item;
+                            closeSuggestionMenu();
+                            setAddressStatus('Suggested address applied.', false);
+                        });
+                        homeAddressSuggestMenu.appendChild(button);
+                    });
+
+                    homeAddressSuggestMenu.classList.add('is-open');
+                };
+
+                const runSuggestionSearch = function () {
+                    const term = String(homeAddressInput.value || '').trim();
+
+                    if (term.length < 2) {
+                        closeSuggestionMenu();
+                        setAddressStatus('', false);
+                        return;
+                    }
+
+                    loadDatasets()
+                        .then(function () {
+                            const suggestions = getSuggestions(term);
+                            renderSuggestions(suggestions);
+
+                            if (suggestions.length === 0) {
+                                setAddressStatus('No matching barangay found yet. Try a different spelling.', false);
+                            } else {
+                                setAddressStatus('', false);
+                            }
+                        })
+                        .catch(function () {
+                            closeSuggestionMenu();
+                        });
+                };
+
+                homeAddressInput.addEventListener('focus', function () {
+                    loadDatasets().catch(function () {});
+                    runSuggestionSearch();
+                });
+
+                homeAddressInput.addEventListener('input', function () {
+                    clearTimeout(suggestionTimer);
+                    suggestionTimer = setTimeout(runSuggestionSearch, 220);
+                });
+
+                homeAddressInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        closeSuggestionMenu();
+                    }
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (homeAddressSuggestMenu.contains(event.target) || event.target === homeAddressInput) {
+                        return;
+                    }
+                    closeSuggestionMenu();
                 });
             }
 

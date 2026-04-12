@@ -434,6 +434,22 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Contract E-signature (Optional)</label>
+                                        <input type="file" name="contract_signature_image" class="form-control @error('contract_signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp">
+                                        @error('contract_signature_image')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text">Used for landlord contract signing. JPG, JPEG, PNG, WEBP up to 2MB.</div>
+                                        @if(!empty(optional($landlordProfile)->contract_signature_path))
+                                            <div class="mt-2">
+                                                <a href="{{ asset('storage/' . optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                    <i class="bi bi-pen"></i> View Current E-signature
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div class="step-actions">

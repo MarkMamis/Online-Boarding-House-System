@@ -45,6 +45,11 @@ class TenantOnboardingPolicy
         return $this->isStudentOwner($user, $onboarding);
     }
 
+    public function signContractAsLandlord(User $user, TenantOnboarding $onboarding): bool
+    {
+        return $this->isLandlordOwner($user, $onboarding);
+    }
+
     public function payDeposit(User $user, TenantOnboarding $onboarding): bool
     {
         return $this->isStudentOwner($user, $onboarding);

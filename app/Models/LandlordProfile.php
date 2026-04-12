@@ -35,6 +35,7 @@ class LandlordProfile extends Model
         'payment_gcash_number',
         'payment_gcash_name',
         'payment_gcash_qr_path',
+        'contract_signature_path',
         'payment_instructions',
         'preferred_payment_methods',
         'tenant_privacy_settings',

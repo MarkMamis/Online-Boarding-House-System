@@ -6,7 +6,6 @@ use App\Models\Booking;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\Message;
-use App\Models\LandlordProfile;
 use App\Models\TenantOnboarding;
 use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
@@ -342,11 +341,6 @@ class BookingController extends Controller
     {
         $this->ensureLandlord();
 
-        $landlordProfile = Auth::user()->loadMissing('landlordProfile')->landlordProfile;
-        $privacySettings = $landlordProfile
-            ? $landlordProfile->resolvedTenantPrivacySettings()
-            : LandlordProfile::defaultTenantPrivacySettings();
-
         // Get all approved bookings (current tenants) for this landlord
         $tenants = Booking::with(['room.property', 'student'])
             ->where('status', 'approved')
@@ -356,7 +350,7 @@ class BookingController extends Controller
             ->orderBy('check_in')
             ->get();
 
-        return view('landlord.tenants.index', compact('tenants', 'privacySettings'));
+        return view('landlord.tenants.index', compact('tenants'));
     }
 
     // Landlord: approve booking

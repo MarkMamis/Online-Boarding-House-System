@@ -291,6 +291,40 @@
             outline: 2px solid rgba(255,255,255,.72);
             outline-offset: 2px;
         }
+        .btn-flashy {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            transform: translateY(0) scale(1);
+            transition: transform .22s ease, box-shadow .24s ease, background .22s ease, border-color .22s ease, color .22s ease;
+        }
+        .btn-flashy::after {
+            content: "";
+            position: absolute;
+            top: -130%;
+            bottom: -130%;
+            left: -45%;
+            width: 38%;
+            background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,.55) 50%, transparent 90%);
+            transform: translateX(-190%) rotate(18deg);
+            transition: transform .55s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .btn-flashy:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+        .btn-flashy:hover::after,
+        .btn-flashy:focus-visible::after {
+            transform: translateX(430%) rotate(18deg);
+        }
+        .btn-flashy:active {
+            transform: translateY(0) scale(.985);
+        }
+        .btn-flashy:focus-visible {
+            outline: 2px solid rgba(255,255,255,.72);
+            outline-offset: 2px;
+        }
         .btn-brand {
             background: linear-gradient(125deg, var(--premium-emerald) 0%, var(--premium-emerald-deep) 100%);
             border-color: rgba(16, 185, 129, .9);
@@ -1383,9 +1417,9 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="fw-semibold">Featured Rooms</div>
                         <div class="feature-sort" role="group" aria-label="Sort featured rooms">
-                            <button type="button" class="feature-sort-btn active" data-featured-sort="cheapest" aria-pressed="true">Cheapest</button>
-                            <button type="button" class="feature-sort-btn" data-featured-sort="nearest" aria-pressed="false">Nearest</button>
-                            <button type="button" class="feature-sort-btn" data-featured-sort="top-rated" aria-pressed="false">Top rated</button>
+                            <button type="button" class="feature-sort-btn btn-flashy active" data-featured-sort="cheapest" aria-pressed="true">Cheapest</button>
+                            <button type="button" class="feature-sort-btn btn-flashy" data-featured-sort="nearest" aria-pressed="false">Nearest</button>
+                            <button type="button" class="feature-sort-btn btn-flashy" data-featured-sort="top-rated" aria-pressed="false">Top rated</button>
                         </div>
                     </div>
                     <div class="row g-2" data-featured-room-list>
@@ -1539,7 +1573,7 @@
                 <h2 class="section-title">A modern booking flow built for campus life</h2>
                 <p class="section-sub">One platform for discovery, booking, and onboarding. Clear, fast, and transparent.</p>
             </div>
-            <a href="{{ route('register.student') }}" class="btn btn-outline-success rounded-pill">Browse boarding houses</a>
+            <a href="{{ route('public.properties.map') }}" class="btn btn-outline-success rounded-pill btn-flashy">Browse boarding houses</a>
         </div>
         <div class="row g-3">
             <div class="col-12 col-md-6 col-xl-3">
@@ -1614,7 +1648,7 @@
                                 <div class="fw-bold text-success">{{ $minPrice ? 'From ₱' . number_format((float) $minPrice, 0) : 'Price TBD' }}</div>
                             </div>
                             <div class="mt-3">
-                                <a href="{{ url('/browse-map/properties/17/rooms') }}" class="btn btn-sm btn-outline-success rounded-pill w-100">View property</a>
+                                <a href="{{ url('/browse-map/properties/17/rooms') }}" class="btn btn-sm btn-outline-success rounded-pill w-100 btn-flashy">View property</a>
                             </div>
                         </div>
                     </div>
@@ -1653,8 +1687,8 @@
                     </div>
                 </div>
                 <div class="col-12 col-lg-5 text-lg-end">
-                    <a href="{{ route('register.student') }}" class="btn btn-brand">Register as Student</a>
-                    <a href="{{ route('login') }}" class="btn btn-outline-success ms-2">I already have an account</a>
+                    <a href="{{ route('register.student') }}" class="btn btn-brand btn-flashy">Register as Student</a>
+                    <a href="{{ route('login') }}" class="btn btn-outline-success ms-2 btn-flashy">I already have an account</a>
                 </div>
             </div>
         </div>
@@ -1684,8 +1718,8 @@
                     </div>
                 </div>
                 <div class="col-12 col-lg-5 text-lg-end">
-                    <a href="{{ route('register.landlord') }}" class="btn btn-brand">Register as Landlord</a>
-                    <a href="{{ route('login') }}" class="btn btn-outline-success ms-2">Log in</a>
+                    <a href="{{ route('register.landlord') }}" class="btn btn-brand btn-flashy">Register as Landlord</a>
+                    <a href="{{ route('login') }}" class="btn btn-outline-success ms-2 btn-flashy">Log in</a>
                 </div>
             </div>
         </div>

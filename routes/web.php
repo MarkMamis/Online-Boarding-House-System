@@ -265,7 +265,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/onboardings/pending', [TenantOnboardingController::class, 'adminPending'])->name('admin.onboardings.pending');
     Route::get('/admin/onboardings/completed', [TenantOnboardingController::class, 'adminCompleted'])->name('admin.onboardings.completed');
     Route::get('/admin/onboardings/{onboarding}', [TenantOnboardingController::class, 'adminShow'])->name('admin.onboardings.show');
-    Route::get('/admin/onboardings/{onboarding}/contract', [TenantOnboardingController::class, 'adminViewContract'])->name('admin.onboardings.contract');
+    Route::get('/admin/onboardings/{onboarding}/contract', [TenantOnboardingController::class, 'viewContract'])->name('admin.onboardings.contract');
+    Route::get('/admin/onboardings/{onboarding}/contract-pdf', [TenantOnboardingController::class, 'downloadContractPdf'])->name('admin.onboardings.contract_pdf');
 });
 
 // Landlord-only (verified)
@@ -338,6 +339,9 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
         // Landlord onboarding
         Route::get('/landlord/onboarding', [TenantOnboardingController::class, 'landlordIndex'])->name('landlord.onboarding.index');
         Route::get('/landlord/onboarding/{onboarding}/review', [TenantOnboardingController::class, 'reviewDocuments'])->name('landlord.onboarding.review');
+        Route::get('/landlord/onboarding/{onboarding}/contract', [TenantOnboardingController::class, 'viewContract'])->name('landlord.onboarding.contract');
+        Route::get('/landlord/onboarding/{onboarding}/contract-pdf', [TenantOnboardingController::class, 'downloadContractPdf'])->name('landlord.onboarding.contract_pdf');
+        Route::post('/landlord/onboarding/{onboarding}/sign-contract', [TenantOnboardingController::class, 'signContractAsLandlord'])->name('landlord.onboarding.sign_contract');
         Route::post('/landlord/onboarding/{onboarding}/approve-documents', [TenantOnboardingController::class, 'approveDocuments'])->name('landlord.onboarding.approve_documents');
 
         // Landlord leave requests
@@ -390,6 +394,8 @@ Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
         // Student onboarding
         Route::get('/student/onboarding', [TenantOnboardingController::class, 'index'])->name('student.onboarding.index');
         Route::get('/student/onboarding/{onboarding}', [TenantOnboardingController::class, 'show'])->name('student.onboarding.show');
+        Route::get('/student/onboarding/{onboarding}/contract', [TenantOnboardingController::class, 'viewContract'])->name('student.onboarding.contract');
+        Route::get('/student/onboarding/{onboarding}/contract-pdf', [TenantOnboardingController::class, 'downloadContractPdf'])->name('student.onboarding.contract_pdf');
         Route::post('/student/onboarding/{onboarding}/documents', [TenantOnboardingController::class, 'uploadDocuments'])->name('student.onboarding.upload_documents');
         Route::post('/student/onboarding/{onboarding}/sign-contract', [TenantOnboardingController::class, 'signContract'])->name('student.onboarding.sign_contract');
         Route::post('/student/onboarding/{onboarding}/pay-deposit', [TenantOnboardingController::class, 'payDeposit'])->name('student.onboarding.pay_deposit');
