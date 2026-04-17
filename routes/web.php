@@ -98,6 +98,21 @@ Route::get('/', function () {
             'rooms as available_rooms_count' => function ($query) {
                 $query->where('status', 'available')->where('slots_available', '>', 0);
             },
+            'rooms as available_per_room_count' => function ($query) {
+                $query->where('status', 'available')
+                    ->where('slots_available', '>', 0)
+                    ->where('pricing_model', Room::PRICING_MODEL_PER_ROOM);
+            },
+            'rooms as available_per_bed_count' => function ($query) {
+                $query->where('status', 'available')
+                    ->where('slots_available', '>', 0)
+                    ->where('pricing_model', Room::PRICING_MODEL_PER_BED);
+            },
+            'rooms as available_hybrid_count' => function ($query) {
+                $query->where('status', 'available')
+                    ->where('slots_available', '>', 0)
+                    ->where('pricing_model', Room::PRICING_MODEL_HYBRID);
+            },
         ])
         ->withMin('rooms', 'price')
         ->with([
@@ -152,11 +167,23 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 // Separate role-specific registration forms
 Route::get('/register/student', [AuthController::class, 'showRegisterStudentForm'])->name('register.student');
 Route::get('/register/landlord', [AuthController::class, 'showRegisterLandlordForm'])->name('register.landlord');
-Route::get('/register/admin', [AuthController::class, 'showRegisterAdminForm'])->name('register.admin');
 // Registration submit endpoint (POST). Named for direct form action use if needed.
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
-Route::post('/register/admin', [AuthController::class, 'registerAdmin'])->name('register.admin.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/unauthorized', function () {
+    return response()->view('errors.unauthorized', [], 403);
+})->name('unauthorized');
+
+if (config('auth.public_admin_registration', false)) {
+    Route::get('/register/admin', [AuthController::class, 'showRegisterAdminForm'])->name('register.admin');
+    Route::post('/register/admin', [AuthController::class, 'registerAdmin'])->name('register.admin.submit');
+} else {
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/register/admin', [AuthController::class, 'showRegisterAdminForm'])->name('register.admin');
+        Route::post('/register/admin', [AuthController::class, 'registerAdmin'])->name('register.admin.submit');
+    });
+}
 
 // Email verification
 Route::middleware('auth')->group(function () {
@@ -212,7 +239,7 @@ Route::middleware(['auth', 'verified', 'student.setup'])->group(function () {
 });
 
 // Admin-only (no email verification required)
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/dashboard/stats', [AuthController::class, 'adminDashboardStats'])->name('admin.dashboard.stats');
 

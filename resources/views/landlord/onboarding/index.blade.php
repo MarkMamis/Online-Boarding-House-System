@@ -117,7 +117,7 @@
 
               <div class="onboarding-meta-row">
                 <span class="meta-chip"><i class="bi bi-building"></i>{{ $onboarding->booking->room->property->name }}</span>
-                <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $onboarding->booking->room->room_number }}</span>
+                <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $onboarding->booking->room->room_number }}</span>
                 <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ optional($onboarding->booking->check_in)->format('M d, Y') }} - {{ optional($onboarding->booking->check_out)->format('M d, Y') }}</span>
               </div>
 

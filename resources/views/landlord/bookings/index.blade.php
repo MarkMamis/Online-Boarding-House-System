@@ -50,7 +50,7 @@
         <div class="booking-main">
           <div class="mb-2">
             <div class="booking-title">{{ $b->room->property->name }}</div>
-            <div class="text-muted small">Room {{ $b->room->room_number }} · {{ $b->student->full_name }}</div>
+            <div class="text-muted small">{{ $b->room->room_number }} · {{ $b->student->full_name }}</div>
           </div>
 
           <div class="booking-meta-row">
@@ -281,3 +281,4 @@
   }
 </style>
 @endpush
+

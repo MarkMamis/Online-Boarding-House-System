@@ -73,7 +73,7 @@
                             <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
                                 <div>
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                        <h2 class="h5 mb-0">Room {{ $room->room_number }}</h2>
+                                        <h2 class="h5 mb-0">{{ $room->room_number }}</h2>
                                         <span class="room-chip room-chip-sm">Capacity: <strong>{{ $room->capacity }}</strong></span>
                                         <span class="room-chip room-chip-sm">Price: <strong>₱{{ number_format($room->price, 2) }}</strong></span>
                                     </div>
@@ -117,8 +117,28 @@
                             <div class="mb-3 small">
                                 <div class="text-muted mb-1">Current Tenant</div>
                                 @if($room->current_tenant)
-                                    <div class="fw-semibold">{{ $room->current_tenant->full_name }}</div>
-                                    <div class="text-muted">Tenant identity details are hidden.</div>
+                                    @php
+                                        $tenantName = trim((string) ($room->current_tenant->full_name ?? $room->current_tenant->name ?? 'Unknown Tenant'));
+                                        $tenantInitial = strtoupper(substr($tenantName !== '' ? $tenantName : 'U', 0, 1));
+                                        $tenantContact = trim((string) ($room->current_tenant->contact_number ?? ''));
+                                    @endphp
+                                    <div class="tenant-box">
+                                        <div class="tenant-avatar">
+                                            @if(!empty($room->current_tenant->profile_image_path))
+                                                <img
+                                                    src="{{ asset('storage/' . ltrim($room->current_tenant->profile_image_path, '/')) }}"
+                                                    alt="{{ $tenantName }}"
+                                                    class="tenant-avatar-img"
+                                                >
+                                            @else
+                                                <span class="tenant-avatar-initial">{{ $tenantInitial }}</span>
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $tenantName }}</div>
+                                            <div class="text-muted">{{ $tenantContact !== '' ? $tenantContact : 'No contact number provided' }}</div>
+                                        </div>
+                                    </div>
                                 @else
                                     <div class="text-muted">No tenant assigned</div>
                                 @endif
@@ -184,6 +204,35 @@
     .room-actions-top .btn {
         white-space: nowrap;
     }
+    .tenant-box {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+    }
+    .tenant-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .7rem;
+        font-weight: 700;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.5);
+        box-shadow: 0 4px 10px rgba(2,8,20,.16);
+    }
+    .tenant-avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .tenant-avatar-initial {
+        line-height: 1;
+    }
     @media (max-width: 767.98px) {
         .room-photo {
             width: 100%;
@@ -192,3 +241,4 @@
     }
 </style>
 @endpush
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room {{ $room->room_number }} - {{ $room->property->name ?? 'Property' }}</title>
+    <title>{{ $room->room_number }} - {{ $room->property->name ?? 'Property' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -845,10 +845,48 @@
         );
         $img = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
         $rawRoomNumber = trim((string) ($room->room_number ?? ''));
-        $normalizedRoomNumber = preg_replace('/^room\s*[:#-]?\s*/i', '', $rawRoomNumber);
-        $displayRoomNumber = $normalizedRoomNumber !== '' ? $normalizedRoomNumber : $rawRoomNumber;
+        $displayRoomNumber = $rawRoomNumber !== '' ? $rawRoomNumber : 'N/A';
 
-        $inclusions = collect(preg_split('/[\s,;]+/', $room->inclusions ?? ''))->filter()->values();
+        $rawInclusions = $room->inclusions;
+        if (is_array($rawInclusions)) {
+            $inclusions = collect($rawInclusions)->map(fn ($item) => trim((string) $item))->filter()->values();
+        } elseif (is_string($rawInclusions)) {
+            $decodedInclusions = json_decode($rawInclusions, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedInclusions)) {
+                $inclusions = collect($decodedInclusions)->map(fn ($item) => trim((string) $item))->filter()->values();
+            } else {
+                // Parse inclusions strictly by comma so multi-word items stay intact.
+                $inclusions = collect(explode(',', $rawInclusions))->map(fn ($item) => trim((string) $item))->filter()->values();
+            }
+        } else {
+            $inclusions = collect();
+        }
+
+        $pricingModel = method_exists($room, 'resolvePricingModel')
+            ? $room->resolvePricingModel()
+            : strtolower((string) ($room->pricing_model ?? \App\Models\Room::PRICING_MODEL_PER_ROOM));
+        if (!in_array($pricingModel, [\App\Models\Room::PRICING_MODEL_PER_ROOM, \App\Models\Room::PRICING_MODEL_PER_BED, \App\Models\Room::PRICING_MODEL_HYBRID], true)) {
+            $pricingModel = \App\Models\Room::PRICING_MODEL_PER_ROOM;
+        }
+
+        $pricePerRoom = method_exists($room, 'effectivePricePerRoom')
+            ? (float) $room->effectivePricePerRoom()
+            : (float) ($room->price_per_room ?: ($room->price ?? 0));
+        $pricePerBed = method_exists($room, 'effectivePricePerBed')
+            ? (float) $room->effectivePricePerBed()
+            : (float) ($room->price_per_bed ?: (max(1, (int) $room->capacity) > 0 ? ((float) ($room->price ?? 0) / max(1, (int) $room->capacity)) : 0));
+
+        $pricingModelLabel = match ($pricingModel) {
+            \App\Models\Room::PRICING_MODEL_PER_BED => 'Per Bed',
+            \App\Models\Room::PRICING_MODEL_HYBRID => 'Hybrid',
+            default => 'Per Room',
+        };
+        $pricingModelBadgeClass = match ($pricingModel) {
+            \App\Models\Room::PRICING_MODEL_PER_BED => 'text-bg-info',
+            \App\Models\Room::PRICING_MODEL_HYBRID => 'text-bg-warning',
+            default => 'text-bg-primary',
+        };
+
         $detailPhotos = $room->roomImages ?? collect();
         $feedbacks = $room->feedbacks ?? collect();
         $feedbackCount = (int) ($room->feedbacks_count ?? $feedbacks->count());
@@ -891,7 +929,7 @@
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                 <div class="room-title-row w-100">
                                     <div class="room-title-wrap">
-                                        <h1 class="room-headline display-font">Room {{ $displayRoomNumber }}</h1>
+                                        <h1 class="room-headline display-font">{{ $displayRoomNumber }}</h1>
                                         <span class="title-rating" aria-label="Room rating">
                                             {{ number_format($avgRating, 1) }}<i class="bi bi-star-fill" aria-hidden="true"></i>
                                         </span>
@@ -914,8 +952,24 @@
                                 </div>
                                 <div class="col-6">
                                     <div class="stat-block">
-                                        <div class="stat-label">Monthly Rent</div>
-                                        <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format((float) $room->price, 2) }}</div>
+                                        <div class="stat-label d-flex align-items-center justify-content-between gap-2">
+                                            <span>Monthly Rent</span>
+                                            <span class="badge {{ $pricingModelBadgeClass }} rounded-pill">{{ $pricingModelLabel }}</span>
+                                        </div>
+
+                                        @if($pricingModel === \App\Models\Room::PRICING_MODEL_HYBRID)
+                                            <div class="stat-value mb-1"><i class="bi bi-cash-coin text-success me-1"></i>Hybrid Pricing</div>
+                                            <div class="small text-muted d-flex flex-column gap-1">
+                                                <span>Per room: <strong class="text-body">PHP {{ number_format($pricePerRoom, 2) }}</strong></span>
+                                                <span>Per bed: <strong class="text-body">PHP {{ number_format($pricePerBed, 2) }}</strong></span>
+                                            </div>
+                                        @elseif($pricingModel === \App\Models\Room::PRICING_MODEL_PER_BED)
+                                            <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format($pricePerBed, 2) }}</div>
+                                            <div class="small text-muted">Monthly per bed</div>
+                                        @else
+                                            <div class="stat-value"><i class="bi bi-cash-coin text-success me-1"></i>PHP {{ number_format($pricePerRoom, 2) }}</div>
+                                            <div class="small text-muted">Monthly per room</div>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -1143,3 +1197,4 @@
     </script>
 </body>
 </html>
+

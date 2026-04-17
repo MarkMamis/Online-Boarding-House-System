@@ -105,7 +105,7 @@
                             <div class="min-w-0">
                                 <div class="fw-semibold text-truncate">{{ $displayName }}</div>
                                 <div class="text-muted small text-truncate">
-                                    {{ $feedback->room->property->name ?? 'Property' }} - Room {{ $feedback->room->room_number ?? 'N/A' }}
+                                    {{ $feedback->room->property->name ?? 'Property' }} - {{ $feedback->room->room_number ?? 'N/A' }}
                                 </div>
                             </div>
                         </div>
@@ -200,3 +200,4 @@
     }
 </style>
 @endpush
+

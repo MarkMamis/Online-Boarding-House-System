@@ -7,6 +7,8 @@
 
     if (collect($errorKeys)->contains(fn ($key) => str_starts_with((string) $key, 'detail_images') || str_starts_with((string) $key, 'detail_labels') || (string) $key === 'image')) {
         $initialStep = 2;
+    } elseif (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['pricing_model', 'price_per_room', 'price_per_bed', 'requires_advance_payment'], true))) {
+        $initialStep = 3;
     }
 
     $initialInclusions = collect(explode(',', (string) old('inclusions')))
@@ -15,12 +17,17 @@
         ->values();
 
     $quickInclusionOptions = [
-        'WiFi',
-        'Electric fan',
-        'Bed frame',
-        'Study table',
-        'Cabinet',
-        'Own comfort room',
+        'Wifi',
+        'Water Bill',
+        'Electricity Bill',
+        'Electic Fan',
+        'Aircon',
+        'Comfort Room',
+        'Kitchen',
+        'Balcony',
+        'Study Table',
+        'Kitchen Table',
+        'Tambayan',
     ];
 @endphp
 
@@ -59,22 +66,62 @@
         </div>
     @endif
 
-    <form id="createRoomForm" method="POST" enctype="multipart/form-data" action="{{ route('landlord.properties.rooms.store', $property->id) }}" class="card shadow-sm room-form-card">
+    <form id="createRoomForm" method="POST" enctype="multipart/form-data" action="{{ route('landlord.properties.rooms.store', $property->id) }}" class="card shadow-sm room-form-card" autocomplete="off">
         @csrf
 
         <div class="stepper-head border-bottom">
             <div class="room-stepper" id="roomStepper">
                 <button type="button" class="stepper-node" data-step-target="1">
-                    <span class="step-count">1</span>
+                    <span class="step-track" aria-hidden="true">
+                        <span class="step-line step-line-left"></span>
+                        <span class="step-count">
+                            <i class="bi bi-check2 step-check"></i>
+                            <span class="step-number">1</span>
+                        </span>
+                        <span class="step-line step-line-right"></span>
+                    </span>
+                    <span class="step-kicker">Step 1</span>
                     <span class="step-label">Room Details</span>
+                    <span class="step-status">Pending</span>
                 </button>
                 <button type="button" class="stepper-node" data-step-target="2">
-                    <span class="step-count">2</span>
+                    <span class="step-track" aria-hidden="true">
+                        <span class="step-line step-line-left"></span>
+                        <span class="step-count">
+                            <i class="bi bi-check2 step-check"></i>
+                            <span class="step-number">2</span>
+                        </span>
+                        <span class="step-line step-line-right"></span>
+                    </span>
+                    <span class="step-kicker">Step 2</span>
                     <span class="step-label">Room Photos</span>
+                    <span class="step-status">Pending</span>
                 </button>
                 <button type="button" class="stepper-node" data-step-target="3">
-                    <span class="step-count">3</span>
+                    <span class="step-track" aria-hidden="true">
+                        <span class="step-line step-line-left"></span>
+                        <span class="step-count">
+                            <i class="bi bi-check2 step-check"></i>
+                            <span class="step-number">3</span>
+                        </span>
+                        <span class="step-line step-line-right"></span>
+                    </span>
+                    <span class="step-kicker">Step 3</span>
+                    <span class="step-label">Room Price</span>
+                    <span class="step-status">Pending</span>
+                </button>
+                <button type="button" class="stepper-node" data-step-target="4">
+                    <span class="step-track" aria-hidden="true">
+                        <span class="step-line step-line-left"></span>
+                        <span class="step-count">
+                            <i class="bi bi-check2 step-check"></i>
+                            <span class="step-number">4</span>
+                        </span>
+                        <span class="step-line step-line-right"></span>
+                    </span>
+                    <span class="step-kicker">Step 4</span>
                     <span class="step-label">Review</span>
+                    <span class="step-status">Pending</span>
                 </button>
             </div>
         </div>
@@ -84,20 +131,16 @@
                 <div class="pane-wrap">
                     <div class="section-kicker">Step 1</div>
                     <h5 class="fw-semibold mb-1">Room Details</h5>
-                    <p class="text-muted small mb-3">Set core room attributes, pricing, and rent inclusions.</p>
+                    <p class="text-muted small mb-3">Set core room attributes and rent inclusions.</p>
 
                     <div class="row g-3">
                         <div class="col-md-6 col-lg-3">
                             <label class="form-label">Room Name/Number</label>
-                            <input type="text" name="room_number" class="form-control" value="{{ old('room_number') }}" data-required="1" data-label="Room name or number" id="room_number_input">
+                            <input type="text" name="room_number" class="form-control" value="{{ old('room_number') }}" data-required="1" data-label="Room name or number" id="room_number_input" autocomplete="off" spellcheck="false" placeholder="Room 101">
                         </div>
                         <div class="col-md-6 col-lg-3">
                             <label class="form-label">Capacity</label>
                             <input type="number" min="1" name="capacity" class="form-control" value="{{ old('capacity', 1) }}" data-required="1" data-label="Capacity" id="capacity_input">
-                        </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label">Price (P)</label>
-                            <input type="number" step="0.01" min="0" name="price" class="form-control" value="{{ old('price') }}" data-required="1" data-label="Price" id="price_input">
                         </div>
                         <div class="col-md-6 col-lg-3">
                             <label class="form-label">Status</label>
@@ -107,33 +150,6 @@
                                 <option value="maintenance" @selected(old('status')==='maintenance')>Maintenance</option>
                             </select>
                         </div>
-
-                        @if(!empty($supportsAdvanceRequirement))
-                        <div class="col-12">
-                            <label class="advance-cta" for="requiresAdvancePayment">
-                                <span class="advance-cta-body">
-                                    <input
-                                        class="form-check-input advance-cta-input"
-                                        type="checkbox"
-                                        value="1"
-                                        id="requiresAdvancePayment"
-                                        name="requires_advance_payment"
-                                        @checked(old('requires_advance_payment') == '1')
-                                    >
-                                    <span class="advance-cta-icon">
-                                        <i class="bi bi-shield-check"></i>
-                                    </span>
-                                    <span>
-                                        <span class="advance-cta-title">Require 1 month advance payment for this room</span>
-                                        <span class="advance-cta-note">If enabled, students cannot turn off advance payment during booking.</span>
-                                    </span>
-                                </span>
-                            </label>
-                        </div>
-                        <div class="col-12 mt-n1">
-                            <div class="form-text">Recommended for high-demand rooms to reduce no-show bookings.</div>
-                        </div>
-                        @endif
 
                         <div class="col-12">
                             <label class="form-label">Included in Rent (optional)</label>
@@ -236,7 +252,7 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                <label class="form-label small fw-semibold mb-1">Label <span class="text-muted">(optional)</span></label>
+                                                <label class="form-label small fw-semibold mb-1">Label <span class="text-danger">*</span></label>
                                                 <input type="text" name="detail_labels[]" class="form-control detail-label-input" value="{{ old('detail_labels.0') }}" placeholder="e.g. Bed, Kitchen, Comfort Room">
                                                 <div class="form-text mt-2">Use short labels, like "Bed", "Kitchen", or "CR".</div>
                                             </div>
@@ -256,8 +272,89 @@
             <div class="step-pane" data-step="3">
                 <div class="pane-wrap">
                     <div class="section-kicker">Step 3</div>
+                    <h5 class="fw-semibold mb-1">Room Price</h5>
+                    <p class="text-muted small mb-3">Set your pricing model and monthly rates for room and bed occupancy.</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Pricing Model</label>
+                            <div class="pricing-model-grid" id="pricingModelGroup">
+                                <label class="pricing-model-option">
+                                    <input type="radio" name="pricing_model" value="per_room" @checked(old('pricing_model', 'hybrid')==='per_room')>
+                                    <span class="pricing-model-copy">
+                                        <span class="pricing-model-title">Per room</span>
+                                        <span class="pricing-model-note">Exclusive room / solo occupancy</span>
+                                    </span>
+                                </label>
+                                <label class="pricing-model-option">
+                                    <input type="radio" name="pricing_model" value="per_bed" @checked(old('pricing_model', 'hybrid')==='per_bed')>
+                                    <span class="pricing-model-copy">
+                                        <span class="pricing-model-title">Per bed</span>
+                                        <span class="pricing-model-note">Bedspacer setup</span>
+                                    </span>
+                                </label>
+                                <label class="pricing-model-option">
+                                    <input type="radio" name="pricing_model" value="hybrid" @checked(old('pricing_model', 'hybrid')==='hybrid')>
+                                    <span class="pricing-model-copy">
+                                        <span class="pricing-model-title">Hybrid</span>
+                                        <span class="pricing-model-note">Bedspacer and exclusive room</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-light border h-100 mb-0 d-flex align-items-center">
+                                <div class="small text-muted mb-0">
+                                    <strong class="text-dark">Pricing Guide:</strong> use <em>Per bed</em> for bedspacer rates, <em>Per room</em> for exclusive room/solo occupancy, or <em>Hybrid</em> to offer both.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="pricePerRoomGroup">
+                            <label class="form-label">Per-Room Monthly Price (P)</label>
+                            <input type="number" step="0.01" min="0" name="price_per_room" class="form-control" value="{{ old('price_per_room', old('price')) }}" data-required="1" data-label="Per-room monthly price" id="price_per_room_input">
+                            <div class="form-text">Used for exclusive room or solo occupancy rates.</div>
+                        </div>
+                        <div class="col-md-6" id="pricePerBedGroup">
+                            <label class="form-label">Per-Bed Monthly Price (P)</label>
+                            <input type="number" step="0.01" min="0" name="price_per_bed" class="form-control" value="{{ old('price_per_bed') }}" data-required="1" data-label="Per-bed monthly price" id="price_per_bed_input">
+                            <div class="form-text">Used for bedspacer rate per tenant.</div>
+                        </div>
+
+                        @if(!empty($supportsAdvanceRequirement))
+                        <div class="col-12">
+                            <label class="advance-cta" for="requiresAdvancePayment">
+                                <span class="advance-cta-body">
+                                    <input
+                                        class="form-check-input advance-cta-input"
+                                        type="checkbox"
+                                        value="1"
+                                        id="requiresAdvancePayment"
+                                        name="requires_advance_payment"
+                                        @checked(old('requires_advance_payment') == '1')
+                                    >
+                                    <span class="advance-cta-icon">
+                                        <i class="bi bi-shield-check"></i>
+                                    </span>
+                                    <span>
+                                        <span class="advance-cta-title">Require 1 month advance payment for this room</span>
+                                        <span class="advance-cta-note">If enabled, students cannot turn off advance payment during booking.</span>
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="col-12 mt-n1">
+                            <div class="form-text">Recommended for high-demand rooms to reduce no-show bookings.</div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-pane" data-step="4">
+                <div class="pane-wrap">
+                    <div class="section-kicker">Step 4</div>
                     <h5 class="fw-semibold mb-1">Review and Submit</h5>
-                    <p class="text-muted small mb-3">Review room details and uploaded photos before saving.</p>
+                    <p class="text-muted small mb-3">Review room details, pricing, and uploaded photos before saving.</p>
 
                     <div class="review-grid">
                         <div class="review-card">
@@ -269,7 +366,7 @@
                             <div class="review-value" id="reviewCapacity">1 pax</div>
                         </div>
                         <div class="review-card">
-                            <div class="review-label">Price</div>
+                            <div class="review-label">Price Summary</div>
                             <div class="review-value" id="reviewPrice">P0.00</div>
                         </div>
                         <div class="review-card">
@@ -304,7 +401,7 @@
 
                     <div class="alert alert-light border mt-3 mb-0">
                         <strong>Before saving</strong>
-                        <div class="small text-muted">Make sure room number, price, and photos are correct. You can still edit and add more photos after saving.</div>
+                        <div class="small text-muted">Make sure room number, pricing, and photos are correct. You can still edit and add more photos after saving.</div>
                     </div>
                 </div>
             </div>
@@ -368,64 +465,200 @@
     }
 
     .stepper-head {
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-        padding: 1rem 1.25rem;
+        background: #ffffff;
+        padding: 1rem 1.15rem;
     }
 
     .room-stepper {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .65rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .85rem;
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 1rem;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        padding: .75rem;
     }
 
     .stepper-node {
-        border: 1px solid rgba(2,8,20,.12);
-        background: #ffffff;
-        border-radius: .85rem;
-        padding: .55rem .6rem;
+        border: none;
+        background: transparent;
+        border-radius: .8rem;
+        padding: .3rem .35rem .45rem;
         display: flex;
-        align-items: center;
-        gap: .55rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .35rem;
         text-align: left;
-        transition: all .18s ease;
+        transition: transform .16s ease, opacity .16s ease;
         cursor: pointer;
+        min-width: 0;
+    }
+
+    .stepper-node:hover {
+        transform: translateY(-1px);
+    }
+
+    .step-track {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .42rem;
+        width: 100%;
+    }
+
+    .step-line {
+        height: 4px;
+        border-radius: 999px;
+        background: #d1d5db;
+        transition: background .2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stepper-node:first-child .step-line-left,
+    .stepper-node:last-child .step-line-right {
+        visibility: hidden;
     }
 
     .stepper-node .step-count {
-        width: 24px;
-        height: 24px;
+        width: 38px;
+        height: 38px;
         border-radius: 999px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: .78rem;
+        font-size: .95rem;
         font-weight: 700;
-        border: 1px solid rgba(2,8,20,.18);
+        border: 2px solid #cbd5e1;
         color: #475569;
-        background: #f8fafc;
+        background: #e2e8f0;
         flex: 0 0 auto;
+        transition: all .2s ease;
+    }
+
+    .stepper-node .step-check {
+        display: none;
+        line-height: 1;
+    }
+
+    .stepper-node .step-number {
+        line-height: 1;
+    }
+
+    .stepper-node .step-kicker {
+        font-size: .66rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #64748b;
+        font-weight: 700;
+        line-height: 1;
     }
 
     .stepper-node .step-label {
-        font-size: .84rem;
-        font-weight: 600;
+        font-size: .9rem;
+        font-weight: 700;
         color: #334155;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .stepper-node .step-status {
+        align-self: flex-start;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: .66rem;
+        font-weight: 700;
+        letter-spacing: .03em;
+        line-height: 1;
+        padding: .27rem .56rem;
     }
 
     .stepper-node.is-active {
-        border-color: rgba(20,83,45,.45);
-        background: rgba(167,243,208,.18);
+        opacity: 1;
     }
 
     .stepper-node.is-active .step-count {
-        border-color: rgba(20,83,45,.65);
-        color: #14532d;
-        background: #ffffff;
+        border-color: #1d4ed8;
+        color: #ffffff;
+        background: #2563eb;
+        box-shadow: 0 0 0 .18rem rgba(37,99,235,.18);
+    }
+
+    .stepper-node.is-active .step-line-left {
+        background: #22c55e;
+    }
+
+    .stepper-node.is-active .step-line-right {
+        background: #d1d5db;
+    }
+
+    .stepper-node.is-active .step-line-right::after {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 42%;
+        border-radius: inherit;
+        background: #2563eb;
+        animation: stepperPulse 1.2s ease-in-out infinite alternate;
+    }
+
+    .stepper-node.is-active .step-kicker,
+    .stepper-node.is-active .step-label {
+        color: #1e3a8a;
+    }
+
+    .stepper-node.is-active .step-status {
+        border-color: #93c5fd;
+        background: #dbeafe;
+        color: #1d4ed8;
     }
 
     .stepper-node.is-done {
-        border-color: rgba(20,83,45,.3);
-        background: rgba(167,243,208,.12);
+        opacity: 1;
+    }
+
+    .stepper-node.is-done .step-count {
+        border-color: #16a34a;
+        color: #ffffff;
+        background: #22c55e;
+        box-shadow: 0 0 0 .16rem rgba(34,197,94,.14);
+    }
+
+    .stepper-node.is-done .step-check {
+        display: inline-flex;
+    }
+
+    .stepper-node.is-done .step-number {
+        display: none;
+    }
+
+    .stepper-node.is-done .step-line-left,
+    .stepper-node.is-done .step-line-right {
+        background: #22c55e;
+    }
+
+    .stepper-node.is-done .step-kicker,
+    .stepper-node.is-done .step-label {
+        color: #14532d;
+    }
+
+    .stepper-node.is-done .step-status {
+        border-color: #86efac;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    @keyframes stepperPulse {
+        from {
+            width: 36%;
+        }
+        to {
+            width: 52%;
+        }
     }
 
     .step-pane {
@@ -443,6 +676,71 @@
         background: linear-gradient(180deg, #ffffff 0%, #fcfffd 100%);
         padding: 1rem;
         box-shadow: 0 8px 20px rgba(2,8,20,.05);
+    }
+
+    .pricing-model-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .55rem;
+    }
+
+    .pricing-model-option {
+        border: 1px solid rgba(2,8,20,.16);
+        border-radius: .8rem;
+        padding: .55rem .65rem;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        cursor: pointer;
+        transition: all .2s ease;
+        min-width: 0;
+    }
+
+    .pricing-model-option input[type="radio"] {
+        accent-color: #2563eb;
+        cursor: pointer;
+        margin-top: 0;
+        flex: 0 0 auto;
+    }
+
+    .pricing-model-copy {
+        min-width: 0;
+        display: grid;
+        gap: .08rem;
+    }
+
+    .pricing-model-title {
+        font-size: .84rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+
+    .pricing-model-note {
+        font-size: .74rem;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    .pricing-model-option:has(input[type="radio"]:checked) {
+        border-color: rgba(37,99,235,.44);
+        background: linear-gradient(180deg, rgba(219,234,254,.5), #ffffff 84%);
+        box-shadow: 0 0 0 .14rem rgba(37,99,235,.12);
+    }
+
+    .pricing-model-option.is-selected {
+        border-color: rgba(37,99,235,.44);
+        background: linear-gradient(180deg, rgba(219,234,254,.5), #ffffff 84%);
+        box-shadow: 0 0 0 .14rem rgba(37,99,235,.12);
+    }
+
+    .pricing-model-option:has(input[type="radio"]:checked) .pricing-model-title {
+        color: #1e3a8a;
+    }
+
+    .pricing-model-option.is-selected .pricing-model-title {
+        color: #1e3a8a;
     }
 
     .advance-cta {
@@ -651,6 +949,24 @@
         padding: .55rem .65rem;
     }
 
+    .quick-inclusion-btn {
+        transition: all .2s ease;
+    }
+
+    .quick-inclusion-btn.is-selected,
+    .quick-inclusion-btn.is-selected:disabled {
+        border-color: #86efac;
+        background: linear-gradient(180deg, #dcfce7 0%, #f0fdf4 100%);
+        color: #166534;
+        font-weight: 700;
+        box-shadow: inset 0 0 0 1px rgba(22,163,74,.24);
+        cursor: not-allowed;
+    }
+
+    .quick-inclusion-btn:disabled {
+        opacity: 1;
+    }
+
     .custom-file-box {
         border: 1px dashed rgba(2,8,20,.24);
         border-radius: .75rem;
@@ -759,9 +1075,37 @@
 
     @media (max-width: 991.98px) {
         .create-summary,
-        .room-stepper,
-        .review-grid,
-        .review-media-grid,
+        .review-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .pricing-model-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .room-stepper {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .65rem;
+            padding: .65rem;
+        }
+
+        .stepper-node {
+            padding: .4rem .28rem .5rem;
+        }
+
+        .step-track {
+            grid-template-columns: auto;
+            justify-content: flex-start;
+        }
+
+        .stepper-node .step-line {
+            display: none;
+        }
+
+        .stepper-node .step-label {
+            font-size: .86rem;
+        }
+
         .detail-slot-grid {
             grid-template-columns: 1fr;
         }
@@ -776,6 +1120,17 @@
 
         .cover-panel {
             background: #ffffff;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .room-stepper {
+            grid-template-columns: 1fr;
+            padding: .58rem;
+        }
+
+        .stepper-node {
+            padding: .35rem .2rem .45rem;
         }
     }
 </style>
@@ -796,7 +1151,11 @@
 
         const roomNumberInput = document.getElementById('room_number_input');
         const capacityInput = document.getElementById('capacity_input');
-        const priceInput = document.getElementById('price_input');
+        const pricingModelRadios = Array.from(document.querySelectorAll('input[name="pricing_model"]'));
+        const pricePerRoomInput = document.getElementById('price_per_room_input');
+        const pricePerBedInput = document.getElementById('price_per_bed_input');
+        const pricePerRoomGroup = document.getElementById('pricePerRoomGroup');
+        const pricePerBedGroup = document.getElementById('pricePerBedGroup');
         const statusInput = document.getElementById('status_input');
         const roomImageInput = document.getElementById('roomImageInput');
         const roomImageTrigger = document.getElementById('roomImageTrigger');
@@ -825,6 +1184,7 @@
         const draftPrefix = shell?.dataset.draftKey || 'room-create-draft';
         const coverDraftKey = draftPrefix + ':cover';
         const detailDraftKey = draftPrefix + ':details';
+        const hasServerValidationErrors = @json($errors->any());
 
         function getStorageValue(key, fallback = null) {
             try {
@@ -862,9 +1222,56 @@
             return 'P' + numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        function pricingModelLabel(value) {
+            if (value === 'per_room') return 'Per room';
+            if (value === 'per_bed') return 'Per bed';
+            return 'Hybrid';
+        }
+
+        function selectedPricingModel() {
+            const selected = pricingModelRadios.find((radio) => radio.checked);
+            return selected ? selected.value : 'hybrid';
+        }
+
+        function syncPricingModelOptionState() {
+            pricingModelRadios.forEach((radio) => {
+                radio.closest('.pricing-model-option')?.classList.toggle('is-selected', radio.checked);
+            });
+        }
+
+        function updatePricingFieldState() {
+            const pricingModel = selectedPricingModel();
+            const needsPerRoom = pricingModel === 'per_room' || pricingModel === 'hybrid';
+            const needsPerBed = pricingModel === 'per_bed' || pricingModel === 'hybrid';
+
+            syncPricingModelOptionState();
+
+            if (pricePerRoomGroup) {
+                pricePerRoomGroup.classList.toggle('d-none', !needsPerRoom);
+            }
+
+            if (pricePerBedGroup) {
+                pricePerBedGroup.classList.toggle('d-none', !needsPerBed);
+            }
+
+            if (pricePerRoomInput) {
+                pricePerRoomInput.disabled = !needsPerRoom;
+                if (!needsPerRoom) {
+                    pricePerRoomInput.setCustomValidity('');
+                }
+            }
+
+            if (pricePerBedInput) {
+                pricePerBedInput.disabled = !needsPerBed;
+                if (!needsPerBed) {
+                    pricePerBedInput.setCustomValidity('');
+                }
+            }
+        }
+
         function filename(value) {
             if (!value) return 'No file selected';
-            const parts = value.split('\\\\');
+            const parts = String(value).split(/[\\/]/).filter(Boolean);
             return parts[parts.length - 1] || 'No file selected';
         }
 
@@ -988,6 +1395,11 @@
             updateDetailSlotState();
         }
 
+        function clearImageDraftState() {
+            removeStorageValue(coverDraftKey);
+            removeStorageValue(detailDraftKey);
+        }
+
         function setStep(step) {
             currentStep = Math.max(1, Math.min(totalSteps, step));
 
@@ -997,15 +1409,27 @@
 
             nodes.forEach((node) => {
                 const targetStep = Number(node.dataset.stepTarget);
-                node.classList.toggle('is-active', targetStep === currentStep);
-                node.classList.toggle('is-done', targetStep < currentStep);
+                const isActive = targetStep === currentStep;
+                const isDone = targetStep < currentStep;
+                const statusEl = node.querySelector('.step-status');
+
+                node.classList.toggle('is-active', isActive);
+                node.classList.toggle('is-done', isDone);
+                node.dataset.stepState = isDone ? 'completed' : (isActive ? 'in-progress' : 'pending');
+                node.setAttribute('aria-current', isActive ? 'step' : 'false');
+
+                if (statusEl) {
+                    statusEl.textContent = isDone
+                        ? 'Completed'
+                        : (isActive ? 'In Progress' : 'Pending');
+                }
             });
 
             prevBtn.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
             nextBtn.style.display = currentStep === totalSteps ? 'none' : 'inline-flex';
             saveBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
 
-            if (currentStep === 3) {
+            if (currentStep === totalSteps) {
                 updateReviewSummary();
             }
         }
@@ -1018,8 +1442,16 @@
             for (const field of requiredFields) {
                 const label = field.dataset.label || 'This field';
                 const value = (field.value || '').trim();
+                const pricingModel = selectedPricingModel();
+                const skipForPricing =
+                    (field.name === 'price_per_room' && pricingModel === 'per_bed') ||
+                    (field.name === 'price_per_bed' && pricingModel === 'per_room');
 
                 field.setCustomValidity('');
+                if (skipForPricing) {
+                    continue;
+                }
+
                 if (value === '') {
                     field.setCustomValidity(label + ' is required.');
                     field.reportValidity();
@@ -1032,10 +1464,45 @@
                     return false;
                 }
 
-                if (field.name === 'price' && Number(value) < 0) {
-                    field.setCustomValidity('Price cannot be negative.');
+                if ((field.name === 'price_per_room' || field.name === 'price_per_bed') && Number(value) <= 0) {
+                    field.setCustomValidity('Price must be greater than zero.');
                     field.reportValidity();
                     return false;
+                }
+            }
+
+            if (step === 3) {
+                pricingModelRadios.forEach((radio) => radio.setCustomValidity(''));
+                const selectedModel = pricingModelRadios.find((radio) => radio.checked);
+                if (!selectedModel) {
+                    const firstRadio = pricingModelRadios[0];
+                    if (firstRadio) {
+                        firstRadio.setCustomValidity('Pricing model is required.');
+                        firstRadio.reportValidity();
+                    }
+                    return false;
+                }
+            }
+
+            if (step === 2) {
+                const detailSlots = Array.from(activePane.querySelectorAll('.new-detail-slot'));
+                for (const slot of detailSlots) {
+                    const fileInput = slot.querySelector('.detail-file-input');
+                    const labelInput = slot.querySelector('.detail-label-input');
+                    const hasFile = !!(fileInput?.files && fileInput.files.length > 0);
+                    const labelValue = (labelInput?.value || '').trim();
+
+                    if (labelInput) {
+                        labelInput.setCustomValidity('');
+                    }
+
+                    if (hasFile && !labelValue) {
+                        if (labelInput) {
+                            labelInput.setCustomValidity('Label is required when a detail photo is selected.');
+                            labelInput.reportValidity();
+                        }
+                        return false;
+                    }
                 }
             }
 
@@ -1068,15 +1535,28 @@
         function updateReviewSummary() {
             const roomText = (roomNumberInput?.value || '').trim();
             const capVal = Math.max(1, Number(capacityInput?.value || 1));
-            const priceVal = priceInput?.value || 0;
+            const pricingModel = selectedPricingModel();
+            const perRoomVal = pricePerRoomInput?.value || 0;
+            const perBedVal = pricePerBedInput?.value || 0;
             const statusVal = statusInput?.value || 'available';
             const statusLabel = statusVal.charAt(0).toUpperCase() + statusVal.slice(1);
             const inclusionItems = collectInclusions();
             const detailRows = collectDetailPhotoRows();
 
+            let pricingSummary = '';
+            if (pricingModel === 'per_room') {
+                pricingSummary = pricingModelLabel(pricingModel) + ': ' + formatPrice(perRoomVal);
+            } else if (pricingModel === 'per_bed') {
+                pricingSummary = pricingModelLabel(pricingModel) + ': ' + formatPrice(perBedVal);
+            } else {
+                pricingSummary = pricingModelLabel(pricingModel)
+                    + ': Room ' + formatPrice(perRoomVal)
+                    + ' | Bed ' + formatPrice(perBedVal);
+            }
+
             if (reviewRoom) reviewRoom.textContent = roomText || '-';
             if (reviewCapacity) reviewCapacity.textContent = capVal + ' pax';
-            if (reviewPrice) reviewPrice.textContent = formatPrice(priceVal);
+            if (reviewPrice) reviewPrice.textContent = pricingSummary;
             if (reviewStatus) reviewStatus.textContent = statusLabel;
             if (reviewInclusionCount) reviewInclusionCount.textContent = inclusionItems.length + ' item(s)';
             if (reviewDetailCount) reviewDetailCount.textContent = detailRows.length + ' photo(s)';
@@ -1130,11 +1610,25 @@
             inclusionsSerialized.value = collectInclusions().join(', ');
         }
 
+        function normalizeInclusionValue(value) {
+            return (value || '').trim().toLowerCase();
+        }
+
         function hasInclusionValue(value) {
-            const normalized = value.trim().toLowerCase();
+            const normalized = normalizeInclusionValue(value);
             if (!normalized) return false;
             return Array.from(inclusionsList.querySelectorAll('.inclusion-input'))
-                .some((el) => (el.value || '').trim().toLowerCase() === normalized);
+                .some((el) => normalizeInclusionValue(el.value) === normalized);
+        }
+
+        function syncQuickInclusionButtons() {
+            quickInclusionBtns.forEach((btn) => {
+                const inclusionValue = btn.dataset.inclusion || '';
+                const isSelected = hasInclusionValue(inclusionValue);
+                btn.classList.toggle('is-selected', isSelected);
+                btn.disabled = isSelected;
+                btn.setAttribute('aria-disabled', isSelected ? 'true' : 'false');
+            });
         }
 
         function addInclusionValue(value) {
@@ -1150,6 +1644,7 @@
             }
 
             serializeInclusions();
+            syncQuickInclusionButtons();
             updateReviewSummary();
         }
 
@@ -1302,6 +1797,7 @@
         addInclusionBtn.addEventListener('click', () => {
             inclusionsList.appendChild(createInclusionRow());
             serializeInclusions();
+            syncQuickInclusionButtons();
         });
 
         quickInclusionBtns.forEach((btn) => {
@@ -1321,12 +1817,14 @@
             }
 
             serializeInclusions();
+            syncQuickInclusionButtons();
             updateReviewSummary();
         });
 
         inclusionsList.addEventListener('input', (event) => {
             if (!event.target.classList.contains('inclusion-input')) return;
             serializeInclusions();
+            syncQuickInclusionButtons();
             updateReviewSummary();
         });
 
@@ -1349,12 +1847,25 @@
             updateDetailSlotState();
         }
 
-        [roomNumberInput, capacityInput, priceInput, statusInput].forEach((el) => {
+        [roomNumberInput, capacityInput, pricePerRoomInput, pricePerBedInput, statusInput].forEach((el) => {
             if (!el) return;
             el.addEventListener('input', () => {
                 updateReviewSummary();
             });
             el.addEventListener('change', () => {
+                updateReviewSummary();
+            });
+        });
+
+        pricingModelRadios.forEach((radio) => {
+            radio.addEventListener('input', () => {
+                radio.setCustomValidity('');
+                updatePricingFieldState();
+                updateReviewSummary();
+            });
+            radio.addEventListener('change', () => {
+                radio.setCustomValidity('');
+                updatePricingFieldState();
                 updateReviewSummary();
             });
         });
@@ -1376,7 +1887,13 @@
         }
 
         serializeInclusions();
-        restoreImageDrafts();
+        syncQuickInclusionButtons();
+        if (hasServerValidationErrors) {
+            restoreImageDrafts();
+        } else {
+            clearImageDraftState();
+        }
+        updatePricingFieldState();
         updateReviewSummary();
         setStep(currentStep);
     });

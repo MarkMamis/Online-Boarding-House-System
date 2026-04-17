@@ -53,7 +53,7 @@
                 <div class="room-main">
                     <div class="room-head">
                         <div>
-                            <div class="room-title">Room {{ $room->room_number }}</div>
+                            <div class="room-title">{{ $room->room_number }}</div>
                             <div class="room-subtitle">{{ $room->property->name }}</div>
                             <div class="text-muted small">{{ $room->property->address }}</div>
                         </div>
@@ -98,11 +98,26 @@
                         <div>
                             <div class="meta-label mb-2">Current Tenant</div>
                             @if($room->current_tenant)
+                                @php
+                                    $tenantName = trim((string) ($room->current_tenant->full_name ?? $room->current_tenant->name ?? 'Unknown Tenant'));
+                                    $tenantInitial = strtoupper(substr($tenantName !== '' ? $tenantName : 'U', 0, 1));
+                                    $tenantContact = trim((string) ($room->current_tenant->contact_number ?? ''));
+                                @endphp
                                 <div class="tenant-box">
-                                    <div class="tenant-avatar"><i class="fas fa-user fa-xs"></i></div>
+                                    <div class="tenant-avatar">
+                                        @if(!empty($room->current_tenant->profile_image_path))
+                                            <img
+                                                src="{{ asset('storage/' . ltrim($room->current_tenant->profile_image_path, '/')) }}"
+                                                alt="{{ $tenantName }}"
+                                                class="tenant-avatar-img"
+                                            >
+                                        @else
+                                            <span class="tenant-avatar-initial">{{ $tenantInitial }}</span>
+                                        @endif
+                                    </div>
                                     <div>
-                                        <div class="fw-semibold">{{ $room->current_tenant->full_name }}</div>
-                                        <div class="text-muted small">Tenant identity details are hidden.</div>
+                                        <div class="fw-semibold">{{ $tenantName }}</div>
+                                        <div class="text-muted small">{{ $tenantContact !== '' ? $tenantContact : 'No contact number provided' }}</div>
                                     </div>
                                 </div>
                             @else
@@ -279,6 +294,19 @@
         align-items: center;
         justify-content: center;
         font-size: .65rem;
+        font-weight: 700;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.5);
+        box-shadow: 0 4px 10px rgba(2,8,20,.16);
+    }
+    .tenant-avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .tenant-avatar-initial {
+        line-height: 1;
     }
     .room-actions {
         display: flex;

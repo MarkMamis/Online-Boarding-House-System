@@ -20,7 +20,7 @@
   <div class="tenant-pay-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h5 class="mb-0">Submit Next Monthly Payment</h5>
     @if($selectedBooking)
-      <span class="small text-muted">{{ $selectedBooking->room->property->name }} • Room {{ $selectedBooking->room->room_number }}</span>
+      <span class="small text-muted">{{ $selectedBooking->room->property->name }} • {{ $selectedBooking->room->room_number }}</span>
     @endif
   </div>
   <div class="tenant-pay-card-body">
@@ -31,7 +31,7 @@
         <select class="form-select" name="booking_id" onchange="this.form.submit()">
           @foreach($tenantBookings as $bookingOption)
             <option value="{{ $bookingOption->id }}" @selected(!empty($selectedBooking) && (int) $selectedBooking->id === (int) $bookingOption->id)>
-              {{ $bookingOption->room->property->name }} - Room {{ $bookingOption->room->room_number }} (Due {{ optional($bookingOption->resolvePaymentDueDate())->format('M d, Y') ?? 'N/A' }})
+              {{ $bookingOption->room->property->name }} - {{ $bookingOption->room->room_number }} (Due {{ optional($bookingOption->resolvePaymentDueDate())->format('M d, Y') ?? 'N/A' }})
             </option>
           @endforeach
         </select>
@@ -152,3 +152,4 @@
     @endif
   </div>
 </div>
+

@@ -44,6 +44,31 @@ class BookingController extends Controller
         }
     }
 
+    protected function isExclusiveOccupancy(Room $room, string $occupancyMode): bool
+    {
+        $pricingModel = $room->resolvePricingModel();
+        if ($pricingModel === Room::PRICING_MODEL_PER_ROOM) {
+            return true;
+        }
+
+        return $pricingModel === Room::PRICING_MODEL_HYBRID && strtolower($occupancyMode) === 'solo';
+    }
+
+    protected function bookingOverlapsApprovedOccupancy(Room $room, string $checkIn, string $checkOut, ?int $exceptBookingId = null): bool
+    {
+        $query = Booking::query()
+            ->where('room_id', $room->id)
+            ->where('status', 'approved')
+            ->where('check_in', '<', $checkOut)
+            ->where('check_out', '>', $checkIn);
+
+        if ($exceptBookingId !== null) {
+            $query->where('id', '!=', $exceptBookingId);
+        }
+
+        return $query->exists();
+    }
+
     protected function studentBookingEligibility(): array
     {
         /** @var \App\Models\User $student */
@@ -111,6 +136,8 @@ class BookingController extends Controller
         $this->ensureStudent();
         $this->authorize('create', Booking::class);
         $room->load(['property.landlord.landlordProfile', 'roomImages']);
+        $room->loadCount('feedbacks');
+        $room->loadAvg('feedbacks', 'rating');
 
         [$canBook, $bookingBlockMessage] = $this->studentBookingEligibility();
         if (!$canBook) {
@@ -215,7 +242,7 @@ class BookingController extends Controller
             'check_out' => 'required|date|after:check_in',
             'notes' => 'nullable|string|max:1000',
             'include_advance_payment' => 'nullable|boolean',
-            'occupancy_mode' => 'required|in:solo,shared',
+            'occupancy_mode' => 'required|in:' . implode(',', $room->allowedOccupancyModes()),
         ]);
 
         if ($validator->fails()) {
@@ -238,11 +265,24 @@ class BookingController extends Controller
             ? true
             : $request->boolean('include_advance_payment', true);
 
-        $occupancyMode = (string) $request->input('occupancy_mode', 'solo');
-        $roomCapacity = max(1, (int) $room->capacity);
-        $monthlyRentAmount = $occupancyMode === 'shared'
-            ? round(((float) $room->price) / $roomCapacity, 2)
-            : (float) $room->price;
+        $occupancyMode = (string) $data['occupancy_mode'];
+        if ($this->isExclusiveOccupancy($room, $occupancyMode)
+            && $this->bookingOverlapsApprovedOccupancy($room, (string) $data['check_in'], (string) $data['check_out'])) {
+            return back()
+                ->withErrors(['occupancy_mode' => 'Room already has an approved tenant for the selected dates. Choose another schedule or occupancy mode.'], 'booking')
+                ->withInput()
+                ->with('booking_form_action', route('bookings.store', $room->id))
+                ->with('booking_room_label', sprintf('%s — Room %s', $room->property->name ?? 'Property', $room->room_number ?? $room->id));
+        }
+
+        $monthlyRentAmount = round($room->resolveMonthlyRentForOccupancyMode($occupancyMode), 2);
+        if ($monthlyRentAmount <= 0) {
+            return back()
+                ->withErrors(['occupancy_mode' => 'Room pricing is not configured correctly yet. Please contact the landlord.'], 'booking')
+                ->withInput()
+                ->with('booking_form_action', route('bookings.store', $room->id))
+                ->with('booking_room_label', sprintf('%s — Room %s', $room->property->name ?? 'Property', $room->room_number ?? $room->id));
+        }
 
         $data['occupancy_mode'] = $occupancyMode;
         $data['monthly_rent_amount'] = $monthlyRentAmount;
@@ -358,7 +398,9 @@ class BookingController extends Controller
     {
         $this->ensureLandlord();
         $this->authorize('approve', $booking);
-        DB::transaction(function () use ($booking) {
+        $rejectOverlappingPending = false;
+
+        DB::transaction(function () use ($booking, &$rejectOverlappingPending) {
             $booking->refresh();
             $room = Room::lockForUpdate()->findOrFail($booking->room_id);
 
@@ -366,32 +408,54 @@ class BookingController extends Controller
                 abort(422, 'Booking is no longer pending.');
             }
 
-            if ((int) $room->slots_available <= 0) {
+            $allowedModes = $room->allowedOccupancyModes();
+            $occupancyMode = (string) ($booking->occupancy_mode ?: ($allowedModes[0] ?? 'solo'));
+            if (!in_array($occupancyMode, $allowedModes, true)) {
+                $occupancyMode = $allowedModes[0] ?? 'solo';
+            }
+
+            $isExclusiveOccupancy = $this->isExclusiveOccupancy($room, $occupancyMode);
+            $approvedCheckIn = optional($booking->check_in)->toDateString() ?: now()->toDateString();
+            $approvedCheckOut = optional($booking->check_out)->toDateString() ?: now()->addMonth()->toDateString();
+            if ($isExclusiveOccupancy && $this->bookingOverlapsApprovedOccupancy(
+                $room,
+                $approvedCheckIn,
+                $approvedCheckOut,
+                $booking->id
+            )) {
+                abort(422, 'Room is already occupied for the selected stay period.');
+            }
+
+            if (!$isExclusiveOccupancy && !$room->hasAvailableSlots()) {
                 abort(422, 'No available slots left for this room.');
             }
 
+            $resolvedMonthlyRent = round($room->resolveMonthlyRentForOccupancyMode($occupancyMode), 2);
+
             $booking->update([
                 'status' => 'approved',
+                'occupancy_mode' => $occupancyMode,
+                'monthly_rent_amount' => $booking->monthly_rent_amount > 0 ? $booking->monthly_rent_amount : $resolvedMonthlyRent,
                 'payment_status' => $booking->payment_status ?: 'pending',
                 'next_payment_due_date' => $booking->next_payment_due_date ?: optional($booking->check_in)->toDateString(),
                 'last_overdue_notified_at' => null,
             ]);
 
-            $remainingSlots = max(0, (int) $room->slots_available - 1);
-            $room->update([
-                'slots_available' => $remainingSlots,
-                'status' => $remainingSlots > 0 ? 'available' : 'occupied',
-            ]);
+            $snapshot = $room->syncAvailabilitySnapshot();
+            $remainingSlots = (int) ($snapshot['available_slots'] ?? 0);
+
+            $rejectOverlappingPending = $isExclusiveOccupancy || $remainingSlots === 0;
         });
 
-        // Reject overlapping pending bookings for the same room
-        Booking::where('room_id', $booking->room_id)
-            ->where('status', 'pending')
-            ->where(function ($q) use ($booking) {
-                $q->where('check_in', '<', $booking->check_out)
-                  ->where('check_out', '>', $booking->check_in);
-            })
-            ->update(['status' => 'rejected']);
+        if ($rejectOverlappingPending) {
+            Booking::where('room_id', $booking->room_id)
+                ->where('status', 'pending')
+                ->where(function ($q) use ($booking) {
+                    $q->where('check_in', '<', $booking->check_out)
+                      ->where('check_out', '>', $booking->check_in);
+                })
+                ->update(['status' => 'rejected']);
+        }
 
         // Email student about approval
         try {
@@ -429,10 +493,13 @@ class BookingController extends Controller
         }
 
         // Create tenant onboarding record
+        $booking->loadMissing('room');
+        $baseMonthlyRent = (float) ($booking->monthly_rent_amount ?: $booking->room->resolveMonthlyRentForOccupancyMode((string) ($booking->occupancy_mode ?: 'solo')));
+        $onboardingTotal = $baseMonthlyRent + (!empty($booking->include_advance_payment) ? $baseMonthlyRent : 0.0);
         TenantOnboarding::create([
             'booking_id' => $booking->id,
             'required_documents' => ['student_id', 'proof_of_income', 'emergency_contact'],
-            'deposit_amount' => $booking->room->price, // full payment
+            'deposit_amount' => round($onboardingTotal, 2),
         ]);
 
         return back()->with('success', 'Booking approved. Tenant onboarding process initiated.');

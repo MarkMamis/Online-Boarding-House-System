@@ -288,7 +288,7 @@
                 <div class="section-tag">1. Premises</div>
                 <p class="mb-0">
                     The Landlord agrees to rent to the Tenant, and the Tenant agrees to rent from the Landlord, the property located at
-                    <strong>{{ $property->name }}</strong>, Room <strong>{{ $room->room_number }}</strong> (the "Premises"), under the terms and conditions set forth in this Agreement.
+                    <strong>{{ $property->name }}</strong>, <strong>{{ $room->room_number }}</strong> (the "Premises"), under the terms and conditions set forth in this Agreement.
                 </p>
             </div>
 

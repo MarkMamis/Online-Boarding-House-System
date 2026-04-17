@@ -442,7 +442,7 @@
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="min-w-0">
                                         <div class="small text-muted text-truncate">{{ $room->property->name }}</div>
-                                        <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                        <div class="fw-semibold">{{ $room->room_number }}</div>
                                         <div class="small text-muted">Capacity: {{ $room->capacity }}</div>
                                     </div>
                                     <div class="text-end">
@@ -733,16 +733,28 @@
                                 <input type="number" min="1" name="capacity" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Price *</label>
-                                <input type="number" min="0" step="0.01" name="price" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
                                 <label class="form-label small">Status *</label>
                                 <select name="status" class="form-select" required>
                                     <option value="available">Available</option>
                                     <option value="occupied">Occupied</option>
                                     <option value="maintenance">Maintenance</option>
                                 </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Pricing Model *</label>
+                                <select name="pricing_model" id="quickPricingModel" class="form-select" required>
+                                    <option value="per_room">Per room</option>
+                                    <option value="per_bed">Per bed</option>
+                                    <option value="hybrid" selected>Hybrid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Per-room Price *</label>
+                                <input type="number" min="0" step="0.01" name="price_per_room" id="quickPricePerRoom" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Per-bed Price *</label>
+                                <input type="number" min="0" step="0.01" name="price_per_bed" id="quickPricePerBed" class="form-control" required>
                             </div>
 
                             <div class="col-12">
@@ -785,6 +797,27 @@
                 const pid = this.querySelector('select[name="property_id"]').value;
                 this.action = `/landlord/dashboard/properties/${pid}/rooms`;
             });
+
+            const pricingModel = document.getElementById('quickPricingModel');
+            const perRoomInput = document.getElementById('quickPricePerRoom');
+            const perBedInput = document.getElementById('quickPricePerBed');
+
+            const syncQuickPricingInputs = () => {
+                if (!pricingModel || !perRoomInput || !perBedInput) return;
+                const model = pricingModel.value || 'hybrid';
+                const needsPerRoom = model === 'per_room' || model === 'hybrid';
+                const needsPerBed = model === 'per_bed' || model === 'hybrid';
+                perRoomInput.disabled = !needsPerRoom;
+                perRoomInput.required = needsPerRoom;
+                perBedInput.disabled = !needsPerBed;
+                perBedInput.required = needsPerBed;
+            };
+
+            if (pricingModel) {
+                pricingModel.addEventListener('change', syncQuickPricingInputs);
+                pricingModel.addEventListener('input', syncQuickPricingInputs);
+                syncQuickPricingInputs();
+            }
         }
 
         if (typeof Chart !== 'undefined') {

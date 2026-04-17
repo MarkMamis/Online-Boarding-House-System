@@ -647,7 +647,7 @@
                                         @foreach($navProperty->rooms as $navRoom)
                                             <a @class(['list-group-item sub-sub-item', 'active' => $currentRoomId === (int) $navRoom->id && $routeName === 'landlord.properties.rooms.edit']) href="{{ route('landlord.properties.rooms.edit', [$navProperty->id, $navRoom->id]) }}">
                                                 <i class="bi bi-door-closed"></i>
-                                                <span class="sub-item-label">Room {{ $navRoom->room_number }}</span>
+                                                <span class="sub-item-label">{{ $navRoom->room_number }}</span>
                                             </a>
                                         @endforeach
                                     </div>

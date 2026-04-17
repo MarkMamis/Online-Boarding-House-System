@@ -176,7 +176,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold">{{ $boarding->room?->room_number ? 'Room ' . $boarding->room->room_number : 'N/A' }}</div>
+                                    <div class="fw-semibold">{{ $boarding->room?->room_number ?? 'N/A' }}</div>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $boarding->room?->property?->name ?? 'N/A' }}</div>

@@ -6,17 +6,17 @@
 <style>
     :root { --brand: #166534; --brand-light: #dcfce7; --brand-mid: #16a34a; }
 
-    /* ── Page shell ── */
+    /* -- Page shell -- */
     .bk-page { background: #f8faf8; min-height: 100vh; padding: 2rem 0 4rem; }
 
-    /* ── Breadcrumb ── */
+    /* -- Breadcrumb -- */
     .bk-breadcrumb { font-size: .82rem; color: rgba(2,8,20,.5); margin-bottom: 1.5rem; }
     .bk-breadcrumb a { color: var(--brand); text-decoration: none; }
     .bk-breadcrumb a:hover { text-decoration: underline; }
 
-    /* ── Room hero banner ── */
+    /* -- Room hero banner -- */
     .bk-hero {
-        width: 100%; height: 220px; border-radius: 16px; overflow: hidden;
+        width: 100%; height: clamp(260px, 42vh, 420px); border-radius: 16px; overflow: hidden;
         background: #e2e8f0; margin-bottom: 1.75rem; position: relative;
     }
     .bk-hero img { width: 100%; height: 100%; object-fit: cover; }
@@ -28,7 +28,7 @@
     .bk-hero-title { color: #fff; font-weight: 700; font-size: 1.35rem; line-height: 1.2; }
     .bk-hero-sub   { color: rgba(255,255,255,.82); font-size: .85rem; }
 
-    /* ── Section cards ── */
+    /* -- Section cards -- */
     .bk-card {
         background: #fff; border-radius: 16px;
         border: 1px solid rgba(2,8,20,.08); padding: 1.5rem;
@@ -40,7 +40,7 @@
     }
     .bk-section-title i { color: var(--brand); font-size: 1.1rem; }
 
-    /* ── Date pickers ── */
+    /* -- Date pickers -- */
     .bk-date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1.5px solid #d1d5db; border-radius: 12px; overflow: hidden; }
     .bk-date-col { padding: .9rem 1rem; }
     .bk-date-col:first-child { border-right: 1px solid #d1d5db; }
@@ -51,11 +51,11 @@
     }
     .bk-date-col input[type=date]::-webkit-calendar-picker-indicator { opacity: .4; cursor: pointer; }
 
-    /* ── Notes ── */
+    /* -- Notes -- */
     .bk-notes { border: 1.5px solid #d1d5db; border-radius: 12px; padding: .9rem 1rem; width: 100%; resize: none; font-size: .9rem; color: #0f172a; }
     .bk-notes:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(22,101,52,.12); }
 
-    /* ── House Rules ── */
+    /* -- House Rules -- */
     .bk-rules {
         background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
         border: 1.5px solid #bbf7d0; border-radius: 16px;
@@ -82,7 +82,7 @@
     }
     .bk-rules-list-text { color: #374151; font-size: .8rem; }
 
-    /* ── ESign pad (in modal) ── */
+    /* -- ESign pad (in modal) -- */
     .bk-esign-status-btn {
         border: 2px dashed #d1d5db; border-radius: 8px; padding: 1rem;
         background: #fafafa; width: 100%; cursor: pointer;
@@ -94,7 +94,7 @@
     .btn-open-sign { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .6rem 1.25rem; font-size: .82rem; font-weight: 600; cursor: pointer; width: 100%; transition: background .2s; }
     .btn-open-sign:hover { background: #14532d; }
 
-    /* ── Full-screen signature modal ── */
+    /* -- Full-screen signature modal -- */
     .bk-sign-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; }
     .bk-sign-modal.active { display: flex; align-items: center; justify-content: center; }
     .bk-sign-modal-content {
@@ -132,7 +132,7 @@
     .btn-clear-modal { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 8px; padding: .8rem 2rem; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .2s; }
     .btn-clear-modal:hover { background: #e5e7eb; }
 
-    /* ── Confirmation Modal ── */
+    /* -- Confirmation Modal -- */
     .bk-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9998; }
     .bk-confirm-modal.active { display: flex; align-items: center; justify-content: center; }
     .bk-confirm-content {
@@ -312,7 +312,7 @@
     .bk-confirm-submit { background: var(--brand); color: #fff; border: 1px solid var(--brand); border-radius: 8px; padding: .7rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .2s; }
     .bk-confirm-submit:hover { background: #14532d; }
 
-    /* ── Agree checkbox ── */
+    /* -- Agree checkbox -- */
     .bk-agree {
         display: flex; align-items: flex-start; gap: .75rem;
         background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px;
@@ -322,7 +322,7 @@
     .bk-agree label { font-size: .88rem; color: #0f172a; cursor: pointer; }
     .bk-agree label strong { color: var(--brand); }
 
-    /* ── Submit button ── */
+    /* -- Submit button -- */
     .btn-brand-book {
         background: var(--brand); color: #fff; border: none;
         border-radius: 12px; padding: .9rem 2rem; font-weight: 700;
@@ -331,39 +331,150 @@
     .btn-brand-book:hover:not(:disabled) { background: #14532d; color: #fff; }
     .btn-brand-book:disabled { opacity: .45; cursor: not-allowed; }
 
-    /* ── Sticky summary card ── */
+    /* -- Sticky summary card -- */
     .bk-summary {
-        background: #fff; border-radius: 20px;
-        border: 1px solid rgba(2,8,20,.1); padding: 1.5rem;
-        position: sticky; top: 5.5rem;
-        box-shadow: 0 4px 24px rgba(22,101,52,.08);
+        background: linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+        border-radius: 22px;
+        border: 1px solid rgba(22,101,52,.14);
+        padding: 1.2rem;
+        position: sticky;
+        top: 5.5rem;
+        box-shadow: 0 16px 40px rgba(15,23,42,.08), 0 6px 16px rgba(22,101,52,.08);
+        overflow: hidden;
     }
-    .bk-summary-price { font-size: 1.6rem; font-weight: 800; color: #0f172a; }
-    .bk-summary-price span { font-size: .9rem; font-weight: 400; color: rgba(2,8,20,.45); }
-    .bk-summary-divider { border: none; border-top: 1px solid rgba(2,8,20,.08); margin: 1rem 0; }
-    .bk-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; margin-bottom: .5rem; }
-    .bk-summary-row .label { color: rgba(2,8,20,.5); }
-    .bk-summary-row .val   { font-weight: 600; color: #0f172a; }
-    .bk-summary-total { font-size: 1rem; font-weight: 800; color: #0f172a; border-top: 1.5px solid rgba(2,8,20,.08); padding-top: .75rem; margin-top: .25rem; }
-    .bk-summary-note { font-size: .75rem; color: rgba(2,8,20,.4); text-align: center; margin-top: .75rem; }
-    .bk-summary-landlord { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
+    .bk-summary::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #166534 0%, #22c55e 55%, #86efac 100%);
+    }
+    .bk-summary-block {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 14px;
+        background: #fff;
+        padding: .9rem;
+    }
+    .bk-summary-landlord {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-bottom: .95rem;
+    }
     .bk-summary-landlord-avatar {
-        width: 40px; height: 40px; border-radius: 50%; background: var(--brand);
-        color: #fff; display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #14532d 0%, #16a34a 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 3px #dcfce7;
     }
-    .bk-summary-landlord-name { font-weight: 600; font-size: .88rem; color: #0f172a; }
-    .bk-summary-landlord-label { font-size: .75rem; color: rgba(2,8,20,.45); }
+    .bk-summary-landlord-name { font-weight: 700; font-size: .92rem; color: #0f172a; }
+    .bk-summary-landlord-label { font-size: .75rem; color: rgba(2,8,20,.46); }
+    .bk-summary-divider { border: none; border-top: 1px dashed rgba(2,8,20,.14); margin: .9rem 0; }
+    .bk-summary-room-title { font-size: 1.02rem; font-weight: 800; color: #0f172a; margin-bottom: .25rem; }
+    .bk-summary-room-meta { color: rgba(2,8,20,.62); font-size: .8rem; line-height: 1.5; }
+    .bk-summary-chip {
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        border-radius: 999px;
+        padding: .2rem .65rem;
+        font-size: .7rem;
+        font-weight: 600;
+    }
+    .bk-summary-model { font-size: .78rem; color: rgba(2,8,20,.62); line-height: 1.4; margin-bottom: .35rem; }
+    .bk-summary-price { font-size: 1.8rem; font-weight: 800; color: #0f172a; line-height: 1.05; letter-spacing: -.01em; }
+    .bk-summary-price span { font-size: .88rem; font-weight: 500; color: rgba(2,8,20,.5); margin-left: .2rem; }
+    .bk-summary-occupancy-title { font-size: .8rem; font-weight: 700; color: #0f172a; margin-bottom: .5rem; }
+    .bk-summary-occ-list { display: flex; flex-direction: column; gap: .45rem; }
+    .bk-summary-occ-option {
+        display: flex;
+        align-items: flex-start;
+        gap: .5rem;
+        border: 1px solid rgba(2,8,20,.12);
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: .55rem .65rem;
+        font-size: .8rem;
+        color: #334155;
+        line-height: 1.4;
+    }
+    .bk-summary-occ-option input[type="radio"] { margin-top: .12rem; accent-color: #166534; }
+    .bk-summary-costs {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .bk-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: .88rem;
+        padding: .6rem .72rem;
+    }
+    .bk-summary-row + .bk-summary-row { border-top: 1px solid rgba(2,8,20,.06); }
+    .bk-summary-row .label { color: rgba(2,8,20,.57); }
+    .bk-summary-row .val { font-weight: 700; color: #0f172a; }
+    .bk-summary-total {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+    .bk-summary-advance {
+        margin-top: .65rem;
+        border: 1px solid #d1fae5;
+        border-radius: 12px;
+        background: #f0fdf4;
+        padding: .7rem .72rem;
+    }
+    .bk-summary-advance .form-check-label { font-size: .82rem; color: rgba(2,8,20,.76); }
+    .bk-summary-advance-note { font-size: .75rem; color: rgba(2,8,20,.55); margin-top: .3rem; line-height: 1.35; }
+    .bk-summary-dates {
+        border: 1px solid rgba(2,8,20,.08);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .bk-summary-trust { display: flex; flex-direction: column; gap: .55rem; font-size: .78rem; color: rgba(2,8,20,.64); }
+    .bk-summary-trust-item {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .42rem .52rem;
+        border-radius: 10px;
+        background: rgba(240,253,244,.7);
+    }
+    .bk-summary-note {
+        font-size: .74rem;
+        color: rgba(2,8,20,.5);
+        text-align: center;
+        margin-top: .85rem;
+        padding: .55rem .65rem;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
 
-    /* ── Alert ── */
+    /* -- Alert -- */
     .bk-alert-danger { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; color: #991b1b; font-size: .88rem; }
 
     @media (max-width: 767px) {
-        .bk-hero { height: 150px; }
+        .bk-hero { height: 220px; }
         .bk-date-grid { grid-template-columns: 1fr; }
         .bk-date-col:first-child { border-right: none; border-bottom: 1px solid #d1d5db; }
         .bk-rules { font-size: .8rem; }
         .bk-rules-title { font-size: .88rem; }
+        .bk-summary { position: static; margin-top: .25rem; }
+        .bk-summary-price { font-size: 1.55rem; }
         .bk-confirm-modal.active { align-items: flex-start; padding: 1rem 0; }
         .bk-confirm-content { width: 94%; max-height: 94vh; }
         .bk-confirm-shell { grid-template-columns: 1fr; }
@@ -384,7 +495,7 @@
     $landlordInitial = strtoupper(substr($landlordName, 0, 1));
     $propertyName    = $room->property->name ?? 'Property';
     $propertyAddress = $room->property->address ?? '';
-    $roomLabel       = $room->label ?? ('Room ' . $room->room_number);
+    $roomLabel       = $room->label ?? $room->room_number;
     $studentName     = $student->full_name ?? $student->name ?? 'Tenant';
     $today           = now()->format('F d, Y');
     $refNo           = 'OBHS-' . strtoupper(substr(md5($room->id . now()->timestamp), 0, 8));
@@ -394,28 +505,49 @@
         $initialIncludeAdvance = '1';
     }
 
-    $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
+    $pricingModel = method_exists($room, 'resolvePricingModel') ? $room->resolvePricingModel() : 'hybrid';
+    $pricePerRoom = method_exists($room, 'effectivePricePerRoom') ? (float) $room->effectivePricePerRoom() : (float) $room->price;
+    $pricePerBed = method_exists($room, 'effectivePricePerBed') ? (float) $room->effectivePricePerBed() : ((float) $room->price / max(1, (int) $room->capacity));
+    $allowedOccupancyModes = method_exists($room, 'allowedOccupancyModes') ? (array) $room->allowedOccupancyModes() : ['solo', 'shared'];
+    $supportsSolo = in_array('solo', $allowedOccupancyModes, true);
+    $supportsShared = in_array('shared', $allowedOccupancyModes, true);
+    $defaultOccupancyMode = old('occupancy_mode');
+    if (!in_array($defaultOccupancyMode, $allowedOccupancyModes, true)) {
+        $defaultOccupancyMode = $supportsSolo ? 'solo' : 'shared';
+    }
+    $initialMonthlyRent = $defaultOccupancyMode === 'shared' ? $pricePerBed : $pricePerRoom;
+    $initialCadenceLabel = $defaultOccupancyMode === 'shared' ? '/monthly per bed' : '/monthly per room';
+    $bookingRatingCount = (int) ($room->feedbacks_count ?? 0);
+    $bookingRatingAverage = $bookingRatingCount > 0 ? (float) ($room->feedbacks_avg_rating ?? 0) : null;
+
     $propertyHouseRules = (array) ($room->property->house_rules ?? []);
-    $houseRuleSections = collect($defaultHouseRuleCategories)
-        ->map(function ($categoryConfig, $categoryKey) use ($propertyHouseRules) {
-            $fallbackRules = (array) ($categoryConfig['rules'] ?? []);
-            $rules = collect((array) ($propertyHouseRules[$categoryKey] ?? $fallbackRules))
+    $houseRuleCategoryConfig = (array) config('property_house_rules.categories', []);
+    $houseRuleSections = collect($propertyHouseRules)
+        ->map(function ($rules, $categoryKey) use ($houseRuleCategoryConfig) {
+            $categoryConfig = (array) ($houseRuleCategoryConfig[$categoryKey] ?? []);
+            $normalizedRules = collect((array) $rules)
                 ->map(fn ($line) => trim((string) $line))
                 ->filter()
                 ->values();
 
             return [
-                'label' => (string) ($categoryConfig['label'] ?? $categoryKey),
+                'label' => (string) ($categoryConfig['label'] ?? str_replace('_', ' ', (string) $categoryKey)),
                 'icon' => (string) ($categoryConfig['icon'] ?? 'dot'),
-                'rules' => $rules,
+                'rules' => $normalizedRules,
             ];
         })
         ->filter(fn ($section) => $section['rules']->isNotEmpty())
         ->values();
+
+    $heroRoomImagePath = trim((string) ($room->image_path ?? ''));
+    if ($heroRoomImagePath === '') {
+        $heroRoomImagePath = trim((string) optional($coverImage)->image_path);
+    }
+    $heroRoomImagePath = ltrim($heroRoomImagePath, '/');
 @endphp
 
 <div class="bk-page">
-    <div class="container" style="max-width:1100px;">
+    <div class="container-fluid px-3 px-lg-4">
 
         {{-- Breadcrumb --}}
         <div class="bk-breadcrumb">
@@ -435,8 +567,8 @@
 
         {{-- Hero banner --}}
         <div class="bk-hero">
-            @if($coverImage)
-                <img src="{{ asset('storage/' . $coverImage->image_path) }}" alt="{{ $propertyName }}">
+            @if($heroRoomImagePath !== '')
+                <img src="{{ asset('storage/' . $heroRoomImagePath) }}" alt="{{ $roomLabel }} cover photo">
             @else
                 <div style="width:100%;height:100%;background:linear-gradient(135deg,#166534 0%,#4ade80 100%);"></div>
             @endif
@@ -450,7 +582,7 @@
 
         <div class="row g-4">
 
-            {{-- ═══════════════ LEFT COLUMN ═══════════════ --}}
+            {{-- --------------- LEFT COLUMN --------------- --}}
             <div class="col-lg-7">
 
                 {{-- Step 1: Dates --}}
@@ -513,7 +645,7 @@
                     <input type="hidden" name="check_out"            id="fCheckOut" value="{{ old('check_out') }}">
                     <input type="hidden" name="notes"                id="fNotes"    value="{{ old('notes') }}">
                     <input type="hidden" name="include_advance_payment" id="fIncludeAdvance" value="{{ $initialIncludeAdvance }}">
-                    <input type="hidden" name="occupancy_mode" id="fOccupancyMode" value="{{ old('occupancy_mode', 'solo') }}">
+                    <input type="hidden" name="occupancy_mode" id="fOccupancyMode" value="{{ $defaultOccupancyMode }}">
                     <input type="hidden" name="agreed_to_contract"   value="1">
                 </form>
 
@@ -526,110 +658,123 @@
 
             </div>{{-- /left col --}}
 
-            {{-- ═══════════════ RIGHT COLUMN ═══════════════ --}}
+            {{-- --------------- RIGHT COLUMN --------------- --}}
             <div class="col-lg-5">
                 <div class="bk-summary">
 
-                    <div class="bk-summary-landlord">
-                        <div class="bk-summary-landlord-avatar">{{ $landlordInitial }}</div>
-                        <div>
-                            <div class="bk-summary-landlord-name">{{ $landlordName }}</div>
-                            <div class="bk-summary-landlord-label">Boarding House Operator</div>
+                    <div class="bk-summary-block">
+                        <div class="bk-summary-landlord">
+                            <div class="bk-summary-landlord-avatar">{{ $landlordInitial }}</div>
+                            <div>
+                                <div class="bk-summary-landlord-name">{{ $landlordName }}</div>
+                                <div class="bk-summary-landlord-label">Boarding House Operator</div>
+                            </div>
+                        </div>
+
+                        <hr class="bk-summary-divider">
+
+                        <div class="bk-summary-room-title">{{ $roomLabel }}</div>
+                        <div class="bk-summary-room-meta">
+                            {{ $propertyName }}<br>
+                            <i class="bi bi-geo-alt me-1"></i>{{ $propertyAddress }}
+                        </div>
+
+                        @if(count($inclusions) > 0)
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            @foreach($inclusions as $inc)
+                            <span class="bk-summary-chip">{{ $inc }}</span>
+                            @endforeach
+                        </div>
+                        @endif
+
+                        <hr class="bk-summary-divider">
+
+                        <div class="bk-summary-model">
+                            Pricing model: <strong>{{ ucfirst(str_replace('_', ' ', $pricingModel)) }}</strong>
+                        </div>
+                        <div class="bk-summary-price mb-3">
+                            <span id="summaryHeroPrice">PHP {{ number_format($initialMonthlyRent, 0) }}</span><span id="summaryHeroCadence">{{ $initialCadenceLabel }}</span>
                         </div>
                     </div>
 
-                    <hr class="bk-summary-divider">
-
-                    <div class="fw-bold mb-1" style="font-size:.95rem;">{{ $roomLabel }}</div>
-                    <div class="text-muted" style="font-size:.8rem; line-height:1.5;">
-                        {{ $propertyName }}<br>
-                        <i class="bi bi-geo-alt me-1"></i>{{ $propertyAddress }}
-                    </div>
-
-                    @if(count($inclusions) > 0)
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        @foreach($inclusions as $inc)
-                        <span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:20px;padding:.2rem .65rem;font-size:.72rem;font-weight:600;">{{ $inc }}</span>
-                        @endforeach
-                    </div>
-                    @endif
-
-                    <hr class="bk-summary-divider">
-
-                    <div class="bk-summary-price mb-3">
-                        ₱{{ number_format($room->price, 0) }}<span>/month</span>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="fw-semibold mb-2" style="font-size:.84rem;">Occupancy Option</div>
-                        <div class="d-flex flex-column gap-2" style="font-size:.82rem;">
-                            <label class="d-flex align-items-center gap-2">
-                                <input type="radio" name="occupancy_mode_display" value="solo" {{ old('occupancy_mode', 'solo') === 'solo' ? 'checked' : '' }}>
-                                <span>Solo occupancy</span>
+                    <div class="bk-summary-block mt-2">
+                        <div class="bk-summary-occupancy-title">Occupancy Option</div>
+                        <div class="bk-summary-occ-list">
+                            @if($supportsSolo)
+                            <label class="bk-summary-occ-option">
+                                <input type="radio" name="occupancy_mode_display" value="solo" {{ $defaultOccupancyMode === 'solo' ? 'checked' : '' }}>
+                                <span>Solo occupancy (whole room) - PHP {{ number_format($pricePerRoom, 2) }}/monthly per room</span>
                             </label>
-                            @if((int) $room->capacity > 1)
-                                <label class="d-flex align-items-center gap-2">
-                                    <input type="radio" name="occupancy_mode_display" value="shared" {{ old('occupancy_mode') === 'shared' ? 'checked' : '' }}>
-                                    <span>Open vacancy (shared) - rent split by capacity ({{ (int) $room->capacity }})</span>
+                            @endif
+                            @if($supportsShared)
+                                <label class="bk-summary-occ-option">
+                                    <input type="radio" name="occupancy_mode_display" value="shared" {{ $defaultOccupancyMode === 'shared' ? 'checked' : '' }}>
+                                    <span>Shared occupancy (per bed) - PHP {{ number_format($pricePerBed, 2) }}/monthly per bed</span>
                                 </label>
                             @endif
                         </div>
                     </div>
 
-                    <div class="bk-summary-row">
-                        <span class="label">Monthly Rent</span>
-                        <span class="val" id="summaryMonthlyRent">₱{{ number_format($room->price, 0) }}</span>
-                    </div>
-                    <div class="bk-summary-row">
-                        <span class="label">1 Month Advance</span>
-                        <span class="val" id="summaryAdvance">₱{{ number_format($room->price, 0) }}</span>
-                    </div>
-                    <div class="bk-summary-row bk-summary-total">
-                        <span>Move-in Total</span>
-                        <span id="summaryMoveInTotal">₱{{ number_format($room->price, 0) }}</span>
-                    </div>
-
-                    <div class="form-check mt-3">
-                        <input
-                            class="form-check-input"
-                            type="checkbox"
-                            id="includeAdvanceDisplay"
-                            @checked($initialIncludeAdvance === '1')
-                            @disabled($advanceRequiredByLandlord)
-                        >
-                        <label class="form-check-label" for="includeAdvanceDisplay" style="font-size:.83rem;color:rgba(2,8,20,.72);">
-                            Include 1 month advance in move-in payment
-                        </label>
-                    </div>
-                    <div style="font-size:.76rem;color:rgba(2,8,20,.52);margin-top:.25rem;">
-                        @if($advanceRequiredByLandlord)
-                            This room requires advance payment, based on the landlord's billing rule.
-                        @else
-                            You can choose to pay advance now or pay it later based on your arrangement with the landlord.
-                        @endif
+                    <div class="bk-summary-costs mt-2">
+                        <div class="bk-summary-row">
+                            <span class="label">Monthly Rent</span>
+                            <span class="val" id="summaryMonthlyRent">PHP {{ number_format($initialMonthlyRent, 0) }}</span>
+                        </div>
+                        <div class="bk-summary-row">
+                            <span class="label">1 Month Advance</span>
+                            <span class="val" id="summaryAdvance">PHP {{ number_format($initialIncludeAdvance === '1' ? $initialMonthlyRent : 0, 0) }}</span>
+                        </div>
+                        <div class="bk-summary-row bk-summary-total">
+                            <span>Move-in Total</span>
+                            <span id="summaryMoveInTotal">PHP {{ number_format($initialIncludeAdvance === '1' ? ($initialMonthlyRent * 2) : $initialMonthlyRent, 0) }}</span>
+                        </div>
                     </div>
 
-                    <hr class="bk-summary-divider">
-
-                    <div class="bk-summary-row">
-                        <span class="label"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in</span>
-                        <span class="val" id="summaryCheckin">—</span>
-                    </div>
-                    <div class="bk-summary-row">
-                        <span class="label"><i class="bi bi-box-arrow-right me-1"></i>Check-out</span>
-                        <span class="val" id="summaryCheckout">—</span>
-                    </div>
-                    <div class="bk-summary-row">
-                        <span class="label"><i class="bi bi-moon me-1"></i>Duration</span>
-                        <span class="val" id="summaryDuration">—</span>
+                    <div class="bk-summary-advance">
+                        <div class="form-check">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                id="includeAdvanceDisplay"
+                                @checked($initialIncludeAdvance === '1')
+                                @disabled($advanceRequiredByLandlord)
+                            >
+                            <label class="form-check-label" for="includeAdvanceDisplay">
+                                Include 1 month advance in move-in payment
+                            </label>
+                        </div>
+                        <div class="bk-summary-advance-note">
+                            @if($advanceRequiredByLandlord)
+                                This room requires advance payment, based on the landlord's billing rule.
+                            @else
+                                You can choose to pay advance now or pay it later based on your arrangement with the landlord.
+                            @endif
+                        </div>
                     </div>
 
                     <hr class="bk-summary-divider">
 
-                    <div class="d-flex flex-column gap-2" style="font-size:.78rem;color:rgba(2,8,20,.55);">
-                        <div><i class="bi bi-shield-check me-2" style="color:var(--brand);"></i>Verified boarding house</div>
-                        <div><i class="bi bi-arrow-counterclockwise me-2"></i>Cancel anytime while request is pending</div>
-                        <div><i class="bi bi-person-check me-2" style="color:#3b82f6;"></i>Landlord reviews your request before approval</div>
+                    <div class="bk-summary-dates">
+                        <div class="bk-summary-row">
+                            <span class="label"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in</span>
+                            <span class="val" id="summaryCheckin">N/A</span>
+                        </div>
+                        <div class="bk-summary-row">
+                            <span class="label"><i class="bi bi-box-arrow-right me-1"></i>Check-out</span>
+                            <span class="val" id="summaryCheckout">N/A</span>
+                        </div>
+                        <div class="bk-summary-row">
+                            <span class="label"><i class="bi bi-moon me-1"></i>Duration</span>
+                            <span class="val" id="summaryDuration">N/A</span>
+                        </div>
+                    </div>
+
+                    <hr class="bk-summary-divider">
+
+                    <div class="bk-summary-trust">
+                        <div class="bk-summary-trust-item"><i class="bi bi-shield-check" style="color:var(--brand);"></i>Verified boarding house</div>
+                        <div class="bk-summary-trust-item"><i class="bi bi-arrow-counterclockwise"></i>Cancel anytime while request is pending</div>
+                        <div class="bk-summary-trust-item"><i class="bi bi-person-check" style="color:#3b82f6;"></i>Landlord reviews your request before approval</div>
                     </div>
 
                     <div class="bk-summary-note">Move-in cost is collected offline by the landlord upon approval.</div>
@@ -658,56 +803,69 @@
                 <div class="bk-confirm-col">
                     <div class="bk-confirm-panel-title"><i class="bi bi-file-earmark-text"></i>Booking Details</div>
                     <div class="bk-detail-head">
-                        <div class="bk-detail-head-title" id="confirmRoom">—</div>
-                        <div class="bk-detail-head-sub" id="confirmProperty">—</div>
+                        <div class="bk-detail-head-title" id="confirmRoom">Room</div>
+                        <div class="bk-detail-head-sub" id="confirmProperty">Property</div>
                     </div>
                     <div class="bk-detail-grid">
                         <div class="bk-detail-item">
                             <p class="bk-confirm-label"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in</p>
-                            <p class="bk-confirm-value" id="confirmCheckin">—</p>
+                            <p class="bk-confirm-value" id="confirmCheckin">N/A</p>
                         </div>
                         <div class="bk-detail-item">
                             <p class="bk-confirm-label"><i class="bi bi-box-arrow-right me-1"></i>Check-out</p>
-                            <p class="bk-confirm-value" id="confirmCheckout">—</p>
+                            <p class="bk-confirm-value" id="confirmCheckout">N/A</p>
                         </div>
                         <div class="bk-detail-item">
                             <p class="bk-confirm-label"><i class="bi bi-moon me-1"></i>Duration</p>
-                            <p class="bk-confirm-value" id="confirmDuration">—</p>
+                            <p class="bk-confirm-value" id="confirmDuration">N/A</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="bk-confirm-col">
                     <div class="bk-confirm-panel-title"><i class="bi bi-wallet2"></i>Plan & Payment</div>
-                    <div class="bk-confirm-price" id="confirmPriceHero">—<span>/month</span></div>
+                    <div class="bk-confirm-price" id="confirmPriceHero">PHP 0<span id="confirmPriceCadence">{{ $initialCadenceLabel }}</span></div>
+                    <div class="bk-confirm-row">
+                        <span class="bk-confirm-label">Rating</span>
+                        <span class="bk-confirm-value">
+                            <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                            @if($bookingRatingAverage !== null)
+                                {{ number_format($bookingRatingAverage, 1) }} ({{ $bookingRatingCount }} {{ $bookingRatingCount === 1 ? 'review' : 'reviews' }})
+                            @else
+                                No ratings yet
+                            @endif
+                        </span>
+                    </div>
                     <div class="bk-confirm-row">
                         <span class="bk-confirm-label">Monthly Rent</span>
-                        <span class="bk-confirm-value" id="confirmPrice">—</span>
+                        <span class="bk-confirm-value" id="confirmPrice">PHP 0</span>
                     </div>
                     <div class="bk-confirm-row">
                         <span class="bk-confirm-label">Occupancy</span>
-                        <span class="bk-confirm-value" id="confirmOccupancy">—</span>
+                        <span class="bk-confirm-value" id="confirmOccupancy">N/A</span>
                     </div>
                     <div class="bk-confirm-row">
                         <span class="bk-confirm-label">Advance Payment</span>
-                        <span class="bk-confirm-value" id="confirmAdvanceOption">—</span>
+                        <span class="bk-confirm-value" id="confirmAdvanceOption">N/A</span>
                     </div>
                     <div class="bk-confirm-row">
                         <span class="bk-confirm-label">Move-in Total</span>
-                        <span class="bk-confirm-value" id="confirmMoveInTotal">—</span>
+                        <span class="bk-confirm-value" id="confirmMoveInTotal">PHP 0</span>
                     </div>
 
                     <div class="bk-confirm-edit-box">
                         <div class="bk-confirm-edit-title">Booking Options (Editable)</div>
                         <div class="bk-plan-options">
+                            @if($supportsSolo)
                             <label class="bk-plan-option">
                                 <input type="radio" name="confirm_occupancy_mode" value="solo">
-                                <span>Solo occupancy plan</span>
+                                <span>Solo occupancy plan (whole room)</span>
                             </label>
-                            @if((int) $room->capacity > 1)
+                            @endif
+                            @if($supportsShared)
                             <label class="bk-plan-option">
                                 <input type="radio" name="confirm_occupancy_mode" value="shared">
-                                <span>Shared occupancy plan (split by capacity {{ (int) $room->capacity }})</span>
+                                <span>Shared occupancy plan (per bed)</span>
                             </label>
                             @endif
                             <label class="bk-plan-option">
@@ -738,12 +896,15 @@
 
 @push('scripts')
 <script>
-    const baseMonthlyRent = {{ (float) $room->price }};
+    const basePricePerRoom = {{ (float) $pricePerRoom }};
+    const basePricePerBed = {{ (float) $pricePerBed }};
     const roomCapacity = Math.max(1, {{ (int) $room->capacity }});
+    const pricingModel = @json($pricingModel);
+    const defaultOccupancyMode = @json($defaultOccupancyMode);
     const advanceRequiredByLandlord = @json($advanceRequiredByLandlord);
 
     function peso(amount) {
-        return '₱' + new Intl.NumberFormat('en-PH', {
+        return 'PHP ' + new Intl.NumberFormat('en-PH', {
             minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
             maximumFractionDigits: 2
         }).format(amount);
@@ -751,15 +912,37 @@
 
     function selectedOccupancyMode() {
         const selected = document.querySelector('input[name="occupancy_mode_display"]:checked');
-        return selected ? selected.value : 'solo';
+        return selected ? selected.value : defaultOccupancyMode;
     }
 
     function computedMonthlyRent() {
         const mode = selectedOccupancyMode();
         if (mode === 'shared') {
-            return Math.round((baseMonthlyRent / roomCapacity) * 100) / 100;
+            if (basePricePerBed > 0) {
+                return basePricePerBed;
+            }
+            return Math.round((basePricePerRoom / roomCapacity) * 100) / 100;
         }
-        return baseMonthlyRent;
+        if (basePricePerRoom > 0) {
+            return basePricePerRoom;
+        }
+        return Math.round(basePricePerBed * roomCapacity * 100) / 100;
+    }
+
+    function occupancyLabel(mode) {
+        if (mode === 'shared') {
+            return 'Shared occupancy (per bed)';
+        }
+
+        if (pricingModel === 'per_room') {
+            return 'Solo occupancy (exclusive room)';
+        }
+
+        return 'Solo occupancy';
+    }
+
+    function cadenceLabel(mode) {
+        return mode === 'shared' ? '/monthly per bed' : '/monthly per room';
     }
 
     function syncAdvanceOption() {
@@ -788,6 +971,10 @@
         const summaryMonthlyRent = document.getElementById('summaryMonthlyRent');
         const summaryAdvance = document.getElementById('summaryAdvance');
         const summaryMoveInTotal = document.getElementById('summaryMoveInTotal');
+        const summaryHeroPrice = document.getElementById('summaryHeroPrice');
+        const summaryHeroCadence = document.getElementById('summaryHeroCadence');
+        if (summaryHeroPrice) summaryHeroPrice.textContent = peso(monthlyRent);
+        if (summaryHeroCadence) summaryHeroCadence.textContent = cadenceLabel(selectedOccupancyMode());
         if (summaryMonthlyRent) summaryMonthlyRent.textContent = peso(monthlyRent);
         if (summaryAdvance) summaryAdvance.textContent = peso(advanceAmount);
         if (summaryMoveInTotal) summaryMoveInTotal.textContent = peso(moveInTotal);
@@ -824,7 +1011,7 @@
 
         const fmt = d => d
             ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'})
-            : '—';
+            : 'N/A';
 
         document.getElementById('summaryCheckin').textContent  = fmt(ci);
         document.getElementById('summaryCheckout').textContent = fmt(co);
@@ -835,7 +1022,7 @@
                 ? days + ' day' + (days !== 1 ? 's' : '') + ' (~' + (days / 30).toFixed(1) + ' mo)'
                 : 'Invalid range';
         } else {
-            document.getElementById('summaryDuration').textContent = '—';
+            document.getElementById('summaryDuration').textContent = 'N/A';
         }
 
         toggleSubmit();
@@ -864,7 +1051,7 @@
         // Format dates for display
         const fmt = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', {
             month: 'short', day: 'numeric', year: 'numeric'
-        }) : '—';
+        }) : 'N/A';
 
         // Calculate duration
         const days = Math.round((new Date(co) - new Date(ci)) / 86400000);
@@ -873,7 +1060,10 @@
             : 'Invalid range';
 
         // Populate confirmation modal
-        document.getElementById('confirmRoom').textContent = document.querySelector('.bk-summary .fw-bold').textContent.trim();
+        const summaryRoomTitle = document.querySelector('.bk-summary-room-title') || document.querySelector('.bk-summary .fw-bold');
+        document.getElementById('confirmRoom').textContent = summaryRoomTitle
+            ? summaryRoomTitle.textContent.trim()
+            : 'Room';
         document.getElementById('confirmProperty').textContent = '{{ $propertyName }}';
         document.getElementById('confirmCheckin').textContent = fmt(ci);
         document.getElementById('confirmCheckout').textContent = fmt(co);
@@ -881,10 +1071,14 @@
         const monthlyRent = computedMonthlyRent();
         document.getElementById('confirmPrice').textContent = peso(monthlyRent);
         const confirmPriceHero = document.getElementById('confirmPriceHero');
+        const confirmPriceCadence = document.getElementById('confirmPriceCadence');
         if (confirmPriceHero) {
-            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span>/month</span>`;
+            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span id="confirmPriceCadence">${cadenceLabel(selectedOccupancyMode())}</span>`;
         }
-        document.getElementById('confirmOccupancy').textContent = selectedOccupancyMode() === 'shared' ? 'Open vacancy (shared)' : 'Solo occupancy';
+        if (confirmPriceCadence) {
+            confirmPriceCadence.textContent = cadenceLabel(selectedOccupancyMode());
+        }
+        document.getElementById('confirmOccupancy').textContent = occupancyLabel(selectedOccupancyMode());
 
         const includeAdvanceDisplay = document.getElementById('includeAdvanceDisplay');
         const includeAdvance = includeAdvanceDisplay ? includeAdvanceDisplay.checked : true;
@@ -939,10 +1133,14 @@
         const moveInTotal = monthlyRent + advanceAmount;
         document.getElementById('confirmPrice').textContent = peso(monthlyRent);
         const confirmPriceHero = document.getElementById('confirmPriceHero');
+        const confirmPriceCadence = document.getElementById('confirmPriceCadence');
         if (confirmPriceHero) {
-            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span>/month</span>`;
+            confirmPriceHero.innerHTML = `${peso(monthlyRent)}<span id="confirmPriceCadence">${cadenceLabel(selectedOccupancyMode())}</span>`;
         }
-        document.getElementById('confirmOccupancy').textContent = selectedOccupancyMode() === 'shared' ? 'Open vacancy (shared)' : 'Solo occupancy';
+        if (confirmPriceCadence) {
+            confirmPriceCadence.textContent = cadenceLabel(selectedOccupancyMode());
+        }
+        document.getElementById('confirmOccupancy').textContent = occupancyLabel(selectedOccupancyMode());
         document.getElementById('confirmAdvanceOption').textContent = includeAdvance ? 'Included' : 'Not included';
         document.getElementById('confirmMoveInTotal').textContent = peso(moveInTotal);
     }

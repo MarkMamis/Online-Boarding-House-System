@@ -402,7 +402,7 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold">{{ $b->room->property->name ?? '—' }}</div>
-                                    <div class="section-muted small">Room {{ $b->room->room_number ?? '—' }} • {{ $b->room->property->address ?? '' }}</div>
+                                    <div class="section-muted small">{{ $b->room->room_number ?? '—' }} • {{ $b->room->property->address ?? '' }}</div>
                                 </td>
                                 <td>
                                     <div>{{ $b->room->property->landlord->full_name ?? '—' }}</div>
@@ -468,3 +468,4 @@
         </script>
     @endpush
 @endsection
+

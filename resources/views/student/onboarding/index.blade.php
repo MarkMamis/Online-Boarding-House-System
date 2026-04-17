@@ -290,7 +290,7 @@
                                 <div class="onb-record-title">{{ $obRow->booking?->room?->property?->name ?? 'Property' }}</div>
                                 <div class="onb-record-property">
                                     <i class="bi bi-door-closed me-1" style="color: #166534;"></i>
-                                    Room {{ $obRow->booking?->room?->room_number ?? '—' }}
+                                    {{ $obRow->booking?->room?->room_number ?? '—' }}
                                 </div>
                             </div>
                             <span class="onb-record-status {{ $status }}">
@@ -435,3 +435,4 @@
 
 </div>
 @endsection
+

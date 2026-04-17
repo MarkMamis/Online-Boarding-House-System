@@ -107,6 +107,10 @@ class AuthController extends Controller
 
     public function showRegisterAdminForm()
     {
+        if (!config('auth.public_admin_registration', false) && (!Auth::check() || Auth::user()->role !== 'admin')) {
+            abort(403);
+        }
+
         return view('auth.register_admin');
     }
 
@@ -227,6 +231,10 @@ class AuthController extends Controller
 
     public function registerAdmin(Request $request)
     {
+        if (!config('auth.public_admin_registration', false) && (!Auth::check() || Auth::user()->role !== 'admin')) {
+            abort(403);
+        }
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',

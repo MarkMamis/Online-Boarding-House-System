@@ -483,7 +483,7 @@
                                     <tr>
                                         <td class="ps-3">
                                             <div class="fw-semibold">{{ $booking->room->property->name }}</div>
-                                            <div class="small muted">Room {{ $booking->room->room_number }}</div>
+                                            <div class="small muted">{{ $booking->room->room_number }}</div>
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($booking->check_in)->format('M d, Y') }}</td>
                                         <td>{{ \Carbon\Carbon::parse($booking->check_out)->format('M d, Y') }}</td>

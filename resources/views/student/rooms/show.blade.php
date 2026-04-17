@@ -1,6 +1,6 @@
 @extends('layouts.student_dashboard')
 
-@section('title', 'Room ' . $room->room_number . ' — ' . ($room->property->name ?? 'Details'))
+@section('title', $room->room_number . ' — ' . ($room->property->name ?? 'Details'))
 
 @push('styles')
 <style>
@@ -172,6 +172,56 @@
     $isFullCapacity = $availableSlots === 0;
     $isInMaintenance = $room->status === 'maintenance';
 
+    $pricingModel = method_exists($room, 'resolvePricingModel')
+        ? $room->resolvePricingModel()
+        : 'hybrid';
+    $listingPricingMode = method_exists($room, 'resolveListingPricingMode')
+        ? $room->resolveListingPricingMode()
+        : ($pricingModel === 'hybrid' ? 'both' : $pricingModel);
+    $effectivePricePerRoom = method_exists($room, 'effectivePricePerRoom')
+        ? (float) $room->effectivePricePerRoom()
+        : (float) $room->price;
+    $effectivePricePerBed = method_exists($room, 'effectivePricePerBed')
+        ? (float) $room->effectivePricePerBed()
+        : ((float) $room->price / max(1, (int) $room->capacity));
+    $primaryDisplayPrice = match ($listingPricingMode) {
+        'per_bed' => $effectivePricePerBed,
+        'per_room' => $effectivePricePerRoom,
+        default => min($effectivePricePerRoom, $effectivePricePerBed),
+    };
+    $priceCadenceLabel = match ($listingPricingMode) {
+        'per_bed' => '/bed/month',
+        'per_room' => '/room/month',
+        default => '/month',
+    };
+    $priceModeLabel = match ($listingPricingMode) {
+        'per_bed' => 'Per Bed',
+        'per_room' => 'Per Room',
+        default => 'Hybrid',
+    };
+    $priceSidebarCadenceLabel = match ($listingPricingMode) {
+        'per_bed' => '/monthly per bed',
+        'per_room' => '/monthly per room',
+        default => '/monthly',
+    };
+    $priceModeDetail = match ($listingPricingMode) {
+        'per_bed' => 'This room is listed per bed.',
+        'per_room' => 'This room is listed per room.',
+        default => 'Hybrid listing: available as per room and per bed.',
+    };
+    $hybridBreakdownText = $listingPricingMode === 'both'
+        ? 'Per room: PHP ' . number_format($effectivePricePerRoom, 0) . ' | Per bed: PHP ' . number_format($effectivePricePerBed, 0)
+        : null;
+
+    $allowedOccupancyModes = method_exists($room, 'allowedOccupancyModes')
+        ? (array) $room->allowedOccupancyModes()
+        : ['solo', 'shared'];
+    $occupancyRuleLabel = match (true) {
+        in_array('solo', $allowedOccupancyModes, true) && in_array('shared', $allowedOccupancyModes, true) => 'Occupancy mode: Solo and Shared',
+        in_array('solo', $allowedOccupancyModes, true) => 'Occupancy mode: Solo only',
+        default => 'Occupancy mode: Shared only',
+    };
+
     $statusMap = [
         'available' => ['label' => 'Available', 'css' => 'sr-status-available', 'icon' => 'bi-check-circle-fill'],
         'occupied' => ['label' => 'Occupied', 'css' => 'sr-status-occupied', 'icon' => 'bi-x-circle-fill'],
@@ -192,7 +242,20 @@
         'water' => 'bi-droplet', 'parking' => 'bi-p-circle',
         'cable' => 'bi-tv', 'laundry' => 'bi-bag',
         'kitchen' => 'bi-egg-fried', 'ref' => 'bi-snow2', 'refrigerator' => 'bi-snow2',
+        'comfort room' => 'bi-badge-wc', 'toilet' => 'bi-badge-wc',
+        'cctv' => 'bi-camera-video', 'guard' => 'bi-shield-check',
+        'lock' => 'bi-lock', 'study' => 'bi-book',
     ];
+    $resolveInclusionIcon = function (string $label) use ($inclusionIcons): string {
+        $needle = strtolower(trim($label));
+        foreach ($inclusionIcons as $keyword => $icon) {
+            if (str_contains($needle, $keyword)) {
+                return $icon;
+            }
+        }
+
+        return 'bi-check2-circle';
+    };
 
     $landlordId = $room->property->landlord_id ?? null;
     $landlordName = $room->property->landlord->full_name ?? 'Landlord';
@@ -275,13 +338,14 @@
                         <div class="col-6 col-sm-4">
                             <div class="sr-stat">
                                 <div class="lbl">Monthly Rent</div>
-                                <div class="val" style="color:var(--brand);">₱{{ number_format((float)$room->price, 0) }}</div>
+                                <div class="val" style="color:var(--brand);">PHP {{ number_format($primaryDisplayPrice, 0) }}</div>
+                                <div style="font-size:.65rem;color:rgba(2,8,20,.45);margin-top:.2rem;">{{ $priceModeLabel }}</div>
                             </div>
                         </div>
                         <div class="col-6 col-sm-4">
                             <div class="sr-stat">
                                 <div class="lbl">Occupancy</div>
-                                <div class="val">{{ $occupancy }}</div>
+                                <div class="val">{{ $availableSlots }} slot{{ $availableSlots > 1 ? 's' : '' }} left</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-4">
@@ -312,7 +376,7 @@
                         <div class="mb-2" style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(2,8,20,.45);">Boarding House Inclusions</div>
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($propertyInclusions as $inclusion)
-                            <span class="inc-chip"><i class="bi bi-shield-check"></i>{{ $inclusion }}</span>
+                            <span class="inc-chip"><i class="bi {{ $resolveInclusionIcon($inclusion) }}"></i>{{ $inclusion }}</span>
                             @endforeach
                         </div>
                     </div>
@@ -436,14 +500,15 @@
                     <div class="col-6 col-sm-4">
                         <div class="sr-stat">
                             <div class="lbl">Monthly Rent</div>
-                            <div class="val" style="color:var(--brand);">₱{{ number_format((float)$room->price, 0) }}</div>
+                            <div class="val" style="color:var(--brand);">PHP {{ number_format($primaryDisplayPrice, 0) }}</div>
+                            <div style="font-size:.65rem;color:rgba(2,8,20,.45);margin-top:.2rem;">{{ $priceModeLabel }}</div>
                         </div>
                     </div>
                     <div class="col-6 col-sm-4">
                         <div class="sr-stat">
                             <div class="lbl">Occupancy</div>
-                            <div class="val">{{ $occupancy }}</div>
-                            <div style="font-size:.65rem;color:rgba(2,8,20,.45);margin-top:.2rem;">{{ $availableSlots }} slot{{ $availableSlots > 1 ? 's' : '' }} left</div>
+                            <div class="val">{{ $availableSlots }} slot{{ $availableSlots > 1 ? 's' : '' }} left</div>
+                            <div style="font-size:.65rem;color:rgba(2,8,20,.45);">{{ $occupancyRuleLabel }}</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-4">
@@ -459,8 +524,7 @@
                     <div class="mb-2" style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(2,8,20,.45);">Inclusions</div>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($inclusions as $inc)
-                        @php $ik=strtolower($inc); $icon=collect($inclusionIcons)->first(fn($v,$k)=>str_contains($ik,$k))?? 'bi-check2-circle'; @endphp
-                        <span class="inc-chip"><i class="bi {{ $icon }}"></i>{{ $inc }}</span>
+                        <span class="inc-chip"><i class="bi {{ $resolveInclusionIcon($inc) }}"></i>{{ $inc }}</span>
                         @endforeach
                     </div>
                 </div>
@@ -471,7 +535,7 @@
                     <div class="mb-2" style="font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(2,8,20,.45);">Boarding House Inclusions</div>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($propertyInclusions as $inclusion)
-                        <span class="inc-chip"><i class="bi bi-shield-check"></i>{{ $inclusion }}</span>
+                        <span class="inc-chip"><i class="bi {{ $resolveInclusionIcon($inclusion) }}"></i>{{ $inclusion }}</span>
                         @endforeach
                     </div>
                 </div>
@@ -571,19 +635,21 @@
         {{-- Book card --}}
         <div class="sr-card mb-3" style="position:sticky;top:5.5rem;">
             <div class="sr-card-body">
-                <div class="sr-book-price mb-1">₱{{ number_format((float)$room->price, 0) }}<span>/month</span></div>
-                <div class="text-muted small mb-1"><i class="bi bi-people me-1"></i>{{ $occupancy }} pax • {{ $availableSlots }} slot{{ $availableSlots > 1 ? 's' : '' }} available</div>
-                @if($avgRating)
-                <div class="d-flex align-items-center gap-1 mb-3">
-                    @for($s=1;$s<=5;$s++)
-                    <i class="bi {{ $s <= round($avgRating) ? 'bi-star-fill' : 'bi-star' }}" style="color:#f59e0b;font-size:.8rem;"></i>
-                    @endfor
-                    <span style="font-size:.8rem;font-weight:700;color:#0f172a;">{{ number_format($avgRating,1) }}</span>
-                    <span class="text-muted" style="font-size:.75rem;">({{ $feedbacks->count() }})</span>
-                </div>
-                @else
-                <div class="mb-3"></div>
+                <div class="sr-book-price mb-1">PHP {{ number_format($primaryDisplayPrice, 0) }}<span>{{ $priceSidebarCadenceLabel }}</span></div>
+                <div class="text-muted small mb-1">{{ $availableSlots }} slot{{ $availableSlots > 1 ? 's' : '' }} available</div>
+                <div class="text-muted" style="font-size:.72rem;">{{ $priceModeDetail }}</div>
+                @if($hybridBreakdownText)
+                <div class="text-muted" style="font-size:.72rem;">{{ $hybridBreakdownText }}</div>
                 @endif
+                <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.8rem;">
+                    <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                    @if($avgRating)
+                        <span style="font-weight:700;color:#0f172a;">{{ number_format($avgRating,1) }}</span>
+                        <span class="text-muted">({{ $feedbacks->count() }} {{ $feedbacks->count() === 1 ? 'review' : 'reviews' }})</span>
+                    @else
+                        <span class="text-muted">No ratings yet</span>
+                    @endif
+                </div>
 
                 @if($isInMaintenance)
                     <button class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled>
@@ -738,9 +804,21 @@
                alt="Room photo">
           @endif
           <div>
-            <div class="fw-semibold">{{ $room->label ?? 'Room ' . $room->room_number }}</div>
+            <div class="fw-semibold">{{ $room->label ?? $room->room_number }}</div>
             <div class="text-muted small">{{ $room->property->name ?? '' }}</div>
-            <div class="fw-bold mt-1" style="color:var(--brand);">₱{{ number_format((float)$room->price, 0) }}<span class="text-muted fw-normal" style="font-size:.85rem;">/month</span></div>
+                        <div class="fw-bold mt-1" style="color:var(--brand);">PHP {{ number_format($primaryDisplayPrice, 0) }}<span class="text-muted fw-normal" style="font-size:.85rem;">{{ $priceSidebarCadenceLabel }}</span></div>
+                        @if($hybridBreakdownText)
+                        <div class="text-muted" style="font-size:.72rem;">{{ $hybridBreakdownText }}</div>
+                        @endif
+                        <div class="d-flex align-items-center gap-2 mt-1" style="font-size:.75rem;">
+                            <i class="bi bi-star-fill" style="color:#f59e0b;"></i>
+                            @if($avgRating)
+                                <span style="font-weight:700;color:#0f172a;">{{ number_format($avgRating,1) }}</span>
+                                <span class="text-muted">({{ $feedbacks->count() }} {{ $feedbacks->count() === 1 ? 'review' : 'reviews' }})</span>
+                            @else
+                                <span class="text-muted">No ratings yet</span>
+                            @endif
+                        </div>
           </div>
         </div>
         <div class="alert alert-light border rounded-3 mb-0" style="font-size:.85rem;">

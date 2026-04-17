@@ -405,7 +405,7 @@
                                 </div>
                             </td>
                             <td>
-                                <div><span class="badge text-bg-info">Room {{ $onboarding->booking->room->room_number }}</span></div>
+                                <div><span class="badge text-bg-info">{{ $onboarding->booking->room->room_number }}</span></div>
                                 <div class="section-muted small mt-1">PHP {{ number_format($onboarding->booking->room->price, 2) }}/month</div>
                             </td>
                             <td>

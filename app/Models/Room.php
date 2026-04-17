@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\RoomOccupancyRules;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,12 +10,21 @@ class Room extends Model
 {
     use HasFactory;
 
+    protected array $occupancySnapshotCache = [];
+
+    public const PRICING_MODEL_PER_ROOM = 'per_room';
+    public const PRICING_MODEL_PER_BED = 'per_bed';
+    public const PRICING_MODEL_HYBRID = 'hybrid';
+
     protected $fillable = [
         'property_id',
         'room_number',
         'capacity',
         'slots_available',
         'price',
+        'pricing_model',
+        'price_per_room',
+        'price_per_bed',
         'status',
         'image_path',
         'inclusions',
@@ -26,8 +36,98 @@ class Room extends Model
     protected $casts = [
         'maintenance_date' => 'datetime',
         'slots_available' => 'integer',
+        'price' => 'float',
+        'price_per_room' => 'float',
+        'price_per_bed' => 'float',
         'requires_advance_payment' => 'boolean',
     ];
+
+    public function resolvePricingModel(): string
+    {
+        $value = strtolower((string) ($this->pricing_model ?: self::PRICING_MODEL_HYBRID));
+        if (!in_array($value, [self::PRICING_MODEL_PER_ROOM, self::PRICING_MODEL_PER_BED, self::PRICING_MODEL_HYBRID], true)) {
+            return self::PRICING_MODEL_HYBRID;
+        }
+
+        return $value;
+    }
+
+    public function allowedOccupancyModes(): array
+    {
+        return match ($this->resolvePricingModel()) {
+            self::PRICING_MODEL_PER_ROOM => ['solo'],
+            self::PRICING_MODEL_PER_BED => ['shared'],
+            default => ['solo', 'shared'],
+        };
+    }
+
+    public function supportsOccupancyMode(string $occupancyMode): bool
+    {
+        return in_array(strtolower($occupancyMode), $this->allowedOccupancyModes(), true);
+    }
+
+    public function effectivePricePerRoom(): float
+    {
+        $perRoom = (float) ($this->price_per_room ?? 0);
+        if ($perRoom > 0) {
+            return $perRoom;
+        }
+
+        $fallback = (float) ($this->price ?? 0);
+        if ($fallback > 0) {
+            return $fallback;
+        }
+
+        $perBed = (float) ($this->price_per_bed ?? 0);
+        return round($perBed * max(1, (int) $this->capacity), 2);
+    }
+
+    public function effectivePricePerBed(): float
+    {
+        $perBed = (float) ($this->price_per_bed ?? 0);
+        if ($perBed > 0) {
+            return $perBed;
+        }
+
+        $capacity = max(1, (int) $this->capacity);
+        $perRoom = (float) ($this->price_per_room ?? 0);
+        if ($perRoom > 0) {
+            return round($perRoom / $capacity, 2);
+        }
+
+        $fallback = (float) ($this->price ?? 0);
+        return $fallback > 0 ? round($fallback / $capacity, 2) : 0.0;
+    }
+
+    public function resolveMonthlyRentForOccupancyMode(string $occupancyMode): float
+    {
+        $mode = strtolower($occupancyMode);
+        if ($mode === 'shared') {
+            return $this->effectivePricePerBed();
+        }
+
+        return $this->effectivePricePerRoom();
+    }
+
+    public function normalizePricingForStorage(): array
+    {
+        $pricingModel = $this->resolvePricingModel();
+        $pricePerRoom = $this->effectivePricePerRoom();
+        $pricePerBed = $this->effectivePricePerBed();
+
+        $basePrice = match ($pricingModel) {
+            self::PRICING_MODEL_PER_ROOM => $pricePerRoom,
+            self::PRICING_MODEL_PER_BED => $pricePerBed,
+            default => min($pricePerRoom, $pricePerBed),
+        };
+
+        return [
+            'pricing_model' => $pricingModel,
+            'price_per_room' => $pricePerRoom,
+            'price_per_bed' => $pricePerBed,
+            'price' => $basePrice,
+        ];
+    }
 
     public function property()
     {
@@ -54,16 +154,44 @@ class Room extends Model
      */
     public function getOnboardedTenantsCount(): int
     {
-        return (int) \DB::table('bookings')
-            ->join('tenant_onboardings', 'tenant_onboardings.booking_id', '=', 'bookings.id')
-            ->where('bookings.room_id', $this->id)
-            ->where('bookings.status', 'approved')
-            ->where(function ($q) {
-                $q->whereNull('bookings.check_out')
-                  ->orWhereDate('bookings.check_out', '>=', now()->toDateString());
-            })
-            ->distinct('bookings.student_id')
-            ->count('bookings.student_id');
+        return (int) ($this->occupancySnapshot()['active_occupants_count'] ?? 0);
+    }
+
+    public function occupancySnapshot(?string $asOfDate = null, bool $fresh = false): array
+    {
+        $date = $asOfDate ?: now()->toDateString();
+        if (!$fresh && array_key_exists($date, $this->occupancySnapshotCache)) {
+            return $this->occupancySnapshotCache[$date];
+        }
+
+        $snapshot = app(RoomOccupancyRules::class)->snapshot($this, $date);
+        $this->occupancySnapshotCache[$date] = $snapshot;
+
+        return $snapshot;
+    }
+
+    public function syncAvailabilitySnapshot(?string $asOfDate = null): array
+    {
+        $snapshot = app(RoomOccupancyRules::class)->sync($this, $asOfDate);
+        $date = (string) ($snapshot['as_of_date'] ?? ($asOfDate ?: now()->toDateString()));
+        $this->occupancySnapshotCache[$date] = $snapshot;
+
+        return $snapshot;
+    }
+
+    public function resolveListingPricingMode(?string $asOfDate = null): string
+    {
+        $pricingModel = $this->resolvePricingModel();
+        if ($pricingModel !== self::PRICING_MODEL_HYBRID) {
+            return $pricingModel;
+        }
+
+        $hybridMode = (string) ($this->occupancySnapshot($asOfDate)['hybrid_listing_mode'] ?? 'both');
+        if (in_array($hybridMode, [self::PRICING_MODEL_PER_ROOM, self::PRICING_MODEL_PER_BED, 'both'], true)) {
+            return $hybridMode;
+        }
+
+        return 'both';
     }
 
     /**
@@ -71,12 +199,11 @@ class Room extends Model
      */
     public function getAvailableSlots(): int
     {
-        if ($this->slots_available !== null) {
-            return max(0, (int) $this->slots_available);
+        if ((string) $this->status === 'maintenance') {
+            return 0;
         }
 
-        $onboarded = $this->getOnboardedTenantsCount();
-        return max(0, (int) $this->capacity - $onboarded);
+        return (int) ($this->occupancySnapshot()['available_slots'] ?? 0);
     }
 
     /**
@@ -84,7 +211,7 @@ class Room extends Model
      */
     public function hasAvailableSlots(): bool
     {
-        return $this->getAvailableSlots() > 0;
+        return (string) $this->status !== 'maintenance' && $this->getAvailableSlots() > 0;
     }
 
     /**
@@ -92,8 +219,7 @@ class Room extends Model
      */
     public function getOccupancyDisplay(): string
     {
-        $available = $this->getAvailableSlots();
-        $occupied = max(0, (int) $this->capacity - $available);
+        $occupied = (int) ($this->occupancySnapshot()['occupied_slots'] ?? 0);
         return "{$occupied}/{$this->capacity}";
     }
 }

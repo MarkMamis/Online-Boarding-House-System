@@ -223,7 +223,7 @@
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Room</div>
-                        <div>Room {{ $onboarding->booking->room->room_number }}</div>
+                        <div>{{ $onboarding->booking->room->room_number }}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Monthly Rent</div>

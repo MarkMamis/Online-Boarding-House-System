@@ -205,7 +205,7 @@
             <div>
                 <div class="request-title">{{ $booking->room->property->name }}</div>
                 <div class="request-subtitle">
-                    <i class="bi bi-building me-1"></i>Room {{ $booking->room->room_number }}
+                    <i class="bi bi-building me-1"></i>{{ $booking->room->room_number }}
                 </div>
             </div>
             <span class="request-status {{ $booking->status }}">
@@ -324,3 +324,4 @@
 @endif
 
 @endsection
+

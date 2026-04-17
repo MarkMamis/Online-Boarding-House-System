@@ -1123,7 +1123,7 @@
                                     <div>
                                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                                             <div>
-                                                <div class="room-name">Room {{ $room->room_number }}</div>
+                                                <div class="room-name">{{ $room->room_number }}</div>
                                                 <div class="property-name">{{ $room->property->name }}</div>
                                                 <div class="room-address"><i class="bi bi-geo-alt"></i> {{ $room->property->address ?: 'Address not available' }}</div>
                                             </div>
@@ -1721,7 +1721,7 @@
                     <div>
                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                             <div>
-                                <div class="room-name">Room ${escapeHtml(room.room_number || '-')}</div>
+                                <div class="room-name">${escapeHtml(room.room_number || '-')}</div>
                                 <div class="property-name">${escapeHtml(room.property_name || '')}</div>
                                 <div class="room-address"><i class="bi bi-geo-alt"></i> ${escapeHtml(propertyAddress)}</div>
                             </div>
@@ -1952,3 +1952,4 @@
 </script>
 </body>
 </html>
+

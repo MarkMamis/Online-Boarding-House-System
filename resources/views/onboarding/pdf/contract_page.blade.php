@@ -476,7 +476,7 @@
         <p class="section-title">1. Premises</p>
         <p>The Landlord hereby leases to the Tenant, and the Tenant hereby rents from the Landlord, the residential property located at:</p>
         <p class="detail-line">Property Name: {{ $property->name }}</p>
-        <p class="detail-line">Room: {{ $room->room_number }}</p>
+        <p class="detail-line">Assigned Unit: {{ $room->room_number }}</p>
         <p>Address: {{ $property->address ?: 'Not specified' }}</p>
         <p>Hereinafter referred to as the "Premises."</p>
     </div>

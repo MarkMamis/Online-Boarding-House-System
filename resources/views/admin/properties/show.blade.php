@@ -500,7 +500,7 @@
                                 @endphp
                                 <tr>
                                     <td class="ps-3">
-                                        <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                        <div class="fw-semibold">{{ $room->room_number }}</div>
                                         <div class="small section-muted">Active tenants: {{ (int) ($room->active_bookings_count ?? 0) }}</div>
                                     </td>
                                     <td><span class="badge {{ $statusClass }}">{{ ucfirst($status) }}</span></td>
@@ -617,7 +617,7 @@
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header">
-                        <h2 class="modal-title fs-6" id="roomDetailModalLabel{{ $room->id }}">Room {{ $room->room_number }} Details</h2>
+                        <h2 class="modal-title fs-6" id="roomDetailModalLabel{{ $room->id }}">{{ $room->room_number }} Details</h2>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -677,7 +677,7 @@
                                     @foreach($roomImages as $imagePath)
                                         <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
                                             <a href="{{ asset('storage/' . $imagePath) }}" target="_blank" rel="noopener" class="room-gallery-link" title="Open full image">
-                                                <img src="{{ asset('storage/' . $imagePath) }}" class="room-gallery-thumb" alt="Room {{ $room->room_number }} image {{ $loop->iteration }}">
+                                                <img src="{{ asset('storage/' . $imagePath) }}" class="room-gallery-thumb" alt="{{ $room->room_number }} image {{ $loop->iteration }}">
                                             </a>
                                         </div>
                                     @endforeach
@@ -750,3 +750,4 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 @endif
 @endpush
+

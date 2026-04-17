@@ -1085,7 +1085,7 @@
                     <article class="room-card">
                         <div class="room-photo">
                             @if($displayImage)
-                                <img src="{{ asset('storage/' . $displayImage) }}" alt="Room {{ $room->room_number }}" loading="lazy">
+                                <img src="{{ asset('storage/' . $displayImage) }}" alt="{{ $room->room_number }}" loading="lazy">
                             @else
                                 <i class="bi bi-building fs-3"></i>
                             @endif
@@ -1095,7 +1095,7 @@
                             <div class="room-main">
                                 <div class="room-head">
                                     <div>
-                                        <h2 class="room-title">Room {{ $room->room_number }}</h2>
+                                        <h2 class="room-title">{{ $room->room_number }}</h2>
                                         <div class="room-subtitle">{{ $property->name }}</div>
                                         <div class="room-submeta">
                                             <span
@@ -1468,3 +1468,4 @@
 </script>
 </body>
 </html>
+

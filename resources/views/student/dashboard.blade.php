@@ -363,7 +363,7 @@
                         <div class="d-flex flex-wrap gap-2">
                             @foreach(($ratingReminders ?? collect())->take(3) as $reminder)
                                 <a href="{{ route('student.rooms.show', $reminder->room_id) }}" class="btn btn-sm btn-outline-dark rounded-pill">
-                                    {{ $reminder->room?->property?->name ?? 'Property' }} - Room {{ $reminder->room?->room_number ?? $reminder->room_id }}
+                                    {{ $reminder->room?->property?->name ?? 'Property' }} - {{ $reminder->room?->room_number ?? $reminder->room_id }}
                                 </a>
                             @endforeach
                         </div>
@@ -536,7 +536,7 @@
 
                                                     <div class="dash-rec-card-body flex-fill min-w-0">
                                                         <div class="small text-muted text-truncate">{{ $room->property->name }}</div>
-                                                        <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                                        <div class="fw-semibold">{{ $room->room_number }}</div>
                                                         <div class="small text-muted">Capacity: {{ $room->capacity }} • ₱ {{ number_format($room->price,2) }}</div>
 
                                                         <div class="d-flex flex-wrap gap-1 mt-2">
@@ -585,7 +585,7 @@
                                 @if(!empty($latestOnboarding))
                                     <div class="small text-muted mb-2">
                                         {{ $latestOnboarding->booking?->room?->property?->name ?? 'Property' }}
-                                        • Room {{ $latestOnboarding->booking?->room?->room_number ?? '—' }}
+                                        • {{ $latestOnboarding->booking?->room?->room_number ?? '—' }}
                                     </div>
 
                                     <div class="progress" role="progressbar" aria-label="Onboarding progress" aria-valuenow="{{ $progressPct }}" aria-valuemin="0" aria-valuemax="100" style="height: 10px;">
@@ -728,7 +728,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <div>
-                                                <span class="fw-bold text-dark" style="font-size:.88rem;">Room {{ $room->room_number }}</span>
+                                                <span class="fw-bold text-dark" style="font-size:.88rem;">{{ $room->room_number }}</span>
                                                 <span class="text-muted ms-2" style="font-size:.75rem;"><i class="bi bi-people me-1"></i>{{ $occupancy }} / {{ $room->capacity }} pax</span>
                                             </div>
                                             <div class="fw-bold {{ $isFullCapacity ? 'text-muted' : 'text-success' }}" style="font-size:.92rem;">₱{{ number_format($room->price, 0) }}<span class="text-muted fw-normal" style="font-size:.68rem;">/mo</span></div>
@@ -799,7 +799,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <div>
-                                                <span class="fw-bold text-dark" style="font-size:.88rem;">Room {{ $r->room_number }}</span>
+                                                <span class="fw-bold text-dark" style="font-size:.88rem;">{{ $r->room_number }}</span>
                                                 <span class="text-muted ms-2" style="font-size:.75rem;"><i class="bi bi-people me-1"></i>{{ $occupancy2 }} / {{ $r->capacity }} pax</span>
                                             </div>
                                             <div class="fw-bold {{ $isFullCapacity2 || $r->status === 'maintenance' ? 'text-muted' : 'text-success' }}" style="font-size:.92rem;">
@@ -911,7 +911,7 @@
                             @forelse(($recentBookings ?? collect()) as $b)
                                 <tr>
                                     <td class="fw-semibold">{{ $b->room->property->name ?? '—' }}</td>
-                                    <td>Room {{ $b->room->room_number ?? '—' }}</td>
+                                    <td>{{ $b->room->room_number ?? '—' }}</td>
                                     <td>
                                         @php
                                             $st = (string) ($b->status ?? '');
@@ -1150,7 +1150,7 @@
                                     @foreach($dashOnboardings as $obRow)
                                         <tr>
                                             <td class="fw-semibold">{{ $obRow->booking?->room?->property?->name ?? 'Property' }}</td>
-                                            <td>Room {{ $obRow->booking?->room?->room_number ?? '—' }}</td>
+                                            <td>{{ $obRow->booking?->room?->room_number ?? '—' }}</td>
                                             <td>
                                                 <span class="badge text-bg-light">{{ $obRow->status ?? '—' }}</span>
                                             </td>
@@ -1277,7 +1277,7 @@
                                 <div class="fw-semibold mb-1">Onboarding for</div>
                                 <div class="small text-muted">
                                     {{ $latestOnboarding->booking?->room?->property?->name ?? 'Property' }}
-                                    • Room {{ $latestOnboarding->booking?->room?->room_number ?? '—' }}
+                                    • {{ $latestOnboarding->booking?->room?->room_number ?? '—' }}
                                     • {{ optional($latestOnboarding->booking?->check_in)->format('M d, Y') }} to {{ optional($latestOnboarding->booking?->check_out)->format('M d, Y') }}
                                 </div>
                             </div>
@@ -1377,7 +1377,7 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
                         <h4 class="fw-semibold mb-0">Roommates</h4>
                         <div class="small text-muted">
-                            {{ $currentApprovedBooking->room?->property?->name ?? 'Property' }} • Room {{ $currentApprovedBooking->room?->room_number ?? '—' }}
+                            {{ $currentApprovedBooking->room?->property?->name ?? 'Property' }} • {{ $currentApprovedBooking->room?->room_number ?? '—' }}
                         </div>
                     </div>
 
@@ -1647,7 +1647,7 @@
                         <div class="modal-body p-4">
                             <div class="small mb-2">
                                 <span class="fw-semibold">{{ $currentApprovedBooking->room?->property?->name ?? 'Property' }}</span>
-                                • Room {{ $currentApprovedBooking->room?->room_number ?? '—' }}
+                                • {{ $currentApprovedBooking->room?->room_number ?? '—' }}
                             </div>
                             <div class="small text-muted mb-3">
                                 {{ optional($currentApprovedBooking->check_in)->format('M d, Y') }} to {{ optional($currentApprovedBooking->check_out)->format('M d, Y') }}
@@ -1807,6 +1807,7 @@
             const filterNoticeEl = document.getElementById('propertyRoomFilterNotice');
             const filterNameEl = document.getElementById('propertyRoomFilterName');
             const clearFilterBtn = document.getElementById('clearPropertyRoomFilter');
+            const studentRoomsIndexUrl = @json(route('student.rooms.index'));
 
             const applyPropertyRoomFilter = (propertyId, propertyName) => {
                 if (!browseRoomsPanel) return;
@@ -1835,13 +1836,16 @@
 
                 const propertyId = trigger.getAttribute('data-view-rooms-for-property') || '';
                 const propertyName = trigger.getAttribute('data-property-name') || '';
-                showPanel('browse-rooms');
-                setTimeout(() => {
-                    applyPropertyRoomFilter(propertyId, propertyName);
-                    if (browseRoomsPanel && browseRoomsPanel.scrollIntoView) {
-                        browseRoomsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 50);
+
+                const query = new URLSearchParams();
+                if (propertyId) query.set('property_id', propertyId);
+                if (propertyName) query.set('property_name', propertyName);
+
+                const nextUrl = query.toString()
+                    ? `${studentRoomsIndexUrl}?${query.toString()}`
+                    : studentRoomsIndexUrl;
+
+                window.location.href = nextUrl;
             });
 
             const reportFormWrap = document.getElementById('newReportFormWrap');
@@ -2185,3 +2189,4 @@
         });
     </script>
 @endpush
+

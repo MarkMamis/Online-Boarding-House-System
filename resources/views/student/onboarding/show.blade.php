@@ -1098,7 +1098,7 @@
     <div class="mb-4">
       <div class="text-uppercase small text-muted fw-semibold">Student Operations</div>
       <h4 class="fw-bold mb-1">Onboarding Process</h4>
-      <p class="text-muted mb-0">{{ $onboarding->booking->room->property->name }} — Room {{ $onboarding->booking->room->room_number }}</p>
+      <p class="text-muted mb-0">{{ $onboarding->booking->room->property->name }} — {{ $onboarding->booking->room->room_number }}</p>
     </div>
 
     <div class="onb-summary mb-4">

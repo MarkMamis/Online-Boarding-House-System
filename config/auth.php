@@ -112,4 +112,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public Admin Registration
+    |--------------------------------------------------------------------------
+    |
+    | Disable this in production so admin accounts can only be created by
+    | existing admins (or by trusted console/setup workflows).
+    |
+    */
+
+    'public_admin_registration' => env('AUTH_PUBLIC_ADMIN_REGISTRATION', false),
+
 ];

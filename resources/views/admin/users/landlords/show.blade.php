@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('title', 'Landlord Details - ' . $user->full_name)
 
@@ -469,7 +469,7 @@
                                         <td>{{ $tenant['contact'] ?: 'Not provided' }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ $tenant['property_name'] }}</div>
-                                            <div class="small muted">Room {{ $tenant['room_number'] }}</div>
+                                            <div class="small muted">{{ $tenant['room_number'] }}</div>
                                         </td>
                                         <td>
                                             <div>{{ $tenant['program'] ?: 'Not specified' }}</div>
@@ -692,4 +692,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 @endsection
+
 

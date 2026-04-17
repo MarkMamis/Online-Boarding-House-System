@@ -67,7 +67,7 @@
                         </div>
 
                         <div class="maintenance-meta-row">
-                            <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $room->room_number }}</span>
+                            <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $room->room_number }}</span>
                             <span class="meta-chip"><i class="bi bi-tools"></i>Since {{ $room->maintenance_date ? $room->maintenance_date->format('M d, Y') : 'N/A' }}</span>
                         </div>
 
@@ -114,7 +114,7 @@
                         <option value="">Choose room...</option>
                         @foreach($allRooms as $room)
                             <option value="{{ $room->id }}" @selected((string) old('room_id') === (string) $room->id)>
-                                {{ $room->property->name }} - Room {{ $room->room_number }} ({{ ucfirst($room->status) }})
+                                {{ $room->property->name }} - {{ $room->room_number }} ({{ ucfirst($room->status) }})
                             </option>
                         @endforeach
                     </select>

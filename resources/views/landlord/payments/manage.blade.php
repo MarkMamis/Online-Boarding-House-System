@@ -12,6 +12,15 @@
     $totalRecordCount = 1 + $records->count(); // include initial billing entry
 
     $defaultBillingMonth = optional($dueDate)->format('Y-m') ?: now()->format('Y-m');
+    $billingAnchorDay = (int) (optional($booking->check_in)->day ?: 1);
+    $previewCycleStart = null;
+    if (!empty($defaultBillingMonth)) {
+        [$defaultYear, $defaultMonth] = array_map('intval', explode('-', (string) $defaultBillingMonth));
+        $lastDay = \Illuminate\Support\Carbon::create($defaultYear, $defaultMonth, 1)->endOfMonth()->day;
+        $previewDay = min($billingAnchorDay, $lastDay);
+        $previewCycleStart = \Illuminate\Support\Carbon::create($defaultYear, $defaultMonth, $previewDay)->startOfDay();
+    }
+    $previewCycleEnd = $previewCycleStart ? $previewCycleStart->copy()->addMonthNoOverflow()->subDay() : null;
     $manualStatusOld = old('status', 'approved');
     $manualMethodOld = old('payment_method', 'cash');
 
@@ -73,7 +82,7 @@
 
             <div class="records-header-meta">
                 <span class="meta-chip"><i class="bi bi-building"></i>{{ $booking->room->property->name }}</span>
-                <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $booking->room->room_number }}</span>
+                <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $booking->room->room_number }}</span>
                 <span class="meta-chip"><i class="bi bi-calendar-check"></i>Due {{ $dueDate ? $dueDate->format('M d, Y') : 'N/A' }}</span>
             </div>
         </div>
@@ -163,11 +172,21 @@
                                 <div class="record-actions-title">Actions</div>
 
                                 @if($recordStatus !== 'approved')
-                                    <form method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
+                                    <form id="manageApproveDesktop{{ $record->id }}" method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
                                         @csrf
                                         <input type="hidden" name="status" value="approved">
                                         <input type="hidden" name="status_context" value="{{ $statusFilter }}">
-                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-2">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-success rounded-pill px-2 js-manage-confirm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#manageActionConfirmModal"
+                                            data-confirm-title="Approve Payment Record"
+                                            data-confirm-message="Approve this monthly payment record?"
+                                            data-confirm-submit-label="Approve"
+                                            data-confirm-tone="success"
+                                            data-form-id="manageApproveDesktop{{ $record->id }}"
+                                        >
                                             <i class="bi bi-check2 me-1"></i>Approve
                                         </button>
                                     </form>
@@ -185,11 +204,21 @@
                                 @endif
 
                                 @if($recordStatus !== 'rejected')
-                                    <form method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
+                                    <form id="manageRejectDesktop{{ $record->id }}" method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
                                         @csrf
                                         <input type="hidden" name="status" value="rejected">
                                         <input type="hidden" name="status_context" value="{{ $statusFilter }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-danger rounded-pill px-2 js-manage-confirm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#manageActionConfirmModal"
+                                            data-confirm-title="Reject Payment Record"
+                                            data-confirm-message="Reject this monthly payment record?"
+                                            data-confirm-submit-label="Reject"
+                                            data-confirm-tone="danger"
+                                            data-form-id="manageRejectDesktop{{ $record->id }}"
+                                        >
                                             <i class="bi bi-x-circle me-1"></i>Reject
                                         </button>
                                     </form>
@@ -201,9 +230,19 @@
                                     </a>
                                 @endif
 
-                                <form action="{{ route('landlord.payments.remind', $booking->id) }}" method="POST" class="m-0">
+                                <form id="manageReminderDesktop{{ $record->id }}" action="{{ route('landlord.payments.remind', $booking->id) }}" method="POST" class="m-0">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-2" onclick="return confirm('Send a payment reminder to this tenant?')">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-secondary rounded-pill px-2 js-manage-confirm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#manageActionConfirmModal"
+                                        data-confirm-title="Send Payment Reminder"
+                                        data-confirm-message="Send a payment reminder to this tenant?"
+                                        data-confirm-submit-label="Send Reminder"
+                                        data-confirm-tone="warning"
+                                        data-form-id="manageReminderDesktop{{ $record->id }}"
+                                    >
                                         <i class="bi bi-bell me-1"></i>Send Reminder
                                     </button>
                                 </form>
@@ -229,11 +268,21 @@
                                         <div class="record-actions-title">Actions</div>
 
                                         @if($recordStatus !== 'approved')
-                                            <form method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
+                                            <form id="manageApproveMobile{{ $record->id }}" method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
                                                 @csrf
                                                 <input type="hidden" name="status" value="approved">
                                                 <input type="hidden" name="status_context" value="{{ $statusFilter }}">
-                                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-2">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-success rounded-pill px-2 js-manage-confirm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#manageActionConfirmModal"
+                                                    data-confirm-title="Approve Payment Record"
+                                                    data-confirm-message="Approve this monthly payment record?"
+                                                    data-confirm-submit-label="Approve"
+                                                    data-confirm-tone="success"
+                                                    data-form-id="manageApproveMobile{{ $record->id }}"
+                                                >
                                                     <i class="bi bi-check2 me-1"></i>Approve
                                                 </button>
                                             </form>
@@ -251,11 +300,21 @@
                                         @endif
 
                                         @if($recordStatus !== 'rejected')
-                                            <form method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
+                                            <form id="manageRejectMobile{{ $record->id }}" method="POST" action="{{ route('landlord.payments.records.status', ['booking' => $booking->id, 'record' => $record->id]) }}" class="m-0">
                                                 @csrf
                                                 <input type="hidden" name="status" value="rejected">
                                                 <input type="hidden" name="status_context" value="{{ $statusFilter }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-danger rounded-pill px-2 js-manage-confirm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#manageActionConfirmModal"
+                                                    data-confirm-title="Reject Payment Record"
+                                                    data-confirm-message="Reject this monthly payment record?"
+                                                    data-confirm-submit-label="Reject"
+                                                    data-confirm-tone="danger"
+                                                    data-form-id="manageRejectMobile{{ $record->id }}"
+                                                >
                                                     <i class="bi bi-x-circle me-1"></i>Reject
                                                 </button>
                                             </form>
@@ -267,9 +326,19 @@
                                             </a>
                                         @endif
 
-                                        <form action="{{ route('landlord.payments.remind', $booking->id) }}" method="POST" class="m-0">
+                                        <form id="manageReminderMobile{{ $record->id }}" action="{{ route('landlord.payments.remind', $booking->id) }}" method="POST" class="m-0">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-2" onclick="return confirm('Send a payment reminder to this tenant?')">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-secondary rounded-pill px-2 js-manage-confirm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#manageActionConfirmModal"
+                                                data-confirm-title="Send Payment Reminder"
+                                                data-confirm-message="Send a payment reminder to this tenant?"
+                                                data-confirm-submit-label="Send Reminder"
+                                                data-confirm-tone="warning"
+                                                data-form-id="manageReminderMobile{{ $record->id }}"
+                                            >
                                                 <i class="bi bi-bell me-1"></i>Send Reminder
                                             </button>
                                         </form>
@@ -301,11 +370,16 @@
 
                     <div class="col-sm-6">
                         <label class="form-label small fw-semibold mb-1">Billing Month</label>
-                        <input type="month" name="billing_month" class="form-control form-control-sm" required value="{{ old('billing_month', $defaultBillingMonth) }}">
+                        <input id="billing_month_input" data-anchor-day="{{ $billingAnchorDay }}" type="month" name="billing_month" class="form-control form-control-sm" required value="{{ old('billing_month', $defaultBillingMonth) }}">
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label small fw-semibold mb-1">Due Date</label>
-                        <input type="date" name="due_date" class="form-control form-control-sm" value="{{ old('due_date', optional($dueDate)->toDateString()) }}">
+                        <input id="due_date_input" type="date" name="due_date" class="form-control form-control-sm" readonly value="{{ old('due_date', optional($previewCycleStart)->toDateString()) }}">
+                    </div>
+
+                    <div class="col-12">
+                        <div class="cycle-preview-note" id="billing_cycle_preview">Cycle coverage: {{ $previewCycleStart ? $previewCycleStart->format('M d, Y') : 'N/A' }} - {{ $previewCycleEnd ? $previewCycleEnd->format('M d, Y') : 'N/A' }}</div>
+                        <div class="small text-muted mt-1">Due date is auto-computed from billing month using check-in day ({{ $billingAnchorDay }}).</div>
                     </div>
 
                     <div class="col-sm-6">
@@ -346,6 +420,29 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="manageActionConfirmModal" tabindex="-1" aria-labelledby="manageActionConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content action-confirm-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageActionConfirmModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="action-confirm-body">
+                    <div id="manageActionConfirmIconWrap" class="action-confirm-icon-wrap tone-primary">
+                        <i id="manageActionConfirmIcon" class="bi bi-question-circle"></i>
+                    </div>
+                    <p id="manageActionConfirmMessage" class="mb-0 text-muted">Are you sure you want to continue?</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="manageActionConfirmSubmitBtn" class="btn rounded-pill px-3 action-confirm-submit btn-primary">Confirm</button>
             </div>
         </div>
     </div>
@@ -573,6 +670,65 @@
     .modal-record-actions-card {
         display: grid;
     }
+    .cycle-preview-note {
+        border: 1px dashed rgba(16,185,129,.4);
+        border-radius: .65rem;
+        background: rgba(236,253,245,.74);
+        color: #065f46;
+        font-size: .76rem;
+        font-weight: 600;
+        padding: .45rem .55rem;
+    }
+    .action-confirm-modal-content {
+        border: 1px solid rgba(15,23,42,.12);
+        border-radius: 1rem;
+        box-shadow: 0 18px 38px rgba(2,8,20,.14);
+        overflow: hidden;
+    }
+    .action-confirm-modal-content .modal-header {
+        border-bottom: 1px solid rgba(148,163,184,.24);
+        background: linear-gradient(180deg, rgba(248,250,252,.9), rgba(255,255,255,.98));
+    }
+    .action-confirm-body {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: .65rem;
+        align-items: center;
+    }
+    .action-confirm-icon-wrap {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        font-size: 1rem;
+    }
+    .action-confirm-icon-wrap.tone-primary {
+        background: rgba(37,99,235,.12);
+        color: #1d4ed8;
+        border-color: rgba(37,99,235,.3);
+    }
+    .action-confirm-icon-wrap.tone-success {
+        background: rgba(22,163,74,.14);
+        color: #15803d;
+        border-color: rgba(22,163,74,.34);
+    }
+    .action-confirm-icon-wrap.tone-warning {
+        background: rgba(245,158,11,.16);
+        color: #b45309;
+        border-color: rgba(245,158,11,.36);
+    }
+    .action-confirm-icon-wrap.tone-danger {
+        background: rgba(239,68,68,.14);
+        color: #b91c1c;
+        border-color: rgba(239,68,68,.34);
+    }
+    .action-confirm-submit {
+        min-width: 120px;
+        font-weight: 700;
+    }
 
     @media (max-width: 991.98px) {
         .records-shell {
@@ -668,6 +824,161 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const billingMonthInput = document.getElementById('billing_month_input');
+    const dueDateInput = document.getElementById('due_date_input');
+    const preview = document.getElementById('billing_cycle_preview');
+
+    if (!billingMonthInput || !dueDateInput || !preview) {
+        return;
+    }
+
+    const anchorDay = Math.max(1, parseInt(billingMonthInput.dataset.anchorDay || '1', 10) || 1);
+
+    const formatIsoDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatHumanDate = (date) => {
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    const parseBillingMonth = (value) => {
+        if (!/^\d{4}-\d{2}$/.test(value)) {
+            return null;
+        }
+
+        const [yearStr, monthStr] = value.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10);
+
+        if (!year || !month) {
+            return null;
+        }
+
+        const lastDay = new Date(year, month, 0).getDate();
+        const day = Math.min(anchorDay, lastDay);
+
+        return new Date(year, month - 1, day);
+    };
+
+    const computeCycleEnd = (startDate) => {
+        const endDate = new Date(startDate.getTime());
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+        return endDate;
+    };
+
+    const updateCyclePreview = () => {
+        const cycleStart = parseBillingMonth(billingMonthInput.value);
+        if (!cycleStart) {
+            dueDateInput.value = '';
+            preview.textContent = 'Cycle coverage: N/A';
+            return;
+        }
+
+        const cycleEnd = computeCycleEnd(cycleStart);
+
+        dueDateInput.value = formatIsoDate(cycleStart);
+        preview.textContent = `Cycle coverage: ${formatHumanDate(cycleStart)} - ${formatHumanDate(cycleEnd)}`;
+    };
+
+    billingMonthInput.addEventListener('change', updateCyclePreview);
+    billingMonthInput.addEventListener('input', updateCyclePreview);
+    updateCyclePreview();
+});
+</script>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const confirmModal = document.getElementById('manageActionConfirmModal');
+    const titleEl = document.getElementById('manageActionConfirmModalLabel');
+    const messageEl = document.getElementById('manageActionConfirmMessage');
+    const submitBtn = document.getElementById('manageActionConfirmSubmitBtn');
+    const iconWrap = document.getElementById('manageActionConfirmIconWrap');
+    const iconEl = document.getElementById('manageActionConfirmIcon');
+
+    if (!confirmModal || !titleEl || !messageEl || !submitBtn || !iconWrap || !iconEl) {
+        return;
+    }
+
+    let targetForm = null;
+
+    const submitToneClassMap = {
+        primary: 'btn-primary',
+        success: 'btn-success',
+        warning: 'btn-warning',
+        danger: 'btn-danger'
+    };
+
+    const iconToneClassMap = {
+        primary: 'tone-primary',
+        success: 'tone-success',
+        warning: 'tone-warning',
+        danger: 'tone-danger'
+    };
+
+    const iconClassMap = {
+        primary: 'bi-question-circle',
+        success: 'bi-check-circle',
+        warning: 'bi-bell',
+        danger: 'bi-x-circle'
+    };
+
+    const setModalTone = (tone) => {
+        const normalizedTone = ['primary', 'success', 'warning', 'danger'].includes(tone) ? tone : 'primary';
+
+        submitBtn.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'btn-danger');
+        submitBtn.classList.add(submitToneClassMap[normalizedTone]);
+
+        iconWrap.classList.remove('tone-primary', 'tone-success', 'tone-warning', 'tone-danger');
+        iconWrap.classList.add(iconToneClassMap[normalizedTone]);
+
+        iconEl.className = `bi ${iconClassMap[normalizedTone]}`;
+    };
+
+    confirmModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const formId = trigger ? trigger.getAttribute('data-form-id') : null;
+        const tone = trigger?.getAttribute('data-confirm-tone') || 'primary';
+
+        targetForm = formId ? document.getElementById(formId) : null;
+        titleEl.textContent = trigger?.getAttribute('data-confirm-title') || 'Confirm Action';
+        messageEl.textContent = trigger?.getAttribute('data-confirm-message') || 'Are you sure you want to continue?';
+        submitBtn.textContent = trigger?.getAttribute('data-confirm-submit-label') || 'Confirm';
+        submitBtn.disabled = !targetForm;
+        setModalTone(tone);
+    });
+
+    submitBtn.addEventListener('click', function () {
+        if (targetForm) {
+            targetForm.submit();
+        }
+    });
+
+    confirmModal.addEventListener('hidden.bs.modal', function () {
+        targetForm = null;
+        submitBtn.disabled = false;
+        titleEl.textContent = 'Confirm Action';
+        messageEl.textContent = 'Are you sure you want to continue?';
+        submitBtn.textContent = 'Confirm';
+        setModalTone('primary');
+    });
+});
+</script>
+@endpush
+
+@push('scripts')
+<script>
     document.addEventListener('DOMContentLoaded', function () {
         @if($errors->any() && (int) old('manual_booking_id') === (int) $booking->id)
             if (window.bootstrap) {
@@ -681,3 +992,4 @@
     });
 </script>
 @endpush
+

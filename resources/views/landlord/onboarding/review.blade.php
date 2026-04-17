@@ -144,7 +144,7 @@
             <div class="meta-row mb-3">
               <span class="meta-chip"><i class="bi bi-person-badge"></i>Student ID: Hidden</span>
               <span class="meta-chip"><i class="bi bi-building"></i>{{ $onboarding->booking->room->property->name }}</span>
-              <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $onboarding->booking->room->room_number }}</span>
+              <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $onboarding->booking->room->room_number }}</span>
               <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ $onboarding->booking->check_in->format('M d, Y') }} - {{ $onboarding->booking->check_out->format('M d, Y') }}</span>
             </div>
 

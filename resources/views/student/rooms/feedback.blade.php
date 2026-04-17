@@ -87,7 +87,7 @@
     </div>
 
     <div class="rf-head">
-        <div class="fw-bold">Room {{ $room->room_number }} Feedback</div>
+        <div class="fw-bold">{{ $room->room_number }} Feedback</div>
         <div class="text-muted small">{{ $room->property->name }} • {{ $room->property->address }}</div>
     </div>
 
@@ -293,3 +293,4 @@
     }
 </script>
 @endpush
+

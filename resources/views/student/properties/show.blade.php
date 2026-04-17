@@ -137,7 +137,7 @@
                                                             data-bs-target="#bookingRequestModal"
                                                             data-booking-modal
                                                             data-book-url="{{ route('bookings.store', $room->id) }}"
-                                                            data-room-label="{{ $property->name }} — Room {{ $room->room_number }}"
+                                                            data-room-label="{{ $property->name }} — {{ $room->room_number }}"
                                                         >Request</button>
                                                     @endif
                                                 @else
@@ -320,3 +320,4 @@
     @endif
 </body>
 </html>
+

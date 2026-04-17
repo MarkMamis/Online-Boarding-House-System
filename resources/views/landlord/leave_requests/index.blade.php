@@ -92,7 +92,7 @@
 
                         <div class="leave-meta-row">
                             <span class="meta-chip"><i class="bi bi-building"></i>{{ $lr->booking?->room?->property?->name ?? 'Property' }}</span>
-                            <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $lr->booking?->room?->room_number ?? '—' }}</span>
+                            <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $lr->booking?->room?->room_number ?? '—' }}</span>
                             <span class="meta-chip"><i class="bi bi-calendar-event"></i>Leave {{ optional($lr->leave_date)->format('M d, Y') ?? '—' }}</span>
                         </div>
 
@@ -392,3 +392,4 @@
     }
 </style>
 @endpush
+

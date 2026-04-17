@@ -96,7 +96,7 @@
           @endphp
           <div class="item-row">
             <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-              <div class="fw-semibold">Room {{ $room->room_number }}</div>
+              <div class="fw-semibold">{{ $room->room_number }}</div>
               <div>
                 @if($room->status==='available')
                   <span class="badge text-bg-success">Available</span>
@@ -150,7 +150,7 @@
       <div class="card-body p-3 pt-0">
         @forelse($activeBookings as $b)
           <div class="item-row">
-            <div class="fw-semibold mb-1">Room {{ $b->room->room_number }}</div>
+            <div class="fw-semibold mb-1">{{ $b->room->room_number }}</div>
             <div class="small mb-1"><span class="text-muted">Student:</span> {{ $b->student->full_name }}</div>
             <div class="small text-muted">{{ $b->check_in->format('M d, Y') }} -> {{ $b->check_out->format('M d, Y') }}</div>
           </div>
@@ -169,7 +169,7 @@
         @forelse($pendingBookings as $b)
           <div class="item-row">
             <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-              <div class="fw-semibold">Room {{ $b->room->room_number }}</div>
+              <div class="fw-semibold">{{ $b->room->room_number }}</div>
               <div class="small text-muted">{{ $b->check_in->format('M d, Y') }} -> {{ $b->check_out->format('M d, Y') }}</div>
             </div>
             <div class="small mb-3"><span class="text-muted">Student:</span> {{ $b->student->full_name }}</div>
@@ -261,3 +261,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 @endif
 @endpush
+

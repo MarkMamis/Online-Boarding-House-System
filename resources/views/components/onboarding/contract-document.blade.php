@@ -99,7 +99,7 @@
         <h6>1. Parties and Premises</h6>
         <p class="mb-0">
             This agreement is executed between the Landlord and the Tenant for the lease of
-            <strong>{{ $property->name }}</strong>, Room <strong>{{ $room->room_number }}</strong> (the "Premises"), subject to the terms and obligations stated in this contract.
+            <strong>{{ $property->name }}</strong>, <strong>{{ $room->room_number }}</strong> (the "Premises"), subject to the terms and obligations stated in this contract.
         </p>
     </div>
 

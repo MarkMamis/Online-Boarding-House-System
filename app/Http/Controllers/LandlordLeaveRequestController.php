@@ -6,6 +6,7 @@ use App\Models\LeaveRequest;
 use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class LandlordLeaveRequestController extends Controller
@@ -71,22 +72,21 @@ class LandlordLeaveRequestController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $leaveRequest->update([
-            'status' => 'approved',
-            'landlord_response' => $validator->validated()['landlord_response'] ?? null,
-            'responded_at' => now(),
-        ]);
+        DB::transaction(function () use ($leaveRequest, $validator, $leaveDate) {
+            $leaveRequest->refresh();
+            $leaveRequest->update([
+                'status' => 'approved',
+                'landlord_response' => $validator->validated()['landlord_response'] ?? null,
+                'responded_at' => now(),
+            ]);
 
-        // Shorten booking until leave date
-        $leaveRequest->booking->update([
-            'check_out' => $leaveDate,
-        ]);
+            $leaveRequest->booking->update([
+                'check_out' => $leaveDate,
+                'status' => 'cancelled',
+            ]);
 
-        // If leave is effective now, end stay and free the room
-        if ($leaveDate <= $today) {
-            $leaveRequest->booking->update(['status' => 'cancelled']);
-            $leaveRequest->booking->room->update(['status' => 'available']);
-        }
+            $leaveRequest->booking->room->syncAvailabilitySnapshot();
+        });
 
         try {
             $student = $leaveRequest->student;

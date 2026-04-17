@@ -47,7 +47,7 @@
         <div class="preview-meta mb-3">
                 <span class="meta-pill"><i class="bi bi-person me-1"></i>{{ $onboarding->booking->student->full_name ?? 'Student' }}</span>
                 <span class="meta-pill"><i class="bi bi-building me-1"></i>{{ $onboarding->booking->room->property->name ?? 'Property' }}</span>
-                <span class="meta-pill"><i class="bi bi-door-open me-1"></i>Room {{ $onboarding->booking->room->room_number ?? '-' }}</span>
+                <span class="meta-pill"><i class="bi bi-door-open me-1"></i>{{ $onboarding->booking->room->room_number ?? '-' }}</span>
                 <span class="meta-pill"><i class="bi bi-clipboard-check me-1"></i>{{ $statusLabel }}</span>
         </div>
 
@@ -139,3 +139,4 @@
     }
 </style>
 @endpush
+

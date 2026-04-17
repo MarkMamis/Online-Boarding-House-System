@@ -122,7 +122,7 @@
                     </div>
 
                     <div class="tenant-meta-row">
-                        <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $room->room_number ?? 'N/A' }}</span>
+                        <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $room->room_number ?? 'N/A' }}</span>
                         <span class="meta-chip"><i class="bi bi-building"></i>{{ $property->name ?? 'Property' }}</span>
                         <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ optional($tenant->check_in)->format('M d, Y') }} - {{ optional($tenant->check_out)->format('M d, Y') }}</span>
                     </div>

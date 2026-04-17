@@ -1439,36 +1439,89 @@
                                     file_exists(public_path('storage/' . ltrim($propertyImage, '/')))
                                 );
                                 $previewImage = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
+
+                                $pricingModel = method_exists($room, 'resolvePricingModel')
+                                    ? $room->resolvePricingModel()
+                                    : strtolower((string) ($room->pricing_model ?? \App\Models\Room::PRICING_MODEL_PER_ROOM));
+                                if (!in_array($pricingModel, [\App\Models\Room::PRICING_MODEL_PER_ROOM, \App\Models\Room::PRICING_MODEL_PER_BED, \App\Models\Room::PRICING_MODEL_HYBRID], true)) {
+                                    $pricingModel = \App\Models\Room::PRICING_MODEL_PER_ROOM;
+                                }
+
+                                $listingPricingMode = method_exists($room, 'resolveListingPricingMode')
+                                    ? $room->resolveListingPricingMode()
+                                    : $pricingModel;
+
+                                $displayPricePerRoom = method_exists($room, 'effectivePricePerRoom')
+                                    ? (float) $room->effectivePricePerRoom()
+                                    : (float) ($room->price_per_room ?: ($room->price ?? 0));
+                                $displayPricePerBed = method_exists($room, 'effectivePricePerBed')
+                                    ? (float) $room->effectivePricePerBed()
+                                    : (float) ($room->price_per_bed ?: (max(1, (int) $room->capacity) > 0 ? ((float) ($room->price ?? 0) / max(1, (int) $room->capacity)) : 0));
+
+                                if ($pricingModel === \App\Models\Room::PRICING_MODEL_PER_BED) {
+                                    $featuredDisplayPrice = $displayPricePerBed;
+                                    $featuredPricingLabel = 'Per Bed';
+                                    $featuredPriceSummary = 'monthly per bed';
+                                } elseif ($pricingModel === \App\Models\Room::PRICING_MODEL_PER_ROOM) {
+                                    $featuredDisplayPrice = $displayPricePerRoom;
+                                    $featuredPricingLabel = 'Per Room';
+                                    $featuredPriceSummary = 'monthly per room';
+                                } else {
+                                    if ($listingPricingMode === \App\Models\Room::PRICING_MODEL_PER_BED) {
+                                        $featuredDisplayPrice = $displayPricePerBed;
+                                        $featuredPriceSummary = 'hybrid, currently per bed';
+                                    } elseif ($listingPricingMode === \App\Models\Room::PRICING_MODEL_PER_ROOM) {
+                                        $featuredDisplayPrice = $displayPricePerRoom;
+                                        $featuredPriceSummary = 'hybrid, currently per room';
+                                    } else {
+                                        $hybridCandidates = array_filter([$displayPricePerRoom, $displayPricePerBed], fn ($value) => $value > 0);
+                                        $featuredDisplayPrice = !empty($hybridCandidates)
+                                            ? min($hybridCandidates)
+                                            : (float) ($room->price ?? 0);
+                                        $featuredPriceSummary = 'hybrid (per room and per bed)';
+                                    }
+                                    $featuredPricingLabel = 'Hybrid';
+                                }
+
+                                if (($featuredDisplayPrice ?? 0) <= 0) {
+                                    $featuredDisplayPrice = (float) ($room->price ?? 0);
+                                }
                             @endphp
-                            <div class="col-12" data-featured-room-card data-room-price="{{ (float) $room->price }}" data-room-rating="{{ number_format($roomRating, 2, '.', '') }}" data-room-rating-count="{{ $roomRatingCount }}" data-room-lat="{{ $room->property->latitude ?? '' }}" data-room-lng="{{ $room->property->longitude ?? '' }}" data-room-order="{{ $loop->index }}">
+                            <div class="col-12" data-featured-room-card data-room-price="{{ (float) $featuredDisplayPrice }}" data-room-rating="{{ number_format($roomRating, 2, '.', '') }}" data-room-rating-count="{{ $roomRatingCount }}" data-room-lat="{{ $room->property->latitude ?? '' }}" data-room-lng="{{ $room->property->longitude ?? '' }}" data-room-order="{{ $loop->index }}">
                                 <div class="preview-card preview-card-actionable">
                                     <div class="preview-card-content">
                                         <div class="d-flex justify-content-between gap-3">
                                             <div class="d-flex gap-3 preview-room-main">
                                                 @if($previewImage)
-                                                    <img src="{{ asset('storage/'.$previewImage) }}" alt="Room {{ $room->room_number }} preview" class="preview-thumb" loading="lazy">
+                                                    <img src="{{ asset('storage/'.$previewImage) }}" alt="{{ $room->room_number }} preview" class="preview-thumb" loading="lazy">
                                                 @else
                                                     <div class="preview-thumb placeholder"><i class="bi bi-house-door fs-5"></i></div>
                                                 @endif
                                                 <div class="preview-room-info">
-                                                    <div class="fw-semibold">Room {{ $room->room_number }}</div>
+                                                    <div class="fw-semibold">{{ $room->room_number }}</div>
                                                     <div class="text-muted small">{{ $room->property->name ?? 'Boarding House' }}{{ !empty($room->property?->address) ? ', ' . $room->property->address : '' }}</div>
                                                     <div class="small mt-1"><i class="bi bi-people"></i> Good for {{ $room->capacity }} • {{ $availableSlots > 0 ? $availableSlots . ' slot' . ($availableSlots > 1 ? 's' : '') . ' left' : 'Available' }}</div>
                                                 </div>
                                             </div>
                                             <div class="text-end preview-room-price">
-                                                <div class="preview-price">₱{{ number_format((float) $room->price, 0) }}</div>
-                                                <div class="small text-muted">per month</div>
+                                                <div class="preview-price">₱{{ number_format((float) $featuredDisplayPrice, 0) }}</div>
+                                                <div class="small text-muted">{{ $featuredPriceSummary }}</div>
+                                                <div class="small mt-1">
+                                                    <span class="badge text-bg-light border">{{ $featuredPricingLabel }}</span>
+                                                </div>
+                                                @if($pricingModel === \App\Models\Room::PRICING_MODEL_HYBRID)
+                                                    <div class="small text-muted mt-1">Room ₱{{ number_format((float) $displayPricePerRoom, 0) }} • Bed ₱{{ number_format((float) $displayPricePerBed, 0) }}</div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
                                     <div class="preview-card-actions-panel">
-                                        <div class="preview-split-actions" role="group" aria-label="Room actions for room {{ $room->room_number }}">
-                                            <a href="{{ route('login', ['redirect' => route('rooms.public.show', $room)]) }}" class="preview-action-btn preview-action-book" aria-label="Log in to book room {{ $room->room_number }}">
+                                        <div class="preview-split-actions" role="group" aria-label="Room actions for {{ $room->room_number }}">
+                                            <a href="{{ route('login', ['redirect' => route('rooms.public.show', $room)]) }}" class="preview-action-btn preview-action-book" aria-label="Log in to book {{ $room->room_number }}">
                                                 <i class="bi bi-calendar2-check"></i>
                                                 <span>Book now</span>
                                             </a>
-                                            <a href="{{ route('rooms.public.show', $room) }}" class="preview-action-btn preview-action-view" aria-label="View room {{ $room->room_number }} details">
+                                            <a href="{{ route('rooms.public.show', $room) }}" class="preview-action-btn preview-action-view" aria-label="View {{ $room->room_number }} details">
                                                 <i class="bi bi-eye"></i>
                                                 <span>View room</span>
                                             </a>
@@ -1627,6 +1680,16 @@
                     );
                     $rating = $property->average_rating ? number_format((float) $property->average_rating, 1) : null;
                     $minPrice = $property->rooms_min_price;
+                    $propertyPricingLabels = [];
+                    if ((int) ($property->available_per_room_count ?? 0) > 0) {
+                        $propertyPricingLabels[] = 'Per Room';
+                    }
+                    if ((int) ($property->available_per_bed_count ?? 0) > 0) {
+                        $propertyPricingLabels[] = 'Per Bed';
+                    }
+                    if ((int) ($property->available_hybrid_count ?? 0) > 0) {
+                        $propertyPricingLabels[] = 'Hybrid';
+                    }
                 @endphp
                 <div class="col-12 col-md-6 col-xl-4">
                     <div class="property-card h-100">
@@ -1647,8 +1710,15 @@
                                 <div class="small text-muted">{{ (int) $property->rooms_count }} rooms • {{ (int) $property->available_rooms_count }} available</div>
                                 <div class="fw-bold text-success">{{ $minPrice ? 'From ₱' . number_format((float) $minPrice, 0) : 'Price TBD' }}</div>
                             </div>
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                @forelse($propertyPricingLabels as $pricingLabel)
+                                    <span class="badge text-bg-light border">{{ $pricingLabel }}</span>
+                                @empty
+                                    <span class="badge text-bg-light border">Pricing TBD</span>
+                                @endforelse
+                            </div>
                             <div class="mt-3">
-                                <a href="{{ url('/browse-map/properties/17/rooms') }}" class="btn btn-sm btn-outline-success rounded-pill w-100 btn-flashy">View property</a>
+                                <a href="{{ route('public.properties.rooms', $property) }}" class="btn btn-sm btn-outline-success rounded-pill w-100 btn-flashy">View property</a>
                             </div>
                         </div>
                     </div>
@@ -2144,3 +2214,4 @@
 </script>
 </body>
 </html>
+

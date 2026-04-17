@@ -31,7 +31,7 @@
                 <div class="small text-uppercase fw-semibold" style="letter-spacing:.08em;color:#14532d;">Tenant Hub</div>
                 <h3 class="fw-bold mb-2" style="color:#14532d;">Tenant Dashboard</h3>
                 <div class="text-muted">
-                    {{ $tenantProperty->name ?? 'Property' }} • Room {{ $tenantRoom->room_number ?? '—' }}
+                    {{ $tenantProperty->name ?? 'Property' }} • {{ $tenantRoom->room_number ?? '—' }}
                 </div>
                 <div class="small text-muted mt-1">
                     {{ optional($tenantBooking->check_in)->format('M d, Y') }} to {{ optional($tenantBooking->check_out)->format('M d, Y') }}
@@ -363,3 +363,4 @@
     </div>
 </div>
 @endsection
+

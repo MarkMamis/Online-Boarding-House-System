@@ -38,6 +38,7 @@ class PaymentController extends Controller
                 'room.property',
                 'student',
                 'tenantOnboarding',
+                'tenantPayments',
                 'latestSubmittedTenantPayment',
                 'latestTenantPayment',
             ])
@@ -52,13 +53,8 @@ class PaymentController extends Controller
         $landlordProfile = Auth::user()->loadMissing('landlordProfile')->landlordProfile;
 
         $bookings->each(function (Booking $booking) use ($landlordProfile, $today) {
-            $effectiveStatus = $booking->derivedPaymentStatus($today);
-            $effectiveDueDate = $booking->resolvePaymentDueDate();
-            $booking->effective_payment_status = $effectiveStatus;
-            $booking->effective_due_date = $effectiveDueDate;
-            $booking->is_overdue = $effectiveStatus === 'overdue';
+            $this->hydrateMonthlySnapshot($booking, $today);
             $booking->billing_amount = $this->resolveBookingBillingAmount($booking);
-            $booking->latest_tenant_payment = $booking->latestSubmittedTenantPayment ?: $booking->latestTenantPayment;
 
             $qrPayload = $this->buildGcashQrPayload($landlordProfile, $booking);
             $booking->reminder_qr_url = $qrPayload === null
@@ -112,6 +108,7 @@ class PaymentController extends Controller
         $totalExpected = $totalPaid + $totalPending;
         $onboardingLedgerTotal = $onboardingPaidTotal + $onboardingPendingTotal;
         $monthlyLedgerTotal = $monthlyPaidTotal + $monthlyPendingTotal;
+        $allBookings = $bookings;
 
         if ($statusFilter !== 'all') {
             $bookings = $bookings->where('effective_payment_status', $statusFilter)->values();
@@ -119,6 +116,7 @@ class PaymentController extends Controller
 
         return view('landlord.payments.index', compact(
             'bookings',
+            'allBookings',
             'totalExpected',
             'totalPaid',
             'totalPending',
@@ -158,14 +156,8 @@ class PaymentController extends Controller
             })
             ->firstOrFail();
 
-        $today = now();
-        $effectiveStatus = $booking->derivedPaymentStatus($today);
-        $effectiveDueDate = $booking->resolvePaymentDueDate();
-
-        $booking->effective_payment_status = $effectiveStatus;
-        $booking->effective_due_date = $effectiveDueDate;
+        $this->hydrateMonthlySnapshot($booking, now());
         $booking->billing_amount = $this->resolveBookingBillingAmount($booking);
-        $booking->latest_tenant_payment = $booking->latestSubmittedTenantPayment ?: $booking->latestTenantPayment;
 
         return view('landlord.payments.manage', compact('booking', 'statusFilter'));
     }
@@ -175,22 +167,38 @@ class PaymentController extends Controller
         $this->ensureLandlord();
         $landlordId = Auth::id();
 
-        $booking = Booking::where('id', $bookingId)
+        $booking = Booking::with('tenantOnboarding')
+            ->where('id', $bookingId)
             ->whereHas('room.property', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
             })
             ->firstOrFail();
 
+        $onboarding = $booking->tenantOnboarding;
+        $onboardingStatus = strtolower((string) ($onboarding->status ?? ''));
+        $onboardingCompleted = $onboarding === null
+            || (bool) ($onboarding->deposit_paid ?? false)
+            || $onboardingStatus === 'completed';
+
+        if (!$onboardingCompleted) {
+            return back()->with('error', 'This payment is still part of onboarding. Use the Onboarding tab to approve payment first.');
+        }
+
         $baseDueDate = $booking->resolvePaymentDueDate() ?: now()->startOfDay();
+        $currentCyclePayment = $this->resolveCurrentCycleTenantPayment($booking, $baseDueDate);
 
-        $booking->update([
-            'payment_status' => 'paid',
-            'payment_date' => now(),
-            'next_payment_due_date' => $baseDueDate->copy()->addMonthNoOverflow()->toDateString(),
-            'last_overdue_notified_at' => null,
+        if (!$currentCyclePayment) {
+            return back()->with('error', 'No monthly payment record for this cycle yet. Use Manage Monthly and create a payment record first.');
+        }
+
+        $this->applyApprovedMonthlyCycleToBooking($booking, $baseDueDate);
+
+        $currentCyclePayment->update([
+            'status' => 'approved',
+            'reviewed_at' => now(),
+            'reviewed_by' => $landlordId,
+            'review_notes' => null,
         ]);
-
-        $this->approveLatestSubmittedTenantPayment($booking, $landlordId, $baseDueDate->toDateString());
 
         return back()->with('success', 'Payment marked as received.');
     }
@@ -340,16 +348,14 @@ class PaymentController extends Controller
             return back()->withErrors(['error' => 'Booking context mismatch for manual payment record.'])->withInput();
         }
 
-        $billingForDate = Carbon::createFromFormat('Y-m', (string) $validated['billing_month'])->startOfMonth();
-        $dueDate = !empty($validated['due_date'])
-            ? Carbon::parse((string) $validated['due_date'])->startOfDay()
-            : ($booking->resolvePaymentDueDate() ?: $billingForDate->copy());
+        $billingMonth = Carbon::createFromFormat('Y-m', (string) $validated['billing_month'])->startOfMonth();
+        $dueDate = $this->resolveDueDateForBillingMonth($booking, $billingMonth);
         $status = strtolower((string) $validated['status']);
 
         TenantPayment::create([
             'booking_id' => $booking->id,
             'student_id' => $booking->student_id,
-            'billing_for_date' => $billingForDate->toDateString(),
+            'billing_for_date' => $dueDate->toDateString(),
             'due_date' => $dueDate->toDateString(),
             'amount_due' => (float) $validated['amount_due'],
             'payment_method' => !empty($validated['payment_method']) ? strtolower((string) $validated['payment_method']) : null,
@@ -368,17 +374,11 @@ class PaymentController extends Controller
         ]);
 
         $currentDueDate = $booking->resolvePaymentDueDate();
-        $isCurrentCycleRecord = $currentDueDate
-            && $currentDueDate->copy()->startOfDay()->equalTo($billingForDate);
+        $isCurrentCycleRecord = $this->isDateInDueCycle($dueDate, $currentDueDate);
 
         if ($isCurrentCycleRecord) {
             if ($status === 'approved') {
-                $booking->update([
-                    'payment_status' => 'paid',
-                    'payment_date' => now(),
-                    'next_payment_due_date' => $currentDueDate->copy()->addMonthNoOverflow()->toDateString(),
-                    'last_overdue_notified_at' => null,
-                ]);
+                $this->applyApprovedMonthlyCycleToBooking($booking, $dueDate);
             }
 
             if ($status === 'submitted') {
@@ -432,21 +432,13 @@ class PaymentController extends Controller
         ]);
 
         $currentDueDate = $booking->resolvePaymentDueDate();
-        $recordBillingDate = !empty($record->billing_for_date)
-            ? Carbon::parse((string) $record->billing_for_date)->startOfDay()
-            : null;
-        $isCurrentCycleRecord = $currentDueDate
-            && $recordBillingDate
-            && $currentDueDate->copy()->startOfDay()->equalTo($recordBillingDate);
+        $recordDueDate = $this->resolveTenantPaymentDueDate($booking, $record);
+        $isCurrentCycleRecord = $recordDueDate
+            && $this->isDateInDueCycle($recordDueDate, $currentDueDate);
 
         if ($isCurrentCycleRecord) {
             if ($targetStatus === 'approved') {
-                $booking->update([
-                    'payment_status' => 'paid',
-                    'payment_date' => now(),
-                    'next_payment_due_date' => $currentDueDate->copy()->addMonthNoOverflow()->toDateString(),
-                    'last_overdue_notified_at' => null,
-                ]);
+                $this->applyApprovedMonthlyCycleToBooking($booking, $recordDueDate);
             }
 
             if (in_array($targetStatus, ['submitted', 'rejected'], true)) {
@@ -499,35 +491,194 @@ class PaymentController extends Controller
         return $monthlyRent + $advanceAmount;
     }
 
-    private function approveLatestSubmittedTenantPayment(Booking $booking, int $landlordId, string $billingDate): void
+    private function resolveDueDateForBillingMonth(Booking $booking, Carbon $billingMonth): Carbon
     {
-        $record = TenantPayment::query()
-            ->where('booking_id', $booking->id)
-            ->where('status', 'submitted')
-            ->whereDate('billing_for_date', $billingDate)
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->first();
+        $anchorDate = $booking->check_in instanceof Carbon
+            ? $booking->check_in->copy()->startOfDay()
+            : (!empty($booking->check_in)
+                ? Carbon::parse((string) $booking->check_in)->startOfDay()
+                : null);
 
-        if (!$record) {
-            $record = TenantPayment::query()
-                ->where('booking_id', $booking->id)
-                ->where('status', 'submitted')
-                ->orderByDesc('submitted_at')
-                ->orderByDesc('id')
-                ->first();
+        if (!$anchorDate) {
+            return $billingMonth->copy()->startOfMonth();
         }
 
-        if (!$record) {
+        $day = min((int) $anchorDate->day, (int) $billingMonth->copy()->endOfMonth()->day);
+
+        return Carbon::create($billingMonth->year, $billingMonth->month, $day)->startOfDay();
+    }
+
+    private function resolveTenantPaymentDueDate(Booking $booking, TenantPayment $record): ?Carbon
+    {
+        if ($record->due_date instanceof Carbon) {
+            return $record->due_date->copy()->startOfDay();
+        }
+
+        if (!empty($record->due_date)) {
+            return Carbon::parse((string) $record->due_date)->startOfDay();
+        }
+
+        if ($record->billing_for_date instanceof Carbon) {
+            return $this->resolveDueDateForBillingMonth($booking, $record->billing_for_date->copy()->startOfMonth());
+        }
+
+        if (!empty($record->billing_for_date)) {
+            return $this->resolveDueDateForBillingMonth($booking, Carbon::parse((string) $record->billing_for_date)->startOfMonth());
+        }
+
+        return null;
+    }
+
+    private function applyApprovedMonthlyCycleToBooking(Booking $booking, Carbon $dueDate): void
+    {
+        $cycleStart = $dueDate->copy()->startOfDay();
+        $cycleEnd = $cycleStart->copy()->addMonthNoOverflow()->subDay();
+        $updates = [
+            'payment_status' => 'paid',
+            'payment_date' => now(),
+            'next_payment_due_date' => $cycleStart->copy()->addMonthNoOverflow()->toDateString(),
+            'last_overdue_notified_at' => null,
+        ];
+
+        $currentCheckOut = $booking->check_out instanceof Carbon
+            ? $booking->check_out->copy()->startOfDay()
+            : (!empty($booking->check_out)
+                ? Carbon::parse((string) $booking->check_out)->startOfDay()
+                : null);
+
+        if (!$currentCheckOut || $currentCheckOut->lt($cycleEnd)) {
+            $updates['check_out'] = $cycleEnd->toDateString();
+        }
+
+        $booking->update($updates);
+    }
+
+    private function hydrateMonthlySnapshot(Booking $booking, Carbon $today): void
+    {
+        $onboarding = $booking->tenantOnboarding;
+        $onboardingStatus = strtolower((string) ($onboarding->status ?? ''));
+        $onboardingCompleted = $onboarding === null
+            || (bool) ($onboarding->deposit_paid ?? false)
+            || $onboardingStatus === 'completed';
+
+        if (!$onboardingCompleted) {
+            $booking->effective_payment_status = 'onboarding';
+            $booking->effective_due_date = $this->resolveFirstMonthlyDueDateAfterOnboarding($booking);
+            $booking->effective_payment_date = null;
+            $booking->latest_tenant_payment = $booking->latestSubmittedTenantPayment ?: $booking->latestTenantPayment;
+            $booking->is_overdue = false;
+
             return;
         }
 
-        $record->update([
-            'status' => 'approved',
-            'reviewed_at' => now(),
-            'reviewed_by' => $landlordId,
-            'review_notes' => null,
-        ]);
+        $asOfDate = $today->copy()->startOfDay();
+        $effectiveDueDate = $booking->resolvePaymentDueDate();
+        $currentCyclePayment = $this->resolveCurrentCycleTenantPayment($booking, $effectiveDueDate);
+        $latestMonthlyPayment = $booking->latestSubmittedTenantPayment ?: $booking->latestTenantPayment;
+
+        $effectiveStatus = 'no_record';
+        $effectivePaymentDate = null;
+
+        if ($currentCyclePayment) {
+            $currentCycleStatus = strtolower((string) ($currentCyclePayment->status ?? 'submitted'));
+
+            if ($currentCycleStatus === 'approved') {
+                $effectiveStatus = 'paid';
+                $effectivePaymentDate = $this->resolveTenantPaymentTimestamp($currentCyclePayment);
+            } elseif ($currentCycleStatus === 'submitted') {
+                $effectiveStatus = 'pending';
+            } else {
+                $effectiveStatus = $effectiveDueDate && $effectiveDueDate->lt($asOfDate) ? 'overdue' : 'no_record';
+            }
+        } else {
+            if ($effectiveDueDate && $effectiveDueDate->lt($asOfDate)) {
+                $effectiveStatus = 'overdue';
+            }
+        }
+
+        $booking->effective_payment_status = $effectiveStatus;
+        $booking->effective_due_date = $effectiveDueDate;
+        $booking->effective_payment_date = $effectivePaymentDate;
+        $booking->latest_tenant_payment = $booking->latestSubmittedTenantPayment ?: $latestMonthlyPayment;
+        $booking->is_overdue = $effectiveStatus === 'overdue';
+    }
+
+    private function resolveCurrentCycleTenantPayment(Booking $booking, ?Carbon $dueDate): ?TenantPayment
+    {
+        if (!$dueDate) {
+            return null;
+        }
+
+        $payments = $booking->relationLoaded('tenantPayments')
+            ? $booking->tenantPayments
+            : $booking->tenantPayments()->get();
+
+        return $payments
+            ->filter(function ($payment) use ($dueDate) {
+                return $payment instanceof TenantPayment
+                    && $this->isTenantPaymentInDueCycle($payment, $dueDate);
+            })
+            ->sortByDesc(function (TenantPayment $payment) {
+                return sprintf(
+                    '%020d-%020d',
+                    $this->resolveTenantPaymentTimestamp($payment)?->getTimestamp() ?? 0,
+                    (int) $payment->id
+                );
+            })
+            ->first();
+    }
+
+    private function resolveTenantPaymentTimestamp(?TenantPayment $payment): ?Carbon
+    {
+        if (!$payment) {
+            return null;
+        }
+
+        if ($payment->reviewed_at instanceof Carbon) {
+            return $payment->reviewed_at->copy();
+        }
+
+        if ($payment->submitted_at instanceof Carbon) {
+            return $payment->submitted_at->copy();
+        }
+
+        if ($payment->created_at instanceof Carbon) {
+            return $payment->created_at->copy();
+        }
+
+        return null;
+    }
+
+    private function isTenantPaymentInDueCycle(TenantPayment $payment, ?Carbon $dueDate): bool
+    {
+        if (!$dueDate) {
+            return false;
+        }
+
+        $billingForDate = $payment->billing_for_date instanceof Carbon
+            ? $payment->billing_for_date->copy()->startOfDay()
+            : (!empty($payment->billing_for_date)
+                ? Carbon::parse((string) $payment->billing_for_date)->startOfDay()
+                : null);
+
+        if ($this->isDateInDueCycle($billingForDate, $dueDate)) {
+            return true;
+        }
+
+        $recordDueDate = $payment->due_date instanceof Carbon
+            ? $payment->due_date->copy()->startOfDay()
+            : (!empty($payment->due_date)
+                ? Carbon::parse((string) $payment->due_date)->startOfDay()
+                : null);
+
+        return $this->isDateInDueCycle($recordDueDate, $dueDate);
+    }
+
+    private function isDateInDueCycle(?Carbon $date, ?Carbon $dueDate): bool
+    {
+        return $date !== null
+            && $dueDate !== null
+            && $date->format('Y-m') === $dueDate->format('Y-m');
     }
 
     private function reopenLatestApprovedTenantPayment(Booking $booking, int $landlordId): void
@@ -550,6 +701,19 @@ class PaymentController extends Controller
             'reviewed_by' => null,
             'review_notes' => null,
         ]);
+    }
+
+    private function resolveFirstMonthlyDueDateAfterOnboarding(Booking $booking): ?Carbon
+    {
+        if ($booking->check_in instanceof Carbon) {
+            return $booking->check_in->copy()->startOfDay()->addMonthNoOverflow();
+        }
+
+        if (!empty($booking->check_in)) {
+            return Carbon::parse((string) $booking->check_in)->startOfDay()->addMonthNoOverflow();
+        }
+
+        return $booking->resolvePaymentDueDate();
     }
 
     private function buildGcashQrUrl(string $payload): string
