@@ -20,6 +20,7 @@
             --premium-gold-deep: #d18a00;
             --ink: #0f172a;
             --paper: #f8fafc;
+            --auth-control-height: 46px;
         }
         body {
             font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -94,6 +95,10 @@
             height: 58px;
             object-fit: contain;
             filter: drop-shadow(0 6px 12px rgba(2,8,20,.26));
+        }
+        .hero-brand-logos img:first-child {
+            width: 74px;
+            height: 74px;
         }
         .hero-brand-copy {
             display: flex;
@@ -179,7 +184,14 @@
             background: rgba(255,255,255,.10);
             border-color: rgba(255,255,255,.22);
             color: #fff;
-            min-height: 42px;
+            min-height: var(--auth-control-height);
+            transition: all .18s ease;
+        }
+        .input-group > .form-control,
+        .input-group > .form-select,
+        .input-group > .input-group-text.field-icon {
+            min-height: var(--auth-control-height);
+            height: var(--auth-control-height);
         }
         .form-control::placeholder { color: rgba(255,255,255,.55); }
         .form-check-label { color: rgba(255,255,255,.82); }
@@ -296,6 +308,10 @@
             .hero-brand-logos img {
                 width: 46px;
                 height: 46px;
+            }
+            .hero-brand-logos img:first-child {
+                width: 58px;
+                height: 58px;
             }
             .hero-brand-top {
                 font-size: 1.06rem;

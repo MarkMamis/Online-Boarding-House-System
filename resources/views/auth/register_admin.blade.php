@@ -115,6 +115,10 @@
             object-fit: contain;
             filter: drop-shadow(0 6px 12px rgba(7,10,28,.34));
         }
+        .admin-brand-logos img:first-child {
+            width: 58px;
+            height: 58px;
+        }
 
         .admin-brand-copy {
             display: flex;
@@ -447,6 +451,10 @@
             .admin-brand-logos img {
                 width: 38px;
                 height: 38px;
+            }
+            .admin-brand-logos img:first-child {
+                width: 48px;
+                height: 48px;
             }
 
             .admin-brand-top {

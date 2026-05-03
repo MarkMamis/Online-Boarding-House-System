@@ -12,9 +12,8 @@
         $hasPermitFile = filled(optional($landlordProfile)->business_permit_path);
         $permitStatus = $setupSnapshot['permit_status'] ?? (optional($landlordProfile)->business_permit_status ?: ($hasPermitFile ? 'pending' : 'not_submitted'));
         $profileComplete = (bool) ($setupSnapshot['profile_complete'] ?? false);
-        $permitApproved = (bool) ($setupSnapshot['permit_approved'] ?? ($hasPermitFile && $permitStatus === 'approved'));
         $billingComplete = (bool) ($setupSnapshot['billing_complete'] ?? false);
-        $landlordOperationsLocked = !$profileComplete || !$permitApproved;
+        $landlordOperationsLocked = !$profileComplete || !$billingComplete;
 
         $permitBadgeClass = match ($permitStatus) {
             'approved' => 'text-bg-success',
@@ -24,8 +23,7 @@
         };
 
         $permitStatusLabel = str_replace('_', ' ', $permitStatus);
-        $permitPending = $permitStatus === 'pending';
-        $setupFullyComplete = $profileComplete && $permitApproved && $billingComplete;
+        $setupFullyComplete = $profileComplete && $billingComplete;
         $tenantTrendCollection = collect($tenantTrend ?? []);
     @endphp
 
@@ -42,7 +40,7 @@
                         @if(!$profileComplete)
                             <span class="badge rounded-pill text-bg-secondary">Profile Incomplete</span>
                         @endif
-                        @if(!$permitApproved)
+                        @if($permitStatus !== 'approved')
                             <span class="badge rounded-pill {{ $permitBadgeClass }}">Permit {{ $permitStatusLabel }}</span>
                         @endif
                         @if(!$billingComplete)
@@ -53,10 +51,10 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 @if($landlordOperationsLocked)
-                    <button type="button" class="btn btn-brand rounded-pill px-4" disabled title="Complete profile, permit, and billing setup first">
+                    <button type="button" class="btn btn-brand rounded-pill px-4" disabled title="Complete profile and billing setup first">
                         <i class="bi bi-plus-circle me-1"></i> Add Property
                     </button>
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete profile, permit, and billing setup first">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete profile and billing setup first">
                         <i class="bi bi-door-open me-1"></i> Add Room
                     </button>
                 @else
@@ -74,7 +72,7 @@
                     @endif
                 @endif
                 @if($landlordOperationsLocked)
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete setup first">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" disabled title="Complete profile and billing setup first">
                         <i class="bi bi-journal-check me-1"></i> Requests
                     </button>
                 @else
@@ -308,8 +306,8 @@
                             <span><i class="bi bi-exclamation-triangle me-2"></i>Review overdue payments</span>
                             <span class="badge rounded-pill {{ (int) ($overduePaymentsCount ?? 0) > 0 ? 'text-bg-danger' : 'text-bg-secondary' }}">{{ (int) ($overduePaymentsCount ?? 0) }}</span>
                         @if($landlordOperationsLocked)</span>@else</a>@endif
-                        @if($permitPending)
-                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Messages unlock after permit approval" style="cursor:not-allowed;">
+                        @if($landlordOperationsLocked)
+                            <span class="list-group-item list-group-item-action d-flex justify-content-between align-items-center disabled opacity-75" aria-disabled="true" title="Complete profile and billing setup first" style="cursor:not-allowed;">
                                 <span><i class="bi bi-chat-dots me-2"></i>Reply to messages</span>
                                 <span class="badge rounded-pill text-bg-secondary">Locked</span>
                             </span>
@@ -373,7 +371,6 @@
         </div>
     </div>
 
-    @if(!$permitPending)
     <div class="row g-4 mb-4">
         <div class="col-12 col-xl-8">
             <div class="glass-card rounded-4 p-4 p-md-5 h-100">
@@ -536,8 +533,6 @@
 
         <div class="small text-muted mt-3">Only the latest 5 messages per section are shown here. Open inbox to view full history.</div>
     </div>
-    @endif
-
 @push('modals')
     @if(!empty($needsLandlordSetup))
         @php
@@ -552,7 +547,7 @@
                         </h5>
                     </div>
                     <div class="modal-body pt-2">
-                        <p class="mb-3">Setup onboarding is now handled in three steps: Profile, Permit, and Billing. Property and room actions unlock after permit approval.</p>
+                        <p class="mb-3">Complete your required profile and billing setup to unlock property and room actions. Business permit upload is optional and may be submitted later for admin review.</p>
 
                         <div class="d-flex justify-content-between align-items-center small mb-2">
                             <span class="text-muted">Setup progress</span>
@@ -564,15 +559,14 @@
 
                         @php
                             $setupItems = $setupChecklist ?? [];
-                            $permitGateActive = !$permitApproved;
                         @endphp
                         <div class="d-grid gap-2">
                             @foreach($setupItems as $item)
                                 @php
                                     $title = $item['title'] ?? '';
                                     $isCompleted = !empty($item['completed']);
-                                    $lockedItem = $permitGateActive && in_array($title, ['Add property location', 'Set room availability'], true);
-                                    $isPermitItem = $title === 'Upload business permit';
+                                    $lockedItem = false;
+                                    $isPermitItem = $title === 'Upload business permit (optional)';
                                     $permitBadgeClass = $permitStatus === 'approved'
                                         ? 'text-bg-success'
                                         : ($permitStatus === 'rejected' ? 'text-bg-danger' : ($permitStatus === 'pending' ? 'text-bg-warning' : 'text-bg-secondary'));
@@ -596,9 +590,7 @@
                                         </div>
                                         <div class="small {{ $lockedItem ? 'text-muted' : 'text-muted' }}">{{ $item['description'] ?? '' }}</div>
                                     </div>
-                                    @if($lockedItem)
-                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" disabled>Pending permit</button>
-                                    @elseif($isPermitItem)
+                                    @if($isPermitItem)
                                         <span class="badge rounded-pill {{ $permitBadgeClass }}">
                                             {{ $permitStatus === 'approved' ? 'Approved' : ($permitStatus === 'rejected' ? 'Rejected' : ($permitStatus === 'pending' ? 'Pending' : 'Not submitted')) }}
                                         </span>
@@ -613,18 +605,7 @@
 
                     </div>
                     <div class="modal-footer border-0 pt-0">
-                        @php
-                            $setupSubmitted = (bool) ($setupSnapshot['setup_submitted'] ?? false);
-                            $waitingPermitApproval = $setupSubmitted && ($permitStatus === 'pending');
-                        @endphp
-                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Later</button>
-                        @if($waitingPermitApproval)
-                            <span class="small text-muted fw-semibold px-2">Waiting for permit approval</span>
-                        @else
-                            <a href="{{ route('landlord.setup.show') }}" class="btn btn-brand rounded-pill px-4">
-                                <i class="bi bi-gear me-1"></i>Open Setup Form
-                            </a>
-                        @endif
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Got it</button>
                     </div>
                 </div>
             </div>

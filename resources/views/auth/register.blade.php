@@ -117,6 +117,10 @@
             object-fit: contain;
             filter: drop-shadow(0 6px 12px rgba(2,8,20,.26));
         }
+        .hero-brand-logos img:first-child {
+            width: 68px;
+            height: 68px;
+        }
         .hero-brand-copy {
             display: flex;
             flex-direction: column;
@@ -186,6 +190,10 @@
 
         .card .text-muted { color: rgba(255,255,255,.74) !important; }
         .form-label { font-weight: 600; color: rgba(255,255,255,.88); }
+        .required-mark {
+            color: #f87171;
+            margin-left: .2rem;
+        }
         .field-icon { background: rgba(255,255,255,.12); color: rgba(255,255,255,.88); }
         .input-group-text.field-icon { border-color: rgba(255,255,255,.18); }
         .form-control, .form-select {
@@ -838,6 +846,10 @@
                 width: 42px;
                 height: 42px;
             }
+            .hero-brand-logos img:first-child {
+                width: 54px;
+                height: 54px;
+            }
             .hero-brand-top {
                 font-size: 1rem;
             }
@@ -1060,15 +1072,15 @@
                                     </div>
 
                                     <div class="col-12">
-                                        <label for="full_name" class="form-label">Full Name</label>
+                                        <label for="full_name" class="form-label">Full Name<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-person"></i></span>
-                                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ old('full_name') }}" placeholder="full name" required>
+                                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ old('full_name') }}" placeholder="First Name Middle Name Last Name" required>
                                         </div>
                                     </div>
 
                                     <div class="col-12">
-                                        <label for="email" class="form-label">Email</label>
+                                        <label for="email" class="form-label">Email<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-envelope"></i></span>
                                             <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required>
@@ -1081,7 +1093,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label for="password" class="form-label">Password</label>
+                                        <label for="password" class="form-label">Password<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-lock"></i></span>
                                             <input type="password" class="form-control" id="password" name="password" minlength="8" required>
@@ -1093,7 +1105,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label for="password_confirmation" class="form-label">Confirm Password</label>
+                                        <label for="password_confirmation" class="form-label">Confirm Password<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-shield-lock"></i></span>
                                             <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" minlength="8" required>
@@ -1109,7 +1121,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6">
-                                        <label for="contact_number" class="form-label">Contact Number</label>
+                                        <label for="contact_number" class="form-label">Contact Number<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-telephone"></i></span>
                                             <input type="text" class="form-control" id="contact_number" name="contact_number" value="{{ old('contact_number') }}" placeholder="09XX-XXX-XXXX" required>
@@ -1147,7 +1159,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6" id="course_group">
-                                        <label for="college" class="form-label">College</label>
+                                        <label for="college" class="form-label">College<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-building"></i></span>
                                             <div class="custom-select" data-custom-select data-source-select="college">
@@ -1168,7 +1180,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6" id="program_group">
-                                        <label for="program" class="form-label">Program</label>
+                                        <label for="program" class="form-label">Program<span class="required-mark">*</span></label>
                                         <div class="input-group mb-2">
                                             <span class="input-group-text field-icon"><i class="bi bi-mortarboard"></i></span>
                                             <div class="custom-select" data-custom-select data-source-select="program">
@@ -1204,7 +1216,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6" id="year_level_group">
-                                        <label for="year_level" class="form-label">Year Level</label>
+                                        <label for="year_level" class="form-label">Year Level<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-123"></i></span>
                                             <div class="custom-select" data-custom-select data-source-select="year_level">
@@ -1230,7 +1242,7 @@
                                     </div>
 
                                     <div class="col-12 col-md-6" id="boarding_house_group">
-                                        <label for="boarding_house_name" class="form-label">Boarding House Name</label>
+                                        <label for="boarding_house_name" class="form-label">Boarding House Name<span class="required-mark">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text field-icon"><i class="bi bi-building"></i></span>
                                             <input type="text" class="form-control" id="boarding_house_name" name="boarding_house_name" value="{{ old('boarding_house_name') }}" placeholder="Green Dorms">
@@ -1248,7 +1260,7 @@
                                                 </label>
                                                 <span class="permit-upload-filename" id="business_permit_filename">No file selected</span>
                                             </div>
-                                            <div class="permit-upload-help">Upload your business permit (PDF, JPG, PNG). Max 2MB.</div>
+                                            <div class="permit-upload-help">Optional. Upload your business permit if available (PDF, JPG, PNG). Max 2MB.</div>
                                         </div>
                                     </div>
 
@@ -1256,7 +1268,7 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" id="terms_accepted" name="terms_accepted" value="1" {{ old('terms_accepted') ? 'checked' : '' }} required>
                                             <label class="form-check-label" for="terms_accepted">
-                                                I have read and agree to the Terms and Data Privacy Notice.
+                                                I have read and agree to the Terms and Data Privacy Notice.<span class="required-mark">*</span>
                                             </label>
                                             <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline text-decoration-underline terms-trigger-btn" data-bs-toggle="modal" data-bs-target="#termsPrivacyModal">
                                                 View terms

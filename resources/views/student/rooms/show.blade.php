@@ -260,6 +260,7 @@
     $landlordId = $room->property->landlord_id ?? null;
     $landlordName = $room->property->landlord->full_name ?? 'Landlord';
     $tenantMode = $tenantMode ?? false;
+    $isTenantRoom = $tenantMode && (int) ($tenantBooking?->room_id ?? 0) === (int) $room->id;
 
     $student = auth()->user();
     $schoolIdVerificationStatus = (string) ($student->school_id_verification_status ?? '');
@@ -296,7 +297,7 @@
         ->values();
 @endphp
 
-@if($tenantMode)
+@if($isTenantRoom)
     <div class="sr-back-bar">
         <a href="{{ route('student.dashboard') }}"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
         <span class="sep"><i class="bi bi-chevron-right"></i></span>
@@ -307,7 +308,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <div class="fw-semibold">You are a current tenant</div>
-                <div class="text-muted small">Explore is locked to your assigned room.</div>
+                <div class="text-muted small">Booking is disabled while your current stay is active. You may browse rooms for future reference.</div>
             </div>
             <span class="badge rounded-pill sr-status-available px-3">Active Stay</span>
         </div>
@@ -661,6 +662,11 @@
                         <i class="bi bi-shield-lock me-1"></i> Booking Locked
                     </button>
                     <div class="text-center text-muted" style="font-size:.72rem;">{{ $bookingLockMessage }}</div>
+                @elseif($tenantMode && !$existingBookingIsThisRoom)
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="Booking is disabled while your current stay is active. You may browse rooms for future reference.">
+                        <i class="bi bi-lock me-1"></i> Booking Disabled
+                    </button>
+                    <div class="text-center text-muted" style="font-size:.72rem;">Booking is disabled while your current stay is active. You may browse rooms for future reference.</div>
                 @elseif($hasExistingBooking && !$existingBookingIsThisRoom)
                     {{-- Student has a booking but not for this room --}}
                     <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="You already have an active booking. Complete or cancel it to book another room.">

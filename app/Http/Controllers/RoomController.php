@@ -786,10 +786,6 @@ class RoomController extends Controller
             ->orderByDesc('updated_at')
             ->first();
 
-        if ($tenantOnboarding && $tenantOnboarding->booking?->room_id && $tenantOnboarding->booking->room_id !== $room->id) {
-            return redirect()->route('student.rooms.show', $tenantOnboarding->booking->room_id);
-        }
-
         $tenantMode = !empty($tenantOnboarding);
         $tenantBooking = $tenantOnboarding?->booking;
 

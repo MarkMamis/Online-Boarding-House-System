@@ -133,8 +133,8 @@ class AuthController extends Controller
             'gender' => 'required_if:role,student|in:Male,Female,Other,Rather not say',
             'gender_custom' => 'nullable|string|max:100',
             'boarding_house_name' => 'required_if:role,landlord|string|max:255',
-            'business_permit' => 'required_if:role,landlord|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'business_permit_acknowledged' => 'exclude_unless:role,landlord|accepted',
+            'business_permit' => 'exclude_unless:role,landlord|nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'business_permit_acknowledged' => 'exclude_unless:role,landlord|required_with:business_permit|accepted',
             // Role is now hidden in the form
             'role' => 'required|in:landlord,student',
         ], [
@@ -2316,7 +2316,7 @@ class AuthController extends Controller
             'has_room_availability' => $hasRoomAvailability,
             'pricing_basis_complete' => $pricingBasisComplete,
             'billing_methods_complete' => $billingMethodsComplete,
-            'setup_submitted' => $profileComplete && $permitUploaded && $billingMethodsComplete,
+            'setup_submitted' => $profileComplete && $billingMethodsComplete,
             'billing_complete' => $billingMethodsComplete,
         ];
     }
@@ -2333,17 +2333,6 @@ class AuthController extends Controller
             ? '#payment-details'
             : route('landlord.setup.show', ['step' => 'billing']);
 
-        $permitUploadDescription = 'Upload your latest permit document for compliance review.';
-        if ($setupSnapshot['permit_status'] === 'pending') {
-            $permitUploadDescription = 'Permit uploaded. Waiting for admin approval.';
-        }
-        if ($setupSnapshot['permit_status'] === 'rejected') {
-            $permitUploadDescription = 'Permit was rejected. Upload a corrected permit and wait for admin approval.';
-            if (filled($setupSnapshot['permit_rejection_reason'])) {
-                $permitUploadDescription .= ' Reason: ' . $setupSnapshot['permit_rejection_reason'];
-            }
-        }
-
         return [
             [
                 'title' => 'Complete landlord profile',
@@ -2353,9 +2342,9 @@ class AuthController extends Controller
                 'action_url' => $profileUrl,
             ],
             [
-                'title' => 'Upload business permit',
-                'description' => $permitUploadDescription,
-                'completed' => $setupSnapshot['permit_uploaded'],
+                'title' => 'Upload business permit (optional)',
+                'description' => 'Optional. Upload a business permit if available for admin review.',
+                'completed' => true,
                 'action_label' => 'Open Permit Step',
                 'action_url' => $verificationUrl,
             ],

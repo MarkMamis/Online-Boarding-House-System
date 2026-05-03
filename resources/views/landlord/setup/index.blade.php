@@ -340,7 +340,7 @@
         <div class="setup-shell" data-initial-step="{{ (int) ($initialStep ?? 0) }}">
             <div class="setup-head">
                 <h1 class="h4 mb-1">Complete your landlord setup</h1>
-                <div class="text-muted small">Flow: account creation -> email verification -> landlord setup -> admin permit review -> full operations unlock.</div>
+                <div class="text-muted small">Flow: account creation -> email verification -> landlord setup -> full operations unlock. Permit upload is optional.</div>
             </div>
 
             <div class="setup-grid">
@@ -464,7 +464,7 @@
                         <section class="step-panel" data-step="1">
                             <div class="section-card">
                                 <div class="section-title">Business Verification</div>
-                                <div class="section-sub">Upload your permit so admin can validate your landlord account.</div>
+                                <div class="section-sub">Optional. Upload a permit for admin review if available. You can continue without it.</div>
 
                                 <div class="status-box mb-3">
                                     <div class="d-flex justify-content-between align-items-center gap-2">
@@ -484,8 +484,9 @@
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label">Business Permit</label>
-                                        <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png" {{ empty(optional($landlordProfile)->business_permit_path) ? 'required' : '' }}>
-                                        <div class="form-text">Required. Accepted: PDF, JPG, JPEG, PNG (max 2MB).</div>
+                                        <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png">
+                                        <div class="form-text">Optional. Upload your business permit if available (PDF, JPG, JPEG, PNG). Max 2MB.</div>
+                                        <div class="form-text">You may continue the setup without uploading a permit.</div>
                                         @if(!empty(optional($landlordProfile)->business_permit_path))
                                             <div class="mt-2">
                                                 <a href="{{ asset('storage/' . optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
@@ -614,7 +615,7 @@
 
                     <div class="alert alert-info py-2 px-3 mb-0">
                         <div class="small fw-semibold mb-1">Reminder</div>
-                        <div class="small mb-0">After permit upload, admin approval is still required before full landlord operations are unlocked.</div>
+                        <div class="small mb-0">If you upload a permit, admin approval will be required before permit status updates.</div>
                     </div>
                 </aside>
             </div>

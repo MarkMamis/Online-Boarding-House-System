@@ -22,10 +22,10 @@ class LandlordSetupController extends Controller
         $completedCount = collect($checklist)->where('completed', true)->count();
         $totalCount = count($checklist);
 
-        if ($setupSnapshot['setup_submitted'] && $setupSnapshot['permit_approved'] && !$request->has('step')) {
+        if ($setupSnapshot['setup_submitted'] && !$request->has('step')) {
             return redirect()
                 ->route('landlord.dashboard')
-                ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
+            ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
         }
 
         $stepMap = [
@@ -56,10 +56,6 @@ class LandlordSetupController extends Controller
         $user->loadMissing('landlordProfile');
         $landlordProfile = $user->landlordProfile;
 
-        $permitRule = filled(optional($landlordProfile)->business_permit_path)
-            ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048'
-            : 'required|file|mimes:pdf,jpg,jpeg,png|max:2048';
-
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
@@ -68,7 +64,7 @@ class LandlordSetupController extends Controller
             'about' => 'required|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contract_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'business_permit' => $permitRule,
+            'business_permit' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
             'preferred_payment_methods' => 'required|array|min:1',
             'preferred_payment_methods.*' => 'in:bank,gcash,cash',
             'payment_bank_name' => 'nullable|string|max:255',
@@ -231,14 +227,6 @@ class LandlordSetupController extends Controller
             return 0;
         }
 
-        if (!$setupSnapshot['permit_uploaded']) {
-            return 1;
-        }
-
-        if (in_array($setupSnapshot['permit_status'], ['pending', 'rejected'], true)) {
-            return 1;
-        }
-
         if (!$setupSnapshot['billing_methods_complete']) {
             return 2;
         }
@@ -299,7 +287,7 @@ class LandlordSetupController extends Controller
             'permit_rejection_reason' => (string) (optional($landlordProfile)->business_permit_rejection_reason ?? ''),
             'billing_methods_complete' => $billingMethodsComplete,
             'pricing_basis_complete' => $pricingBasisComplete,
-            'setup_submitted' => $profileComplete && $permitUploaded && $billingMethodsComplete,
+            'setup_submitted' => $profileComplete && $billingMethodsComplete,
         ];
     }
 
@@ -313,8 +301,8 @@ class LandlordSetupController extends Controller
             ],
             [
                 'title' => 'Business permit',
-                'description' => 'Upload your permit for admin review and approval.',
-                'completed' => $setupSnapshot['permit_uploaded'],
+                'description' => 'Optional. Upload a business permit if available for admin review.',
+                'completed' => true,
             ],
             [
                 'title' => 'Billing methods',

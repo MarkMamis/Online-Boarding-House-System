@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChatbotConversation;
 use App\Models\ChatbotMessage;
+use App\Models\Booking;
 use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,11 @@ class ChatbotController extends Controller
         $quickReply = $this->handleQuickIntent($content, $role, $request->input('lat'), $request->input('lng'));
         if ($quickReply) {
             return $this->storeAndRespond($conversation, $quickReply['reply'], $quickReply['meta']);
+        }
+
+        $localReply = $this->answerLocalSystemIntent($content, $user);
+        if ($localReply) {
+            return $this->storeAndRespond($conversation, $localReply['reply'], $localReply['meta'] ?? []);
         }
 
         if ($routeHit['blocked']) {
@@ -126,16 +132,83 @@ class ChatbotController extends Controller
     private function buildSystemPrompt(string $role): string
     {
         $routesByRole = config('chatbot.routes', []);
+        $dictionary = config('chatbot.dictionary', []);
 
         $routesText = collect($routesByRole[$role] ?? [])
             ->map(fn($r) => $r['label'] . ': ' . $r['path'])
             ->implode('\n');
 
+        $sharedRoutesText = $this->buildSharedRoutesText($routesByRole);
+
+        $sections = [];
+        $sections[] = $this->formatSection('System overview', $dictionary['system_overview'] ?? []);
+        $sections[] = $this->formatSection('Role definitions', $dictionary['role_definitions'] ?? []);
+        $sections[] = $this->formatSection('Shared features', $dictionary['shared_features'] ?? []);
+
+        if ($role === 'student') {
+            $sections[] = $this->formatSection('Student features', $dictionary['student_features'] ?? []);
+            $sections[] = $this->formatSection('Tenant student features', $dictionary['tenant_student_features'] ?? []);
+        } elseif ($role === 'landlord') {
+            $sections[] = $this->formatSection('Landlord features', $dictionary['landlord_features'] ?? []);
+        } elseif ($role === 'admin') {
+            $sections[] = $this->formatSection('Admin features', $dictionary['admin_features'] ?? []);
+        }
+
+        $sections[] = $this->formatSection('Workflows', $dictionary['workflows'] ?? []);
+        $sections[] = $this->formatSection('Page dictionary', $dictionary['page_dictionary'] ?? []);
+        $sections[] = $this->formatSection('FAQ', $dictionary['faq_dictionary'] ?? []);
+        $sections[] = $this->formatSection('Policy rules', $dictionary['policy_rules'] ?? []);
+        $sections[] = $this->formatSection('Response style', $dictionary['response_style'] ?? []);
+        $sections[] = $this->formatSection('Role restrictions', $dictionary['blocked_hints'] ?? []);
+
+        $knowledgeBase = implode("\n", array_filter($sections));
+
         return "You are a role-scoped assistant for an Online Boarding House System.\n" .
             "Only answer questions about the product and its routes. Do not answer general knowledge.\n" .
             "Role: {$role}. You MUST refuse any request that involves other roles' routes or actions.\n" .
             "Available routes:\n{$routesText}\n" .
+            "Shared routes:\n{$sharedRoutesText}\n" .
+            $knowledgeBase . "\n" .
             "When the user asks where to do something, respond with a short answer and mention the relevant route path.";
+    }
+
+    private function formatSection(string $title, array $lines): string
+    {
+        $lines = array_values(array_filter($lines, fn ($line) => is_string($line) && trim($line) !== ''));
+        if (empty($lines)) {
+            return '';
+        }
+
+        $body = collect($lines)
+            ->map(fn ($line) => '- ' . trim($line))
+            ->implode("\n");
+
+        return $title . ":\n" . $body;
+    }
+
+    private function buildSharedRoutesText(array $routesByRole): string
+    {
+        if (empty($routesByRole)) {
+            return 'None';
+        }
+
+        $shared = null;
+        foreach ($routesByRole as $roleRoutes) {
+            $paths = collect($roleRoutes)
+                ->map(fn ($route) => $route['path'] ?? null)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $shared = $shared === null ? $paths : array_values(array_intersect($shared, $paths));
+        }
+
+        if (empty($shared)) {
+            return 'None';
+        }
+
+        return implode("\n", $shared);
     }
 
     private function handleQuickIntent(string $content, string $role, $lat = null, $lng = null): ?array
@@ -339,5 +412,70 @@ class ChatbotController extends Controller
         }
 
         return ['blocked' => false, 'action' => $matched];
+    }
+
+    private function answerLocalSystemIntent(string $content, $user): ?array
+    {
+        $text = strtolower($content);
+        $role = $user->role ?? 'student';
+        $intentsByRole = config('chatbot.local_intents', []);
+
+        $roleIntents = $intentsByRole[$role] ?? [];
+        foreach ($roleIntents as $intentKey => $intent) {
+            $keywords = $intent['keywords'] ?? [];
+            if (!$this->containsAny($text, $keywords)) {
+                continue;
+            }
+
+            $reply = (string) ($intent['reply'] ?? '');
+            if ($role === 'student' && $intentKey === 'booking') {
+                if ($this->studentHasActiveBooking($user->id)) {
+                    $reply .= ' Booking another room may be disabled while your current stay is active, but you can still browse rooms for future reference.';
+                }
+            }
+
+            $meta = [];
+            if (!empty($intent['action']['url'])) {
+                $meta['action'] = $intent['action'];
+            }
+
+            return ['reply' => trim($reply), 'meta' => $meta];
+        }
+
+        foreach ($intentsByRole as $otherRole => $otherIntents) {
+            if ($otherRole === $role) {
+                continue;
+            }
+            foreach ($otherIntents as $intent) {
+                $keywords = $intent['keywords'] ?? [];
+                if ($this->containsAny($text, $keywords)) {
+                    $reply = 'Sorry, I can only help with ' . $role . ' actions. That request is outside your role.';
+                    return ['reply' => $reply, 'meta' => ['blocked' => true]];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function containsAny(string $text, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            if ($keyword !== '' && str_contains($text, strtolower($keyword))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function studentHasActiveBooking(int $studentId): bool
+    {
+        $today = now()->toDateString();
+
+        return Booking::where('student_id', $studentId)
+            ->where('status', 'approved')
+            ->where('check_out', '>', $today)
+            ->exists();
     }
 }

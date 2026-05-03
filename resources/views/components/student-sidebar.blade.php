@@ -60,6 +60,10 @@
                 <i class="bi bi-house-door"></i>
                 <span>My Room</span>
             </a>
+            <a href="{{ route('student.rooms.index') }}" class="list-group-item {{ request()->routeIs('student.rooms.index') ? 'active' : '' }}">
+                <i class="bi bi-search"></i>
+                <span>Browse Rooms</span>
+            </a>
         @endif
         @unless($hideBrowse)
             <a href="{{ route('student.rooms.index') }}" class="list-group-item {{ request()->routeIs('student.rooms.*') ? 'active' : '' }}">
@@ -67,10 +71,12 @@
                 <span>Browse Rooms</span>
             </a>
         @endunless
-        <a href="{{ route('student.properties.map_view') }}" class="list-group-item {{ request()->routeIs('student.properties.map_view') ? 'active' : '' }}">
-            <i class="bi bi-map"></i>
-            <span>Property Map</span>
-        </a>
+        @unless($tenantMode)
+            <a href="{{ route('student.properties.map_view') }}" class="list-group-item {{ request()->routeIs('student.properties.map_view') ? 'active' : '' }}">
+                <i class="bi bi-map"></i>
+                <span>Property Map</span>
+            </a>
+        @endunless
 
         <div class="nav-section">Shortcuts</div>
         <a href="{{ route('notifications.index') }}" class="list-group-item {{ request()->routeIs('notifications.*') ? 'active' : '' }}">

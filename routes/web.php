@@ -308,7 +308,7 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
     Route::get('/landlord/profile', [AuthController::class, 'landlordProfile'])->name('landlord.profile.edit');
     Route::put('/landlord/profile', [AuthController::class, 'updateLandlordProfile'])->name('landlord.profile.update');
 
-    Route::middleware(['landlord.setup:profile_complete', 'landlord.setup:permit_submitted', 'landlord.setup:permit_approved'])->group(function () {
+    Route::middleware(['landlord.setup:profile_complete'])->group(function () {
         // Landlord property management
         Route::get('/landlord/properties', [PropertyController::class, 'index'])->name('landlord.properties.index');
         Route::get('/landlord/properties/create', [PropertyController::class, 'create'])->name('landlord.properties.create');
