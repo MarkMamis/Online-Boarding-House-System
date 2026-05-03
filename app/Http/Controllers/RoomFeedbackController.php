@@ -19,12 +19,15 @@ class RoomFeedbackController extends Controller
             abort(403);
         }
 
-        // Must have had an approved booking for this room that has already started
+        // Must have completed onboarding tied to an approved booking for this room that is still valid
         $today = now()->toDateString();
         $hasBooking = $room->bookings()
             ->where('student_id', $student->id)
             ->where('status', 'approved')
-            ->whereDate('check_in', '<=', $today)
+            ->whereDate('check_out', '>', $today)
+            ->whereHas('tenantOnboarding', function ($query) {
+                $query->where('status', 'completed');
+            })
             ->exists();
 
         if (!$hasBooking) {

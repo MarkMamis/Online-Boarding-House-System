@@ -25,7 +25,10 @@ class ReportController extends Controller
 
         return $user->bookings()
             ->where('status', 'approved')
-            ->whereDate('check_in', '<=', now()->toDateString())
+            ->whereDate('check_out', '>', now()->toDateString())
+            ->whereHas('tenantOnboarding', function ($query) {
+                $query->where('status', 'completed');
+            })
             ->exists();
     }
 

@@ -780,7 +780,6 @@ class RoomController extends Controller
             ->whereHas('booking', function ($q) use ($today) {
                 $q->where('student_id', Auth::id())
                   ->where('status', 'approved')
-                  ->where('check_in', '<=', $today)
                   ->where('check_out', '>', $today);
             })
             ->with('booking.room.property.landlord')
@@ -902,7 +901,6 @@ class RoomController extends Controller
             ->whereHas('booking', function ($q) use ($today) {
                 $q->where('student_id', Auth::id())
                   ->where('status', 'approved')
-                  ->where('check_in', '<=', $today)
                   ->where('check_out', '>', $today);
             })
             ->with('booking.room.property.landlord')
@@ -928,7 +926,10 @@ class RoomController extends Controller
         $canFeedback = $room->bookings()
             ->where('student_id', Auth::id())
             ->where('status', 'approved')
-            ->whereDate('check_in', '<=', $today)
+            ->whereDate('check_out', '>', $today)
+            ->whereHas('tenantOnboarding', function ($query) {
+                $query->where('status', 'completed');
+            })
             ->exists();
 
         $alreadyFeedback = \App\Models\RoomFeedback::where('room_id', $room->id)

@@ -1841,7 +1841,6 @@ class AuthController extends Controller
             ->whereHas('booking', function ($q) use ($student, $today) {
                 $q->where('student_id', $student->id)
                     ->where('status', 'approved')
-                    ->whereDate('check_in', '<=', $today)
                     ->where('check_out', '>', $today);
             })
             ->exists();
@@ -2139,7 +2138,6 @@ class AuthController extends Controller
             ->whereHas('booking', function ($q) use ($student, $today) {
                 $q->where('student_id', $student->id)
                     ->where('status', 'approved')
-                    ->whereDate('check_in', '<=', $today)
                     ->where('check_out', '>', $today);
             })
             ->with(['booking.room.property.landlord'])
@@ -2148,7 +2146,7 @@ class AuthController extends Controller
 
         if (empty($tenantOnboarding) || empty($tenantOnboarding->booking?->room?->property)) {
             return redirect()->route('student.dashboard')
-                ->with('info', 'Tenant dashboard is available once your approved stay is active and onboarding is completed.');
+                ->with('info', 'Tenant dashboard is available once your onboarding is completed and your approved booking is still valid.');
         }
 
         $tenantBooking = $tenantOnboarding->booking;

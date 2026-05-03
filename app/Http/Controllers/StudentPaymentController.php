@@ -32,7 +32,6 @@ class StudentPaymentController extends Controller
             ->with(['room.property.landlord.landlordProfile', 'tenantOnboarding'])
             ->where('student_id', $student->id)
             ->where('status', 'approved')
-            ->where('check_in', '<=', $today)
             ->where('check_out', '>', $today)
             ->whereHas('tenantOnboarding', function ($q) {
                 $q->where('status', 'completed');
@@ -172,7 +171,6 @@ class StudentPaymentController extends Controller
             ->where('id', (int) $request->input('booking_id'))
             ->where('student_id', $student->id)
             ->where('status', 'approved')
-            ->where('check_in', '<=', $today)
             ->where('check_out', '>', $today)
             ->whereHas('tenantOnboarding', function ($q) {
                 $q->where('status', 'completed');

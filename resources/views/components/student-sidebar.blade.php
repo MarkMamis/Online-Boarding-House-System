@@ -8,7 +8,6 @@
         ->whereHas('booking', function ($q) use ($today) {
             $q->where('student_id', Auth::id())
               ->where('status', 'approved')
-              ->where('check_in', '<=', $today)
               ->where('check_out', '>', $today);
         })
         ->with('booking.room')
@@ -24,6 +23,7 @@
             ->count();
     $hasApprovedBooking = \App\Models\Booking::where('student_id', Auth::id())
         ->where('status', 'approved')
+        ->where('check_out', '>', $today)
         ->exists();
     $showLimitedNavigation = !$tenantMode && !$hasApprovedBooking;
     $hideBrowse = $tenantMode || !empty($hasCurrentApprovedBooking);
