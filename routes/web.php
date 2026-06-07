@@ -27,20 +27,26 @@ use App\Http\Controllers\StudentPaymentController;
 use App\Http\Controllers\LandlordLeaveRequestController;
 use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\OnboardingRoleController;
 use App\Models\Room;
 use App\Models\Property;
 use App\Models\User;
 
 Route::get('/', function () {
     if (Auth::check()) {
-        $role = Auth::user()->role;
+        $user = Auth::user();
+        $role = $user->role;
+
+        if ($role === 'pending') {
+            return redirect()->route('onboarding.role.show');
+        }
 
         if ($role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
         if ($role === 'landlord') {
-            $user = Auth::user()->loadMissing('landlordProfile');
+            $user = $user->loadMissing('landlordProfile');
             $profile = $user->landlordProfile;
 
             $preferredPaymentMethods = collect(optional($profile)->preferred_payment_methods ?? [])
@@ -64,11 +70,15 @@ Route::get('/', function () {
                 && $gcashReady
                 && $cashReady;
 
-            if (!$setupSubmitted) {
+            if (!($user->onboarding_complete ?? false) || !$setupSubmitted) {
                 return redirect()->route('landlord.setup.show');
             }
 
             return redirect()->route('landlord.dashboard');
+        }
+
+        if (!($user->onboarding_complete ?? false) || !$user->isStudentSetupComplete()) {
+            return redirect()->route('student.setup.show');
         }
 
         return redirect()->route('student.dashboard');
@@ -201,8 +211,13 @@ Route::middleware('auth')->group(function () {
     })->middleware('throttle:6,1')->name('verification.send');
 });
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/onboarding/role', [OnboardingRoleController::class, 'show'])->name('onboarding.role.show');
+    Route::post('/onboarding/role', [OnboardingRoleController::class, 'store'])->name('onboarding.role.store');
+});
+
 // Chatbot (global, authenticated)
-Route::middleware(['auth', 'student.setup'])->group(function () {
+Route::middleware(['auth', 'verified', 'role.selected', 'student.setup'])->group(function () {
     Route::get('/chatbot/history', [ChatbotController::class, 'history'])->name('chatbot.history');
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 });
@@ -223,7 +238,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
 })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
 // Shared authenticated routes (any logged-in role) - require verified email
-Route::middleware(['auth', 'verified', 'student.setup'])->group(function () {
+Route::middleware(['auth', 'verified', 'role.selected', 'student.setup'])->group(function () {
     // Messaging (used by multiple roles)
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
@@ -255,10 +270,23 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/users/landlords/{user}', [AuthController::class, 'adminLandlordDetails'])->name('admin.users.landlords.show');
     Route::put('/admin/users/landlords/{user}', [AuthController::class, 'adminUpdateLandlord'])->name('admin.users.landlords.update');
     Route::post('/admin/users/landlords/{user}/status', [AuthController::class, 'adminToggleLandlordStatus'])->name('admin.users.landlords.status');
-    Route::get('/admin/permits', [AuthController::class, 'adminPermitApprovals'])->name('admin.permits.index');
+    Route::get('/admin/approvals/students', [AuthController::class, 'adminStudentApprovals'])->name('admin.approvals.students');
+    Route::get('/admin/approvals/landlords', [AuthController::class, 'adminLandlordApprovals'])->name('admin.approvals.landlords');
+    Route::get('/admin/permits', function (Request $request) {
+        return redirect()->route('admin.approvals.landlords', array_filter([
+            'tab' => 'permits',
+            'status' => $request->query('status'),
+            'page' => $request->query('page'),
+        ], fn ($value) => $value !== null && $value !== ''));
+    })->name('admin.permits.index');
     Route::post('/admin/permits/{user}/approve', [AuthController::class, 'adminApproveLandlordPermit'])->name('admin.permits.approve');
     Route::post('/admin/permits/{user}/reject', [AuthController::class, 'adminRejectLandlordPermit'])->name('admin.permits.reject');
-    Route::get('/admin/student-verifications', [AuthController::class, 'adminStudentVerifications'])->name('admin.student_verifications.index');
+    Route::get('/admin/student-verifications', function (Request $request) {
+        return redirect()->route('admin.approvals.students', array_filter([
+            'status' => $request->query('status'),
+            'page' => $request->query('page'),
+        ], fn ($value) => $value !== null && $value !== ''));
+    })->name('admin.student_verifications.index');
     Route::post('/admin/student-verifications/{user}/approve', [AuthController::class, 'adminApproveStudentVerification'])->name('admin.student_verifications.approve');
     Route::post('/admin/student-verifications/{user}/reject', [AuthController::class, 'adminRejectStudentVerification'])->name('admin.student_verifications.reject');
     Route::get('/admin/users/students/{user}', [AuthController::class, 'adminStudentDetails'])->name('admin.users.students.show');
@@ -276,7 +304,13 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/boarded-students', [AdminBookingController::class, 'boardedStudents'])->name('admin.boarded_students.index');
 
     // Property approval workflow
-    Route::get('/admin/properties/approval', [PropertyController::class, 'adminPending'])->name('admin.properties.pending');
+    Route::get('/admin/properties/approval', function (Request $request) {
+        return redirect()->route('admin.approvals.landlords', array_filter([
+            'tab' => 'properties',
+            'status' => $request->query('status'),
+            'page' => $request->query('page'),
+        ], fn ($value) => $value !== null && $value !== ''));
+    })->name('admin.properties.pending');
     Route::post('/admin/properties/{property}/approve', [PropertyController::class, 'adminApprove'])->name('admin.properties.approve');
     Route::post('/admin/properties/{property}/reject', [PropertyController::class, 'adminReject'])->name('admin.properties.reject');
     Route::get('/admin/properties/{property}', [PropertyController::class, 'adminShow'])->name('admin.properties.show');

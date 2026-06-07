@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'contact_number' => fake()->phoneNumber(),
             'boarding_house_name' => fake()->company(),
             'role' => 'student', // default
+            'onboarding_complete' => true,
             'remember_token' => Str::random(10),
         ];
     }

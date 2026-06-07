@@ -52,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'year_level',
         'birth_date',
         'address',
+        'onboarding_complete',
         'emergency_contact_name',
         'emergency_contact_number',
         'emergency_contact_relationship',
@@ -89,6 +90,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'onboarding_complete' => 'boolean',
             'school_id_verified_at' => 'datetime',
         ];
     }
@@ -132,6 +134,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return count($this->missingStudentSetupFields()) === 0;
     }
 
+    public function hasPendingRole(): bool
+    {
+        return $this->role === 'pending';
+    }
+
     public function missingStudentSetupFields(): array
     {
         $isFirstYear = (string) $this->year_level === '1st Year';
@@ -140,6 +147,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'full_name' => 'Full name',
             'profile_image_path' => 'Profile photo',
             'contact_number' => 'Contact number',
+            'birth_date' => 'Birthdate',
             'college' => 'College',
             'program' => 'Program',
             'year_level' => 'Year level',
@@ -151,14 +159,13 @@ class User extends Authenticatable implements MustVerifyEmail
             'parent_contact_name' => 'Parent or guardian name',
             'parent_contact_number' => 'Parent or guardian contact number',
             'parent_contact_address' => 'Parent or guardian address',
+            'enrollment_proof_type' => 'Enrollment proof type (COR or COE)',
+            'enrollment_proof_path' => 'Enrollment proof file (COR or COE)',
         ];
 
         if (!$isFirstYear) {
             $requiredFields['student_id'] = 'Student ID';
             $requiredFields['school_id_path'] = 'School ID photo';
-        } else {
-            $requiredFields['enrollment_proof_type'] = 'Enrollment proof type (COR or COE)';
-            $requiredFields['enrollment_proof_path'] = 'Enrollment proof file (COR or COE)';
         }
 
         $missing = [];

@@ -438,6 +438,7 @@
         $pendingPermitApprovalsCount = \Illuminate\Support\Facades\Schema::hasColumn('landlord_profiles', 'business_permit_status')
             ? \App\Models\LandlordProfile::where('business_permit_status', 'pending')->count()
             : 0;
+            $pendingLandlordApprovalCount = $pendingApprovalsCount + $pendingPermitApprovalsCount;
             $pendingStudentVerificationCount = \Illuminate\Support\Facades\Schema::hasColumn('users', 'school_id_verification_status')
                 ? \App\Models\User::query()
                     ->where('role', 'student')
@@ -581,31 +582,28 @@
                         </a>
 
                         <div class="nav-section">Approvals</div>
-                        <a @class(['list-group-item', 'active' => is_string($routeName)
-                            && (
-                                str_starts_with($routeName, 'admin.properties.pending')
-                                || str_starts_with($routeName, 'admin.properties.approve')
-                                || str_starts_with($routeName, 'admin.properties.reject')
-                            )
-                        ]) href="{{ route('admin.properties.pending') }}">
-                            <i class="bi bi-check2-circle"></i>
-                            <span>Property Approvals</span>
-                            @if($pendingApprovalsCount > 0)
-                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingApprovalsCount }}</span>
-                            @endif
-                        </a>
-                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.permits.')]) href="{{ route('admin.permits.index') }}">
-                            <i class="bi bi-file-earmark-check"></i>
-                            <span>Permit Approvals</span>
-                            @if($pendingPermitApprovalsCount > 0)
-                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPermitApprovalsCount }}</span>
-                            @endif
-                        </a>
-                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.')]) href="{{ route('admin.student_verifications.index') }}">
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'))]) href="{{ route('admin.approvals.students') }}">
                             <i class="bi bi-person-vcard"></i>
-                            <span>Student Verifications</span>
+                            <span>Student Approval</span>
                             @if($pendingStudentVerificationCount > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
+                            @endif
+                        </a>
+                        <a @class(['list-group-item', 'active' => is_string($routeName)
+                            && (
+                                $routeName === 'admin.approvals.landlords'
+                                || str_starts_with($routeName, 'admin.properties.pending')
+                                || str_starts_with($routeName, 'admin.permits.')
+                                || str_starts_with($routeName, 'admin.properties.approve')
+                                || str_starts_with($routeName, 'admin.properties.reject')
+                                || str_starts_with($routeName, 'admin.permits.approve')
+                                || str_starts_with($routeName, 'admin.permits.reject')
+                            )
+                        ]) href="{{ route('admin.approvals.landlords') }}">
+                            <i class="bi bi-check2-circle"></i>
+                            <span>Landlord Approval</span>
+                            @if($pendingLandlordApprovalCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordApprovalCount }}</span>
                             @endif
                         </a>
 
@@ -651,12 +649,23 @@
             && !str_starts_with($routeName, 'admin.properties.reject');
         $isApprovalsRoute = is_string($routeName)
             && (
-                str_starts_with($routeName, 'admin.properties.pending')
+                $routeName === 'admin.approvals.landlords'
+                || $routeName === 'admin.approvals.students'
+                || str_starts_with($routeName, 'admin.properties.pending')
+                || str_starts_with($routeName, 'admin.permits.')
                 || str_starts_with($routeName, 'admin.properties.approve')
                 || str_starts_with($routeName, 'admin.properties.reject')
+                || str_starts_with($routeName, 'admin.permits.approve')
+                || str_starts_with($routeName, 'admin.permits.reject')
             );
-        $isPermitApprovalsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.permits.');
-        $isStudentVerificationsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.student_verifications.');
+        $isPermitApprovalsRoute = is_string($routeName)
+            && (
+                $routeName === 'admin.approvals.landlords'
+                || str_starts_with($routeName, 'admin.permits.')
+                || str_starts_with($routeName, 'admin.permits.approve')
+                || str_starts_with($routeName, 'admin.permits.reject')
+            );
+        $isStudentVerificationsRoute = is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'));
         $isBookingsRoute = $routeName === 'admin.bookings.index';
         $isBoardedStudentsRoute = $routeName === 'admin.boarded_students.index';
         $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
@@ -677,7 +686,7 @@
                 <i class="bi bi-house-door"></i>
                 <span>Home</span>
             </a>
-            <a @class(['nav-link', 'active' => $isApprovalsRoute]) href="{{ route('admin.properties.pending') }}">
+            <a @class(['nav-link', 'active' => $isApprovalsRoute]) href="{{ route('admin.approvals.landlords') }}">
                 <i class="bi bi-check2-circle"></i>
                 <span>Approvals</span>
             </a>
@@ -695,16 +704,16 @@
         </div>
         <div class="offcanvas-body">
             <div class="list-group more-list">
-                <a @class(['list-group-item', 'active' => $isPermitApprovalsRoute]) href="{{ route('admin.permits.index') }}">
+                <a @class(['list-group-item', 'active' => $isPermitApprovalsRoute]) href="{{ route('admin.approvals.landlords') }}">
                     <i class="bi bi-file-earmark-check"></i>
-                    <span>Permits</span>
-                    @if($pendingPermitApprovalsCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPermitApprovalsCount }}</span>
+                    <span>Landlord Approval</span>
+                    @if($pendingLandlordApprovalCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordApprovalCount }}</span>
                     @endif
                 </a>
-                    <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.student_verifications.index') }}">
+                    <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.approvals.students') }}">
                         <i class="bi bi-person-vcard"></i>
-                        <span>Student IDs</span>
+                        <span>Student Approval</span>
                         @if($pendingStudentVerificationCount > 0)
                             <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
                         @endif

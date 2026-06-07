@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'landlord.setup' => \App\Http\Middleware\EnsureLandlordSetupStep::class,
+            'role.selected' => \App\Http\Middleware\EnsureRoleSelected::class,
             'student.setup' => \App\Http\Middleware\EnsureStudentSetupComplete::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         ]);

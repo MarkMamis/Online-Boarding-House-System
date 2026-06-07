@@ -71,38 +71,22 @@ class AuthController extends Controller
             return redirect()->route('verification.notice');
         }
 
-        switch ($user->role) {
-            case 'admin':
-                return redirect('/admin/dashboard');
-            case 'landlord':
-                $setupSnapshot = $this->getLandlordSetupSnapshot($user);
-                if (!($setupSnapshot['setup_submitted'] ?? false)) {
-                    return redirect()->route('landlord.setup.show');
-                }
-                return redirect('/landlord/dashboard');
-            case 'student':
-                return redirect('/student/dashboard');
-            default:
-                return redirect('/student/dashboard');
-        }
-
+        return $this->redirectAuthenticatedUser($user);
     }
 
     public function showRegisterForm()
     {
-        $academicCatalog = $this->registrationAcademicCatalog();
-
-        return view('auth.register', compact('academicCatalog'));
+        return view('auth.register');
     }
 
     public function showRegisterStudentForm()
     {
-        return redirect()->route('register', ['role' => 'student', 'direct' => '1']);
+        return redirect()->route('register');
     }
 
     public function showRegisterLandlordForm()
     {
-        return redirect()->route('register', ['role' => 'landlord', 'direct' => '1']);
+        return redirect()->route('register');
     }
 
     public function showRegisterAdminForm()
@@ -116,80 +100,17 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $academicCatalog = $this->registrationAcademicCatalog();
-        $programCatalog = $academicCatalog['programs'];
-        $majorCatalog = $academicCatalog['majors'];
-
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:8|confirmed',
-            'contact_number' => 'required|string|max:20',
+            'password' => 'required|string|min:8|confirmed',
             'terms_accepted' => 'accepted',
-            'college' => 'required_if:role,student|in:CCS,CBM,CTE,CAS,CCJE',
-            'program' => 'required_if:role,student|string|max:255',
-            'major' => 'nullable|string|max:255',
-            'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
-            'gender' => 'required_if:role,student|in:Male,Female,Other,Rather not say',
-            'gender_custom' => 'nullable|string|max:100',
-            'boarding_house_name' => 'required_if:role,landlord|string|max:255',
-            'business_permit' => 'exclude_unless:role,landlord|nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'business_permit_acknowledged' => 'exclude_unless:role,landlord|required_with:business_permit|accepted',
-            // Role is now hidden in the form
-            'role' => 'required|in:landlord,student',
         ], [
             'terms_accepted.accepted' => 'You must accept the Data Privacy Notice and Terms before creating an account.',
-            'business_permit_acknowledged.required_if' => 'Please acknowledge that your uploaded business permit is legal and accurate.',
-            'business_permit_acknowledged.accepted' => 'Please acknowledge that your uploaded business permit is legal and accurate.',
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
-        }
-
-        // Enforce role safety: ignore any attempt to submit 'admin'
-        $role = in_array($request->input('role'), ['landlord','student'], true)
-            ? $request->input('role')
-            : 'student';
-
-        $college = null;
-        $program = null;
-        $major = null;
-
-        if ($role === 'student') {
-            $college = (string) $request->input('college');
-            $program = (string) $request->input('program');
-            $major = trim((string) $request->input('major', ''));
-
-            $allowedPrograms = $programCatalog[$college] ?? [];
-            if (!in_array($program, $allowedPrograms, true)) {
-                return back()
-                    ->withErrors(['program' => 'The selected program is not valid for the selected college.'])
-                    ->withInput();
-            }
-
-            $allowedMajors = $majorCatalog[$program] ?? [];
-            if (!empty($allowedMajors)) {
-                if ($major === '' || !in_array($major, $allowedMajors, true)) {
-                    return back()
-                        ->withErrors(['major' => 'Please select a valid major for the selected program.'])
-                        ->withInput();
-                }
-            } else {
-                $major = null;
-            }
-        }
-
-        // Handle gender field - if "Other" is selected, use the custom value
-        $gender = null;
-        if ($role === 'student') {
-            if ($request->gender === 'Other' && !empty($request->gender_custom)) {
-                $gender = $request->gender_custom;
-            } elseif ($request->gender === 'Rather not say') {
-                $gender = null;
-            } else {
-                $gender = $request->gender;
-            }
         }
 
         $user = User::create([
@@ -197,33 +118,12 @@ class AuthController extends Controller
             'name' => $request->full_name, // for compatibility
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'contact_number' => $request->contact_number,
-            'college' => $role === 'student' ? $college : null,
-            'program' => $role === 'student' ? $program : null,
-            'major' => $role === 'student' ? $major : null,
-            'year_level' => $role === 'student' ? $request->year_level : null,
-            'gender' => $gender,
-            'boarding_house_name' => $role === 'landlord' ? $request->boarding_house_name : 'N/A',
-            'role' => $role,
+            'contact_number' => '',
+            'boarding_house_name' => '',
+            'role' => 'pending',
+            'onboarding_complete' => false,
         ]);
 
-        // If registering as landlord, create landlord profile
-        if ($role === 'landlord') {
-            $businessPermitPath = null;
-            if ($request->hasFile('business_permit')) {
-                $businessPermitPath = $request->file('business_permit')->store('business_permits', 'public');
-            }
-
-            \App\Models\LandlordProfile::create([
-                'user_id' => $user->id,
-                'contact_number' => $request->contact_number,
-                'boarding_house_name' => $request->boarding_house_name,
-                'business_permit_path' => $businessPermitPath,
-                'business_permit_status' => $businessPermitPath ? 'pending' : 'not_submitted',
-                'profile_completed' => false,
-                'billing_completed' => false,
-            ]);
-        }
         $user->sendEmailVerificationNotification();
 
         return redirect()->route('login')->with('success', 'Registration successful. Please verify your email before logging in.');
@@ -238,7 +138,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'contact_number' => 'required|string|max:20',
             'terms_accepted' => 'accepted',
         ], [
@@ -257,6 +157,7 @@ class AuthController extends Controller
             'contact_number' => $request->contact_number,
             'boarding_house_name' => 'N/A',
             'role' => 'admin',
+            'onboarding_complete' => true,
             'email_verified_at' => now(),
         ]);
 
@@ -424,6 +325,36 @@ class AuthController extends Controller
     private function registrationAcademicCatalog(): array
     {
         return AcademicCatalogService::getCatalog();
+    }
+
+    private function redirectAuthenticatedUser(User $user)
+    {
+        if ($user->role === 'admin') {
+            return redirect('/admin/dashboard');
+        }
+
+        if ($user->hasPendingRole()) {
+            return redirect()->route('onboarding.role.show');
+        }
+
+        if ($user->role === 'landlord') {
+            $setupSnapshot = $this->getLandlordSetupSnapshot($user);
+            if (!($user->onboarding_complete ?? false) || !($setupSnapshot['setup_submitted'] ?? false)) {
+                return redirect()->route('landlord.setup.show');
+            }
+
+            return redirect('/landlord/dashboard');
+        }
+
+        if ($user->role === 'student') {
+            if (!($user->onboarding_complete ?? false) || !$user->isStudentSetupComplete()) {
+                return redirect()->route('student.setup.show');
+            }
+
+            return redirect('/student/dashboard');
+        }
+
+        return redirect()->route('onboarding.role.show');
     }
 
     private function buildBoardedByAcademic($activeBoardingsBase)
@@ -975,6 +906,62 @@ class AuthController extends Controller
         return view('admin.permits.index', compact('landlords', 'statusFilter', 'counts'));
     }
 
+    public function adminStudentApprovals(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if (!Schema::hasColumn('users', 'school_id_verification_status')) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Student verification columns are not available yet. Run migrations first.');
+        }
+
+        $statusFilter = $this->normalizeApprovalStatusFilter((string) $request->query('status', 'pending'));
+        [$students, $counts] = $this->buildStudentApprovalPayload($statusFilter);
+
+        return view('admin.approvals.students', compact('students', 'statusFilter', 'counts'));
+    }
+
+    public function adminLandlordApprovals(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $activeTab = strtolower((string) $request->query('tab', 'properties'));
+        if (!in_array($activeTab, ['properties', 'permits'], true)) {
+            $activeTab = 'properties';
+        }
+
+        $statusFilter = $this->normalizeApprovalStatusFilter((string) $request->query('status', 'pending'));
+
+        $properties = null;
+        $propertyCounts = [];
+        $landlords = null;
+        $permitCounts = [];
+
+        if ($activeTab === 'properties') {
+            [$properties, $propertyCounts] = $this->buildPropertyApprovalPayload($statusFilter);
+        } else {
+            if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Permit approval columns are not available yet. Run migrations first.');
+            }
+
+            [$landlords, $permitCounts] = $this->buildPermitApprovalPayload($statusFilter);
+        }
+
+        return view('admin.approvals.landlords', compact(
+            'activeTab',
+            'statusFilter',
+            'properties',
+            'propertyCounts',
+            'landlords',
+            'permitCounts'
+        ));
+    }
+
     public function adminApproveLandlordPermit(User $user)
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
@@ -1130,6 +1117,125 @@ class AuthController extends Controller
         ];
 
         return view('admin.student_verifications.index', compact('students', 'statusFilter', 'counts'));
+    }
+
+    private function normalizeApprovalStatusFilter(string $statusFilter): string
+    {
+        $statusFilter = strtolower($statusFilter);
+        $allowedStatuses = ['pending', 'approved', 'rejected', 'all'];
+
+        return in_array($statusFilter, $allowedStatuses, true) ? $statusFilter : 'pending';
+    }
+
+    private function buildPermitApprovalPayload(string $statusFilter): array
+    {
+        $landlords = User::query()
+            ->where('role', 'landlord')
+            ->whereHas('landlordProfile', function ($query) use ($statusFilter) {
+                $query->whereNotNull('business_permit_path');
+
+                if ($statusFilter !== 'all') {
+                    $query->where('business_permit_status', $statusFilter);
+                }
+            })
+            ->with('landlordProfile')
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $counts = [
+            'pending' => LandlordProfile::where('business_permit_status', 'pending')->count(),
+            'approved' => LandlordProfile::where('business_permit_status', 'approved')->count(),
+            'rejected' => LandlordProfile::where('business_permit_status', 'rejected')->count(),
+        ];
+
+        return [$landlords, $counts];
+    }
+
+    private function buildStudentApprovalPayload(string $statusFilter): array
+    {
+        $studentsWithVerificationDocs = function ($query) {
+            $query->where(function ($docQuery) {
+                $docQuery->where(function ($schoolIdQuery) {
+                    $schoolIdQuery->whereNotNull('school_id_path')
+                        ->where('school_id_path', '!=', '');
+                });
+
+                if (Schema::hasColumn('users', 'enrollment_proof_path')) {
+                    $docQuery->orWhere(function ($enrollmentQuery) {
+                        $enrollmentQuery->whereNotNull('enrollment_proof_path')
+                            ->where('enrollment_proof_path', '!=', '');
+                    });
+                }
+            });
+        };
+
+        $students = User::query()
+            ->where('role', 'student')
+            ->where($studentsWithVerificationDocs)
+            ->when($statusFilter !== 'all', function ($query) use ($statusFilter) {
+                if ($statusFilter === 'pending') {
+                    $query->where(function ($pendingQuery) {
+                        $pendingQuery->where('school_id_verification_status', 'pending')
+                            ->orWhereNull('school_id_verification_status')
+                            ->orWhere('school_id_verification_status', '');
+                    });
+
+                    return;
+                }
+
+                $query->where('school_id_verification_status', $statusFilter);
+            })
+            ->orderByDesc('updated_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $counts = [
+            'pending' => User::query()
+                ->where('role', 'student')
+                ->where($studentsWithVerificationDocs)
+                ->where(function ($pendingQuery) {
+                    $pendingQuery->where('school_id_verification_status', 'pending')
+                        ->orWhereNull('school_id_verification_status')
+                        ->orWhere('school_id_verification_status', '');
+                })
+                ->count(),
+            'approved' => User::query()
+                ->where('role', 'student')
+                ->where($studentsWithVerificationDocs)
+                ->where('school_id_verification_status', 'approved')
+                ->count(),
+            'rejected' => User::query()
+                ->where('role', 'student')
+                ->where($studentsWithVerificationDocs)
+                ->where('school_id_verification_status', 'rejected')
+                ->count(),
+        ];
+
+        return [$students, $counts];
+    }
+
+    private function buildPropertyApprovalPayload(string $statusFilter): array
+    {
+        $propertiesQuery = Property::with(['landlord']);
+
+        if ($statusFilter !== 'all') {
+            $propertiesQuery->where('approval_status', $statusFilter);
+        }
+
+        $properties = $propertiesQuery
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $counts = [
+            'pending' => Property::where('approval_status', 'pending')->count(),
+            'approved' => Property::where('approval_status', 'approved')->count(),
+            'rejected' => Property::where('approval_status', 'rejected')->count(),
+            'all' => Property::count(),
+        ];
+
+        return [$properties, $counts];
     }
 
     public function adminApproveStudentVerification(User $user)

@@ -23,6 +23,7 @@ class LandlordProfile extends Model
         'boarding_house_name',
         'about',
         'business_permit_path',
+        'safety_certificate_path',
         'business_permit_status',
         'business_permit_reviewed_at',
         'business_permit_reviewed_by',

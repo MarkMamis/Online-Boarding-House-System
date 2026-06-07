@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Property;
-use App\Models\Room;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,9 +16,6 @@ class LandlordSetupController extends Controller
         $user = Auth::user();
 
         $setupSnapshot = $this->getSetupSnapshot($user);
-        $checklist = $this->buildChecklist($setupSnapshot);
-        $completedCount = collect($checklist)->where('completed', true)->count();
-        $totalCount = count($checklist);
 
         if ($setupSnapshot['setup_submitted'] && !$request->has('step')) {
             return redirect()
@@ -42,9 +37,6 @@ class LandlordSetupController extends Controller
         return view('landlord.setup.index', compact(
             'user',
             'setupSnapshot',
-            'checklist',
-            'completedCount',
-            'totalCount',
             'initialStep'
         ));
     }
@@ -60,11 +52,13 @@ class LandlordSetupController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'contact_number' => 'required|regex:/^09\d{9}$/',
+            'address' => 'required|string|max:500',
             'boarding_house_name' => 'required|string|max:255',
             'about' => 'required|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contract_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'business_permit' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'business_permit' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:2048',
+            'safety_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:2048',
             'preferred_payment_methods' => 'required|array|min:1',
             'preferred_payment_methods.*' => 'in:bank,gcash,cash',
             'payment_bank_name' => 'nullable|string|max:255',
@@ -117,6 +111,7 @@ class LandlordSetupController extends Controller
             'name' => $request->input('full_name'),
             'email' => $request->input('email'),
             'contact_number' => $request->input('contact_number'),
+            'address' => $request->input('address'),
             'boarding_house_name' => $request->input('boarding_house_name'),
         ]);
 
@@ -163,6 +158,14 @@ class LandlordSetupController extends Controller
             $profileData['business_permit_rejection_reason'] = null;
         }
 
+        if ($request->hasFile('safety_certificate')) {
+            if (!empty($landlordProfile->safety_certificate_path)) {
+                Storage::disk('public')->delete($landlordProfile->safety_certificate_path);
+            }
+
+            $profileData['safety_certificate_path'] = str_replace('\\', '/', $request->file('safety_certificate')->store('safety_certificates', 'public'));
+        }
+
         if ($request->hasFile('payment_gcash_qr')) {
             if (!empty($landlordProfile->payment_gcash_qr_path)) {
                 Storage::disk('public')->delete($landlordProfile->payment_gcash_qr_path);
@@ -179,7 +182,10 @@ class LandlordSetupController extends Controller
             $profileData['contract_signature_path'] = str_replace('\\', '/', $request->file('contract_signature_image')->store('landlord-signatures', 'public'));
         }
 
-        $profileComplete = filled($request->input('contact_number'))
+        $profileComplete = filled($request->input('full_name'))
+            && filled($request->input('email'))
+            && filled($request->input('contact_number'))
+            && filled($request->input('address'))
             && filled($request->input('boarding_house_name'))
             && filled($request->input('about'));
 
@@ -212,6 +218,10 @@ class LandlordSetupController extends Controller
         $landlordProfile->update($profileData);
 
         $setupSnapshot = $this->getSetupSnapshot($user->fresh('landlordProfile'));
+        $user->forceFill([
+            'onboarding_complete' => $setupSnapshot['setup_submitted'],
+        ])->save();
+
         if ($setupSnapshot['setup_submitted']) {
             return redirect()
                 ->route('landlord.dashboard')
@@ -239,12 +249,6 @@ class LandlordSetupController extends Controller
         $user->loadMissing('landlordProfile');
         $landlordProfile = $user->landlordProfile;
 
-        $propertyIds = Property::where('landlord_id', $user->id)->pluck('id');
-        $totalRooms = Room::whereIn('property_id', $propertyIds)->count();
-        $roomsPricedCount = Room::whereIn('property_id', $propertyIds)
-            ->where('price', '>', 0)
-            ->count();
-
         $preferredPaymentMethods = collect(optional($landlordProfile)->preferred_payment_methods ?? [])
             ->filter(fn ($method) => in_array($method, ['bank', 'gcash', 'cash'], true))
             ->values();
@@ -265,11 +269,15 @@ class LandlordSetupController extends Controller
 
         $billingMethodsComplete = $preferredPaymentMethods->isNotEmpty() && $bankRequirementMet && $gcashRequirementMet && $cashRequirementMet;
 
-        $profileComplete = filled($user->contact_number)
+        $profileComplete = filled($user->full_name)
+            && filled($user->email)
+            && filled($user->contact_number)
+            && filled($user->address)
             && filled($user->boarding_house_name)
             && filled(optional($landlordProfile)->about);
 
         $permitUploaded = filled(optional($landlordProfile)->business_permit_path);
+        $safetyCertificateUploaded = filled(optional($landlordProfile)->safety_certificate_path);
         $permitStatus = (string) (optional($landlordProfile)->business_permit_status ?: ($permitUploaded ? 'pending' : 'not_submitted'));
         if (!$permitUploaded) {
             $permitStatus = 'not_submitted';
@@ -277,38 +285,15 @@ class LandlordSetupController extends Controller
 
         $permitApproved = $permitUploaded && $permitStatus === 'approved';
 
-        $pricingBasisComplete = $totalRooms > 0 && $roomsPricedCount === $totalRooms;
-
         return [
             'profile_complete' => $profileComplete,
             'permit_uploaded' => $permitUploaded,
+            'safety_certificate_uploaded' => $safetyCertificateUploaded,
             'permit_approved' => $permitApproved,
             'permit_status' => $permitStatus,
             'permit_rejection_reason' => (string) (optional($landlordProfile)->business_permit_rejection_reason ?? ''),
             'billing_methods_complete' => $billingMethodsComplete,
-            'pricing_basis_complete' => $pricingBasisComplete,
             'setup_submitted' => $profileComplete && $billingMethodsComplete,
-        ];
-    }
-
-    private function buildChecklist(array $setupSnapshot): array
-    {
-        return [
-            [
-                'title' => 'Profile details',
-                'description' => 'Set identity, contact details, and boarding house information.',
-                'completed' => $setupSnapshot['profile_complete'],
-            ],
-            [
-                'title' => 'Business permit',
-                'description' => 'Optional. Upload a business permit if available for admin review.',
-                'completed' => true,
-            ],
-            [
-                'title' => 'Billing methods',
-                'description' => 'Add preferred payment methods and required account details.',
-                'completed' => $setupSnapshot['billing_methods_complete'],
-            ],
         ];
     }
 }

@@ -114,11 +114,20 @@ return [
             'notifications' => ['label' => 'Notifications', 'url' => '/notifications'],
         ],
     ],
+    'intent_types' => [
+        'navigation' => ['saan', 'nasaan', 'where', 'where can', 'saan makikita', 'saan pupunta', 'open', 'page', 'link'],
+        'explanation' => ['explain', 'pa explain', 'ano ibig sabihin', 'what is', 'meaning', 'ibig sabihin', 'para saan', 'ano yung'],
+        'steps' => ['paano', 'how', 'steps', 'step', 'guide', 'procedure', 'process', 'paano gawin', 'paano ako', 'bigyan mo ko ng steps'],
+    ],
     'local_intents' => [
         'student' => [
             'payments' => [
                 'keywords' => ['bayad', 'magbayad', 'pagbabayad', 'payment', 'payments', 'billing', 'dues', 'monthly payment', 'saan ako magbabayad', 'paano magbayad', 'saan makikita payment'],
-                'reply' => 'You can handle payments in Student Portal > Payments: /student/payments.',
+                'responses' => [
+                    'nav' => 'You can handle payments in Student Portal > Payments: /student/payments.',
+                    'explain' => 'Monthly payments are the recurring rental payments that a tenant needs to settle for their assigned room. In the system, the Payments page lets you view payment records, check pending or overdue payments, and submit payment proof or payment details if required by the landlord.',
+                    'steps' => "To pay or submit a payment:\n1. Go to Student Portal > Payments.\n2. Check the payment record or monthly due listed for your room.\n3. Open the payment item you need to settle.\n4. Follow the displayed payment instructions or landlord payment method.\n5. Upload proof of payment or submit the required payment details if the system asks for it.\n6. Wait for the landlord/admin to review or update the payment status.",
+                ],
                 'action' => ['label' => 'Payments', 'url' => '/student/payments'],
             ],
             'rooms' => [
@@ -133,17 +142,29 @@ return [
             ],
             'booking' => [
                 'keywords' => ['booking', 'book', 'magbook', 'request booking', 'reservation', 'booking request'],
-                'reply' => 'Booking requests are submitted from a room details page. Open a room and use the booking action.',
+                'responses' => [
+                    'nav' => 'Booking requests are submitted from a room details page. Go to Browse Rooms, open a room, then use the booking action.',
+                    'explain' => 'A booking request is the student\'s request to reserve or apply for a room. It is not yet a confirmed stay. The landlord must review the request first. If approved, the student can continue to tenant onboarding. If rejected, the student may browse other rooms and submit another request.',
+                    'steps' => "To submit a booking request:\n1. Go to Student Portal > Browse Rooms.\n2. Open the room you want to check.\n3. Review the room details, price, capacity, and availability.\n4. Click the booking/request action if available.\n5. Submit the required details.\n6. Wait for the landlord to approve or reject the request.\n7. If approved, continue to Tenant Onboarding.",
+                ],
                 'action' => ['label' => 'Browse rooms', 'url' => '/student/rooms'],
             ],
             'onboarding' => [
                 'keywords' => ['onboarding', 'tenant onboarding', 'documents', 'upload documents', 'contract', 'deposit', 'requirements'],
-                'reply' => 'Approved students complete onboarding in Student Portal > Tenant Onboarding: /student/onboarding.',
+                'responses' => [
+                    'nav' => 'Approved students complete onboarding in Student Portal > Tenant Onboarding: /student/onboarding.',
+                    'explain' => 'Tenant onboarding happens after a booking is approved. It typically includes submitting required documents, reviewing and signing the contract, and paying a deposit if required by the landlord.',
+                    'steps' => "To complete tenant onboarding:\n1. Go to Student Portal > Tenant Onboarding.\n2. Check the required onboarding items.\n3. Upload required documents if requested.\n4. Review and sign the contract if available.\n5. Submit deposit/payment proof if required.\n6. Wait for landlord review or completion status.",
+                ],
                 'action' => ['label' => 'Tenant onboarding', 'url' => '/student/onboarding'],
             ],
             'reports' => [
                 'keywords' => ['report', 'concern', 'complaint', 'feedback', 'issue', 'problema', 'reklamo'],
-                'reply' => 'Submit concerns through Student Portal > Reports: /student/reports.',
+                'responses' => [
+                    'nav' => 'Submit concerns through Student Portal > Reports: /student/reports.',
+                    'explain' => 'Reports/concerns are used to submit issues about your room, boarding house, landlord communication, maintenance, safety, or other concerns.',
+                    'steps' => "To submit a report/concern:\n1. Go to the Reports page.\n2. Choose the type of concern.\n3. Write a clear description.\n4. Attach proof if available.\n5. Submit and wait for review/response.",
+                ],
                 'action' => ['label' => 'Reports', 'url' => '/student/reports'],
             ],
             'messages' => [
@@ -160,7 +181,11 @@ return [
         'landlord' => [
             'payments' => [
                 'keywords' => ['bayad', 'payment', 'payments', 'billing', 'dues', 'monthly payment'],
-                'reply' => 'Track tenant payments in Landlord Portal > Payments: /landlord/payments.',
+                'responses' => [
+                    'nav' => 'Track tenant payments in Landlord Portal > Payments: /landlord/payments.',
+                    'explain' => 'Landlord payments are for monitoring tenant monthly dues, reviewing payment submissions, and tracking pending or overdue balances.',
+                    'steps' => "To manage payments as a landlord:\n1. Go to Landlord Portal > Payments.\n2. Review tenant payment records.\n3. Check pending/overdue payments.\n4. Open a payment record.\n5. Verify submitted payment details or proof.\n6. Update or monitor status based on available actions.",
+                ],
                 'action' => ['label' => 'Payments', 'url' => '/landlord/payments'],
             ],
             'properties' => [

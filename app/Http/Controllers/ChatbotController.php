@@ -419,6 +419,8 @@ class ChatbotController extends Controller
         $text = strtolower($content);
         $role = $user->role ?? 'student';
         $intentsByRole = config('chatbot.local_intents', []);
+        $intentTypes = config('chatbot.intent_types', []);
+        $intentType = $this->detectIntentType($text, $intentTypes);
 
         $roleIntents = $intentsByRole[$role] ?? [];
         foreach ($roleIntents as $intentKey => $intent) {
@@ -427,7 +429,18 @@ class ChatbotController extends Controller
                 continue;
             }
 
-            $reply = (string) ($intent['reply'] ?? '');
+            $reply = '';
+            if (!empty($intent['responses'])) {
+                if ($intentType && !empty($intent['responses'][$intentType])) {
+                    $reply = (string) $intent['responses'][$intentType];
+                } elseif (!empty($intent['responses']['nav'])) {
+                    $reply = (string) $intent['responses']['nav'];
+                }
+            }
+            if ($reply === '') {
+                $reply = (string) ($intent['reply'] ?? '');
+            }
+
             if ($role === 'student' && $intentKey === 'booking') {
                 if ($this->studentHasActiveBooking($user->id)) {
                     $reply .= ' Booking another room may be disabled while your current stay is active, but you can still browse rooms for future reference.';
@@ -453,6 +466,21 @@ class ChatbotController extends Controller
                     return ['reply' => $reply, 'meta' => ['blocked' => true]];
                 }
             }
+        }
+
+        return null;
+    }
+
+    private function detectIntentType(string $text, array $intentTypes): ?string
+    {
+        if ($this->containsAny($text, $intentTypes['steps'] ?? [])) {
+            return 'steps';
+        }
+        if ($this->containsAny($text, $intentTypes['explanation'] ?? [])) {
+            return 'explain';
+        }
+        if ($this->containsAny($text, $intentTypes['navigation'] ?? [])) {
+            return 'nav';
         }
 
         return null;

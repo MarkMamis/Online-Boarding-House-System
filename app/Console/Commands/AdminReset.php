@@ -38,6 +38,7 @@ class AdminReset extends Command
                 'contact_number' => 'N/A',
                 'boarding_house_name' => 'N/A',
                 'role' => 'admin',
+                'onboarding_complete' => true,
             ]);
             $this->info("Admin created: {$admin->email}");
             return Command::SUCCESS;
@@ -55,6 +56,7 @@ class AdminReset extends Command
         if (!$admin->email_verified_at) {
             $admin->email_verified_at = now();
         }
+        $admin->onboarding_complete = true;
         $admin->save();
         $this->info("Admin updated. Email: {$admin->email}");
         $this->line('You can now login using:');

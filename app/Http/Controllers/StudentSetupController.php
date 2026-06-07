@@ -56,25 +56,17 @@ class StudentSetupController extends Controller
                 ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072'
                 : 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072');
 
-        $enrollmentProofRule = $isFirstYear
-            ? (filled($user->enrollment_proof_path)
-                ? 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:4096'
-                : 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:4096')
-            : 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:4096';
+        $enrollmentProofRule = filled($user->enrollment_proof_path)
+            ? 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:4096'
+            : 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:4096';
 
-        $enrollmentProofTypeRule = $isFirstYear
-            ? 'required|in:cor,coe'
-            : 'nullable|in:cor,coe';
+        $enrollmentProofTypeRule = 'required|in:cor,coe';
 
         $academicCatalog = AcademicCatalogService::getCatalog();
         $collegeOptions = array_keys($academicCatalog['colleges'] ?? []);
         $collegeRule = empty($collegeOptions)
             ? 'required|string|max:20'
             : 'required|in:' . implode(',', $collegeOptions);
-
-        if ($request->hasFile('enrollment_proof_file') || filled($user->enrollment_proof_path)) {
-            $enrollmentProofTypeRule = 'required|in:cor,coe';
-        }
 
         $studentIdRule = $isFirstYear
             ? 'nullable|string|max:50|unique:users,student_id,' . $user->id
@@ -88,9 +80,9 @@ class StudentSetupController extends Controller
             'program' => 'required|string|max:255',
             'major' => 'nullable|string|max:255',
             'year_level' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
-            'gender' => 'required|in:Male,Female,Other,Rather not say',
+            'gender' => 'required|in:Male,Female,Other,Rather not Say,Rather not say',
             'gender_custom' => 'nullable|string|max:100',
-            'birth_date' => 'nullable|date|before:today',
+            'birth_date' => 'required|date|after_or_equal:1920-01-01|before_or_equal:today',
             'address' => 'required|string|max:500',
             'emergency_contact_name' => 'required|string|max:255',
             'emergency_contact_number' => 'required|regex:/^09\d{9}$/',
@@ -108,7 +100,9 @@ class StudentSetupController extends Controller
             'emergency_contact_number.regex' => 'Emergency contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'parent_contact_number.regex' => 'Parent or guardian number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'student_id.required' => 'Student ID is required for 2nd year and above.',
-            'enrollment_proof_file.required' => 'COR or COE file is required for 1st year students.',
+            'birth_date.required' => 'Birthdate is required.',
+            'birth_date.after_or_equal' => 'Birthdate must be January 1, 1920 or later.',
+            'enrollment_proof_file.required' => 'COR or COE file is required before completing setup.',
         ]);
 
         $validator->after(function ($validator) use ($request, $academicCatalog) {
@@ -146,6 +140,8 @@ class StudentSetupController extends Controller
                     ->withInput();
             }
             $gender = $customGender;
+        } elseif ($gender === 'Rather not say') {
+            $gender = 'Rather not Say';
         }
 
         if ($request->hasFile('profile_image')) {
@@ -223,6 +219,7 @@ class StudentSetupController extends Controller
             'enrollment_proof_type' => $request->filled('enrollment_proof_type')
                 ? strtolower((string) $request->input('enrollment_proof_type'))
                 : null,
+            'onboarding_complete' => true,
         ]);
 
         $user->save();
@@ -241,19 +238,20 @@ class StudentSetupController extends Controller
                 'completed' => filled($user->full_name)
                     && filled($user->profile_image_path)
                     && filled($user->contact_number)
+                    && filled($user->birth_date)
                     && filled($user->address),
             ],
             [
                 'title' => 'Academic verification',
-                'description' => 'Set college, program, optional major, and upload your verification files (School ID; COR or COE for 1st year).',
+                'description' => 'Set college, program, year level, and upload your school verification files.',
                 'completed' => (($user->year_level === '1st Year') || filled($user->student_id))
                     && filled($user->college)
                     && filled($user->program)
                     && filled($user->year_level)
                     && filled($user->gender)
-                    && (($user->year_level === '1st Year')
-                        ? (filled($user->enrollment_proof_type) && filled($user->enrollment_proof_path))
-                        : filled($user->school_id_path)),
+                    && (($user->year_level === '1st Year') || filled($user->school_id_path))
+                    && filled($user->enrollment_proof_type)
+                    && filled($user->enrollment_proof_path),
             ],
             [
                 'title' => 'Emergency contacts',

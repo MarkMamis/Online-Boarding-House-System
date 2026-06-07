@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
                 'contact_number' => 'N/A',
                 'boarding_house_name' => 'N/A',
                 'role' => 'admin',
+                'onboarding_complete' => true,
             ]);
         }
 
@@ -46,7 +47,10 @@ class DatabaseSeeder extends Seeder
             });
 
         // Create sample landlords and properties for demonstration
-        $landlords = User::factory(3)->create(['role' => 'landlord']);
+        $landlords = User::factory(3)->create([
+            'role' => 'landlord',
+            'onboarding_complete' => true,
+        ]);
         foreach ($landlords as $landlord) {
             LandlordProfile::create([
                 'user_id' => $landlord->id,
