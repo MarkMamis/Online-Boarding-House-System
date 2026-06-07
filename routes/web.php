@@ -281,6 +281,8 @@ Route::middleware(['role:admin'])->group(function () {
     })->name('admin.permits.index');
     Route::post('/admin/permits/{user}/approve', [AuthController::class, 'adminApproveLandlordPermit'])->name('admin.permits.approve');
     Route::post('/admin/permits/{user}/reject', [AuthController::class, 'adminRejectLandlordPermit'])->name('admin.permits.reject');
+    Route::post('/admin/permits/{user}/safety-certificate/approve', [AuthController::class, 'adminApproveLandlordSafetyCertificate'])->name('admin.permits.safety.approve');
+    Route::post('/admin/permits/{user}/safety-certificate/reject', [AuthController::class, 'adminRejectLandlordSafetyCertificate'])->name('admin.permits.safety.reject');
     Route::get('/admin/student-verifications', function (Request $request) {
         return redirect()->route('admin.approvals.students', array_filter([
             'status' => $request->query('status'),

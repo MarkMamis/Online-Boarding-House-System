@@ -934,15 +934,16 @@ class AuthController extends Controller
             $activeTab = 'properties';
         }
 
-        $statusFilter = $this->normalizeApprovalStatusFilter((string) $request->query('status', 'pending'));
+        $statusFilter = $activeTab === 'permits'
+            ? $this->normalizeLandlordPermitFilter((string) $request->query('status', 'all'))
+            : $this->normalizeApprovalStatusFilter((string) $request->query('status', 'pending'));
 
-        $properties = null;
         $propertyCounts = [];
         $landlords = null;
         $permitCounts = [];
 
         if ($activeTab === 'properties') {
-            [$properties, $propertyCounts] = $this->buildPropertyApprovalPayload($statusFilter);
+            [$landlords, $propertyCounts] = $this->buildPropertyApprovalPayload($statusFilter);
         } else {
             if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
                 return redirect()->route('admin.dashboard')
@@ -955,10 +956,9 @@ class AuthController extends Controller
         return view('admin.approvals.landlords', compact(
             'activeTab',
             'statusFilter',
-            'properties',
-            'propertyCounts',
             'landlords',
-            'permitCounts'
+            'permitCounts',
+            'propertyCounts'
         ));
     }
 
@@ -1039,6 +1039,85 @@ class AuthController extends Controller
         ));
 
         return back()->with('success', 'Business permit rejected and landlord notified.');
+    }
+
+    public function adminApproveLandlordSafetyCertificate(User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if (!$this->supportsSafetyCertificateApproval()) {
+            return back()->with('error', 'Safety certificate approval columns are not available yet. Run migrations first.');
+        }
+
+        if ($user->role !== 'landlord') {
+            abort(404);
+        }
+
+        $landlordProfile = $user->landlordProfile;
+        if (empty($landlordProfile) || empty($landlordProfile->safety_certificate_path)) {
+            return back()->with('error', 'No safety certificate was uploaded for this landlord.');
+        }
+
+        $landlordProfile->update([
+            'safety_certificate_status' => 'approved',
+            'safety_certificate_reviewed_at' => now(),
+            'safety_certificate_reviewed_by' => Auth::id(),
+            'safety_certificate_rejection_reason' => null,
+        ]);
+
+        $user->notify(new SystemNotification(
+            'Safety certificate approved',
+            'Your safety certificate has been approved.',
+            route('landlord.dashboard'),
+            ['type' => 'safety_certificate_approved']
+        ));
+
+        return back()->with('success', 'Safety certificate approved successfully.');
+    }
+
+    public function adminRejectLandlordSafetyCertificate(Request $request, User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if (!$this->supportsSafetyCertificateApproval()) {
+            return back()->with('error', 'Safety certificate approval columns are not available yet. Run migrations first.');
+        }
+
+        if ($user->role !== 'landlord') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        $landlordProfile = $user->landlordProfile;
+        if (empty($landlordProfile) || empty($landlordProfile->safety_certificate_path)) {
+            return back()->with('error', 'No safety certificate was uploaded for this landlord.');
+        }
+
+        $landlordProfile->update([
+            'safety_certificate_status' => 'rejected',
+            'safety_certificate_reviewed_at' => now(),
+            'safety_certificate_reviewed_by' => Auth::id(),
+            'safety_certificate_rejection_reason' => $validated['rejection_reason'],
+        ]);
+
+        $user->notify(new SystemNotification(
+            'Safety certificate rejected',
+            'Your safety certificate was rejected. Please review the reason and upload an updated certificate.',
+            route('landlord.setup.show', ['step' => 'permit']),
+            [
+                'type' => 'safety_certificate_rejected',
+                'reason' => $validated['rejection_reason'],
+            ]
+        ));
+
+        return back()->with('success', 'Safety certificate rejected and landlord notified.');
     }
 
     public function adminStudentVerifications(Request $request)
@@ -1127,26 +1206,69 @@ class AuthController extends Controller
         return in_array($statusFilter, $allowedStatuses, true) ? $statusFilter : 'pending';
     }
 
+    private function normalizeLandlordPermitFilter(string $statusFilter): string
+    {
+        $statusFilter = strtolower($statusFilter);
+        $allowedStatuses = ['all', 'missing', 'pending', 'approved', 'rejected'];
+
+        return in_array($statusFilter, $allowedStatuses, true) ? $statusFilter : 'all';
+    }
+
     private function buildPermitApprovalPayload(string $statusFilter): array
     {
         $landlords = User::query()
             ->where('role', 'landlord')
-            ->whereHas('landlordProfile', function ($query) use ($statusFilter) {
-                $query->whereNotNull('business_permit_path');
+            ->with([
+                'landlordProfile.businessPermitReviewer:id,full_name',
+                'landlordProfile.safetyCertificateReviewer:id,full_name',
+            ])
+            ->when($statusFilter !== 'all', function ($query) use ($statusFilter) {
+                $query->where(function ($statusQuery) use ($statusFilter) {
+                    $statusQuery->whereHas('landlordProfile', function ($profileQuery) use ($statusFilter) {
+                        if ($statusFilter === 'missing') {
+                            $profileQuery->where(function ($missingQuery) {
+                                $missingQuery->whereNull('business_permit_path')
+                                    ->orWhere('business_permit_path', '')
+                                    ->orWhereNull('safety_certificate_path')
+                                    ->orWhere('safety_certificate_path', '');
+                            });
 
-                if ($statusFilter !== 'all') {
-                    $query->where('business_permit_status', $statusFilter);
-                }
+                            return;
+                        }
+
+                        $profileQuery->where(function ($documentQuery) use ($statusFilter) {
+                            $documentQuery->where('business_permit_status', $statusFilter);
+
+                            if ($this->supportsSafetyCertificateApproval()) {
+                                $documentQuery->orWhere('safety_certificate_status', $statusFilter);
+                            }
+                        });
+                    });
+
+                    if ($statusFilter === 'missing') {
+                        $statusQuery->orDoesntHave('landlordProfile');
+                    }
+                });
             })
-            ->with('landlordProfile')
-            ->orderByDesc('created_at')
+            ->orderBy('full_name')
             ->paginate(15)
             ->withQueryString();
 
+        $allLandlords = User::query()
+            ->where('role', 'landlord')
+            ->with('landlordProfile')
+            ->get();
+
         $counts = [
-            'pending' => LandlordProfile::where('business_permit_status', 'pending')->count(),
-            'approved' => LandlordProfile::where('business_permit_status', 'approved')->count(),
-            'rejected' => LandlordProfile::where('business_permit_status', 'rejected')->count(),
+            'all' => $allLandlords->count(),
+            'missing' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'missing'
+                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'missing')->count(),
+            'pending' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'pending'
+                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'pending')->count(),
+            'approved' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'approved'
+                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'approved')->count(),
+            'rejected' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'rejected'
+                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'rejected')->count(),
         ];
 
         return [$landlords, $counts];
@@ -1217,15 +1339,30 @@ class AuthController extends Controller
 
     private function buildPropertyApprovalPayload(string $statusFilter): array
     {
-        $propertiesQuery = Property::with(['landlord']);
+        $landlords = User::query()
+            ->where('role', 'landlord')
+            ->with([
+                'landlordProfile',
+                'properties' => function ($query) use ($statusFilter) {
+                    if ($statusFilter !== 'all') {
+                        $query->where('approval_status', $statusFilter);
+                    }
 
-        if ($statusFilter !== 'all') {
-            $propertiesQuery->where('approval_status', $statusFilter);
-        }
-
-        $properties = $propertiesQuery
-            ->orderByDesc('created_at')
-            ->paginate(20)
+                    $query->orderByDesc('created_at');
+                },
+            ])
+            ->withCount('properties')
+            ->withCount(['properties as pending_properties_count' => function ($query) {
+                $query->where('approval_status', 'pending');
+            }])
+            ->withCount(['properties as approved_properties_count' => function ($query) {
+                $query->where('approval_status', 'approved');
+            }])
+            ->withCount(['properties as rejected_properties_count' => function ($query) {
+                $query->where('approval_status', 'rejected');
+            }])
+            ->orderBy('full_name')
+            ->paginate(10)
             ->withQueryString();
 
         $counts = [
@@ -1235,7 +1372,40 @@ class AuthController extends Controller
             'all' => Property::count(),
         ];
 
-        return [$properties, $counts];
+        return [$landlords, $counts];
+    }
+
+    private function supportsSafetyCertificateApproval(): bool
+    {
+        return Schema::hasColumn('landlord_profiles', 'safety_certificate_status')
+            && Schema::hasColumn('landlord_profiles', 'safety_certificate_reviewed_at')
+            && Schema::hasColumn('landlord_profiles', 'safety_certificate_reviewed_by')
+            && Schema::hasColumn('landlord_profiles', 'safety_certificate_rejection_reason');
+    }
+
+    private function resolveLandlordDocumentStatus(?LandlordProfile $profile, string $document): string
+    {
+        if (!$profile) {
+            return 'missing';
+        }
+
+        if ($document === 'business') {
+            if (!filled($profile->business_permit_path)) {
+                return 'missing';
+            }
+
+            return (string) ($profile->business_permit_status ?: 'pending');
+        }
+
+        if (!filled($profile->safety_certificate_path)) {
+            return 'missing';
+        }
+
+        if ($this->supportsSafetyCertificateApproval()) {
+            return (string) ($profile->safety_certificate_status ?: 'pending');
+        }
+
+        return 'pending';
     }
 
     public function adminApproveStudentVerification(User $user)

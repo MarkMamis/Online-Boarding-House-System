@@ -31,29 +31,6 @@
         font-weight: 700;
         color: #166534;
     }
-    .section-card {
-        border: 1px solid rgba(2, 8, 20, .08);
-        border-radius: 1rem;
-        background: #fff;
-        box-shadow: 0 8px 20px rgba(2, 8, 20, .05);
-        overflow: hidden;
-    }
-    .section-header {
-        border-bottom: 1px solid rgba(2, 8, 20, .08);
-        background: #fff;
-        padding: .85rem 1rem;
-    }
-    .table thead th {
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: rgba(2, 8, 20, .62);
-        background: rgba(248, 250, 252, .96);
-        border-bottom: 1px solid rgba(2, 8, 20, .08);
-    }
-    .table tbody td {
-        vertical-align: middle;
-    }
     .tab-row {
         display: flex;
         flex-wrap: wrap;
@@ -78,65 +55,219 @@
         border-color: #166534;
         box-shadow: 0 10px 22px rgba(22, 101, 52, .18);
     }
-    .status-chip {
-        font-size: .75rem;
-        text-transform: capitalize;
-        border-radius: 999px;
-        padding: .3rem .6rem;
+    .section-card {
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: 1rem;
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(2, 8, 20, .05);
+        overflow: hidden;
     }
-    .actions-col {
-        min-width: 170px;
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-bottom: 1rem;
     }
-    .action-grid {
+    .landlord-stack {
         display: grid;
-        gap: .45rem;
-        justify-content: start;
+        gap: 1rem;
     }
-    .action-grid.properties-grid {
-        grid-template-columns: repeat(4, 42px);
+    .landlord-card {
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: 1rem;
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(2, 8, 20, .05);
+        overflow: hidden;
     }
-    .action-grid.permits-grid {
-        grid-template-columns: repeat(3, 42px);
+    .landlord-header {
+        padding: 1rem 1rem .9rem;
+        border-bottom: 1px solid rgba(2, 8, 20, .08);
+        background: linear-gradient(180deg, rgba(248, 250, 252, .96), #fff);
     }
-    .action-btn {
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        border-radius: .7rem;
+    .landlord-meta {
+        display: grid;
+        gap: .8rem;
+        grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(110px, 1fr));
+        align-items: start;
+    }
+    .landlord-name {
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .meta-block-label {
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: rgba(2, 8, 20, .55);
+        margin-bottom: .2rem;
+    }
+    .meta-block-value {
+        font-size: .93rem;
+        color: #0f172a;
         font-weight: 600;
+    }
+    .meta-block-copy {
+        font-size: .83rem;
+        color: rgba(2, 8, 20, .62);
+    }
+    .status-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1rem;
-    }
-    .property-avatar {
-        width: 42px;
-        height: 42px;
         border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(22, 101, 52, .12);
-        color: #166534;
-        border: 1px solid rgba(22, 101, 52, .22);
-        flex-shrink: 0;
+        padding: .34rem .7rem;
+        font-size: .76rem;
+        font-weight: 700;
+        text-transform: capitalize;
     }
-    .reject-modal-note,
-    .table-empty {
+    .status-missing {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .status-approved {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .status-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .document-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .document-card {
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: .95rem;
+        padding: .95rem;
+        background: #fff;
+    }
+    .document-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: .8rem;
+        align-items: flex-start;
+        margin-bottom: .8rem;
+    }
+    .document-title {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .document-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: .85rem;
+    }
+    .property-list {
+        padding: 1rem;
+        display: grid;
+        gap: .85rem;
+    }
+    .property-card {
+        border: 1px solid rgba(2, 8, 20, .08);
+        border-radius: .95rem;
+        padding: .95rem;
+        background: #fff;
+    }
+    .property-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: .8rem;
+        align-items: flex-start;
+        margin-bottom: .65rem;
+    }
+    .property-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .property-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .8rem;
+        margin-bottom: .8rem;
+    }
+    .property-actions,
+    .document-actions form {
+        margin: 0;
+    }
+    .property-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+    .empty-state {
+        padding: 2rem 1rem;
+        text-align: center;
         color: rgba(2, 8, 20, .58);
     }
+    .rejection-copy {
+        font-size: .82rem;
+        color: #b91c1c;
+        margin-top: .45rem;
+    }
+    @media (max-width: 991.98px) {
+        .landlord-meta {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .document-grid,
+        .property-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     @media (max-width: 767.98px) {
-        .approval-shell { padding: .95rem; }
-        .actions-col { min-width: 190px; }
+        .approval-shell {
+            padding: .95rem;
+        }
+
+        .landlord-header,
+        .document-grid,
+        .property-list {
+            padding: .85rem;
+        }
+
+        .landlord-meta {
+            grid-template-columns: 1fr;
+        }
+
+        .property-card-top {
+            flex-direction: column;
+        }
     }
 </style>
+
+@php
+    $currentCounts = $activeTab === 'properties' ? ($propertyCounts ?? []) : ($permitCounts ?? []);
+    $currentTotal = ($landlords ?? null)?->total() ?? 0;
+    $permitStatusOptions = ['all' => 'All', 'missing' => 'Missing', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'];
+    $propertyStatusOptions = ['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'all' => 'All'];
+
+    $statusClass = function ($status) {
+        return match ($status) {
+            'approved' => 'status-badge status-approved',
+            'rejected' => 'status-badge status-rejected',
+            'pending' => 'status-badge status-pending',
+            'missing', 'not_submitted' => 'status-badge status-missing',
+            default => 'status-badge status-missing',
+        };
+    };
+@endphp
 
 <div class="approval-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="text-uppercase small muted fw-semibold">Approvals</div>
             <h1 class="h4 mb-1"><i class="bi bi-buildings me-2"></i>Landlord Approval</h1>
-            <div class="muted small">Review landlord-facing approvals in one place and switch between property and permit queues.</div>
+            <div class="muted small">Review landlord permits and property submissions from one grouped approval workspace.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('admin.users.landlords') }}" class="btn btn-outline-secondary rounded-pill px-3">Landlords</a>
@@ -172,397 +303,423 @@
         </a>
     </div>
 
-    @php
-        $currentCounts = $activeTab === 'properties' ? ($propertyCounts ?? []) : ($permitCounts ?? []);
-        $currentTotal = $activeTab === 'properties'
-            ? (($properties ?? null)?->total() ?? 0)
-            : (($landlords ?? null)?->total() ?? 0);
-    @endphp
-
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="metric-tile">
-                <div class="metric-label">Pending</div>
+                <div class="metric-label">{{ $activeTab === 'permits' ? 'All Landlords' : 'Pending Properties' }}</div>
+                <div class="metric-value">{{ number_format($currentCounts[$activeTab === 'permits' ? 'all' : 'pending'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="metric-tile">
+                <div class="metric-label">{{ $activeTab === 'permits' ? 'Missing Docs' : 'Approved Properties' }}</div>
+                <div class="metric-value">{{ number_format($currentCounts[$activeTab === 'permits' ? 'missing' : 'approved'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="metric-tile">
+                <div class="metric-label">{{ $activeTab === 'permits' ? 'Pending Docs' : 'Rejected Properties' }}</div>
                 <div class="metric-value">{{ number_format($currentCounts['pending'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="metric-tile">
-                <div class="metric-label">Approved</div>
-                <div class="metric-value">{{ number_format($currentCounts['approved'] ?? 0) }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="metric-tile">
-                <div class="metric-label">Rejected</div>
-                <div class="metric-value">{{ number_format($currentCounts['rejected'] ?? 0) }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="metric-tile">
-                <div class="metric-label">Visible Records</div>
+                <div class="metric-label">Visible Landlords</div>
                 <div class="metric-value">{{ number_format($currentTotal) }}</div>
             </div>
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => 'pending']) }}" class="btn rounded-pill {{ $statusFilter === 'pending' ? 'btn-success' : 'btn-outline-secondary' }}">Pending</a>
-        <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => 'approved']) }}" class="btn rounded-pill {{ $statusFilter === 'approved' ? 'btn-success' : 'btn-outline-secondary' }}">Approved</a>
-        <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => 'rejected']) }}" class="btn rounded-pill {{ $statusFilter === 'rejected' ? 'btn-success' : 'btn-outline-secondary' }}">Rejected</a>
-        <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => 'all']) }}" class="btn rounded-pill {{ $statusFilter === 'all' ? 'btn-success' : 'btn-outline-secondary' }}">All</a>
+    <div class="filter-row">
+        @foreach(($activeTab === 'permits' ? $permitStatusOptions : $propertyStatusOptions) as $value => $label)
+            <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => $value]) }}" class="btn rounded-pill {{ $statusFilter === $value ? 'btn-success' : 'btn-outline-secondary' }}">{{ $label }}</a>
+        @endforeach
     </div>
 
-    @if($activeTab === 'properties')
-        @php
-            $queueTitle = match($statusFilter) {
-                'approved' => 'Approved Property Queue',
-                'rejected' => 'Rejected Property Queue',
-                'all' => 'All Property Submissions',
-                default => 'Pending Property Queue',
-            };
-        @endphp
-        <div class="section-card">
-            <div class="section-header d-flex justify-content-between align-items-center gap-2">
-                <div class="fw-semibold"><i class="bi bi-hourglass-split me-1"></i>{{ $queueTitle }}</div>
-                <span class="badge {{ $statusFilter === 'approved' ? 'text-bg-success' : ($statusFilter === 'rejected' ? 'text-bg-danger' : ($statusFilter === 'all' ? 'text-bg-secondary' : 'text-bg-warning')) }}">{{ $properties->total() }} records</span>
-            </div>
+    <div class="landlord-stack">
+        @forelse($landlords as $landlord)
+            @php
+                $profile = $landlord->landlordProfile;
+                $businessStatus = !filled(optional($profile)->business_permit_path)
+                    ? 'missing'
+                    : (optional($profile)->business_permit_status ?: 'pending');
+                $safetyStatus = !filled(optional($profile)->safety_certificate_path)
+                    ? 'missing'
+                    : ((property_exists($profile ?? new stdClass(), 'safety_certificate_status') && filled(optional($profile)->safety_certificate_status))
+                        ? $profile->safety_certificate_status
+                        : 'pending');
+            @endphp
 
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-3">Property</th>
-                            <th>Landlord</th>
-                            <th>Address</th>
-                            <th>Submitted</th>
-                            <th>Status</th>
-                            <th>Reviewed</th>
-                            <th class="pe-3 actions-col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($properties as $property)
+            <article class="landlord-card">
+                <div class="landlord-header">
+                    <div class="landlord-meta">
+                        <div>
+                            <div class="landlord-name">{{ $landlord->full_name }}</div>
+                            <div class="meta-block-copy">{{ $landlord->email }}</div>
+                            <div class="meta-block-copy">{{ $landlord->contact_number ?: 'No contact number provided' }}</div>
+                        </div>
+                        <div>
+                            <div class="meta-block-label">Boarding House</div>
+                            <div class="meta-block-value">{{ $landlord->boarding_house_name ?: optional($profile)->boarding_house_name ?: 'Not provided' }}</div>
+                        </div>
+                        <div>
+                            <div class="meta-block-label">Properties</div>
+                            <div class="meta-block-value">{{ number_format($landlord->properties_count ?? 0) }}</div>
+                            @if($activeTab === 'properties')
+                                <div class="meta-block-copy">Pending {{ number_format($landlord->pending_properties_count ?? 0) }} · Approved {{ number_format($landlord->approved_properties_count ?? 0) }} · Rejected {{ number_format($landlord->rejected_properties_count ?? 0) }}</div>
+                            @endif
+                        </div>
+                        <div>
+                            <div class="meta-block-label">Business Permit</div>
+                            <span class="{{ $statusClass($businessStatus) }}">{{ str_replace('_', ' ', $businessStatus) }}</span>
+                        </div>
+                        <div>
+                            <div class="meta-block-label">Safety Certificate</div>
+                            <span class="{{ $statusClass($safetyStatus) }}">{{ str_replace('_', ' ', $safetyStatus) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if($activeTab === 'permits')
+                    <div class="document-grid">
+                        <section class="document-card">
+                            <div class="document-card-head">
+                                <div>
+                                    <div class="document-title">Business Permit</div>
+                                    <div class="meta-block-copy">Status and review actions for the uploaded business permit.</div>
+                                </div>
+                                <span class="{{ $statusClass($businessStatus) }}">{{ str_replace('_', ' ', $businessStatus) }}</span>
+                            </div>
+
+                            @if(filled(optional($profile)->business_permit_path))
+                                <a href="{{ asset('storage/' . $profile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>View File
+                                </a>
+                            @else
+                                <div class="meta-block-copy">Missing business permit upload.</div>
+                            @endif
+
+                            <div class="mt-3">
+                                <div class="meta-block-label">Last Review</div>
+                                <div class="meta-block-copy">
+                                    @if(!empty(optional($profile)->business_permit_reviewed_at))
+                                        {{ $profile->business_permit_reviewed_at->format('M d, Y h:i A') }}
+                                        @if(!empty(optional(optional($profile)->businessPermitReviewer)->full_name))
+                                            · {{ $profile->businessPermitReviewer->full_name }}
+                                        @endif
+                                    @else
+                                        Not reviewed
+                                    @endif
+                                </div>
+                                @if($businessStatus === 'rejected' && filled(optional($profile)->business_permit_rejection_reason))
+                                    <div class="rejection-copy">{{ $profile->business_permit_rejection_reason }}</div>
+                                @endif
+                            </div>
+
+                            @if(filled(optional($profile)->business_permit_path) && $businessStatus !== 'approved')
+                                <div class="document-actions">
+                                    <button type="button" class="btn btn-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#approvePermitModal{{ $landlord->id }}">
+                                        Approve
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rejectPermitModal{{ $landlord->id }}">
+                                        Reject
+                                    </button>
+                                </div>
+                            @endif
+                        </section>
+
+                        <section class="document-card">
+                            <div class="document-card-head">
+                                <div>
+                                    <div class="document-title">Safety Certificate</div>
+                                    <div class="meta-block-copy">Status and review actions for the uploaded safety certificate.</div>
+                                </div>
+                                <span class="{{ $statusClass($safetyStatus) }}">{{ str_replace('_', ' ', $safetyStatus) }}</span>
+                            </div>
+
+                            @if(filled(optional($profile)->safety_certificate_path))
+                                <a href="{{ asset('storage/' . $profile->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>View File
+                                </a>
+                            @else
+                                <div class="meta-block-copy">Missing safety certificate upload.</div>
+                            @endif
+
+                            <div class="mt-3">
+                                <div class="meta-block-label">Last Review</div>
+                                <div class="meta-block-copy">
+                                    @if(!empty(optional($profile)->safety_certificate_reviewed_at))
+                                        {{ $profile->safety_certificate_reviewed_at->format('M d, Y h:i A') }}
+                                        @if(!empty(optional(optional($profile)->safetyCertificateReviewer)->full_name))
+                                            · {{ $profile->safetyCertificateReviewer->full_name }}
+                                        @endif
+                                    @else
+                                        Not reviewed
+                                    @endif
+                                </div>
+                                @if($safetyStatus === 'rejected' && filled(optional($profile)->safety_certificate_rejection_reason))
+                                    <div class="rejection-copy">{{ $profile->safety_certificate_rejection_reason }}</div>
+                                @endif
+                            </div>
+
+                            @if(filled(optional($profile)->safety_certificate_path) && $safetyStatus !== 'approved')
+                                <div class="document-actions">
+                                    <button type="button" class="btn btn-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#approveSafetyModal{{ $landlord->id }}">
+                                        Approve
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rejectSafetyModal{{ $landlord->id }}">
+                                        Reject
+                                    </button>
+                                </div>
+                            @endif
+                        </section>
+                    </div>
+                @else
+                    <div class="property-list">
+                        @forelse($landlord->properties as $property)
                             @php
-                                $status = (string) ($property->approval_status ?? 'pending');
-                                $statusClass = $status === 'approved'
-                                    ? 'text-bg-success'
-                                    : ($status === 'rejected' ? 'text-bg-danger' : 'text-bg-warning');
+                                $propertyStatus = (string) ($property->approval_status ?? 'pending');
                                 $reviewedAt = $property->approved_at ?? $property->rejected_at;
                                 $reviewedAtValue = !empty($reviewedAt) ? \Illuminate\Support\Carbon::parse($reviewedAt) : null;
                             @endphp
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="property-avatar">
-                                            <i class="bi bi-building"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold">{{ $property->name }}</div>
-                                            <div class="small muted">Submitted for review</div>
-                                        </div>
+                            <section class="property-card">
+                                <div class="property-card-top">
+                                    <div>
+                                        <div class="property-name">{{ $property->name }}</div>
+                                        <div class="meta-block-copy">{{ $property->address }}</div>
                                     </div>
-                                </td>
-                                <td>
-                                    <div>{{ $property->landlord->full_name }}</div>
-                                    <div class="small muted">{{ $property->landlord->email }}</div>
-                                </td>
-                                <td><div class="fw-semibold">{{ $property->address }}</div></td>
-                                <td>
-                                    <div class="fw-semibold">{{ $property->created_at->format('M d, Y') }}</div>
-                                    <div class="small muted">{{ $property->created_at->format('h:i A') }}</div>
-                                </td>
-                                <td>
-                                    <span class="badge {{ $statusClass }}">{{ str_replace('_', ' ', $status) }}</span>
-                                    @if($status === 'rejected' && !empty($property->rejection_reason))
-                                        <div class="small text-danger mt-1">{{ $property->rejection_reason }}</div>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($reviewedAtValue)
-                                        <div>{{ $reviewedAtValue->format('M d, Y') }}</div>
-                                        <div class="small muted">{{ $reviewedAtValue->format('h:i A') }}</div>
-                                    @else
-                                        <span class="small muted">Not reviewed</span>
-                                    @endif
-                                </td>
-                                <td class="pe-3 actions-col">
-                                    <div class="action-grid properties-grid">
-                                        @if($status === 'approved')
-                                            <span class="btn btn-sm btn-success action-btn disabled" aria-disabled="true" title="Already approved">
-                                                <i class="bi bi-check2-circle"></i>
-                                            </span>
-                                        @else
-                                            <button type="button" class="btn btn-sm btn-success action-btn" data-bs-toggle="modal" data-bs-target="#approvePropertyModal{{ $property->id }}" title="Approve Property" aria-label="Approve Property">
-                                                <i class="bi bi-check2"></i>
-                                            </button>
-                                        @endif
+                                    <span class="{{ $statusClass($propertyStatus) }}">{{ str_replace('_', ' ', $propertyStatus) }}</span>
+                                </div>
 
-                                        <button type="button" class="btn btn-sm btn-outline-danger action-btn" data-bs-toggle="modal" data-bs-target="#rejectPropertyModal{{ $property->id }}" title="Reject Property" aria-label="Reject Property">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-
-                                        <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-sm btn-outline-secondary action-btn" title="View Property Details" aria-label="View Property Details">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-
-                                        <a href="{{ route('admin.users.landlords.show', $property->landlord) }}" class="btn btn-sm btn-outline-secondary action-btn" title="View Landlord" aria-label="View Landlord">
-                                            <i class="bi bi-person"></i>
-                                        </a>
+                                <div class="property-grid">
+                                    <div>
+                                        <div class="meta-block-label">Submitted</div>
+                                        <div class="meta-block-copy">{{ $property->created_at->format('M d, Y h:i A') }}</div>
                                     </div>
+                                    <div>
+                                        <div class="meta-block-label">Reviewed</div>
+                                        <div class="meta-block-copy">{{ $reviewedAtValue ? $reviewedAtValue->format('M d, Y h:i A') : 'Not reviewed' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="meta-block-label">Rejection Reason</div>
+                                        <div class="meta-block-copy">{{ filled($property->rejection_reason) ? $property->rejection_reason : 'None' }}</div>
+                                    </div>
+                                </div>
 
-                                    <div class="modal fade" id="approvePropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="approvePropertyModalLabel{{ $property->id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content rounded-4 border-0 shadow">
-                                                <form method="POST" action="{{ route('admin.properties.approve', $property) }}">
-                                                    @csrf
-                                                    <div class="modal-header border-0 pb-0">
-                                                        <h5 class="modal-title" id="approvePropertyModalLabel{{ $property->id }}">
-                                                            <i class="bi bi-check2-circle text-success me-2"></i>Approve Property
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body pt-2">
-                                                        <div class="mb-2 fw-semibold">{{ $property->name }}</div>
-                                                        <div class="small muted mb-3">Landlord: {{ $property->landlord->full_name }}</div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" value="1" id="approve_property_confirm_{{ $property->id }}" required>
-                                                            <label class="form-check-label small" for="approve_property_confirm_{{ $property->id }}">
-                                                                I confirm this property is valid and ready to be published.
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-0 pt-0">
-                                                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-success rounded-pill px-3">
-                                                            <i class="bi bi-check2 me-1"></i>Confirm Approval
-                                                        </button>
-                                                    </div>
-                                                </form>
+                                <div class="property-actions">
+                                    <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-outline-secondary rounded-pill px-3">View</a>
+                                    @if($propertyStatus !== 'approved')
+                                        <button type="button" class="btn btn-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#approvePropertyModal{{ $property->id }}">Approve</button>
+                                    @endif
+                                    <button type="button" class="btn btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rejectPropertyModal{{ $property->id }}">Reject</button>
+                                </div>
+                            </section>
+
+                            <div class="modal fade" id="approvePropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="approvePropertyModalLabel{{ $property->id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 border-0 shadow">
+                                        <form method="POST" action="{{ route('admin.properties.approve', $property) }}">
+                                            @csrf
+                                            <div class="modal-header border-0 pb-0">
+                                                <h5 class="modal-title" id="approvePropertyModalLabel{{ $property->id }}">Approve Property</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="modal fade" id="rejectPropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="rejectPropertyModalLabel{{ $property->id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content rounded-4 border-0 shadow">
-                                                <form method="POST" action="{{ route('admin.properties.reject', $property) }}">
-                                                    @csrf
-                                                    <div class="modal-header border-0 pb-0">
-                                                        <h5 class="modal-title" id="rejectPropertyModalLabel{{ $property->id }}">
-                                                            <i class="bi bi-x-octagon text-danger me-2"></i>Reject Property
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body pt-2">
-                                                        <div class="mb-2 fw-semibold">{{ $property->name }}</div>
-                                                        <div class="small muted mb-3">Provide a reason to help the landlord correct the listing (optional).</div>
-                                                        <div class="mb-3">
-                                                            <label for="rejection_reason_{{ $property->id }}" class="form-label small">Rejection reason <span class="text-muted">(Optional)</span></label>
-                                                            <textarea id="rejection_reason_{{ $property->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" placeholder="Explain what needs to be corrected."></textarea>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" value="1" id="reject_property_confirm_{{ $property->id }}" required>
-                                                            <label class="form-check-label small" for="reject_property_confirm_{{ $property->id }}">
-                                                                I confirm this property should be rejected.
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-0 pt-0">
-                                                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-danger rounded-pill px-3">
-                                                            <i class="bi bi-x-lg me-1"></i>Confirm Rejection
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center py-5 table-empty">
-                                    <div class="h6 mb-1"><i class="bi bi-check2-circle me-1"></i>No properties found for this filter.</div>
-                                    <div>Try switching filters or wait for new submissions.</div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            @if($properties->hasPages())
-                <div class="section-header border-top">
-                    {{ $properties->links() }}
-                </div>
-            @endif
-        </div>
-    @else
-        <div class="section-card">
-            <div class="section-header d-flex justify-content-between align-items-center gap-2">
-                <div class="fw-semibold"><i class="bi bi-list-check me-1"></i>Permit Review Queue</div>
-                <span class="badge text-bg-secondary">{{ $landlords->total() }} records</span>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-3">Landlord</th>
-                            <th>Boarding House</th>
-                            <th>Permit</th>
-                            <th>Status</th>
-                            <th>Last Review</th>
-                            <th class="pe-3 actions-col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($landlords as $landlord)
-                            @php
-                                $profile = $landlord->landlordProfile;
-                                $status = $profile->business_permit_status ?? 'not_submitted';
-                                $statusClass = $status === 'approved'
-                                    ? 'text-bg-success'
-                                    : ($status === 'rejected' ? 'text-bg-danger' : 'text-bg-warning');
-                            @endphp
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="fw-semibold">{{ $landlord->full_name }}</div>
-                                    <div class="small muted">{{ $landlord->email }}</div>
-                                </td>
-                                <td>{{ $landlord->boarding_house_name ?: 'Not provided' }}</td>
-                                <td>
-                                    @if(!empty($profile->business_permit_path))
-                                        <a href="{{ asset('storage/' . $profile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
-                                            <i class="bi bi-file-earmark-pdf me-1"></i>View Permit
-                                        </a>
-                                    @else
-                                        <span class="small muted">No file</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge {{ $statusClass }} status-chip">{{ str_replace('_', ' ', $status) }}</span>
-                                    @if($status === 'rejected' && filled($profile->business_permit_rejection_reason))
-                                        <div class="small text-danger mt-1">{{ $profile->business_permit_rejection_reason }}</div>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if(!empty($profile->business_permit_reviewed_at))
-                                        <div>{{ $profile->business_permit_reviewed_at->format('M d, Y h:i A') }}</div>
-                                    @else
-                                        <span class="small muted">Not reviewed</span>
-                                    @endif
-                                </td>
-                                <td class="pe-3 actions-col">
-                                    <div class="action-grid permits-grid">
-                                        @if($status === 'approved')
-                                            <span class="btn btn-sm btn-success action-btn disabled" aria-disabled="true" title="Already approved">
-                                                <i class="bi bi-check2-circle"></i>
-                                            </span>
-                                        @else
-                                            <button type="button" class="btn btn-sm btn-success action-btn" data-bs-toggle="modal" data-bs-target="#approvePermitModal{{ $landlord->id }}" title="Approve Permit" aria-label="Approve Permit">
-                                                <i class="bi bi-check2"></i>
-                                            </button>
-                                        @endif
-
-                                        <button type="button" class="btn btn-sm btn-outline-danger action-btn" data-bs-toggle="modal" data-bs-target="#rejectPermitModal{{ $landlord->id }}" title="Reject Permit" aria-label="Reject Permit">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-
-                                        <a href="{{ route('admin.users.landlords.show', $landlord) }}" class="btn btn-sm btn-outline-secondary action-btn" title="View Landlord Profile" aria-label="View Landlord Profile">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                    </div>
-
-                                    @if($status !== 'approved')
-                                        <div class="modal fade" id="approvePermitModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="approvePermitModalLabel{{ $landlord->id }}" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content rounded-4 border-0 shadow">
-                                                    <form method="POST" action="{{ route('admin.permits.approve', $landlord) }}">
-                                                        @csrf
-                                                        <div class="modal-header border-0 pb-0">
-                                                            <h5 class="modal-title" id="approvePermitModalLabel{{ $landlord->id }}">
-                                                                <i class="bi bi-check2-circle text-success me-2"></i>Approve Permit Submission
-                                                            </h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body pt-2">
-                                                            <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
-                                                            <div class="reject-modal-note mb-3">Confirm approval to unlock landlord operations and notify the account owner.</div>
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" value="1" id="approve_confirm_{{ $landlord->id }}" required>
-                                                                <label class="form-check-label small" for="approve_confirm_{{ $landlord->id }}">
-                                                                    I confirm this permit is valid and should be approved.
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                        <div class="modal-footer border-0 pt-0">
-                                                            <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                            <button type="submit" class="btn btn-success rounded-pill px-3">
-                                                                <i class="bi bi-check2 me-1"></i>Confirm Approval
-                                                            </button>
-                                                        </div>
-                                                    </form>
+                                            <div class="modal-body pt-2">
+                                                <div class="mb-2 fw-semibold">{{ $property->name }}</div>
+                                                <div class="small muted mb-3">Landlord: {{ $landlord->full_name }}</div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="1" id="approve_property_confirm_{{ $property->id }}" required>
+                                                    <label class="form-check-label small" for="approve_property_confirm_{{ $property->id }}">
+                                                        I confirm this property is valid and ready to be published.
+                                                    </label>
                                                 </div>
                                             </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="modal fade" id="rejectPermitModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="rejectPermitModalLabel{{ $landlord->id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content rounded-4 border-0 shadow">
-                                                <form method="POST" action="{{ route('admin.permits.reject', $landlord) }}">
-                                                    @csrf
-                                                    <div class="modal-header border-0 pb-0">
-                                                        <h5 class="modal-title" id="rejectPermitModalLabel{{ $landlord->id }}">
-                                                            <i class="bi bi-x-octagon text-danger me-2"></i>Reject Permit Submission
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body pt-2">
-                                                        <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
-                                                        <div class="reject-modal-note mb-3">Provide a clear reason so the landlord can upload a corrected permit.</div>
-                                                        <div class="mb-3">
-                                                            <label for="rejection_reason_{{ $landlord->id }}" class="form-label small">Rejection reason <span class="text-danger">*</span></label>
-                                                            <textarea id="rejection_reason_{{ $landlord->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" placeholder="State what needs to be corrected in the permit." required></textarea>
-                                                        </div>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" value="1" id="reject_confirm_{{ $landlord->id }}" required>
-                                                            <label class="form-check-label small" for="reject_confirm_{{ $landlord->id }}">
-                                                                I confirm this permit should be rejected and the landlord will be notified.
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-0 pt-0">
-                                                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-danger rounded-pill px-3">
-                                                            <i class="bi bi-send me-1"></i>Confirm Rejection
-                                                        </button>
-                                                    </div>
-                                                </form>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success rounded-pill px-3">Confirm Approval</button>
                                             </div>
-                                        </div>
+                                        </form>
                                     </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center py-5 table-empty">
-                                    <div class="h6 mb-1"><i class="bi bi-check2-circle me-1"></i>No permits found for this filter.</div>
-                                    <div>Try switching filters or wait for new permit submissions.</div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </div>
 
-            @if($landlords->hasPages())
-                <div class="section-header border-top">
-                    {{ $landlords->links() }}
+                            <div class="modal fade" id="rejectPropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="rejectPropertyModalLabel{{ $property->id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content rounded-4 border-0 shadow">
+                                        <form method="POST" action="{{ route('admin.properties.reject', $property) }}">
+                                            @csrf
+                                            <div class="modal-header border-0 pb-0">
+                                                <h5 class="modal-title" id="rejectPropertyModalLabel{{ $property->id }}">Reject Property</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body pt-2">
+                                                <div class="mb-2 fw-semibold">{{ $property->name }}</div>
+                                                <div class="small muted mb-3">Provide a reason to help the landlord correct the listing.</div>
+                                                <div class="mb-3">
+                                                    <label for="rejection_reason_{{ $property->id }}" class="form-label small">Rejection reason <span class="text-muted">(Optional)</span></label>
+                                                    <textarea id="rejection_reason_{{ $property->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" placeholder="Explain what needs to be corrected."></textarea>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="1" id="reject_property_confirm_{{ $property->id }}" required>
+                                                    <label class="form-check-label small" for="reject_property_confirm_{{ $property->id }}">
+                                                        I confirm this property should be rejected.
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-danger rounded-pill px-3">Confirm Rejection</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="empty-state">
+                                <div class="fw-semibold mb-1">No properties match this filter for {{ $landlord->full_name }}.</div>
+                                <div>Try switching status filters or wait for new submissions.</div>
+                            </div>
+                        @endforelse
+                    </div>
+                @endif
+            </article>
+
+            @if($activeTab === 'permits')
+                <div class="modal fade" id="approvePermitModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="approvePermitModalLabel{{ $landlord->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow">
+                            <form method="POST" action="{{ route('admin.permits.approve', $landlord) }}">
+                                @csrf
+                                <div class="modal-header border-0 pb-0">
+                                    <h5 class="modal-title" id="approvePermitModalLabel{{ $landlord->id }}">Approve Business Permit</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body pt-2">
+                                    <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
+                                    <div class="small muted mb-3">Confirm approval for the uploaded business permit.</div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="approve_permit_confirm_{{ $landlord->id }}" required>
+                                        <label class="form-check-label small" for="approve_permit_confirm_{{ $landlord->id }}">
+                                            I confirm this business permit is valid and should be approved.
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success rounded-pill px-3">Confirm Approval</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="rejectPermitModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="rejectPermitModalLabel{{ $landlord->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow">
+                            <form method="POST" action="{{ route('admin.permits.reject', $landlord) }}">
+                                @csrf
+                                <div class="modal-header border-0 pb-0">
+                                    <h5 class="modal-title" id="rejectPermitModalLabel{{ $landlord->id }}">Reject Business Permit</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body pt-2">
+                                    <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
+                                    <div class="small muted mb-3">Provide a clear reason so the landlord can upload a corrected permit.</div>
+                                    <div class="mb-3">
+                                        <label for="permit_rejection_reason_{{ $landlord->id }}" class="form-label small">Rejection reason <span class="text-danger">*</span></label>
+                                        <textarea id="permit_rejection_reason_{{ $landlord->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" required></textarea>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="reject_permit_confirm_{{ $landlord->id }}" required>
+                                        <label class="form-check-label small" for="reject_permit_confirm_{{ $landlord->id }}">
+                                            I confirm this business permit should be rejected.
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger rounded-pill px-3">Confirm Rejection</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="approveSafetyModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="approveSafetyModalLabel{{ $landlord->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow">
+                            <form method="POST" action="{{ route('admin.permits.safety.approve', $landlord) }}">
+                                @csrf
+                                <div class="modal-header border-0 pb-0">
+                                    <h5 class="modal-title" id="approveSafetyModalLabel{{ $landlord->id }}">Approve Safety Certificate</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body pt-2">
+                                    <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
+                                    <div class="small muted mb-3">Confirm approval for the uploaded safety certificate.</div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="approve_safety_confirm_{{ $landlord->id }}" required>
+                                        <label class="form-check-label small" for="approve_safety_confirm_{{ $landlord->id }}">
+                                            I confirm this safety certificate is valid and should be approved.
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success rounded-pill px-3">Confirm Approval</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="rejectSafetyModal{{ $landlord->id }}" tabindex="-1" aria-labelledby="rejectSafetyModalLabel{{ $landlord->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow">
+                            <form method="POST" action="{{ route('admin.permits.safety.reject', $landlord) }}">
+                                @csrf
+                                <div class="modal-header border-0 pb-0">
+                                    <h5 class="modal-title" id="rejectSafetyModalLabel{{ $landlord->id }}">Reject Safety Certificate</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body pt-2">
+                                    <div class="mb-2 fw-semibold">{{ $landlord->full_name }}</div>
+                                    <div class="small muted mb-3">Provide a clear reason so the landlord can upload a corrected safety certificate.</div>
+                                    <div class="mb-3">
+                                        <label for="safety_rejection_reason_{{ $landlord->id }}" class="form-label small">Rejection reason <span class="text-danger">*</span></label>
+                                        <textarea id="safety_rejection_reason_{{ $landlord->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" required></textarea>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="reject_safety_confirm_{{ $landlord->id }}" required>
+                                        <label class="form-check-label small" for="reject_safety_confirm_{{ $landlord->id }}">
+                                            I confirm this safety certificate should be rejected.
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger rounded-pill px-3">Confirm Rejection</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             @endif
+        @empty
+            <div class="section-card">
+                <div class="empty-state">
+                    <div class="h6 mb-1"><i class="bi bi-check2-circle me-1"></i>No landlords found for this filter.</div>
+                    <div>Try changing the current filter or wait for new landlord records.</div>
+                </div>
+            </div>
+        @endforelse
+    </div>
+
+    @if(($landlords ?? null) && $landlords->hasPages())
+        <div class="section-card mt-3">
+            <div class="p-3">
+                {{ $landlords->links() }}
+            </div>
         </div>
     @endif
 </div>

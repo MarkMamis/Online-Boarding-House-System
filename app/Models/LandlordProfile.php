@@ -24,6 +24,10 @@ class LandlordProfile extends Model
         'about',
         'business_permit_path',
         'safety_certificate_path',
+        'safety_certificate_status',
+        'safety_certificate_reviewed_at',
+        'safety_certificate_reviewed_by',
+        'safety_certificate_rejection_reason',
         'business_permit_status',
         'business_permit_reviewed_at',
         'business_permit_reviewed_by',
@@ -45,6 +49,7 @@ class LandlordProfile extends Model
     protected $casts = [
         'preferred_payment_methods' => 'array',
         'business_permit_reviewed_at' => 'datetime',
+        'safety_certificate_reviewed_at' => 'datetime',
         'profile_completed' => 'boolean',
         'billing_completed' => 'boolean',
         'tenant_privacy_settings' => 'array',
@@ -66,5 +71,15 @@ class LandlordProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function businessPermitReviewer()
+    {
+        return $this->belongsTo(User::class, 'business_permit_reviewed_by');
+    }
+
+    public function safetyCertificateReviewer()
+    {
+        return $this->belongsTo(User::class, 'safety_certificate_reviewed_by');
     }
 }
