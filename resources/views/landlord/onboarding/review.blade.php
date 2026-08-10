@@ -37,16 +37,16 @@
       };
       $uploadedDocs = collect($onboarding->uploaded_documents ?? []);
       $contractSignaturePath = (string) ($onboarding->contract_signature_path ?? '');
-      $hasContractSignature = $contractSignaturePath !== '' && Storage::disk('public')->exists($contractSignaturePath);
-      $contractSignatureUrl = $hasContractSignature ? asset('storage/' . $contractSignaturePath) : null;
+      $hasContractSignature = $contractSignaturePath !== '' && file_exists_any($contractSignaturePath);
+      $contractSignatureUrl = $hasContractSignature ? file_url($contractSignaturePath) : null;
       $contractSignerName = trim((string) ($onboarding->contract_signature_name ?? ($onboarding->booking->student->full_name ?? '')));
       $landlordUser = optional(optional(optional($onboarding->booking)->room)->property)->landlord;
       $landlordContractSignaturePath = (string) ($onboarding->landlord_contract_signature_path ?? '');
-      $hasLandlordContractSignature = $landlordContractSignaturePath !== '' && Storage::disk('public')->exists($landlordContractSignaturePath);
-      $landlordContractSignatureUrl = $hasLandlordContractSignature ? asset('storage/' . $landlordContractSignaturePath) : null;
+      $hasLandlordContractSignature = $landlordContractSignaturePath !== '' && file_exists_any($landlordContractSignaturePath);
+      $landlordContractSignatureUrl = $hasLandlordContractSignature ? file_url($landlordContractSignaturePath) : null;
       $landlordSignerName = trim((string) ($onboarding->landlord_contract_signature_name ?? ($landlordUser->full_name ?? $landlordUser->name ?? 'Landlord')));
       $landlordProfileSignaturePath = (string) (optional(optional($landlordUser)->landlordProfile)->contract_signature_path ?? '');
-      $hasLandlordProfileSignature = $landlordProfileSignaturePath !== '' && Storage::disk('public')->exists($landlordProfileSignaturePath);
+      $hasLandlordProfileSignature = $landlordProfileSignaturePath !== '' && file_exists_any($landlordProfileSignaturePath);
       $monthlyRentAmount = is_numeric($onboarding->booking?->monthly_rent_amount)
         ? (float) $onboarding->booking?->monthly_rent_amount
         : (is_numeric($onboarding->booking?->room?->price) ? (float) $onboarding->booking?->room?->price : 0.0);
@@ -251,8 +251,8 @@
                   $fileName = basename($doc);
                   $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                   $isImage = in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif'], true);
-                  $exists = Storage::disk('public')->exists($doc);
-                  $fileSize = $exists ? Storage::disk('public')->size($doc) : 0;
+                  $exists = file_exists_any($doc);
+                  $fileSize = $exists ? file_size_any($doc) : 0;
                   $requiredDocKey = (string) ($requiredDocuments->get($loop->index) ?? '');
                   $docTypeLabel = match ($requiredDocKey) {
                     'student_id' => 'Student ID',
@@ -487,7 +487,7 @@
 
             @if(!empty($onboarding->payment_proof_path))
               <div class="mb-3">
-                <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View Payment Proof</a>
+                <a href="{{ file_download_url($onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View Payment Proof</a>
               </div>
             @endif
 
@@ -575,7 +575,7 @@
 
             @if(!empty($onboarding->payment_proof_path))
               <div class="mt-3">
-                <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View Payment Proof</a>
+                <a href="{{ file_download_url($onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View Payment Proof</a>
               </div>
             @endif
           @endif

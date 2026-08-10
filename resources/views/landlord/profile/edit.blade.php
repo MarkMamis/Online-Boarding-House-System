@@ -81,7 +81,7 @@
                                                     <label class="form-label">Profile Photo</label>
                                                     <div class="d-flex align-items-center gap-3 profile-photo-panel">
                                                         @if(!empty($user->profile_image_path))
-                                                            <img id="profile_image_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width: 84px; height: 84px; object-fit: cover;">
+                                                            <img id="profile_image_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width: 84px; height: 84px; object-fit: cover;">
                                                         @else
                                                             <img id="profile_image_preview" src="" alt="Profile photo" class="rounded-circle border d-none" style="width: 84px; height: 84px; object-fit: cover;">
                                                             <div id="profile_image_placeholder" class="rounded-circle border bg-light d-flex align-items-center justify-content-center" style="width: 84px; height: 84px;">
@@ -188,7 +188,7 @@
                                                     <div class="form-text">Accepted: PDF, JPG, JPEG, PNG. Max size: 2MB.</div>
                                                     @if(!empty(optional($user->landlordProfile)->business_permit_path))
                                                         <div class="mt-2">
-                                                            <a href="{{ asset('storage/' . optional($user->landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                            <a href="{{ file_download_url(optional($user->landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
                                                                 <i class="fas fa-file-alt me-1"></i>View Uploaded Permit
                                                             </a>
                                                         </div>
@@ -201,7 +201,7 @@
                                     <div class="col-12">
                                         @php
                                             $existingLandlordSignaturePath = (string) (optional($user->landlordProfile)->contract_signature_path ?? '');
-                                            $existingLandlordSignatureUrl = $existingLandlordSignaturePath !== '' ? asset('storage/' . $existingLandlordSignaturePath) : '';
+                                            $existingLandlordSignatureUrl = $existingLandlordSignaturePath !== '' ? file_url($existingLandlordSignaturePath) : '';
                                         @endphp
                                         <div class="profile-form-section section-focus-scope" data-focus-scope="contract-signature">
                                             <h6 class="fw-semibold mb-3 section-focus-target" id="contract-signature">
@@ -344,7 +344,7 @@
                                                     <div class="form-text">Optional upload. Accepted: JPG, JPEG, PNG, WEBP. Max size: 2MB.</div>
                                                     @if(!empty(optional($user->landlordProfile)->payment_gcash_qr_path))
                                                         <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
-                                                            <a href="{{ asset('storage/' . optional($user->landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                            <a href="{{ file_download_url(optional($user->landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
                                                                 <i class="fas fa-qrcode me-1"></i>View Current QR
                                                             </a>
                                                         </div>

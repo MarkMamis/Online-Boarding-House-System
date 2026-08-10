@@ -1430,14 +1430,8 @@
                                 $propertyImage = $room->property->image_path ?? null;
                                 $roomRating = (float) ($room->average_rating ?? $room->property->average_rating ?? 0);
                                 $roomRatingCount = (int) ($room->ratings_count ?? 0);
-                                $roomImageExists = !empty($roomImage) && (
-                                    \Illuminate\Support\Facades\Storage::disk('public')->exists($roomImage) ||
-                                    file_exists(public_path('storage/' . ltrim($roomImage, '/')))
-                                );
-                                $propertyImageExists = !empty($propertyImage) && (
-                                    \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage) ||
-                                    file_exists(public_path('storage/' . ltrim($propertyImage, '/')))
-                                );
+                                $roomImageExists = !empty($roomImage) && file_exists_any($roomImage);
+                                $propertyImageExists = !empty($propertyImage) && file_exists_any($propertyImage);
                                 $previewImage = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
 
                                 $pricingModel = method_exists($room, 'resolvePricingModel')
@@ -1493,7 +1487,7 @@
                                         <div class="d-flex justify-content-between gap-3">
                                             <div class="d-flex gap-3 preview-room-main">
                                                 @if($previewImage)
-                                                    <img src="{{ asset('storage/'.$previewImage) }}" alt="{{ $room->room_number }} preview" class="preview-thumb" loading="lazy">
+                                                    <img src="{{ file_url($previewImage) }}" alt="{{ $room->room_number }} preview" class="preview-thumb" loading="lazy">
                                                 @else
                                                     <div class="preview-thumb placeholder"><i class="bi bi-house-door fs-5"></i></div>
                                                 @endif
@@ -1550,7 +1544,7 @@
 
                             $profileImage = $landlord->profile_image_path;
                             $profileImageExists = !empty($profileImage) && (
-                                \Illuminate\Support\Facades\Storage::disk('public')->exists($profileImage) ||
+                                file_exists_any($profileImage) ||
                                 file_exists(public_path('storage/' . ltrim($profileImage, '/')))
                             );
 
@@ -1674,10 +1668,7 @@
             @forelse($featuredProperties as $property)
                 @php
                     $propertyImage = $property->image_path;
-                    $propertyImageExists = !empty($propertyImage) && (
-                        \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage) ||
-                        file_exists(public_path('storage/' . ltrim($propertyImage, '/')))
-                    );
+                    $propertyImageExists = !empty($propertyImage) && file_exists_any($propertyImage);
                     $rating = $property->average_rating ? number_format((float) $property->average_rating, 1) : null;
                     $minPrice = $property->rooms_min_price;
                     $propertyPricingLabels = [];
@@ -1695,7 +1686,7 @@
                     <div class="property-card h-100">
                         <div class="property-photo">
                             @if($propertyImageExists)
-                                <img src="{{ asset('storage/' . $propertyImage) }}" alt="{{ $property->name }} preview" loading="lazy">
+                                <img src="{{ file_url($propertyImage) }}" alt="{{ $property->name }} preview" loading="lazy">
                             @else
                                 <i class="bi bi-building fs-2"></i>
                             @endif
@@ -1822,7 +1813,7 @@
                                         <div class="landlord-layout">
                                             <div class="landlord-media">
                                                 @if(!empty($landlordEntry['profile_image']))
-                                                    <img src="{{ asset('storage/' . ltrim($landlordEntry['profile_image'], '/')) }}" alt="{{ $landlordEntry['name'] }} profile" class="landlord-photo" loading="lazy">
+                                                    <img src="{{ file_url($landlordEntry['profile_image']) }}" alt="{{ $landlordEntry['name'] }} profile" class="landlord-photo" loading="lazy">
                                                 @else
                                                     <span class="landlord-avatar-large">{{ strtoupper(substr($landlordEntry['name'], 0, 1)) }}</span>
                                                 @endif

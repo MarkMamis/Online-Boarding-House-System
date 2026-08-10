@@ -193,7 +193,7 @@
                             <td>{{ $landlord->boarding_house_name ?: 'Not provided' }}</td>
                             <td>
                                 @if(!empty($profile->business_permit_path))
-                                    <a href="{{ asset('storage/' . $profile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    <a href="{{ file_download_url($profile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
                                         <i class="bi bi-file-earmark-pdf me-1"></i>View Permit
                                     </a>
                                 @else

@@ -1002,8 +1002,7 @@
         @php
             $propertyImage = ltrim((string) ($property->image_path ?? ''), '/');
             $propertyImageExists = $propertyImage !== '' && (
-                \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage)
-                || file_exists(public_path('storage/' . $propertyImage))
+                file_exists_any($propertyImage)
             );
             $availablePropertyRooms = $rooms->filter(fn ($room) => $room->status === 'available' && $room->getAvailableSlots() > 0)->count();
             $minPropertyPrice = $rooms->count() > 0 ? (float) $rooms->min('price') : null;
@@ -1018,7 +1017,7 @@
 
         <section class="hero">
             @if($propertyImageExists)
-                <img class="hero-image is-landscape" src="{{ asset('storage/' . $propertyImage) }}" alt="{{ $property->name }}" loading="lazy">
+                <img class="hero-image is-landscape" src="{{ file_url($propertyImage) }}" alt="{{ $property->name }}" loading="lazy">
             @endif
             <div class="hero-overlay"></div>
 
@@ -1053,12 +1052,10 @@
                         $propertyImage = ltrim((string) ($property->image_path ?? ''), '/');
 
                         $roomImageExists = $roomImage !== '' && (
-                            \Illuminate\Support\Facades\Storage::disk('public')->exists($roomImage)
-                            || file_exists(public_path('storage/' . $roomImage))
+                            file_exists_any($roomImage)
                         );
                         $propertyImageExists = $propertyImage !== '' && (
-                            \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage)
-                            || file_exists(public_path('storage/' . $propertyImage))
+                            file_exists_any($propertyImage)
                         );
                         $displayImage = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
 
@@ -1085,7 +1082,7 @@
                     <article class="room-card">
                         <div class="room-photo">
                             @if($displayImage)
-                                <img src="{{ asset('storage/' . $displayImage) }}" alt="{{ $room->room_number }}" loading="lazy">
+                                <img src="{{ file_url($displayImage) }}" alt="{{ $room->room_number }}" loading="lazy">
                             @else
                                 <i class="bi bi-building fs-3"></i>
                             @endif
@@ -1194,8 +1191,7 @@
         $landlordAbout = trim((string) ($landlordProfile->about ?? ''));
         $landlordImage = ltrim((string) ($landlord->profile_image_path ?? ''), '/');
         $landlordImageExists = $landlordImage !== '' && (
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($landlordImage)
-            || file_exists(public_path('storage/' . $landlordImage))
+            file_exists_any($landlordImage)
         );
         $ownedProperties = ($landlord?->properties ?? collect())
             ->pluck('name')
@@ -1210,7 +1206,7 @@
             <div class="landlord-modal-layout">
                 <div class="landlord-modal-media" aria-hidden="true">
                     @if($landlordImageExists)
-                        <img src="{{ asset('storage/' . $landlordImage) }}" alt="{{ $landlord->full_name ?? 'Landlord' }}">
+                        <img src="{{ file_url($landlordImage) }}" alt="{{ $landlord->full_name ?? 'Landlord' }}">
                     @else
                         <div class="landlord-modal-media-fallback"><i class="bi bi-person fs-1"></i></div>
                     @endif

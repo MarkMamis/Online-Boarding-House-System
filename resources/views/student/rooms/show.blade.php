@@ -316,7 +316,7 @@
 
     <div class="mb-3">
         @if(!empty($img))
-            <img src="{{ asset('storage/'.$img) }}" alt="Room cover" class="sr-hero">
+            <img src="{{ file_url($img) }}" alt="Room cover" class="sr-hero">
         @else
             <div class="sr-hero-placeholder"><span class="text-center"><i class="bi bi-image fs-2 d-block mb-1"></i><small>No cover photo</small></span></div>
         @endif
@@ -471,7 +471,7 @@
 {{-- Hero --}}
 <div class="mb-3">
     @if(!empty($img))
-        <img src="{{ asset('storage/'.$img) }}" alt="Room cover" class="sr-hero">
+        <img src="{{ file_url($img) }}" alt="Room cover" class="sr-hero">
     @else
         <div class="sr-hero-placeholder"><span class="text-center"><i class="bi bi-image fs-2 d-block mb-1"></i><small>No cover photo</small></span></div>
     @endif
@@ -552,9 +552,9 @@
                 <div class="detail-grid">
                     @foreach($detailPhotos as $idx => $photo)
                     <div class="detail-thumb" onclick="openLb({{ $idx }})"
-                         data-src="{{ asset('storage/'.$photo->image_path) }}"
+                         data-src="{{ file_url($photo->image_path) }}"
                          data-label="{{ $photo->label ?? '' }}">
-                        <img src="{{ asset('storage/'.$photo->image_path) }}" alt="{{ $photo->label ?? 'Room photo' }}" loading="lazy">
+                        <img src="{{ file_url($photo->image_path) }}" alt="{{ $photo->label ?? 'Room photo' }}" loading="lazy">
                         @if(!empty($photo->label))<div class="thumb-label">{{ $photo->label }}</div>@endif
                     </div>
                     @endforeach
@@ -708,7 +708,7 @@
             <div class="sr-card-header"><i class="bi bi-building"></i> Property</div>
             <div class="p-0 overflow-hidden" style="border-radius:0 0 1rem 1rem;">
                 @if($room->property->image_path)
-                    <img src="{{ asset('storage/'.$room->property->image_path) }}"
+                    <img src="{{ file_url($room->property->image_path) }}"
                          alt="{{ $room->property->name }}"
                          style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;">
                 @endif
@@ -804,7 +804,7 @@
             $coverImg = $room->roomImages->firstWhere('is_cover', true) ?? $room->roomImages->first();
           @endphp
           @if($coverImg)
-          <img src="{{ asset('storage/' . $coverImg->image_path) }}"
+          <img src="{{ file_url($coverImg->image_path) }}"
                class="rounded-3 shrink-0"
                style="width:72px;height:56px;object-fit:cover;"
                alt="Room photo">

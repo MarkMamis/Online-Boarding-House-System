@@ -520,7 +520,7 @@
                 <div class="p-3 sidepanel">
                     <div class="d-flex align-items-center gap-2 px-2 py-2 mb-2 sidebar-head">
                         @if(!empty(Auth::user()->profile_image_path))
-                            <img src="{{ asset('storage/' . Auth::user()->profile_image_path) }}" alt="Profile photo" class="rounded-3 border" style="width:40px;height:40px;object-fit:cover;border-color:rgba(22,101,52,.22)!important;">
+                            <img src="{{ file_url(Auth::user()->profile_image_path) }}" alt="Profile photo" class="rounded-3 border" style="width:40px;height:40px;object-fit:cover;border-color:rgba(22,101,52,.22)!important;">
                         @else
                             <div class="rounded-3 d-inline-flex align-items-center justify-content-center" style="width:40px;height:40px;background:rgba(22,101,52,.10);border:1px solid rgba(22,101,52,.20);">
                                 <i class="bi bi-person-badge" style="color:#14532d;"></i>

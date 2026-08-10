@@ -42,7 +42,7 @@
             <article class="room-item">
                 <div class="room-thumb-wrap">
                     @if(!empty($room->image_path))
-                        <img src="{{ asset('storage/'.$room->image_path) }}" alt="Room photo" class="room-thumb">
+                        <img src="{{ file_url($room->image_path) }}" alt="Room photo" class="room-thumb">
                     @else
                         <div class="room-thumb room-thumb-empty">
                             <i class="bi bi-image"></i>
@@ -107,7 +107,7 @@
                                     <div class="tenant-avatar">
                                         @if(!empty($room->current_tenant->profile_image_path))
                                             <img
-                                                src="{{ asset('storage/' . ltrim($room->current_tenant->profile_image_path, '/')) }}"
+                                                src="{{ file_url($room->current_tenant->profile_image_path) }}"
                                                 alt="{{ $tenantName }}"
                                                 class="tenant-avatar-img"
                                             >

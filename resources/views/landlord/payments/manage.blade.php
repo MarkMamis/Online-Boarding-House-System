@@ -225,7 +225,7 @@
                                 @endif
 
                                 @if(!empty($record->payment_proof_path))
-                                    <a href="{{ asset('storage/' . $record->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1">
+                                    <a href="{{ file_download_url($record->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1">
                                         <i class="bi bi-file-earmark-arrow-down me-1"></i>View Proof
                                     </a>
                                 @endif
@@ -321,7 +321,7 @@
                                         @endif
 
                                         @if(!empty($record->payment_proof_path))
-                                            <a href="{{ asset('storage/' . $record->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1">
+                                            <a href="{{ file_download_url($record->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-1">
                                                 <i class="bi bi-file-earmark-arrow-down me-1"></i>View Proof
                                             </a>
                                         @endif

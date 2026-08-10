@@ -65,7 +65,7 @@
                                 <label class="form-label">Profile Photo</label>
                                 <div class="d-flex align-items-center gap-3 photo-panel">
                                     @if(!empty($user->profile_image_path))
-                                        <img id="profile_image_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
+                                        <img id="profile_image_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
                                     @else
                                         <img id="profile_image_preview" src="" alt="Profile photo" class="rounded-circle border d-none" style="width:84px;height:84px;object-fit:cover;">
                                         <div id="profile_image_placeholder" class="rounded-circle border bg-light d-flex align-items-center justify-content-center" style="width:84px;height:84px;">

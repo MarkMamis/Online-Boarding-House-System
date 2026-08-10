@@ -10,7 +10,6 @@ use App\Models\TenantOnboarding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class RoomController extends Controller
@@ -266,13 +265,7 @@ class RoomController extends Controller
             $validated['requires_advance_payment'] = $request->boolean('requires_advance_payment');
         }
 
-        if ($request->hasFile('image')) {
-            try {
-                $validated['image_path'] = str_replace('\\', '/', $request->file('image')->store('rooms', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
-            }
-        }
+        $coverImagePending = $request->hasFile('image');
 
         $validated['slots_available'] = array_key_exists('slots_available', $validated)
             ? (int) $validated['slots_available']
@@ -285,6 +278,19 @@ class RoomController extends Controller
         $room = $property->rooms()->create($validated);
         $room->syncAvailabilitySnapshot();
 
+        if ($coverImagePending) {
+            try {
+                $room->update([
+                    'image_path' => app(\App\Services\FileStorageService::class)->upload(
+                        $request->file('image'),
+                        'rooms/' . $room->id . '/images'
+                    ),
+                ]);
+            } catch (\Throwable $e) {
+                // Room stays created without a cover photo; upload failure is already logged.
+            }
+        }
+
         if ($request->hasFile('detail_images')) {
             $labels = $request->input('detail_labels', []);
             foreach ($request->file('detail_images') as $i => $file) {
@@ -292,7 +298,7 @@ class RoomController extends Controller
                     continue;
                 }
                 try {
-                    $path = str_replace('\\', '/', $file->store('rooms', 'public'));
+                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/' . $room->id . '/images');
                     RoomImage::create([
                         'room_id' => $room->id,
                         'image_path' => $path,
@@ -371,11 +377,14 @@ class RoomController extends Controller
 
         // --- Cover photo ---
         if ($request->hasFile('image')) {
-            if (!empty($room->image_path)) {
-                Storage::disk('public')->delete($room->image_path);
-            }
             try {
-                $validated['image_path'] = str_replace('\\', '/', $request->file('image')->store('rooms', 'public'));
+                $validated['image_path'] = app(\App\Services\FileStorageService::class)->replace(
+                    $room->image_path,
+                    $request->file('image'),
+                    'rooms/' . $room->id . '/images'
+                );
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
             } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
                 return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
             }
@@ -398,7 +407,7 @@ class RoomController extends Controller
             foreach ($request->input('delete_detail_images') as $imgId) {
                 $img = RoomImage::where('id', $imgId)->where('room_id', $room->id)->first();
                 if ($img) {
-                    Storage::disk('public')->delete($img->image_path);
+                    app(\App\Services\FileStorageService::class)->delete($img->image_path);
                     $img->delete();
                 }
             }
@@ -418,7 +427,7 @@ class RoomController extends Controller
             foreach ($request->file('detail_images') as $i => $file) {
                 if (!$file || !$file->isValid()) continue;
                 try {
-                    $path = str_replace('\\', '/', $file->store('rooms', 'public'));
+                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/' . $room->id . '/images');
                     RoomImage::create([
                         'room_id'    => $room->id,
                         'image_path' => $path,
@@ -490,15 +499,7 @@ class RoomController extends Controller
             $validated['requires_advance_payment'] = $request->boolean('requires_advance_payment');
         }
 
-        if ($request->hasFile('image')) {
-            try {
-                $validated['image_path'] = str_replace('\\', '/', $request->file('image')->store('rooms', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return redirect()->route('landlord.dashboard')
-                    ->withInput()
-                    ->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
-            }
-        }
+        $coverImagePending = $request->hasFile('image');
 
         $validated['slots_available'] = array_key_exists('slots_available', $validated)
             ? (int) $validated['slots_available']
@@ -510,6 +511,20 @@ class RoomController extends Controller
 
         $room = $property->rooms()->create($validated);
         $room->syncAvailabilitySnapshot();
+
+        if ($coverImagePending) {
+            try {
+                $room->update([
+                    'image_path' => app(\App\Services\FileStorageService::class)->upload(
+                        $request->file('image'),
+                        'rooms/' . $room->id . '/images'
+                    ),
+                ]);
+            } catch (\Throwable $e) {
+                // Room stays created without a cover photo; upload failure is already logged.
+            }
+        }
+
         $this->syncPropertyPriceRange($property);
         return redirect()->route('landlord.dashboard')
             ->with('success', 'Room added to property "'.$property->name.'"');

@@ -152,7 +152,7 @@
                                     @if(!empty($property->image_path))
                                         <div class="mt-3">
                                             <div class="text-muted small mb-1">Current photo</div>
-                                            <img src="{{ asset('storage/' . $property->image_path) }}" alt="Property photo" class="img-fluid rounded-3 border" style="max-height: 260px; object-fit: cover;">
+                                            <img src="{{ file_url($property->image_path) }}" alt="Property photo" class="img-fluid rounded-3 border" style="max-height: 260px; object-fit: cover;">
                                         </div>
                                     @endif
 

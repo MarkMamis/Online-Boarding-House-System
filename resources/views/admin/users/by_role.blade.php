@@ -370,7 +370,7 @@
                             <td class="ps-3">
                                 <div class="d-flex align-items-center">
                                     @if(!empty($user->profile_image_path))
-                                        <img src="{{ asset('storage/' . $user->profile_image_path) }}" alt="{{ $user->full_name }}" class="avatar-photo">
+                                        <img src="{{ file_url($user->profile_image_path) }}" alt="{{ $user->full_name }}" class="avatar-photo">
                                     @else
                                         <div class="avatar-item">{{ strtoupper(substr($user->full_name, 0, 1)) }}</div>
                                     @endif

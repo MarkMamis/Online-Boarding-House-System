@@ -526,7 +526,7 @@
                                                 <div class="dash-rec-card-row">
                                                     <div class="dash-rec-card-media">
                                                         @if($recImg)
-                                                            <img src="{{ asset('storage/'.$recImg) }}" alt="Room image" style="width:100%;height:100%;object-fit:cover;display:block;">
+                                                            <img src="{{ file_url($recImg) }}" alt="Room image" style="width:100%;height:100%;object-fit:cover;display:block;">
                                                         @else
                                                             <div class="d-flex align-items-center justify-content-center h-100 text-muted small">
                                                                 <i class="bi bi-image me-1"></i>No photo
@@ -703,7 +703,7 @@
                                 <div class="room-browse-card h-100 {{ $isFullCapacity ? 'room-browse-card-dimmed' : '' }}">
                                     <div class="room-browse-photo">
                                         @if($rImg)
-                                            <img src="{{ asset('storage/'.$rImg) }}" alt="Room" loading="lazy">
+                                            <img src="{{ file_url($rImg) }}" alt="Room" loading="lazy">
                                         @else
                                             <div class="room-browse-nophoto"><i class="bi bi-building fs-2 text-muted"></i></div>
                                         @endif
@@ -777,7 +777,7 @@
                                 <div class="room-browse-card h-100 {{ $isFullCapacity2 || $r->status === 'maintenance' ? 'room-browse-card-dimmed' : '' }}">
                                     <div class="room-browse-photo">
                                         @if($rImg2)
-                                            <img src="{{ asset('storage/'.$rImg2) }}" alt="Room" loading="lazy">
+                                            <img src="{{ file_url($rImg2) }}" alt="Room" loading="lazy">
                                         @else
                                             <div class="room-browse-nophoto"><i class="bi bi-building fs-2 text-muted"></i></div>
                                         @endif

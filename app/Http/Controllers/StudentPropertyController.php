@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class StudentPropertyController extends Controller
 {
@@ -123,10 +122,7 @@ class StudentPropertyController extends Controller
 
         $payload = $properties->map(function ($p) use ($amenityOptions) {
             $imagePath = ltrim((string) ($p->image_path ?? ''), '/');
-            $imageExists = $imagePath !== '' && (
-                Storage::disk('public')->exists($imagePath)
-                || file_exists(public_path('storage/' . $imagePath))
-            );
+            $imageExists = $imagePath !== '' && file_exists_any($imagePath);
 
             $inclusions = collect((array) ($p->building_inclusions ?? []))
                 ->map(fn ($key) => $amenityOptions[$key] ?? null)

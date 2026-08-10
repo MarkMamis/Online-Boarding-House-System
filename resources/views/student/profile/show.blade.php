@@ -261,7 +261,7 @@
                                             <label class="form-label">Profile Photo</label>
                                             <div class="d-flex align-items-center gap-3 profile-photo-panel">
                                                 @if(!empty($user->profile_image_path))
-                                                    <img id="profile_image_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
+                                                    <img id="profile_image_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
                                                 @else
                                                     <img id="profile_image_preview" src="" alt="Profile photo" class="rounded-circle border d-none" style="width:84px;height:84px;object-fit:cover;">
                                                     <div id="profile_image_placeholder" class="rounded-circle border bg-light d-flex align-items-center justify-content-center" style="width:84px;height:84px;">
@@ -421,7 +421,7 @@
                                                     <div class="form-text">JPG, PNG, WEBP, GIF (max 3MB)</div>
 
                                                     @if(!empty($user->school_id_path))
-                                                        <a href="{{ asset('storage/' . $user->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                                        <a href="{{ file_download_url($user->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                                             <i class="bi bi-file-earmark-image me-1"></i>View current School ID
                                                         </a>
                                                     @endif
@@ -442,7 +442,7 @@
                                                     <div class="form-text">PDF, JPG, PNG, WEBP (max 4MB)</div>
 
                                                     @if(!empty($user->enrollment_proof_path))
-                                                        <a href="{{ asset('storage/' . $user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                                        <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                                             <i class="bi bi-file-earmark-text me-1"></i>View current {{ strtoupper((string) ($user->enrollment_proof_type ?? 'proof')) }}
                                                         </a>
                                                     @endif
@@ -498,7 +498,7 @@
                                             <label class="form-label">Parent/Guardian ID or Photo (Optional)</label>
                                             <div class="d-flex align-items-center gap-3 profile-photo-panel">
                                                 @if(!empty($user->parent_contact_photo_path))
-                                                    <img id="parent_contact_photo_preview" src="{{ asset('storage/' . $user->parent_contact_photo_path) }}" alt="Parent or guardian photo" class="rounded border" style="width:84px;height:84px;object-fit:cover;">
+                                                    <img id="parent_contact_photo_preview" src="{{ file_url($user->parent_contact_photo_path) }}" alt="Parent or guardian photo" class="rounded border" style="width:84px;height:84px;object-fit:cover;">
                                                 @else
                                                     <img id="parent_contact_photo_preview" src="" alt="Parent or guardian photo" class="rounded border d-none" style="width:84px;height:84px;object-fit:cover;">
                                                     <div id="parent_contact_photo_placeholder" class="rounded border bg-light d-flex align-items-center justify-content-center" style="width:84px;height:84px;">
@@ -627,11 +627,11 @@
                     <div class="small text-muted fw-semibold mb-2">Uploaded Academic Documents</div>
                     <div class="academic-doc-list">
                         @if(!empty($user->school_id_path))
-                            <a href="{{ asset('storage/' . $user->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View School ID</a>
+                            <a href="{{ file_download_url($user->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View School ID</a>
                         @endif
 
                         @if(!empty($user->enrollment_proof_path))
-                            <a href="{{ asset('storage/' . $user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View {{ $enrollmentProofLabel }}</a>
+                            <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View {{ $enrollmentProofLabel }}</a>
                         @endif
 
                         @if(empty($user->school_id_path) && empty($user->enrollment_proof_path))

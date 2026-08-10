@@ -835,14 +835,8 @@
     @php
         $roomImage = $room->image_path;
         $propertyImage = $room->property->image_path ?? null;
-        $roomImageExists = !empty($roomImage) && (
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($roomImage) ||
-            file_exists(public_path('storage/' . ltrim($roomImage, '/')))
-        );
-        $propertyImageExists = !empty($propertyImage) && (
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage) ||
-            file_exists(public_path('storage/' . ltrim($propertyImage, '/')))
-        );
+        $roomImageExists = !empty($roomImage) && file_exists_any($roomImage);
+        $propertyImageExists = !empty($propertyImage) && file_exists_any($propertyImage);
         $img = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
         $rawRoomNumber = trim((string) ($room->room_number ?? ''));
         $displayRoomNumber = $rawRoomNumber !== '' ? $rawRoomNumber : 'N/A';
@@ -911,7 +905,7 @@
                 <div class="col-12 col-lg-6">
                     <div class="media-stage">
                         @if(!empty($img))
-                            <img src="{{ asset('storage/' . $img) }}" alt="Room cover" class="cover-img shadow">
+                            <img src="{{ file_url($img) }}" alt="Room cover" class="cover-img shadow">
                         @else
                             <div class="cover-placeholder shadow">
                                 <span><i class="bi bi-image fs-2 d-block text-center mb-2"></i>No cover photo</span>
@@ -1056,9 +1050,9 @@
                             @foreach($detailPhotos as $idx => $photo)
                                 <div class="detail-thumb"
                                      onclick="openLightbox({{ $idx }})"
-                                     data-src="{{ asset('storage/' . $photo->image_path) }}"
+                                     data-src="{{ file_url($photo->image_path) }}"
                                      data-label="{{ $photo->label ?? '' }}">
-                                    <img src="{{ asset('storage/' . $photo->image_path) }}"
+                                    <img src="{{ file_url($photo->image_path) }}"
                                          alt="{{ $photo->label ?? 'Room photo' }}" loading="lazy">
                                     @if(!empty($photo->label))
                                         <div class="thumb-label">{{ $photo->label }}</div>

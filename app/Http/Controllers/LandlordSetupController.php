@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class LandlordSetupController extends Controller
@@ -116,11 +115,11 @@ class LandlordSetupController extends Controller
         ]);
 
         if ($request->hasFile('profile_image')) {
-            if (!empty($user->profile_image_path)) {
-                Storage::disk('public')->delete($user->profile_image_path);
-            }
-
-            $user->profile_image_path = str_replace('\\', '/', $request->file('profile_image')->store('profiles', 'public'));
+            $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
+                $user->profile_image_path,
+                $request->file('profile_image'),
+                'landlords/' . $user->id . '/profile'
+            );
         }
 
         $user->save();
@@ -147,11 +146,11 @@ class LandlordSetupController extends Controller
         ];
 
         if ($request->hasFile('business_permit')) {
-            if (!empty($landlordProfile->business_permit_path)) {
-                Storage::disk('public')->delete($landlordProfile->business_permit_path);
-            }
-
-            $profileData['business_permit_path'] = str_replace('\\', '/', $request->file('business_permit')->store('business_permits', 'public'));
+            $profileData['business_permit_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->business_permit_path,
+                $request->file('business_permit'),
+                'landlords/' . $user->id . '/business-permits'
+            );
             $profileData['business_permit_status'] = 'pending';
             $profileData['business_permit_reviewed_at'] = null;
             $profileData['business_permit_reviewed_by'] = null;
@@ -159,27 +158,27 @@ class LandlordSetupController extends Controller
         }
 
         if ($request->hasFile('safety_certificate')) {
-            if (!empty($landlordProfile->safety_certificate_path)) {
-                Storage::disk('public')->delete($landlordProfile->safety_certificate_path);
-            }
-
-            $profileData['safety_certificate_path'] = str_replace('\\', '/', $request->file('safety_certificate')->store('safety_certificates', 'public'));
+            $profileData['safety_certificate_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->safety_certificate_path,
+                $request->file('safety_certificate'),
+                'landlords/' . $user->id . '/safety-certificates'
+            );
         }
 
         if ($request->hasFile('payment_gcash_qr')) {
-            if (!empty($landlordProfile->payment_gcash_qr_path)) {
-                Storage::disk('public')->delete($landlordProfile->payment_gcash_qr_path);
-            }
-
-            $profileData['payment_gcash_qr_path'] = str_replace('\\', '/', $request->file('payment_gcash_qr')->store('payment_qr_codes', 'public'));
+            $profileData['payment_gcash_qr_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->payment_gcash_qr_path,
+                $request->file('payment_gcash_qr'),
+                'landlords/' . $user->id . '/payment-qr'
+            );
         }
 
         if ($request->hasFile('contract_signature_image')) {
-            if (!empty($landlordProfile->contract_signature_path)) {
-                Storage::disk('public')->delete($landlordProfile->contract_signature_path);
-            }
-
-            $profileData['contract_signature_path'] = str_replace('\\', '/', $request->file('contract_signature_image')->store('landlord-signatures', 'public'));
+            $profileData['contract_signature_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->contract_signature_path,
+                $request->file('contract_signature_image'),
+                'landlords/' . $user->id . '/signatures'
+            );
         }
 
         $profileComplete = filled($request->input('full_name'))

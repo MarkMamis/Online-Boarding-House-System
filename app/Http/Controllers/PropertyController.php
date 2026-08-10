@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -312,14 +311,7 @@ class PropertyController extends Controller
         }
 
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            try {
-                $storedPath = $request->file('image')->store('properties', 'public');
-                $imagePath = str_replace('\\', '/', $storedPath);
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
-            }
-        }
+        $coverImagePending = $request->hasFile('image');
 
         $selectedAmenities = collect($request->input('building_inclusions', []))
             ->map(fn ($item) => (string) $item)
@@ -396,6 +388,18 @@ class PropertyController extends Controller
         }
 
         $property = Property::create($propertyData);
+
+        if ($coverImagePending) {
+            try {
+                $imagePath = app(\App\Services\FileStorageService::class)->upload(
+                    $request->file('image'),
+                    'properties/' . $property->id . '/images'
+                );
+                $property->update(['image_path' => $imagePath]);
+            } catch (\Throwable $e) {
+                // Property stays created without a cover photo; upload failure is already logged.
+            }
+        }
 
         // Geocode address only if coordinates not provided
         if (!$request->filled('latitude') || !$request->filled('longitude')) {
@@ -518,18 +522,18 @@ class PropertyController extends Controller
 
         if ($request->hasFile('image')) {
             try {
-                $storedPath = $request->file('image')->store('properties', 'public');
-                $newImagePath = str_replace('\\', '/', $storedPath);
+                $newImagePath = app(\App\Services\FileStorageService::class)->replace(
+                    $property->image_path,
+                    $request->file('image'),
+                    'properties/' . $property->id . '/images'
+                );
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
             } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
                 return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
             }
 
-            $oldImagePath = $property->image_path;
             $property->image_path = $newImagePath;
-
-            if (!empty($oldImagePath) && $oldImagePath !== $newImagePath && Storage::disk('public')->exists($oldImagePath)) {
-                Storage::disk('public')->delete($oldImagePath);
-            }
         }
 
         $originalAddress = $property->address;

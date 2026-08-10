@@ -107,7 +107,7 @@
                                         <tr>
                                             <td style="width: 72px;">
                                                 @if(!empty($room->image_path))
-                                                    <img src="{{ asset('storage/'.$room->image_path) }}" alt="Room photo" class="img-thumbnail" style="width: 56px; height: 56px; object-fit: cover;">
+                                                    <img src="{{ file_url($room->image_path) }}" alt="Room photo" class="img-thumbnail" style="width: 56px; height: 56px; object-fit: cover;">
                                                 @else
                                                     <span class="text-muted">—</span>
                                                 @endif

@@ -221,7 +221,7 @@
                                 @if(!empty($room->image_path))
                                     <div class="mb-3">
                                         <div class="position-relative d-inline-block w-100">
-                                            <img src="{{ asset('storage/'.$room->image_path) }}" alt="Current cover" id="currentCoverImage" class="img-thumbnail w-100 room-cover-preview" style="max-height:220px; object-fit:cover;">
+                                            <img src="{{ file_url($room->image_path) }}" alt="Current cover" id="currentCoverImage" class="img-thumbnail w-100 room-cover-preview" style="max-height:220px; object-fit:cover;">
                                             <span class="badge bg-success position-absolute top-0 start-0 m-2">Current Cover</span>
                                         </div>
                                     </div>
@@ -262,8 +262,8 @@
                                                 $existingLabel = old('existing_labels.' . $img->id, $img->label);
                                             @endphp
                                             <div class="col-sm-6" id="detail-img-{{ $img->id }}">
-                                                <div class="card h-100 border detail-photo-card existing-detail-card" data-image-src="{{ asset('storage/'.$img->image_path) }}">
-                                                    <img src="{{ asset('storage/'.$img->image_path) }}" alt="{{ $existingLabel ?: 'Detail photo' }}" class="card-img-top" style="height:160px; object-fit:cover;">
+                                                <div class="card h-100 border detail-photo-card existing-detail-card" data-image-src="{{ file_url($img->image_path) }}">
+                                                    <img src="{{ file_url($img->image_path) }}" alt="{{ $existingLabel ?: 'Detail photo' }}" class="card-img-top" style="height:160px; object-fit:cover;">
                                                     <div class="card-body p-2">
                                                         <label class="form-label small fw-semibold mb-1">Label</label>
                                                         <input

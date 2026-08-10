@@ -538,7 +538,7 @@
                                     <label class="form-label">Profile Photo</label>
                                     <div class="d-flex align-items-center gap-3">
                                         @if($hasProfilePhoto)
-                                            <img id="profile_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile" class="upload-preview">
+                                            <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile" class="upload-preview">
                                         @else
                                             <img id="profile_preview" src="" alt="Profile" class="upload-preview d-none">
                                         @endif
@@ -555,7 +555,7 @@
                                     <div class="field-hint">Optional. JPG, JPEG, PNG, WEBP up to 2MB.</div>
                                     @error('contract_signature_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if($hasContractSignature)
-                                        <a href="{{ asset('storage/' . optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                        <a href="{{ file_download_url(optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                             <i class="bi bi-pen me-1"></i>View current e-sign
                                         </a>
                                     @endif
@@ -591,7 +591,7 @@
                                     <div class="field-hint">Optional. Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
                                     @error('business_permit')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if($hasBusinessPermit)
-                                        <a href="{{ asset('storage/' . optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                        <a href="{{ file_download_url(optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                             <i class="bi bi-file-earmark-text me-1"></i>View current permit
                                         </a>
                                     @endif
@@ -602,7 +602,7 @@
                                     <div class="field-hint">Optional. Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
                                     @error('safety_certificate')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if($hasSafetyCertificate)
-                                        <a href="{{ asset('storage/' . optional($landlordProfile)->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                        <a href="{{ file_download_url(optional($landlordProfile)->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                             <i class="bi bi-shield-check me-1"></i>View current safety certificate
                                         </a>
                                     @endif
@@ -691,7 +691,7 @@
                                     <div class="field-hint">Optional. Upload a JPG, PNG, or WEBP QR image up to 2MB.</div>
                                     @error('payment_gcash_qr')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if(!empty(optional($landlordProfile)->payment_gcash_qr_path))
-                                        <a href="{{ asset('storage/' . optional($landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                        <a href="{{ file_download_url(optional($landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                             View current QR
                                         </a>
                                     @endif

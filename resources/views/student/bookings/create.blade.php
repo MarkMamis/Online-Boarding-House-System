@@ -568,7 +568,7 @@
         {{-- Hero banner --}}
         <div class="bk-hero">
             @if($heroRoomImagePath !== '')
-                <img src="{{ asset('storage/' . $heroRoomImagePath) }}" alt="{{ $roomLabel }} cover photo">
+                <img src="{{ file_url($heroRoomImagePath) }}" alt="{{ $roomLabel }} cover photo">
             @else
                 <div style="width:100%;height:100%;background:linear-gradient(135deg,#166534 0%,#4ade80 100%);"></div>
             @endif

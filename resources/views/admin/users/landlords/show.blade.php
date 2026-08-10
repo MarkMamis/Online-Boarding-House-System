@@ -415,7 +415,7 @@
                                         @endif
                                     </div>
                                     <div class="compliance-actions">
-                                        <a href="{{ asset('storage/' . $permitProfile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                        <a href="{{ file_download_url($permitProfile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
                                             <i class="bi bi-file-earmark-pdf me-1"></i>View Permit
                                         </a>
                                         <a href="{{ route('admin.permits.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill">Open Permit Queue</a>

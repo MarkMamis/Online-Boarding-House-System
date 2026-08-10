@@ -99,7 +99,7 @@
                     </li>
                     <li class="nav-item me-lg-3 d-flex align-items-center gap-2 text-white small">
                         @if(!empty(Auth::user()->profile_image_path))
-                            <img src="{{ asset('storage/' . Auth::user()->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:28px;height:28px;object-fit:cover;border-color:rgba(255,255,255,.55)!important;">
+                            <img src="{{ file_url(Auth::user()->profile_image_path) }}" alt="Profile photo" class="rounded-circle border" style="width:28px;height:28px;object-fit:cover;border-color:rgba(255,255,255,.55)!important;">
                         @else
                             <span class="rounded-circle border d-inline-flex align-items-center justify-content-center" style="width:28px;height:28px;border-color:rgba(255,255,255,.55)!important;background:rgba(255,255,255,.12);">
                                 <span style="font-size:12px;line-height:1;">👤</span>

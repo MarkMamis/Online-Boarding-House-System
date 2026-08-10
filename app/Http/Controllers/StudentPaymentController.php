@@ -247,30 +247,59 @@ class StudentPaymentController extends Controller
         $selectedMethod = strtolower((string) $request->input('payment_method'));
         $requiresOnlineProof = in_array($selectedMethod, ['bank', 'gcash'], true);
 
-        $paymentProofPath = null;
-        if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
-            $paymentProofPath = str_replace('\\', '/', $request->file('payment_proof')->store('tenant-payments', 'public'));
-        }
-
         $monthlyRentAmount = is_numeric($booking->monthly_rent_amount)
             ? (float) $booking->monthly_rent_amount
             : (float) ($booking->room->price ?? 0);
 
-        $payment = TenantPayment::create([
-            'booking_id' => $booking->id,
-            'student_id' => $student->id,
-            'billing_for_date' => $billingDate->toDateString(),
-            'due_date' => optional($nextDueDate)->toDateString(),
-            'amount_due' => $monthlyRentAmount,
-            'payment_method' => $selectedMethod,
-            'payment_reference' => $requiresOnlineProof && $request->filled('payment_reference')
-                ? trim((string) $request->input('payment_reference'))
-                : null,
-            'payment_proof_path' => $paymentProofPath,
-            'payment_notes' => $request->filled('payment_notes') ? trim((string) $request->input('payment_notes')) : null,
-            'status' => 'submitted',
-            'submitted_at' => now(),
-        ]);
+        $paymentReference = $requiresOnlineProof && $request->filled('payment_reference')
+            ? trim((string) $request->input('payment_reference'))
+            : null;
+        $paymentNotes = $request->filled('payment_notes') ? trim((string) $request->input('payment_notes')) : null;
+
+        $paymentProofPath = null;
+
+        if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
+            // Create the payment row first so the object path can include its id.
+            $payment = TenantPayment::create([
+                'booking_id' => $booking->id,
+                'student_id' => $student->id,
+                'billing_for_date' => $billingDate->toDateString(),
+                'due_date' => optional($nextDueDate)->toDateString(),
+                'amount_due' => $monthlyRentAmount,
+                'payment_method' => $selectedMethod,
+                'payment_reference' => $paymentReference,
+                'payment_proof_path' => null,
+                'payment_notes' => $paymentNotes,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+            ]);
+
+            try {
+                $paymentProofPath = app(\App\Services\FileStorageService::class)->upload(
+                    $request->file('payment_proof'),
+                    'payments/' . $payment->id . '/proofs'
+                );
+            } catch (\Throwable $e) {
+                $payment->delete();
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
+            }
+
+            $payment->update(['payment_proof_path' => $paymentProofPath]);
+        } else {
+            $payment = TenantPayment::create([
+                'booking_id' => $booking->id,
+                'student_id' => $student->id,
+                'billing_for_date' => $billingDate->toDateString(),
+                'due_date' => optional($nextDueDate)->toDateString(),
+                'amount_due' => $monthlyRentAmount,
+                'payment_method' => $selectedMethod,
+                'payment_reference' => $paymentReference,
+                'payment_proof_path' => $paymentProofPath,
+                'payment_notes' => $paymentNotes,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+            ]);
+        }
 
         $booking->update([
             'payment_status' => 'pending',

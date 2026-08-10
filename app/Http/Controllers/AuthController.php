@@ -19,8 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use App\Notifications\SystemNotification;
 use App\Services\AcademicCatalogService;
 
@@ -1916,10 +1914,11 @@ class AuthController extends Controller
         ];
 
         if ($request->hasFile('business_permit')) {
-            if (!empty($landlordProfile->business_permit_path)) {
-                Storage::disk('public')->delete($landlordProfile->business_permit_path);
-            }
-            $profileData['business_permit_path'] = str_replace('\\', '/', $request->file('business_permit')->store('business_permits', 'public'));
+            $profileData['business_permit_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->business_permit_path,
+                $request->file('business_permit'),
+                'landlords/' . $user->id . '/business-permits'
+            );
             $profileData['business_permit_status'] = 'pending';
             $profileData['business_permit_reviewed_at'] = null;
             $profileData['business_permit_reviewed_by'] = null;
@@ -1927,16 +1926,18 @@ class AuthController extends Controller
         }
 
         if ($request->hasFile('payment_gcash_qr')) {
-            if (!empty($landlordProfile->payment_gcash_qr_path)) {
-                Storage::disk('public')->delete($landlordProfile->payment_gcash_qr_path);
-            }
-            $profileData['payment_gcash_qr_path'] = str_replace('\\', '/', $request->file('payment_gcash_qr')->store('payment_qr_codes', 'public'));
+            $profileData['payment_gcash_qr_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->payment_gcash_qr_path,
+                $request->file('payment_gcash_qr'),
+                'landlords/' . $user->id . '/payment-qr'
+            );
         }
 
         $signatureData = trim((string) $request->input('contract_signature_data', ''));
         if ($signatureData !== '') {
             $storedSignaturePath = $this->storeLandlordProfileSignatureDataUrl(
                 $signatureData,
+                'landlords/' . $user->id . '/signatures',
                 $landlordProfile->contract_signature_path
             );
 
@@ -1948,10 +1949,11 @@ class AuthController extends Controller
 
             $profileData['contract_signature_path'] = $storedSignaturePath;
         } elseif ($request->hasFile('contract_signature_image')) {
-            if (!empty($landlordProfile->contract_signature_path)) {
-                Storage::disk('public')->delete($landlordProfile->contract_signature_path);
-            }
-            $profileData['contract_signature_path'] = str_replace('\\', '/', $request->file('contract_signature_image')->store('landlord-signatures', 'public'));
+            $profileData['contract_signature_path'] = app(\App\Services\FileStorageService::class)->replace(
+                $landlordProfile->contract_signature_path,
+                $request->file('contract_signature_image'),
+                'landlords/' . $user->id . '/signatures'
+            );
         }
 
         $profileCompleted = filled($request->contact_number)
@@ -1982,13 +1984,15 @@ class AuthController extends Controller
         $landlordProfile->update($profileData);
 
         if ($request->hasFile('profile_image')) {
-            if (!empty($user->profile_image_path)) {
-                Storage::disk('public')->delete($user->profile_image_path);
-            }
-
             try {
-                $user->profile_image_path = str_replace('\\', '/', $request->file('profile_image')->store('profiles', 'public'));
+                $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->profile_image_path,
+                    $request->file('profile_image'),
+                    'landlords/' . $user->id . '/profile'
+                );
                 $user->save();
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
             } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
                 return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
             }
@@ -2005,7 +2009,7 @@ class AuthController extends Controller
         return back()->with('success', 'Profile updated successfully.');
     }
 
-    private function storeLandlordProfileSignatureDataUrl(string $signatureData, ?string $oldPath = null): ?string
+    private function storeLandlordProfileSignatureDataUrl(string $signatureData, string $directory, ?string $oldPath = null): ?string
     {
         $signatureData = trim($signatureData);
         if ($signatureData === '') {
@@ -2029,12 +2033,15 @@ class AuthController extends Controller
         }
 
         $extension = $mime === 'jpg' ? 'jpeg' : $mime;
-        $path = 'landlord-signatures/' . Str::uuid() . '.' . $extension;
 
-        Storage::disk('public')->put($path, $binary);
+        $path = app(\App\Services\FileStorageService::class)->put(
+            $directory,
+            $binary,
+            $extension
+        );
 
         if (!empty($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
+            app(\App\Services\FileStorageService::class)->delete($oldPath);
         }
 
         return $path;
@@ -2082,13 +2089,15 @@ class AuthController extends Controller
         ]);
 
         if ($request->hasFile('profile_image')) {
-            if (!empty($user->profile_image_path)) {
-                Storage::disk('public')->delete($user->profile_image_path);
-            }
-
             try {
-                $user->profile_image_path = str_replace('\\', '/', $request->file('profile_image')->store('profiles', 'public'));
+                $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->profile_image_path,
+                    $request->file('profile_image'),
+                    'users/' . $user->id . '/profile'
+                );
                 $user->save();
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
             } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
                 return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
             }

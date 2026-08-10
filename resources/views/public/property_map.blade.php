@@ -1083,11 +1083,11 @@
                                     $propertyImage = ltrim((string) ($room->property->image_path ?? ''), '/');
 
                                     $roomImageExists = $roomImage !== '' && (
-                                        \Illuminate\Support\Facades\Storage::disk('public')->exists($roomImage)
+                                        file_exists_any($roomImage)
                                         || file_exists(public_path('storage/' . $roomImage))
                                     );
                                     $propertyImageExists = $propertyImage !== '' && (
-                                        \Illuminate\Support\Facades\Storage::disk('public')->exists($propertyImage)
+                                        file_exists_any($propertyImage)
                                         || file_exists(public_path('storage/' . $propertyImage))
                                     );
                                     $displayImage = $roomImageExists ? $roomImage : ($propertyImageExists ? $propertyImage : null);
@@ -1114,7 +1114,7 @@
                                 <article class="room-item" data-property-id="{{ $room->property_id }}">
                                     <div class="room-thumb">
                                         @if($displayImage)
-                                            <img src="{{ asset('storage/' . $displayImage) }}" alt="Room photo" loading="lazy">
+                                            <img src="{{ file_url($displayImage) }}" alt="Room photo" loading="lazy">
                                         @else
                                             <i class="bi bi-building fs-4"></i>
                                         @endif

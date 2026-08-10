@@ -1121,7 +1121,7 @@
                     <div class="room-browse-card h-100 {{ $isFullCapacity ? 'room-browse-card-dimmed' : '' }}">
                         <div class="room-browse-photo">
                             @if($rImg)
-                                <img src="{{ asset('storage/'.$rImg) }}" alt="Room" loading="lazy">
+                                <img src="{{ file_url($rImg) }}" alt="Room" loading="lazy">
                             @else
                                 <div class="room-browse-nophoto"><i class="bi bi-building fs-2 text-muted"></i></div>
                             @endif
@@ -1366,7 +1366,7 @@
                             <div class="room-browse-card h-100 {{ $isFullCapacity2 || $r->status === 'maintenance' ? 'room-browse-card-dimmed' : '' }}">
                                 <div class="room-browse-photo">
                                     @if($rImg2)
-                                        <img src="{{ asset('storage/'.$rImg2) }}" alt="Room" loading="lazy">
+                                        <img src="{{ file_url($rImg2) }}" alt="Room" loading="lazy">
                                     @else
                                         <div class="room-browse-nophoto"><i class="bi bi-building fs-2 text-muted"></i></div>
                                     @endif

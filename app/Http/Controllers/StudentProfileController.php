@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\AcademicCatalogService;
 
@@ -147,52 +146,42 @@ class StudentProfileController extends Controller
             return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
         }
 
-        if ($request->hasFile('profile_image')) {
-            if (!empty($user->profile_image_path)) {
-                Storage::disk('public')->delete($user->profile_image_path);
+        try {
+            if ($request->hasFile('profile_image')) {
+                $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->profile_image_path,
+                    $request->file('profile_image'),
+                    'students/' . $user->id . '/profile'
+                );
             }
 
-            try {
-                $user->profile_image_path = str_replace('\\', '/', $request->file('profile_image')->store('profiles', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
-            }
-        }
-
-        if ($request->hasFile('parent_contact_photo')) {
-            if (!empty($user->parent_contact_photo_path)) {
-                Storage::disk('public')->delete($user->parent_contact_photo_path);
+            if ($request->hasFile('parent_contact_photo')) {
+                $user->parent_contact_photo_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->parent_contact_photo_path,
+                    $request->file('parent_contact_photo'),
+                    'students/' . $user->id . '/parent-documents'
+                );
             }
 
-            try {
-                $user->parent_contact_photo_path = str_replace('\\', '/', $request->file('parent_contact_photo')->store('parent_contacts', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded image. Please ensure the PHP "fileinfo" extension is enabled and try a smaller image if needed (PHP upload limit).');
-            }
-        }
-
-        if ($request->hasFile('school_id_photo')) {
-            if (!empty($user->school_id_path)) {
-                Storage::disk('public')->delete($user->school_id_path);
+            if ($request->hasFile('school_id_photo')) {
+                $user->school_id_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->school_id_path,
+                    $request->file('school_id_photo'),
+                    'students/' . $user->id . '/school-id'
+                );
             }
 
-            try {
-                $user->school_id_path = str_replace('\\', '/', $request->file('school_id_photo')->store('student_ids', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded School ID. Please ensure the PHP "fileinfo" extension is enabled and try again.');
+            if ($request->hasFile('enrollment_proof_file')) {
+                $user->enrollment_proof_path = app(\App\Services\FileStorageService::class)->replace(
+                    $user->enrollment_proof_path,
+                    $request->file('enrollment_proof_file'),
+                    'students/' . $user->id . '/enrollment-proof'
+                );
             }
-        }
-
-        if ($request->hasFile('enrollment_proof_file')) {
-            if (!empty($user->enrollment_proof_path)) {
-                Storage::disk('public')->delete($user->enrollment_proof_path);
-            }
-
-            try {
-                $user->enrollment_proof_path = str_replace('\\', '/', $request->file('enrollment_proof_file')->store('student_enrollment_proofs', 'public'));
-            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                return back()->withInput()->with('error', 'Unable to process the uploaded enrollment proof. Please ensure the PHP "fileinfo" extension is enabled and try again.');
-            }
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', 'File upload failed. Please try again.');
+        } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
+            return back()->withInput()->with('error', 'Unable to process the uploaded file. Please ensure the PHP "fileinfo" extension is enabled and try again.');
         }
 
         if ($request->filled('enrollment_proof_type')) {

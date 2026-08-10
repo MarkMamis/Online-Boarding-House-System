@@ -253,6 +253,15 @@ Route::middleware(['auth', 'verified', 'role.selected', 'student.setup'])->group
     Route::get('/documents/{onboarding}/{filename}', [TenantOnboardingController::class, 'viewDocument'])->name('documents.view');
 });
 
+// Secure file access (Supabase S3 / legacy public disk)
+// Only 'auth' + 'verified' - FileController verifies role and ownership itself so
+// students/landlords mid-setup can still view files referenced from setup pages.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/files/{path}', [\App\Http\Controllers\FileController::class, 'show'])
+        ->where('path', '.*')
+        ->name('files.show');
+});
+
 // Admin-only (no email verification required)
 Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard'])->name('admin.dashboard');

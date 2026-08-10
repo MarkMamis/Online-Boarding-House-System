@@ -382,7 +382,7 @@
                             data-bs-target="#propertyImageModal"
                             aria-label="View property image full screen"
                         >
-                            <img src="{{ asset('storage/' . $property->image_path) }}" alt="{{ $property->name }}" class="property-cover">
+                            <img src="{{ file_url($property->image_path) }}" alt="{{ $property->name }}" class="property-cover">
                         </button>
                         <div class="property-cover-hint"><i class="bi bi-arrows-fullscreen"></i>Click image to view full screen</div>
                     @else
@@ -525,8 +525,8 @@
                                     </td>
                                     <td class="pe-3">
                                         @if(!empty($roomImagePath))
-                                            <a href="{{ asset('storage/' . $roomImagePath) }}" target="_blank" rel="noopener" title="View room photo">
-                                                <img src="{{ asset('storage/' . $roomImagePath) }}" alt="Room photo" class="room-thumb">
+                                            <a href="{{ file_download_url($roomImagePath) }}" target="_blank" rel="noopener" title="View room photo">
+                                                <img src="{{ file_url($roomImagePath) }}" alt="Room photo" class="room-thumb">
                                             </a>
                                         @else
                                             <div class="small section-muted">No photo</div>
@@ -583,7 +583,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body bg-dark">
-                        <img src="{{ asset('storage/' . $property->image_path) }}" alt="{{ $property->name }} full image" class="modal-image-full">
+                        <img src="{{ file_url($property->image_path) }}" alt="{{ $property->name }} full image" class="modal-image-full">
                     </div>
                 </div>
             </div>
@@ -676,8 +676,8 @@
                                 <div class="carousel-inner room-gallery-inner">
                                     @foreach($roomImages as $imagePath)
                                         <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-                                            <a href="{{ asset('storage/' . $imagePath) }}" target="_blank" rel="noopener" class="room-gallery-link" title="Open full image">
-                                                <img src="{{ asset('storage/' . $imagePath) }}" class="room-gallery-thumb" alt="{{ $room->room_number }} image {{ $loop->iteration }}">
+                                            <a href="{{ file_download_url($imagePath) }}" target="_blank" rel="noopener" class="room-gallery-link" title="Open full image">
+                                                <img src="{{ file_url($imagePath) }}" class="room-gallery-thumb" alt="{{ $room->room_number }} image {{ $loop->iteration }}">
                                             </a>
                                         </div>
                                     @endforeach

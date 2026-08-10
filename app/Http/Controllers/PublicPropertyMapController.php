@@ -7,7 +7,6 @@ use App\Models\Room;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 
 class PublicPropertyMapController extends Controller
 {
@@ -296,10 +295,7 @@ class PublicPropertyMapController extends Controller
 
         $payload = $properties->map(function ($property) use ($amenityOptions) {
             $imagePath = ltrim((string) ($property->image_path ?? ''), '/');
-            $imageExists = $imagePath !== '' && (
-                Storage::disk('public')->exists($imagePath)
-                || file_exists(public_path('storage/' . $imagePath))
-            );
+            $imageExists = $imagePath !== '' && file_exists_any($imagePath);
 
             $inclusions = collect((array) ($property->building_inclusions ?? []))
                 ->map(fn ($key) => $amenityOptions[$key] ?? null)
@@ -397,17 +393,11 @@ class PublicPropertyMapController extends Controller
             $roomImage = ltrim((string) ($room->image_path ?? ''), '/');
             $propertyImage = ltrim((string) ($room->property->image_path ?? ''), '/');
 
-            $roomImageExists = $roomImage !== '' && (
-                Storage::disk('public')->exists($roomImage)
-                || file_exists(public_path('storage/' . $roomImage))
-            );
-            $propertyImageExists = $propertyImage !== '' && (
-                Storage::disk('public')->exists($propertyImage)
-                || file_exists(public_path('storage/' . $propertyImage))
-            );
+            $roomImageExists = $roomImage !== '' && file_exists_any($roomImage);
+            $propertyImageExists = $propertyImage !== '' && file_exists_any($propertyImage);
 
             $displayImage = $roomImageExists
-                ? asset('storage/' . $roomImage)
+                ? file_url($roomImage)
                 : ($propertyImageExists ? asset('storage/' . $propertyImage) : null);
 
             $propertyInclusions = collect((array) ($supportsBuildingInclusions ? ($room->property->building_inclusions ?? []) : []))

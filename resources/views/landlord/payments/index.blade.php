@@ -495,7 +495,7 @@
                                     @endunless
 
                                     @if($latestTenantPayment && !empty($latestTenantPayment->payment_proof_path))
-                                        <a href="{{ asset('storage/' . $latestTenantPayment->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                        <a href="{{ file_download_url($latestTenantPayment->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                                             <i class="bi bi-file-earmark-arrow-down me-1"></i>Latest Proof
                                         </a>
                                     @endif
@@ -617,7 +617,7 @@
                                             @endunless
 
                                             @if($latestTenantPayment && !empty($latestTenantPayment->payment_proof_path))
-                                                <a href="{{ asset('storage/' . $latestTenantPayment->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                                <a href="{{ file_download_url($latestTenantPayment->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                                                     <i class="bi bi-file-earmark-arrow-down me-1"></i>Latest Proof
                                                 </a>
                                             @endif

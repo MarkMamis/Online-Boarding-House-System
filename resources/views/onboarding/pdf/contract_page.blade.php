@@ -326,13 +326,12 @@
     $maintenanceRules = $resolveRules('maintenance_safety');
     $prohibitedRules = $resolveRules('prohibited_activities');
 
-    $toDataUri = static function (?string $filePath): ?string {
-        if (!$filePath || !is_file($filePath)) {
+    $signatureToDataUri = static function (?string $binary, string $extension): ?string {
+        if (!$binary || $binary === '') {
             return null;
         }
 
-        $extension = strtolower((string) pathinfo($filePath, PATHINFO_EXTENSION));
-        $mime = match ($extension) {
+        $mime = match (strtolower($extension)) {
             'jpg', 'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             'gif' => 'image/gif',
@@ -340,49 +339,28 @@
             default => 'application/octet-stream',
         };
 
-        $binary = @file_get_contents($filePath);
-        if ($binary === false || $binary === '') {
-            return null;
-        }
-
         return 'data:' . $mime . ';base64,' . base64_encode($binary);
     };
 
-    $tenantSignaturePath = null;
+    $fileStorage = app(\App\Services\FileStorageService::class);
+
+    $tenantSignatureSrc = null;
     if (!empty($onboarding->contract_signature_path)) {
-        $signatureRelativePath = ltrim((string) $onboarding->contract_signature_path, '/');
-        $candidateSignaturePaths = [
-            public_path('storage/' . $signatureRelativePath),
-            storage_path('app/public/' . $signatureRelativePath),
-        ];
-
-        foreach ($candidateSignaturePaths as $candidateSignaturePath) {
-            if (is_file($candidateSignaturePath)) {
-                $tenantSignaturePath = $candidateSignaturePath;
-                break;
-            }
-        }
+        $relativePath = ltrim((string) $onboarding->contract_signature_path, '/');
+        $tenantSignatureSrc = $signatureToDataUri(
+            $fileStorage->get($relativePath),
+            (string) pathinfo($relativePath, PATHINFO_EXTENSION)
+        );
     }
 
-    $tenantSignatureSrc = $toDataUri($tenantSignaturePath);
-
-    $landlordSignaturePath = null;
+    $landlordSignatureSrc = null;
     if (!empty($onboarding->landlord_contract_signature_path)) {
-        $signatureRelativePath = ltrim((string) $onboarding->landlord_contract_signature_path, '/');
-        $candidateSignaturePaths = [
-            public_path('storage/' . $signatureRelativePath),
-            storage_path('app/public/' . $signatureRelativePath),
-        ];
-
-        foreach ($candidateSignaturePaths as $candidateSignaturePath) {
-            if (is_file($candidateSignaturePath)) {
-                $landlordSignaturePath = $candidateSignaturePath;
-                break;
-            }
-        }
+        $relativePath = ltrim((string) $onboarding->landlord_contract_signature_path, '/');
+        $landlordSignatureSrc = $signatureToDataUri(
+            $fileStorage->get($relativePath),
+            (string) pathinfo($relativePath, PATHINFO_EXTENSION)
+        );
     }
-
-    $landlordSignatureSrc = $toDataUri($landlordSignaturePath);
     $landlordHasSigned = !empty($onboarding->landlord_contract_signed);
 
     $tenantSignedDateLabel = optional($onboarding->contract_signed_at)->format('F j, Y') ?: $agreementDateLabel;

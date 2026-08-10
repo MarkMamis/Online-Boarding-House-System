@@ -1201,7 +1201,7 @@
                 @php
                   $fileName = basename($doc);
                   $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                  $fileSize = Storage::disk('public')->size($doc);
+                  $fileSize = file_size_any($doc);
                   $fileSizeFormatted = $fileSize < 1024 ? $fileSize . ' B' : ($fileSize < 1048576 ? round($fileSize / 1024, 1) . ' KB' : round($fileSize / 1048576, 1) . ' MB');
                 @endphp
 
@@ -1265,14 +1265,14 @@
           <div>
             <div class="signature-card">
               @if(!empty($onboarding->contract_signature_path))
-                <img class="signature-preview" src="{{ asset('storage/' . $onboarding->contract_signature_path) }}" alt="Saved signature" />
+                <img class="signature-preview" src="{{ file_url($onboarding->contract_signature_path) }}" alt="Saved signature" />
               @else
                 <div class="signature-preview-placeholder">No signature on file</div>
               @endif
             </div>
             @if(!empty($onboarding->contract_signature_path))
               <div class="signature-actions mt-2">
-                <a href="{{ asset('storage/' . $onboarding->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <a href="{{ file_download_url($onboarding->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                   <i class="bi bi-box-arrow-up-right me-1"></i>Open Signature
                 </a>
               </div>
@@ -1318,7 +1318,7 @@
 
       @if(!empty($onboarding->payment_proof_path))
         <div class="mt-3">
-          <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
+          <a href="{{ file_download_url($onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
             <i class="bi bi-receipt me-1"></i>View Submitted Payment Proof
           </a>
         </div>
@@ -1622,8 +1622,8 @@
                 </div>
                 <div class="col-md-4 text-md-end">
                   @if(!empty($landlordProfile->payment_gcash_qr_path))
-                    <a href="{{ asset('storage/' . $landlordProfile->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="gcash-qr-preview" title="Open QR in new tab">
-                      <img src="{{ asset('storage/' . $landlordProfile->payment_gcash_qr_path) }}" alt="GCash QR">
+                    <a href="{{ file_download_url($landlordProfile->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="gcash-qr-preview" title="Open QR in new tab">
+                      <img src="{{ file_url($landlordProfile->payment_gcash_qr_path) }}" alt="GCash QR">
                     </a>
                   @endif
                 </div>
@@ -1806,7 +1806,7 @@
 
         @if(!empty($onboarding->payment_proof_path))
           <div class="completion-proof-link">
-            <a href="{{ asset('storage/' . $onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
+            <a href="{{ file_download_url($onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success rounded-pill">
               <i class="bi bi-receipt me-1"></i>View Submitted Payment Proof
             </a>
           </div>
@@ -1887,7 +1887,7 @@
               @php
                 $fileName = basename($doc);
                 $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                $fileSize = Storage::disk('public')->size($doc);
+                $fileSize = file_size_any($doc);
                 $fileSizeFormatted = $fileSize < 1024 ? $fileSize . ' B' : ($fileSize < 1048576 ? round($fileSize / 1024, 1) . ' KB' : round($fileSize / 1048576, 1) . ' MB');
               @endphp
 

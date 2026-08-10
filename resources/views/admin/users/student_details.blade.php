@@ -411,8 +411,8 @@
                             @if(!empty($user->parent_contact_photo_path))
                                 <div class="mt-2">
                                     <div class="small text-uppercase muted fw-semibold mb-2">Parent/Guardian ID or Photo</div>
-                                    <a href="{{ asset('storage/' . $user->parent_contact_photo_path) }}" target="_blank" rel="noopener">
-                                        <img src="{{ asset('storage/' . $user->parent_contact_photo_path) }}" alt="Parent or guardian photo" style="width:110px;height:110px;object-fit:cover;border-radius:.75rem;border:1px solid rgba(2,8,20,.12);">
+                                    <a href="{{ file_download_url($user->parent_contact_photo_path) }}" target="_blank" rel="noopener">
+                                        <img src="{{ file_url($user->parent_contact_photo_path) }}" alt="Parent or guardian photo" style="width:110px;height:110px;object-fit:cover;border-radius:.75rem;border:1px solid rgba(2,8,20,.12);">
                                     </a>
                                 </div>
                             @endif

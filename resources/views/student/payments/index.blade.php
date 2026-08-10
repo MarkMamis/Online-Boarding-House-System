@@ -422,7 +422,7 @@
               @if(!empty($onboardingPaymentRecord->payment_proof_path))
                 <div class="record-metric k-wide">
                   <div class="k"><i class="bi bi-file-earmark-arrow-down me-1"></i>Payment Proof</div>
-                  <a href="{{ asset('storage/' . $onboardingPaymentRecord->payment_proof_path) }}" target="_blank" rel="noopener" class="record-proof-link">
+                  <a href="{{ file_download_url($onboardingPaymentRecord->payment_proof_path) }}" target="_blank" rel="noopener" class="record-proof-link">
                     <i class="bi bi-box-arrow-up-right"></i>View Proof
                   </a>
                 </div>
@@ -475,7 +475,7 @@
                 @if(!empty($record->payment_proof_path))
                   <div class="record-metric k-wide">
                     <div class="k"><i class="bi bi-file-earmark-arrow-down me-1"></i>Payment Proof</div>
-                    <a href="{{ asset('storage/' . $record->payment_proof_path) }}" target="_blank" rel="noopener" class="record-proof-link">
+                    <a href="{{ file_download_url($record->payment_proof_path) }}" target="_blank" rel="noopener" class="record-proof-link">
                       <i class="bi bi-box-arrow-up-right"></i>View Proof
                     </a>
                   </div>

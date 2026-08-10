@@ -64,7 +64,7 @@
                     <div class="row g-3 align-items-start">
                         <div class="col-12 col-md-auto">
                             @if(!empty($room->image_path))
-                                <img src="{{ asset('storage/'.$room->image_path) }}" alt="Room photo" class="room-photo rounded-3 border">
+                                <img src="{{ file_url($room->image_path) }}" alt="Room photo" class="room-photo rounded-3 border">
                             @else
                                 <div class="room-photo rounded-3 border d-flex align-items-center justify-content-center text-muted small bg-light">No Photo</div>
                             @endif
@@ -126,7 +126,7 @@
                                         <div class="tenant-avatar">
                                             @if(!empty($room->current_tenant->profile_image_path))
                                                 <img
-                                                    src="{{ asset('storage/' . ltrim($room->current_tenant->profile_image_path, '/')) }}"
+                                                    src="{{ file_url($room->current_tenant->profile_image_path) }}"
                                                     alt="{{ $tenantName }}"
                                                     class="tenant-avatar-img"
                                                 >

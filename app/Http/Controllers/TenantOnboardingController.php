@@ -192,10 +192,15 @@ class TenantOnboardingController extends Controller
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 try {
-                    $path = $file->store('tenant-documents', 'public');
+                    $path = app(\App\Services\FileStorageService::class)->upload(
+                        $file,
+                        'tenant-onboardings/' . $onboarding->id . '/documents'
+                    );
                     $uploadedPaths[] = $path;
                 } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
                     return back()->withInput()->with('error', 'Unable to process the uploaded file(s). Please ensure the PHP "fileinfo" extension is enabled and try smaller file(s) if needed (PHP upload limit).');
+                } catch (\RuntimeException $e) {
+                    return back()->withInput()->with('error', 'File upload failed. Please try again.');
                 }
             }
         }
@@ -243,10 +248,14 @@ class TenantOnboardingController extends Controller
             $onboarding->update(['contract_content' => $contract]);
         }
 
-        $signaturePath = $this->storeContractSignatureDataUrl(
-            (string) $request->input('signature_data'),
-            $onboarding->contract_signature_path
-        );
+        try {
+            $signaturePath = $this->storeContractSignatureDataUrl(
+                (string) $request->input('signature_data'),
+                $onboarding->contract_signature_path
+            );
+        } catch (\RuntimeException $e) {
+            return back()->with('error', 'File upload failed. Please try again.');
+        }
 
         if (!$signaturePath) {
             return back()->with('error', 'Invalid signature format. Please draw or upload your signature again.');
@@ -374,15 +383,20 @@ class TenantOnboardingController extends Controller
 
         $paymentProofPath = $onboarding->payment_proof_path;
         if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
-            if (!empty($paymentProofPath)) {
-                Storage::disk('public')->delete($paymentProofPath);
+            try {
+                $paymentProofPath = app(\App\Services\FileStorageService::class)->replace(
+                    $paymentProofPath,
+                    $request->file('payment_proof'),
+                    'tenant-onboardings/' . $onboarding->id . '/payment-proofs'
+                );
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', 'File upload failed. Please try again.');
             }
-            $paymentProofPath = str_replace('\\', '/', $request->file('payment_proof')->store('onboarding-payments', 'public'));
         }
 
         if (!$requiresOnlineProof) {
             if (!empty($paymentProofPath)) {
-                Storage::disk('public')->delete($paymentProofPath);
+                app(\App\Services\FileStorageService::class)->delete($paymentProofPath);
             }
             $paymentProofPath = null;
         }
@@ -470,7 +484,7 @@ class TenantOnboardingController extends Controller
         $landlordProfile = $landlord?->landlordProfile;
         $profileSignaturePath = trim((string) ($landlordProfile->contract_signature_path ?? ''));
 
-        if ($profileSignaturePath === '' || !Storage::disk('public')->exists($profileSignaturePath)) {
+        if ($profileSignaturePath === '' || !app(\App\Services\FileStorageService::class)->exists($profileSignaturePath)) {
             return back()->with('error', 'Please upload your e-signature in Profile first before signing the contract.');
         }
 
@@ -570,7 +584,7 @@ class TenantOnboardingController extends Controller
             }
 
             if (!empty($onboarding->payment_proof_path)) {
-                Storage::disk('public')->delete($onboarding->payment_proof_path);
+                app(\App\Services\FileStorageService::class)->delete($onboarding->payment_proof_path);
             }
 
             $onboarding->update([
@@ -629,15 +643,13 @@ class TenantOnboardingController extends Controller
             }
         }
 
-        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
+        if (!$filePath || !app(\App\Services\FileStorageService::class)->exists($filePath)) {
             abort(404, 'Document not found');
         }
 
         // Return the file with appropriate headers
         $isDownload = request('download') == '1';
-        return Storage::disk('public')->response($filePath, $filename, [
-            'Content-Disposition' => $isDownload ? 'attachment; filename="' . $filename . '"' : 'inline'
-        ]);
+        return app(\App\Services\FileStorageService::class)->response($filePath, $filename, !$isDownload);
     }
 
     private function generateContract(TenantOnboarding $onboarding)
@@ -756,41 +768,40 @@ class TenantOnboardingController extends Controller
         }
 
         $extension = $mime === 'jpg' ? 'jpeg' : $mime;
-        $path = 'contract-signatures/' . Str::uuid() . '.' . $extension;
 
-        Storage::disk('public')->put($path, $binary);
+        $path = app(\App\Services\FileStorageService::class)->put(
+            'tenant-onboardings/' . $this->currentOnboardingId(),
+            $binary,
+            $extension
+        );
 
         if (!empty($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
+            app(\App\Services\FileStorageService::class)->delete($oldPath);
         }
 
         return $path;
     }
 
+    private function currentOnboardingId(): int
+    {
+        return (int) (request()->route('onboarding') instanceof TenantOnboarding
+            ? request()->route('onboarding')->id
+            : (request()->route('onboarding') ?? 0));
+    }
+
     private function copySignatureFromPublicDisk(string $sourcePath, ?string $oldPath = null, string $prefix = 'signature'): ?string
     {
-        $sourcePath = trim($sourcePath);
-        if ($sourcePath === '' || !Storage::disk('public')->exists($sourcePath)) {
-            return null;
+        $storedPath = app(\App\Services\FileStorageService::class)->copyToDirectory(
+            $sourcePath,
+            'tenant-onboardings/' . $this->currentOnboardingId() . '/signatures',
+            $prefix
+        );
+
+        if ($storedPath !== null && !empty($oldPath) && $oldPath !== $sourcePath) {
+            app(\App\Services\FileStorageService::class)->delete($oldPath);
         }
 
-        $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
-        if (!in_array($extension, ['png', 'jpg', 'jpeg', 'webp'], true)) {
-            $extension = 'png';
-        }
-
-        $targetPath = 'contract-signatures/' . $prefix . '-' . Str::uuid() . '.' . $extension;
-        $copied = Storage::disk('public')->copy($sourcePath, $targetPath);
-
-        if (!$copied || !Storage::disk('public')->exists($targetPath)) {
-            return null;
-        }
-
-        if (!empty($oldPath) && $oldPath !== $sourcePath) {
-            Storage::disk('public')->delete($oldPath);
-        }
-
-        return $targetPath;
+        return $storedPath;
     }
 
     private function notifyLandlordOnboardingStep(TenantOnboarding $onboarding, string $title, string $message): void

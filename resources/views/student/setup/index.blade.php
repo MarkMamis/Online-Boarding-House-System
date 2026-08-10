@@ -550,7 +550,7 @@
                                         <label class="form-label">Profile Photo *</label>
                                         <div class="d-flex align-items-center gap-3">
                                             @if(!empty($user->profile_image_path))
-                                                <img id="profile_preview" src="{{ asset('storage/' . $user->profile_image_path) }}" alt="Profile" class="upload-preview">
+                                                <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile" class="upload-preview">
                                             @else
                                                 <img id="profile_preview" src="" alt="Profile" class="upload-preview d-none">
                                             @endif
@@ -624,7 +624,7 @@
                                         <label class="form-label" id="schoolIdLabel">School ID Upload{{ $isFirstYearSelected ? '' : ' *' }}</label>
                                         <div class="d-flex align-items-center gap-3">
                                             @if(!empty($user->school_id_path))
-                                                <img id="school_id_preview" src="{{ asset('storage/' . $user->school_id_path) }}" alt="School ID" class="upload-preview">
+                                                <img id="school_id_preview" src="{{ file_url($user->school_id_path) }}" alt="School ID" class="upload-preview">
                                             @else
                                                 <img id="school_id_preview" src="" alt="School ID" class="upload-preview d-none">
                                             @endif
@@ -655,7 +655,7 @@
                                         </div>
                                         @error('enrollment_proof_file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         @if($hasEnrollmentProof)
-                                            <a href="{{ asset('storage/' . $user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                            <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
                                                 <i class="bi bi-file-earmark-arrow-down me-1"></i>View current {{ strtoupper((string) ($user->enrollment_proof_type ?? 'proof')) }} file
                                             </a>
                                         @endif

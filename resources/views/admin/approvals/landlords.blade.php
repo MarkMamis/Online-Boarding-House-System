@@ -359,7 +359,7 @@
                         </td>
                         <td class="doc-file">
                             @if(filled(optional($profile)->business_permit_path))
-                                <a href="{{ asset('storage/' . $profile->business_permit_path) }}"
+                                <a href="{{ file_download_url($profile->business_permit_path) }}"
                                    target="_blank" rel="noopener"
                                    class="btn btn-sm btn-outline-secondary rounded-pill me-1">
                                     <i class="bi bi-file-earmark-pdf me-1"></i>View
@@ -400,7 +400,7 @@
                         </td>
                         <td class="doc-file">
                             @if(filled(optional($profile)->safety_certificate_path))
-                                <a href="{{ asset('storage/' . $profile->safety_certificate_path) }}"
+                                <a href="{{ file_download_url($profile->safety_certificate_path) }}"
                                    target="_blank" rel="noopener"
                                    class="btn btn-sm btn-outline-secondary rounded-pill me-1">
                                     <i class="bi bi-file-earmark-pdf me-1"></i>View

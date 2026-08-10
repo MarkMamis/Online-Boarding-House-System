@@ -367,7 +367,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map);
 
     const markers = [];
-    const propertiesData = @json($properties);
+    const propertiesData = @json($properties->map(function ($p) {
+        return array_merge($p->toArray(), [
+            'image_url' => $p->image_path ? file_url($p->image_path) : null,
+        ]);
+    }));
 
     const escapeHtml = function(value) {
         return String(value ?? '')
@@ -391,8 +395,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const buildPopupHtml = function(property) {
-        const imageHtml = property.image_path
-            ? `<img src="/storage/${escapeHtml(property.image_path)}" alt="${escapeHtml(property.name)} preview">`
+        const imageHtml = property.image_url
+            ? `<img src="${escapeHtml(property.image_url)}" alt="${escapeHtml(property.name)} preview">`
             : '<i class="bi bi-building fs-3"></i>';
         const availableRooms = Number(property.available_rooms || 0);
         const priceText = formatPriceLabel(property.price_min, property.price_max);
