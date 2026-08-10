@@ -484,14 +484,14 @@
     <div class="section">
         <p class="section-title">2. Term of Lease</p>
         <p>The tenancy shall commence on {{ $checkInLabel }} ("Check-in Date") and shall continue subject to the approved booking and tenancy terms of the Landlord, unless earlier terminated in accordance with this Agreement or applicable law.</p>
-        <p class="mt-2">The booking record reflects the following:</p>
+        <p class="mt-2">The boarding request record reflects the following:</p>
         <ul class="record-list">
             <li>Check-in Date: {{ $checkInLabel }}</li>
             <li>Check-out Date: {{ $checkOutLabel }}</li>
             <li>Duration: {{ $durationLabel }}</li>
             <li>Room Mode: {{ $roomModeLabel }}</li>
         </ul>
-        <p class="mt-2">The Tenant agrees to occupy the Premises only for lawful residential purposes and in accordance with the approved booking and community rules.</p>
+        <p class="mt-2">The Tenant agrees to occupy the Premises only for lawful residential purposes and in accordance with the approved boarding request and community rules.</p>
     </div>
 
     <div class="section">
@@ -571,12 +571,12 @@
         <p>Advance payment and payment status shall be reviewed and verified by the Landlord prior to handover of the Premises.</p>
 
         <p class="sub-title">6.3 Possession</p>
-        <p>Move-in shall be allowed only upon confirmation of the approved booking status and the confirmed check-in date.</p>
+        <p>Move-in shall be allowed only upon confirmation of the approved boarding request status and the confirmed check-in date.</p>
     </div>
 
     <div class="section">
-        <p class="section-title">7. Booking and Status Record</p>
-        <p>For reference, the onboarding and booking details associated with this Agreement are as follows:</p>
+        <p class="section-title">7. Boarding Request and Status Record</p>
+        <p>For reference, the onboarding and boarding request details associated with this Agreement are as follows:</p>
         <ul class="record-list">
             <li>Generated for: Onboarding #{{ $onboarding->id }}</li>
             <li>Agreement Date: {{ $agreementDateLabel }}</li>

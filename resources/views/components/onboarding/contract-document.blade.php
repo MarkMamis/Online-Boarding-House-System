@@ -82,7 +82,7 @@
     </div>
 
     <div class="contract-section">
-        <h6>Booking Snapshot</h6>
+        <h6>Boarding Request Snapshot</h6>
         <div class="contract-meta snapshot-grid">
             <div><strong>Approved:</strong> {{ $bookingStatusLabel }}</div>
             <div><strong>Check-in:</strong> {{ $checkInLabel }}</div>
@@ -106,7 +106,7 @@
     <div class="contract-section">
         <h6>2. Lease Term and Occupancy</h6>
         <p class="mb-0">
-            The Tenant agrees to occupy the Premises according to the approved booking period and acknowledged occupancy mode.
+            The Tenant agrees to occupy the Premises according to the approved boarding request period and acknowledged occupancy mode.
             Tenancy rights begin only after onboarding requirements are completed and this contract is deemed active by the platform records.
         </p>
     </div>
@@ -196,7 +196,7 @@
         <ul class="contract-list mb-0">
             <li><strong>Binding Effect.</strong> This contract becomes enforceable once onboarding documents are approved and e-signature records are captured.</li>
             <li><strong>Verification Requirement.</strong> Payment submissions remain subject to landlord verification before room handover authorization.</li>
-            <li><strong>Possession Conditions.</strong> Move-in is strictly aligned with confirmed check-in date and approved booking status.</li>
+            <li><strong>Possession Conditions.</strong> Move-in is strictly aligned with confirmed check-in date and approved boarding request status.</li>
         </ul>
     </div>
 

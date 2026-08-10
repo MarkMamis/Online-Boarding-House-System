@@ -54,7 +54,7 @@
     @if($roomCollection->isEmpty())
         <div class="text-center rounded-4 border-2 border-dashed py-5 px-3 bg-white">
             <div class="h5 mb-2">No rooms yet</div>
-            <p class="text-muted mb-3">Add your first room for this property to start accepting bookings.</p>
+            <p class="text-muted mb-3">Add your first room for this property to start accepting boarding requests.</p>
             <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand rounded-pill px-4">Add First Room</a>
         </div>
     @else

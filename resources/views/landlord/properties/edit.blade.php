@@ -287,7 +287,7 @@
                                         @endforeach
                                     </div>
                                 </div>
-                                <div class="form-text">Use one rule per line. These rules will appear in the booking flow.</div>
+                                <div class="form-text">Use one rule per line. These rules will appear in the boarding request flow.</div>
                             </div>
                         </div>
                     </div>

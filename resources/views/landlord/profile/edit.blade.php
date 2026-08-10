@@ -263,7 +263,7 @@
                                             <h6 class="fw-semibold mb-3 section-focus-target" id="payment-details">
                                                 <i class="fas fa-wallet me-2"></i>Payment Details
                                             </h6>
-                                            <p class="text-muted small mb-3">These details can be shown to tenants during booking and payment steps.</p>
+                                            <p class="text-muted small mb-3">These details can be shown to tenants during boarding request and payment steps.</p>
 
                                             <div class="row g-3">
                                                 <div class="col-12">

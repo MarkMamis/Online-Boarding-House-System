@@ -966,7 +966,7 @@
                             </span>
                         </a>
                         <h1 class="display-font display-5 fw-bold hero-mobile-cta">Find your new home away from home.</h1>
-                        <p class="lead opacity-75 hero-mobile-cta">Choose your role and start booking, onboarding, or property management in one secure platform.</p>
+                        <p class="lead opacity-75 hero-mobile-cta">Choose your role and start requesting, onboarding, or property management in one secure platform.</p>
 
                         <ul class="list-unstyled hero-list mb-0 opacity-90 hero-mobile-cta">
                             <li>
@@ -979,7 +979,7 @@
                             <li>
                                 <span class="hero-ic"><i class="bi bi-journal-check"></i></span>
                                 <div>
-                                    <div class="fw-semibold">Simple booking requests</div>
+                                    <div class="fw-semibold">Simple boarding requests</div>
                                     <div class="small opacity-75">Send requests and track updates easily.</div>
                                 </div>
                             </li>
@@ -1116,7 +1116,7 @@
                     <p class="terms-lead">Under Republic Act No. 10173 (Data Privacy Act of 2012), we process your personal data using these principles:</p>
                     <ul class="terms-principles">
                         <li><strong>Transparency:</strong> You are informed about what data we collect and why.</li>
-                        <li><strong>Legitimate Purpose:</strong> Data is used only for account creation, booking operations, communication, and security.</li>
+                        <li><strong>Legitimate Purpose:</strong> Data is used only for account creation, boarding request operations, communication, and security.</li>
                         <li><strong>Proportionality:</strong> We only collect data necessary for system services.</li>
                     </ul>
                     <div class="terms-note-card">By registering, you allow the system to collect and process your information (e.g., name, email, credentials, and the onboarding data you provide later) to provide platform functions and comply with legal obligations.</div>

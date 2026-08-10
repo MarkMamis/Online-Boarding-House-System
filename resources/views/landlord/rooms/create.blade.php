@@ -337,7 +337,7 @@
                                     </span>
                                     <span>
                                         <span class="advance-cta-title">Require 1 month advance payment for this room</span>
-                                        <span class="advance-cta-note">If enabled, students cannot turn off advance payment during booking.</span>
+                                        <span class="advance-cta-note">If enabled, students cannot turn off advance payment during the boarding request.</span>
                                     </span>
                                 </span>
                             </label>

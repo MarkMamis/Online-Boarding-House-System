@@ -570,7 +570,7 @@
                         </a>
                         <a @class(['list-group-item', 'active' => $routeName === 'admin.bookings.index']) href="{{ route('admin.bookings.index') }}">
                             <i class="bi bi-journal-check"></i>
-                            <span>Bookings</span>
+                            <span>Boarding Monitoring</span>
                         </a>
                         <a @class(['list-group-item', 'active' => $routeName === 'admin.boarded_students.index']) href="{{ route('admin.boarded_students.index') }}">
                             <i class="bi bi-door-open"></i>
@@ -720,7 +720,7 @@
                     </a>
                 <a @class(['list-group-item', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
                     <i class="bi bi-journal-check"></i>
-                    <span>Bookings</span>
+                    <span>Boarding Monitoring</span>
                 </a>
                 <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarded_students.index') }}">
                     <i class="bi bi-door-open"></i>

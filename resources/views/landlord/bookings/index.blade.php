@@ -11,9 +11,9 @@
 
   <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
       <div>
-          <div class="text-uppercase small text-muted fw-semibold">Booking Pipeline</div>
-          <h1 class="h3 mb-1">Booking Requests</h1>
-          <div class="text-muted small">Review incoming bookings and approve qualified requests quickly.</div>
+          <div class="text-uppercase small text-muted fw-semibold">Boarding Request Pipeline</div>
+          <h1 class="h3 mb-1">Boarding Requests</h1>
+          <div class="text-muted small">Review incoming boarding requests and approve qualified requests quickly.</div>
       </div>
       <!-- <a href="{{ route('landlord.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">Back</a> -->
   </div>
@@ -97,7 +97,7 @@
         </div>
       </article>
     @empty
-      <div class="text-center text-muted py-5">No booking requests yet.</div>
+      <div class="text-center text-muted py-5">No boarding requests yet.</div>
     @endforelse
   </div>
 </div>

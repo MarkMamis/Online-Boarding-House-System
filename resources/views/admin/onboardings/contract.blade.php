@@ -215,7 +215,7 @@
             <div>
                 <div class="text-uppercase small section-muted fw-semibold">Onboarding Contract</div>
                 <h1 class="h3 mb-1 text-success">Tenancy Agreement</h1>
-                <p class="section-muted mb-0">Printable rental contract generated from onboarding and booking records.</p>
+                <p class="section-muted mb-0">Printable rental contract generated from onboarding and boarding request records.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <span class="id-chip"><i class="bi bi-hash"></i>{{ $onboarding->id }}</span>
@@ -266,7 +266,7 @@
             </div>
 
             <div class="clause-card mb-4">
-                <div class="section-tag">Booking Snapshot</div>
+                <div class="section-tag">Boarding Request Snapshot</div>
                 <div class="row g-2 small">
                     <div class="col-12 col-md-6"><strong>Property:</strong> {{ $property->name }}</div>
                     <div class="col-12 col-md-6"><strong>Room:</strong> {{ $room->room_number }}</div>
@@ -295,7 +295,7 @@
             <div class="clause-card mb-4">
                 <div class="section-tag">2. Term and Occupancy</div>
                 <p class="mb-0">
-                    The Tenant agrees to occupy the Premises under the approved booking terms and to strictly adhere to all community policies established by the Landlord.
+                    The Tenant agrees to occupy the Premises under the approved boarding request terms and to strictly adhere to all community policies established by the Landlord.
                     This Agreement serves as the binding contract for the tenancy commencing upon the completion of the Onboarding Process.
                 </p>
             </div>
@@ -334,7 +334,7 @@
                 <ul class="contract-list">
                     <li><strong>Binding Effect.</strong> This Contract becomes legally binding once all identity documents are verified and the electronic signature is submitted by both parties.</li>
                     <li><strong>Payment Verification.</strong> Advance payment and payment status will be reviewed and verified prior to room handover.</li>
-                    <li><strong>Possession.</strong> Move-in is strictly subject to the confirmed check-in date and approved booking status.</li>
+                    <li><strong>Possession.</strong> Move-in is strictly subject to the confirmed check-in date and approved boarding request status.</li>
                 </ul>
             </div>
 

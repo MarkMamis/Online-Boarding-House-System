@@ -271,11 +271,11 @@
     $bookingLockedBySchoolId = $schoolIdVerificationStatus !== 'approved';
 
     if ($schoolIdVerificationStatus === 'rejected') {
-        $bookingLockMessage = 'Verification rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock booking.';
+        $bookingLockMessage = 'Verification rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock boarding requests.';
     } elseif ($schoolIdVerificationStatus === 'not_submitted') {
-        $bookingLockMessage = 'Upload your School ID or COR/COE in Student Setup to unlock booking.';
+        $bookingLockMessage = 'Upload your School ID or COR/COE in Student Setup to unlock boarding requests.';
     } else {
-        $bookingLockMessage = 'Booking is locked while your academic verification is pending admin approval.';
+        $bookingLockMessage = 'Boarding requests are locked while your academic verification is pending admin approval.';
     }
 
     $defaultHouseRuleCategories = (array) config('property_house_rules.categories', []);
@@ -308,7 +308,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <div class="fw-semibold">You are a current tenant</div>
-                <div class="text-muted small">Booking is disabled while your current stay is active. You may browse rooms for future reference.</div>
+                <div class="text-muted small">Requesting is disabled while your current stay is active. You may browse rooms for future reference.</div>
             </div>
             <span class="badge rounded-pill sr-status-available px-3">Active Stay</span>
         </div>
@@ -567,7 +567,7 @@
         <div class="sr-card">
             <div class="sr-card-header"><i class="bi bi-chat-dots"></i> Ask the Landlord</div>
             <div class="sr-card-body">
-                <p class="text-muted small mb-3">Have questions? Message <strong>{{ $landlordName }}</strong> directly — no booking required.</p>
+                <p class="text-muted small mb-3">Have questions? Message <strong>{{ $landlordName }}</strong> directly — no boarding request required.</p>
 
                 @if($thread->isNotEmpty())
                 <div class="sr-chat-box mb-3" id="chatBox">
@@ -659,26 +659,26 @@
                     <div class="text-center text-muted small">This room is currently under maintenance</div>
                 @elseif($bookingLockedBySchoolId)
                     <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="{{ $bookingLockMessage }}">
-                        <i class="bi bi-shield-lock me-1"></i> Booking Locked
+                        <i class="bi bi-shield-lock me-1"></i> Requests Locked
                     </button>
                     <div class="text-center text-muted" style="font-size:.72rem;">{{ $bookingLockMessage }}</div>
                 @elseif($tenantMode && !$existingBookingIsThisRoom)
-                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="Booking is disabled while your current stay is active. You may browse rooms for future reference.">
-                        <i class="bi bi-lock me-1"></i> Booking Disabled
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="Requesting is disabled while your current stay is active. You may browse rooms for future reference.">
+                        <i class="bi bi-lock me-1"></i> Requests Disabled
                     </button>
-                    <div class="text-center text-muted" style="font-size:.72rem;">Booking is disabled while your current stay is active. You may browse rooms for future reference.</div>
+                    <div class="text-center text-muted" style="font-size:.72rem;">Requesting is disabled while your current stay is active. You may browse rooms for future reference.</div>
                 @elseif($hasExistingBooking && !$existingBookingIsThisRoom)
                     {{-- Student has a booking but not for this room --}}
-                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="You already have an active booking. Complete or cancel it to book another room.">
-                        <i class="bi bi-lock me-1"></i> Booking Not Available
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="You already have an active boarding request. Complete or cancel it to request another room.">
+                        <i class="bi bi-lock me-1"></i> Requests Not Available
                     </button>
-                    <div class="text-center text-muted" style="font-size:.72rem;">You already have an active booking. Complete or cancel it to book another room.</div>
+                    <div class="text-center text-muted" style="font-size:.72rem;">You already have an active boarding request. Complete or cancel it to request another room.</div>
                 @elseif($existingBookingIsThisRoom)
                     {{-- Student already has a booking for this room --}}
                     <button type="button" class="btn btn-success w-100 rounded-pill fw-semibold mb-2" disabled>
-                        <i class="bi bi-check-circle me-1"></i> Already Booked
+                        <i class="bi bi-check-circle me-1"></i> Already Requested
                     </button>
-                    <div class="text-center text-muted" style="font-size:.72rem;">You have an active booking for this room</div>
+                    <div class="text-center text-muted" style="font-size:.72rem;">You have an active boarding request for this room</div>
                 @elseif($isFullCapacity)
                     {{-- Room is at full capacity --}}
                     <button type="button" class="btn btn-secondary w-100 rounded-pill fw-semibold mb-2" disabled title="This room is at full capacity.">
@@ -794,7 +794,7 @@
     <div class="modal-content rounded-4 border-0 shadow">
       <div class="modal-header border-0 pb-0">
         <h5 class="modal-title fw-bold" id="bookConfirmLabel">
-          <i class="bi bi-calendar-check me-2" style="color:var(--brand);"></i>Confirm Booking
+          <i class="bi bi-calendar-check me-2" style="color:var(--brand);"></i>Confirm Boarding Request
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>

@@ -176,7 +176,7 @@
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="metric-ic"><i class="bi bi-journal-check"></i></div>
                                     <div class="min-w-0">
-                                        <div class="fw-semibold text-dark">Booking Requests</div>
+                                        <div class="fw-semibold text-dark">Boarding Requests</div>
                                         <div class="small metric-label">Approve or decline requests</div>
                                     </div>
                                     @if($pendingRequests > 0)
@@ -295,7 +295,7 @@
                         @else
                             <a href="{{ route('landlord.bookings.index') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                         @endif
-                            <span><i class="bi bi-journal-check me-2"></i>Review booking requests</span>
+                            <span><i class="bi bi-journal-check me-2"></i>Review boarding requests</span>
                             <span class="badge rounded-pill {{ $pendingRequests > 0 ? 'text-bg-warning' : 'text-bg-secondary' }}">{{ $pendingRequests }}</span>
                         @if($landlordOperationsLocked)</span>@else</a>@endif
                         @if($landlordOperationsLocked)
@@ -340,7 +340,7 @@
 
                     @if($propertiesCount === 0)
                         <div class="alert alert-secondary rounded-4 mt-4 mb-0 small">
-                            <strong>Getting started:</strong> Add your first property to start creating rooms and receiving booking requests.
+                            <strong>Getting started:</strong> Add your first property to start creating rooms and receiving boarding requests.
                         </div>
                     @endif
                 </div>

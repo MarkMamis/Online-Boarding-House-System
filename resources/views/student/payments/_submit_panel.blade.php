@@ -27,7 +27,7 @@
     <form method="GET" action="{{ route('student.payments.index') }}" class="row g-2 align-items-end mb-3">
       <input type="hidden" name="view" value="{{ $queryView }}">
       <div class="col-12 col-md-8">
-        <label class="form-label small text-muted fw-semibold mb-1">Active Booking</label>
+        <label class="form-label small text-muted fw-semibold mb-1">Active Boarding Request</label>
         <select class="form-select" name="booking_id" onchange="this.form.submit()">
           @foreach($tenantBookings as $bookingOption)
             <option value="{{ $bookingOption->id }}" @selected(!empty($selectedBooking) && (int) $selectedBooking->id === (int) $bookingOption->id)>

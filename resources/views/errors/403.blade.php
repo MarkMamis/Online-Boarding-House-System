@@ -545,7 +545,7 @@
                         <div class="footer-brand-subtitle">Online Boarding House System</div>
                     </div>
                 </div>
-                <p class="small mt-3 mb-0">An institution-aligned housing platform for students and landlords, built for transparent booking and onboarding.</p>
+                <p class="small mt-3 mb-0">An institution-aligned housing platform for students and landlords, built for transparent boarding requests and onboarding.</p>
             </div>
             <div class="col-6 col-lg-2">
                 <div class="fw-semibold text-white mb-2">Explore</div>

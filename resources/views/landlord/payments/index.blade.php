@@ -134,7 +134,7 @@
                             } else {
                                 $onboardingStateLabel = 'Not Started';
                                 $onboardingStateClass = 'onboarding-state-neutral';
-                                $onboardingStateNote = 'No onboarding record yet for this booking.';
+                                $onboardingStateNote = 'No onboarding record yet for this boarding request.';
                             }
 
                             $onboardingProofPath = $onboarding?->payment_proof_path;
@@ -517,7 +517,7 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#paymentConfirmModal"
                                                     data-confirm-title="Undo Paid Status"
-                                                    data-confirm-message="Undo paid status for this booking?"
+                                                    data-confirm-message="Undo paid status for this boarding request?"
                                                     data-confirm-submit-label="Undo Paid"
                                                     data-confirm-tone="warning"
                                                     data-form-id="monthlyUndoPaidDesktop{{ $booking->id }}"
@@ -639,7 +639,7 @@
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#paymentConfirmModal"
                                                             data-confirm-title="Undo Paid Status"
-                                                            data-confirm-message="Undo paid status for this booking?"
+                                                            data-confirm-message="Undo paid status for this boarding request?"
                                                             data-confirm-submit-label="Undo Paid"
                                                             data-confirm-tone="warning"
                                                             data-form-id="monthlyUndoPaidMobile{{ $booking->id }}"

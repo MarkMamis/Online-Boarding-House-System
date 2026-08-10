@@ -657,7 +657,7 @@
                             <div class="nav-section">Operations</div>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.bookings.index']) href="{{ route('landlord.bookings.index') }}">
                                 <i class="bi bi-journal-check"></i>
-                                <span>Booking Requests</span>
+                                <span>Boarding Requests</span>
                                 @if($bookingRequestCount > 0)
                                     <span class="badge rounded-pill text-bg-danger ms-auto">{{ $bookingRequestCount > 99 ? '99+' : $bookingRequestCount }}</span>
                                 @endif

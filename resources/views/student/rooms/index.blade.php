@@ -867,8 +867,8 @@
         ? 'Academic Verification Required'
         : 'Academic Verification In Progress';
     $verificationModalMessage = $schoolIdVerificationStatus === 'rejected'
-        ? 'Your verification document was not approved yet. Booking stays locked until your School ID or COR/COE is validated by admin.'
-        : 'Your academic verification is still in process. Booking stays locked until admin validation is completed.';
+        ? 'Your verification document was not approved yet. Boarding requests stay locked until your School ID or COR/COE is validated by admin.'
+        : 'Your academic verification is still in process. Boarding requests stay locked until admin validation is completed.';
 @endphp
 
 <div class="glass-card rounded-4 p-4 p-md-5 mb-4">
@@ -1090,9 +1090,9 @@
                 $slotProgressClass = $isMaintenance ? 'is-maintenance' : ($isFullCapacity ? 'is-full' : '');
                 $slotPercent = $isMaintenance ? 0 : (int) round((max(0, $availableSlots) / max(1, (int) $room->capacity)) * 100);
                 $slotSummaryText = $isMaintenance
-                    ? 'Maintenance mode: bookings are temporarily unavailable.'
+                    ? 'Maintenance mode: boarding requests are temporarily unavailable.'
                     : ($isFullCapacity
-                        ? 'Fully occupied now. New booking is unavailable.'
+                        ? 'Fully occupied now. New boarding requests are unavailable.'
                         : $availableSlots . ' of ' . $room->capacity . ' slots are available.');
                 $inclusionItems = $propertyInclusions
                     ->merge($rInclusions)
@@ -1335,9 +1335,9 @@
                         $slotProgressClass2 = $isMaintenance2 ? 'is-maintenance' : ($isFullCapacity2 ? 'is-full' : '');
                         $slotPercent2 = $isMaintenance2 ? 0 : (int) round((max(0, $availableSlots2) / max(1, (int) $r->capacity)) * 100);
                         $slotSummaryText2 = $isMaintenance2
-                            ? 'Maintenance mode: bookings are temporarily unavailable.'
+                            ? 'Maintenance mode: boarding requests are temporarily unavailable.'
                             : ($isFullCapacity2
-                                ? 'Fully occupied now. New booking is unavailable.'
+                                ? 'Fully occupied now. New boarding requests are unavailable.'
                                 : $availableSlots2 . ' of ' . $r->capacity . ' slots are available.');
                         $inclusionItems2 = $propertyInclusions2
                             ->merge($rInc2)

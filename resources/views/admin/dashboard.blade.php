@@ -367,13 +367,13 @@
                 <div>
                     <div class="small muted fw-semibold text-uppercase" style="letter-spacing:.08em;">Admin Dashboard</div>
                     <h1 class="h2 mb-2 page-title">Control Center Overview</h1>
-                    <div class="small muted">Real-time snapshot of users, approvals, bookings, onboarding, and issue reports.</div>
+                    <div class="small muted">Real-time snapshot of users, approvals, boarding requests, onboarding, and issue reports.</div>
 
                     <div class="d-flex flex-wrap gap-2 mt-3">
                         <span class="hero-chip"><i class="bi bi-people"></i> {{ $totalUsers }} users</span>
                         <span class="hero-chip"><i class="bi bi-check2-circle"></i> {{ $pendingApprovals }} approvals pending</span>
                         <span class="hero-chip"><i class="bi bi-file-earmark-check"></i> {{ $pendingPermitApprovals ?? 0 }} permits pending</span>
-                        <span class="hero-chip"><i class="bi bi-journal-check"></i> {{ $totalBookings ?? 0 }} bookings tracked</span>
+                        <span class="hero-chip"><i class="bi bi-journal-check"></i> {{ $totalBookings ?? 0 }} boarding requests tracked</span>
                     </div>
                 </div>
 
@@ -391,7 +391,7 @@
                         @endif
                     </a>
                     <a class="btn btn-outline-secondary" href="{{ route('admin.bookings.index') }}">
-                        <i class="bi bi-journal-check me-1"></i> Monitor Bookings
+                        <i class="bi bi-journal-check me-1"></i> Boarding Monitoring
                     </a>
                     <!-- <button class="btn btn-brand" onclick="location.reload()">
                         <i class="bi bi-arrow-clockwise me-1"></i> Refresh
@@ -451,7 +451,7 @@
                             <div class="kpi-icon"><i class="bi bi-journal-check"></i></div>
                             <div class="min-w-0">
                                 <div class="kpi-value h3 mb-0">{{ $totalBookings ?? 0 }}</div>
-                                <div class="kpi-label">Bookings</div>
+                                <div class="kpi-label">Boarding Requests</div>
                                 <div class="kpi-meta">
                                     Pending:
                                     @if(($pendingBookings ?? 0) > 0)
@@ -680,7 +680,7 @@
             <div class="col-12 col-xl-6">
                 <div class="section-card h-100">
                     <div class="card-header d-flex align-items-center justify-content-between px-3 px-lg-4 py-3">
-                        <div class="header-title"><i class="bi bi-journal-check me-2"></i> Booking Status</div>
+                        <div class="header-title"><i class="bi bi-journal-check me-2"></i> Request Status</div>
                         <div class="status-chip">All-time</div>
                     </div>
                     <div class="card-body px-3 px-lg-4 py-4">

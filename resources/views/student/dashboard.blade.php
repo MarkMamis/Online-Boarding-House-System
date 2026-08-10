@@ -203,8 +203,8 @@
                     $hasCurrentApprovedBooking = (bool) ($hasCurrentApprovedBooking ?? false);
 
                     $nextAction = [
-                        'title' => 'Browse rooms and request a booking',
-                        'desc' => 'Start by checking available rooms and sending a booking request to a landlord.',
+                        'title' => 'Browse rooms and request a room',
+                        'desc' => 'Start by checking available rooms and sending a boarding request to a landlord.',
                         'panel' => 'browse-rooms',
                         'icon' => 'bi-search',
                         'cta' => 'Browse rooms',
@@ -212,8 +212,8 @@
 
                     if ($hasCurrentApprovedBooking) {
                         $nextAction = [
-                            'title' => 'View your approved booking',
-                            'desc' => 'You already have an approved booking. Booking is disabled while this stay is active.',
+                            'title' => 'View your approved boarding request',
+                            'desc' => 'You already have an approved boarding request. Requesting is disabled while this stay is active.',
                             'panel' => 'onboarding',
                             'icon' => 'bi-house-check',
                             'cta' => 'Open onboarding',
@@ -239,15 +239,15 @@
                     } elseif ($hasCurrentApprovedBooking && !empty($latestOnboarding) && ($latestOnboarding->status ?? '') !== 'completed') {
                         $nextAction = [
                             'title' => 'Continue tenant onboarding',
-                            'desc' => 'Your booking is approved. Complete onboarding steps to finalize your stay.',
+                            'desc' => 'Your boarding request is approved. Complete onboarding steps to finalize your stay.',
                             'panel' => 'onboarding',
                             'icon' => 'bi-clipboard-check',
                             'cta' => 'Continue onboarding',
                         ];
                     } elseif (($pendingBookingsCount ?? 0) > 0) {
                         $nextAction = [
-                            'title' => 'Track your booking requests',
-                            'desc' => 'You have pending booking request(s). Check status updates from landlords.',
+                            'title' => 'Track your boarding requests',
+                            'desc' => 'You have pending boarding request(s). Check status updates from landlords.',
                             'panel' => 'requests',
                             'icon' => 'bi-hourglass-split',
                             'cta' => 'View requests',
@@ -399,7 +399,7 @@
                                 <div class="metric-ic"><i class="bi bi-check2-circle"></i></div>
                                 <div>
                                     <div class="metric-kpi h4 mb-0">{{ $activeBookingsCount }}</div>
-                                    <div class="small metric-label">Active Booking(s)</div>
+                                    <div class="small metric-label">Active Boarding Request(s)</div>
                                 </div>
                             </div>
                         </div>
@@ -1126,7 +1126,7 @@
                         <div class="fw-semibold">All my onboardings</div>
                         <a href="{{ route('student.onboarding.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill">View all</a>
                     </div>
-                    <div class="small text-muted mb-3">Your onboarding records for each approved booking.</div>
+                    <div class="small text-muted mb-3">Your onboarding records for each approved boarding request.</div>
 
                     @php
                         $dashOnboardings = ($allOnboardings ?? collect());
@@ -1639,7 +1639,7 @@
                                     <i class="bi bi-house-check-fill" style="font-size:1.2rem;"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold" style="color:#14532d;">Approved booking active</div>
+                                    <div class="fw-bold" style="color:#14532d;">Approved boarding request active</div>
                                     <div class="small text-muted">Finish onboarding to complete your move-in flow.</div>
                                 </div>
                             </div>
@@ -1653,7 +1653,7 @@
                                 {{ optional($currentApprovedBooking->check_in)->format('M d, Y') }} to {{ optional($currentApprovedBooking->check_out)->format('M d, Y') }}
                             </div>
                             <div class="alert alert-info rounded-3 mb-0" style="background: rgba(22,101,52,.08); border-color: rgba(22,101,52,.18); color:#14532d;">
-                                Booking is disabled while you have an approved stay. Continue your onboarding steps to proceed.
+                                Requesting is disabled while you have an approved stay. Continue your onboarding steps to proceed.
                             </div>
                         </div>
                         <div class="modal-footer border-0 pt-0 px-4 pb-4">
@@ -1677,7 +1677,7 @@
                         @csrf
                         <input type="hidden" name="stay" value="1">
                         <div class="modal-header">
-                            <h5 class="modal-title">Request Booking</h5>
+                            <h5 class="modal-title">Request Room</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">

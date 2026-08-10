@@ -94,13 +94,13 @@ class BookingController extends Controller
         if ($status === 'not_submitted') {
             return [
                 false,
-                'Booking is locked until you upload your School ID or COR/COE and complete Student Setup. You can still browse rooms and properties.',
+                'Boarding requests are locked until you upload your School ID or COR/COE and complete Student Setup. You can still browse rooms and properties.',
             ];
         }
 
         return [
             false,
-            'Booking is locked while your academic verification is pending admin approval. You can still browse rooms and properties.',
+            'Boarding requests are locked while your academic verification is pending admin approval. You can still browse rooms and properties.',
         ];
     }
 
@@ -157,7 +157,7 @@ class BookingController extends Controller
             // Allow if it's the same room
             if ($existingBooking->room_id !== $room->id) {
                 return redirect()->route('student.dashboard')
-                    ->with('error', 'You already have an active booking. Complete or cancel it to book another room.');
+                    ->with('error', 'You already have an active boarding request. Complete or cancel it to request another room.');
             }
         }
 
@@ -208,10 +208,10 @@ class BookingController extends Controller
             ->exists();
         if ($hasCurrentApprovedBooking) {
             if ($stayOnPage) {
-                return back()->with('error', 'You already have an approved booking. Booking is disabled while your stay is active.');
+                return back()->with('error', 'You already have an approved boarding request. Requesting is disabled while your stay is active.');
             }
             return redirect()->route('student.dashboard')
-                ->with('error', 'You already have an approved booking. Booking is disabled while your stay is active.');
+                ->with('error', 'You already have an approved boarding request. Requesting is disabled while your stay is active.');
         }
 
         if (($room->property->approval_status ?? 'pending') !== 'approved') {
@@ -294,7 +294,7 @@ class BookingController extends Controller
 
         try {
             $landlord->notify(new SystemNotification(
-                'New booking request',
+                'New boarding request',
                 sprintf(
                     'Room %s at %s (%s) requested by %s (%s to %s).',
                     $room->room_number,
@@ -323,7 +323,7 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 function ($message) use ($landlord) {
-                    $message->to($landlord->email)->subject('New Booking Request');
+                    $message->to($landlord->email)->subject('New Boarding Request');
                 }
             );
         } catch (\Throwable $e) {
@@ -331,10 +331,10 @@ class BookingController extends Controller
         }
 
         if ($stayOnPage) {
-            return redirect()->to(url()->previous())->with('booking_success', 'Booking request submitted.');
+            return redirect()->to(url()->previous())->with('booking_success', 'Boarding request submitted.');
         }
 
-        return redirect()->route('student.bookings.index')->with('success', 'Booking request submitted.');
+        return redirect()->route('student.bookings.index')->with('success', 'Boarding request submitted.');
     }
 
     // Student: cancel own pending booking
@@ -347,7 +347,7 @@ class BookingController extends Controller
         $stayOnPage = $request->boolean('stay');
 
         if ($booking->status !== 'pending') {
-            return $this->redirectBackToPanel($request)->with('error', 'Only pending bookings can be cancelled.');
+            return $this->redirectBackToPanel($request)->with('error', 'Only pending boarding requests can be cancelled.');
         }
 
         $cancelReason = request()->input('cancel_reason');
@@ -355,8 +355,8 @@ class BookingController extends Controller
 
         $redirect = $this->redirectBackToPanel($request);
         return $stayOnPage
-            ? $redirect->with('booking_success', 'Booking cancelled.')
-            : $redirect->with('success', 'Booking cancelled.');
+            ? $redirect->with('booking_success', 'Boarding request cancelled.')
+            : $redirect->with('success', 'Boarding request cancelled.');
     }
 
     // Landlord: list bookings across their properties
@@ -460,7 +460,7 @@ class BookingController extends Controller
         // Email student about approval
         try {
             $booking->student->notify(new SystemNotification(
-                'Booking approved',
+                'Boarding request approved',
                 sprintf(
                     'Approved: Room %s at %s (%s to %s). Complete your tenant onboarding.',
                     $booking->room->room_number,
@@ -485,7 +485,7 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 function ($message) use ($booking) {
-                    $message->to($booking->student->email)->subject('Booking Approved - Complete Onboarding');
+                    $message->to($booking->student->email)->subject('Boarding Request Approved - Complete Onboarding');
                 }
             );
         } catch (\Throwable $e) {
@@ -502,7 +502,7 @@ class BookingController extends Controller
             'deposit_amount' => round($onboardingTotal, 2),
         ]);
 
-        return back()->with('success', 'Booking approved. Tenant onboarding process initiated.');
+        return back()->with('success', 'Boarding request approved. Tenant onboarding process initiated.');
     }
 
     // Landlord: reject booking
@@ -514,7 +514,7 @@ class BookingController extends Controller
         // Email student about rejection
         try {
             $booking->student->notify(new SystemNotification(
-                'Booking rejected',
+                'Boarding request rejected',
                 sprintf(
                     'Rejected: Room %s at %s (%s to %s).',
                     $booking->room->room_number,
@@ -539,12 +539,12 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 function ($message) use ($booking) {
-                    $message->to($booking->student->email)->subject('Booking Rejected');
+                    $message->to($booking->student->email)->subject('Boarding Request Rejected');
                 }
             );
         } catch (\Throwable $e) {
             // ignore email transport errors
         }
-        return back()->with('success', 'Booking rejected.');
+        return back()->with('success', 'Boarding request rejected.');
     }
 }

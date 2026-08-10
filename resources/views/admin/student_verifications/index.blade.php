@@ -115,7 +115,7 @@
         <div>
             <div class="text-uppercase small muted fw-semibold">Compliance</div>
             <h1 class="h4 mb-1"><i class="bi bi-person-vcard me-2"></i>Student Academic Verifications</h1>
-            <div class="muted small">Review School ID and COR/COE submissions, then approve or reject booking eligibility.</div>
+            <div class="muted small">Review School ID and COR/COE submissions, then approve or reject boarding request eligibility.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('admin.users.students') }}" class="btn btn-outline-secondary rounded-pill px-3">Students</a>
@@ -277,7 +277,7 @@
                                                     </div>
                                                     <div class="modal-body pt-2">
                                                         <div class="mb-2 fw-semibold">{{ $student->full_name }}</div>
-                                                        <div class="reject-modal-note mb-3">Confirm approval to unlock booking requests for this student.</div>
+                                                        <div class="reject-modal-note mb-3">Confirm approval to unlock boarding requests for this student.</div>
 
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="checkbox" value="1" id="approve_confirm_{{ $student->id }}" required>

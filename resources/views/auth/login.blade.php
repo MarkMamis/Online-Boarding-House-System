@@ -374,7 +374,7 @@
                             </span>
                         </a>
                         <h1 class="display-font display-6 fw-bold mb-2 hero-mobile-cta">Log in to your account</h1>
-                        <p class="mb-0 opacity-75 hero-mobile-cta">Sign in to track bookings, onboarding progress, and room updates in one premium workflow.</p>
+                        <p class="mb-0 opacity-75 hero-mobile-cta">Sign in to track boarding requests, onboarding progress, and room updates in one premium workflow.</p>
 
                         <ul class="list-unstyled hero-list mb-0 opacity-90 hero-mobile-cta">
                             <li>

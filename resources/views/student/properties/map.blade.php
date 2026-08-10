@@ -195,8 +195,8 @@
         ? 'Academic Verification Required'
         : 'Academic Verification In Progress';
     $verificationModalMessage = $schoolIdVerificationStatus === 'rejected'
-        ? 'Your verification document was not approved yet. Booking stays locked until your School ID or COR/COE is validated by admin.'
-        : 'Your academic verification is still in process. Booking stays locked until admin validation is completed.';
+        ? 'Your verification document was not approved yet. Boarding requests stay locked until your School ID or COR/COE is validated by admin.'
+        : 'Your academic verification is still in process. Boarding requests stay locked until admin validation is completed.';
 @endphp
 
 <div class="lookup-shell mb-4">
@@ -207,7 +207,7 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <div class="text-uppercase small text-muted fw-semibold">Booking Lookup</div>
+            <div class="text-uppercase small text-muted fw-semibold">Boarding Request Lookup</div>
             <h1 class="h3 mb-1">Property Map</h1>
             <div class="text-muted small">Find nearby boarding houses and check live room availability.</div>
         </div>

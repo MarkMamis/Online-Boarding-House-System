@@ -211,8 +211,8 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
             <div>
                 <div class="text-uppercase small section-muted fw-semibold">Monitoring</div>
-                <h1 class="h3 mb-1">Bookings Monitoring</h1>
-                <p class="section-muted mb-0">System-wide booking activity and occupancy requests.</p>
+                <h1 class="h3 mb-1">Boarding Monitoring</h1>
+                <p class="section-muted mb-0">System-wide boarding activity and occupancy requests.</p>
             </div>
             <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
                 <i class="bi bi-arrow-left me-1"></i>Dashboard
@@ -222,7 +222,7 @@
         <div class="row g-3 mb-4">
             <div class="col-6 col-lg-3">
                 <div class="admin-metric">
-                    <div class="admin-metric-label">Total Bookings</div>
+                    <div class="admin-metric-label">Total Boarding Requests</div>
                     <div class="admin-metric-value">{{ number_format($totalBookings) }}</div>
                 </div>
             </div>
@@ -267,7 +267,7 @@
                                         class="form-control"
                                         name="search"
                                         value="{{ $search ?? '' }}"
-                                        placeholder="Booking ID, student, property, landlord"
+                                        placeholder="Boarding Request ID, student, property, landlord"
                                     >
                                 </div>
                             </div>
@@ -305,7 +305,7 @@
                                 id="bookingSearchInput"
                                 name="search_preview"
                                 value="{{ $search ?? '' }}"
-                                placeholder="Booking ID, student, property, landlord"
+                                placeholder="Boarding Request ID, student, property, landlord"
                             >
                         </div>
                         <button
@@ -371,7 +371,7 @@
 
         <div class="admin-table-card">
             <div class="admin-card-header fw-semibold d-flex justify-content-between align-items-center gap-2">
-                <span><i class="bi bi-list-ul me-1"></i> Booking Records</span>
+                <span><i class="bi bi-list-ul me-1"></i> Boarding Request Records</span>
                 <span class="badge text-bg-light border">{{ $bookings->total() }} total entries</span>
             </div>
             <div class="table-responsive">
@@ -426,7 +426,7 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="table-empty">
-                                    <div class="h6 mb-1"><i class="bi bi-inbox me-1"></i>No bookings found.</div>
+                                    <div class="h6 mb-1"><i class="bi bi-inbox me-1"></i>No boarding requests found.</div>
                                     <div>No records match your selected filters.</div>
                                 </td>
                             </tr>

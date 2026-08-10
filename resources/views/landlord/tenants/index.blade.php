@@ -16,7 +16,7 @@
             <h1 class="h3 mb-1">Current Tenants</h1>
             <div class="text-muted small">Track active residents, lease dates, and payment follow-ups.</div>
         </div>
-        <a href="{{ route('landlord.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Booking Requests</a>
+        <a href="{{ route('landlord.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Boarding Requests</a>
     </div>
 
     <div class="tenant-summary mb-4">
@@ -178,8 +178,8 @@
             <div class="empty-state">
                 <i class="bi bi-people fs-1 mb-2"></i>
                 <div class="empty-title">No Current Tenants</div>
-                <div class="empty-copy">You do not have approved stays yet. Once bookings are approved, tenants will appear here.</div>
-                <a href="{{ route('landlord.bookings.index') }}" class="btn btn-brand rounded-pill px-3 mt-2">Check Booking Requests</a>
+                <div class="empty-copy">You do not have approved stays yet. Once boarding requests are approved, tenants will appear here.</div>
+                <a href="{{ route('landlord.bookings.index') }}" class="btn btn-brand rounded-pill px-3 mt-2">Check Boarding Requests</a>
             </div>
         @endforelse
 

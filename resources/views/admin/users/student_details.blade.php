@@ -201,7 +201,7 @@
         <div>
             <div class="text-uppercase small muted fw-semibold">Student Account</div>
             <h1 class="h4 mb-1">{{ $user->full_name }}</h1>
-            <div class="muted small">Student profile, accommodation, activity, and booking records.</div>
+            <div class="muted small">Student profile, accommodation, activity, and boarding request records.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('admin.users.students.edit', $user) }}" class="btn btn-outline-primary rounded-pill px-3">
@@ -224,13 +224,13 @@
             || filled($user->medical_conditions)
             || filled($user->medications);
 
-        $recommendedAction = 'Review latest booking activity and keep profile updated.';
+        $recommendedAction = 'Review latest boarding request activity and keep profile updated.';
         if (!$emailVerified) {
             $recommendedAction = 'Follow up email verification to complete account setup.';
         } elseif (!$currentBooking && $bookingHistory->isEmpty()) {
-            $recommendedAction = 'Student has no booking yet; verify profile readiness.';
+            $recommendedAction = 'Student has no boarding request yet; verify profile readiness.';
         } elseif (!$currentBooking) {
-            $recommendedAction = 'No active stay; review booking history for next action.';
+            $recommendedAction = 'No active stay; review boarding request history for next action.';
         }
     @endphp
 
@@ -242,7 +242,7 @@
             <button class="nav-link" id="tab-profile-btn" data-bs-toggle="pill" data-bs-target="#tab-profile" type="button" role="tab" aria-controls="tab-profile" aria-selected="false">Profile and Welfare</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-activity-btn" data-bs-toggle="pill" data-bs-target="#tab-activity" type="button" role="tab" aria-controls="tab-activity" aria-selected="false">Booking Activity</button>
+            <button class="nav-link" id="tab-activity-btn" data-bs-toggle="pill" data-bs-target="#tab-activity" type="button" role="tab" aria-controls="tab-activity" aria-selected="false">Boarding Request Activity</button>
         </li>
     </ul>
 
@@ -261,7 +261,7 @@
                         <div class="p-3">
                             <div class="overview-grid">
                                 <div class="overview-tile">
-                                    <div class="overview-label">Total Bookings</div>
+                                    <div class="overview-label">Total Boarding Requests</div>
                                     <div class="overview-value">{{ number_format($bookingHistory->count()) }}</div>
                                 </div>
                                 <div class="overview-tile">
@@ -454,7 +454,7 @@
                             <div class="overview-value">{{ number_format($messagesSent + $messagesReceived) }}</div>
                         </div>
                         <div class="overview-tile">
-                            <div class="overview-label">Booking Records</div>
+                            <div class="overview-label">Boarding Request Records</div>
                             <div class="overview-value">{{ number_format($bookingHistory->count()) }}</div>
                         </div>
                     </div>
@@ -463,8 +463,8 @@
 
             <div class="section-card">
                 <div class="section-header d-flex justify-content-between align-items-center">
-                    <div class="fw-semibold"><i class="bi bi-history me-1"></i> Booking History</div>
-                    <span class="badge text-bg-secondary">{{ $bookingHistory->count() }} bookings</span>
+                    <div class="fw-semibold"><i class="bi bi-history me-1"></i> Boarding Request History</div>
+                    <span class="badge text-bg-secondary">{{ $bookingHistory->count() }} boarding requests</span>
                 </div>
                 @if($bookingHistory->count() > 0)
                     <div class="table-responsive">
@@ -475,7 +475,7 @@
                                     <th>Check-in</th>
                                     <th>Check-out</th>
                                     <th>Status</th>
-                                    <th class="pe-3">Booking Date</th>
+                                    <th class="pe-3">Request Date</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -499,7 +499,7 @@
                         </table>
                     </div>
                 @else
-                    <div class="text-center muted empty-note">No booking history found for this student.</div>
+                    <div class="text-center muted empty-note">No boarding request history found for this student.</div>
                 @endif
             </div>
         </div>

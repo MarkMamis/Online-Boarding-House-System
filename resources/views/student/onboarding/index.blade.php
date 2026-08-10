@@ -264,7 +264,7 @@
         @if($dashOnboardings->isEmpty())
             <div class="alert alert-secondary mb-0">
                 <i class="bi bi-info-circle me-2"></i>
-                No onboarding records yet. Once you have an approved booking, your onboarding process will appear here.
+                No onboarding records yet. Once you have an approved boarding request, your onboarding process will appear here.
             </div>
         @else
             <div class="onb-records-grid">

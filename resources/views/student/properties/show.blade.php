@@ -49,11 +49,11 @@
                 $bookingLockedBySchoolId = $schoolIdVerificationStatus !== 'approved';
 
                 if ($schoolIdVerificationStatus === 'rejected') {
-                    $bookingLockMessage = 'Your verification document was rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock booking.';
+                    $bookingLockMessage = 'Your verification document was rejected. Upload a corrected School ID or COR/COE in Student Setup to unlock boarding requests.';
                 } elseif ($schoolIdVerificationStatus === 'not_submitted') {
-                    $bookingLockMessage = 'Booking is locked until you upload your School ID or COR/COE in Student Setup.';
+                    $bookingLockMessage = 'Boarding requests are locked until you upload your School ID or COR/COE in Student Setup.';
                 } else {
-                    $bookingLockMessage = 'Booking is locked while your academic verification is pending admin approval.';
+                    $bookingLockMessage = 'Boarding requests are locked while your academic verification is pending admin approval.';
                 }
             @endphp
 
@@ -212,7 +212,7 @@
                     @csrf
                     <input type="hidden" name="stay" value="1">
                     <div class="modal-header">
-                        <h5 class="modal-title">Request Booking</h5>
+                        <h5 class="modal-title">Request Room</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">

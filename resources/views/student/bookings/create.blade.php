@@ -1,6 +1,6 @@
 @extends('layouts.student_dashboard')
 
-@section('title', 'Request Booking')
+@section('title', 'Request Room')
 
 @push('styles')
 <style>
@@ -553,7 +553,7 @@
         <div class="bk-breadcrumb">
             <a href="{{ route('student.dashboard') }}">Dashboard</a> /
             <a href="{{ route('student.rooms.show', $room->id) }}">{{ $propertyName }}</a> /
-            <span>Request Booking</span>
+            <span>Request Room</span>
         </div>
 
         @if($errors->any())
@@ -615,7 +615,7 @@
                         <i class="bi bi-file-text bk-rules-icon"></i>
                         <div>
                             <h5 class="bk-rules-title">House Rules</h5>
-                            <div class="bk-rules-subtitle">Please review before booking</div>
+                            <div class="bk-rules-subtitle">Please review before submitting</div>
                         </div>
                     </div>
 
@@ -650,7 +650,7 @@
                 </form>
 
                 <button type="button" class="btn-brand-book" id="submitBtn" disabled onclick="showConfirmation()">
-                    <i class="bi bi-calendar-check me-2"></i>Submit Booking Request
+                    <i class="bi bi-calendar-check me-2"></i>Submit Boarding Request
                 </button>
                 <div class="text-center mt-2" style="font-size:.78rem;color:rgba(2,8,20,.4);">
                     <i class="bi bi-lock me-1"></i>Your request is reviewed by the landlord. You won't be charged yet.
@@ -796,12 +796,12 @@
 <div class="bk-confirm-modal" id="confirmModal">
     <div class="bk-confirm-content">
         <div class="bk-confirm-header">
-            <h5 class="bk-confirm-title"><i class="bi bi-check2-circle me-2" style="color:#166534;"></i>Confirm Your Booking</h5>
+            <h5 class="bk-confirm-title"><i class="bi bi-check2-circle me-2" style="color:#166534;"></i>Confirm Your Boarding Request</h5>
         </div>
         <div class="bk-confirm-body">
             <div class="bk-confirm-shell">
                 <div class="bk-confirm-col">
-                    <div class="bk-confirm-panel-title"><i class="bi bi-file-earmark-text"></i>Booking Details</div>
+                    <div class="bk-confirm-panel-title"><i class="bi bi-file-earmark-text"></i>Boarding Request Details</div>
                     <div class="bk-detail-head">
                         <div class="bk-detail-head-title" id="confirmRoom">Room</div>
                         <div class="bk-detail-head-sub" id="confirmProperty">Property</div>
@@ -854,7 +854,7 @@
                     </div>
 
                     <div class="bk-confirm-edit-box">
-                        <div class="bk-confirm-edit-title">Booking Options (Editable)</div>
+                        <div class="bk-confirm-edit-title">Boarding Request Options (Editable)</div>
                         <div class="bk-plan-options">
                             @if($supportsSolo)
                             <label class="bk-plan-option">
@@ -878,7 +878,7 @@
             </div>
             <div class="bk-confirm-info">
                 <i class="bi bi-info-circle" style="flex-shrink: 0; margin-top: .1rem;"></i>
-                <span>Your booking request will be reviewed by the landlord. You won't be charged until approved.</span>
+                <span>Your boarding request will be reviewed by the landlord. You won't be charged until approved.</span>
             </div>
         </div>
         <div class="bk-confirm-footer">
@@ -886,7 +886,7 @@
                 <i class="bi bi-x me-1"></i>Cancel
             </button>
             <button type="button" class="bk-confirm-submit" onclick="submitBooking()">
-                <i class="bi bi-check2 me-1"></i>Confirm Booking
+                <i class="bi bi-check2 me-1"></i>Confirm Boarding Request
             </button>
         </div>
     </div>

@@ -13,7 +13,7 @@
                 <div>
                     <div class="text-uppercase small fw-semibold hero-kicker">Activity Center</div>
                     <h1 class="h3 mb-1">Notifications</h1>
-                    <div class="hero-sub small">Keep track of booking updates, admin actions, and system alerts.</div>
+                    <div class="hero-sub small">Keep track of boarding request updates, admin actions, and system alerts.</div>
                 </div>
                 <form method="POST" action="{{ route('notifications.read_all') }}">
                     @csrf

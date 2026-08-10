@@ -1405,8 +1405,8 @@
                     </span>
                 </div>
                 <!-- <div class="hero-credit"><i class="bi bi-award"></i> Credited by OFFICE FOR STUDENT SUPPORT AND ENGAGEMENT</div> -->
-                <h1 class="hero-title display-font">Find trusted boarding houses. Book in Seconds.</h1>
-                <p class="hero-sub mt-3">A modern booking system for students and landlords. Browse verified properties, request rooms, and move in with a guided onboarding flow.</p>
+                <h1 class="hero-title display-font">Find trusted boarding houses. Request in Seconds.</h1>
+                <p class="hero-sub mt-3">A modern boarding request system for students and landlords. Browse verified properties, request rooms, and move in with a guided onboarding flow.</p>
                 <div class="hero-cta d-flex flex-wrap gap-2 mt-4">
                     <a href="{{ route('register.student') }}" class="btn btn-brand">Get started</a>
                     <a href="{{ route('public.properties.map') }}" class="btn btn-ghost">Browse Map</a>
@@ -1623,8 +1623,8 @@
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
             <div>
                 <div class="text-uppercase small text-muted">Why OBHS</div>
-                <h2 class="section-title">A modern booking flow built for campus life</h2>
-                <p class="section-sub">One platform for discovery, booking, and onboarding. Clear, fast, and transparent.</p>
+                <h2 class="section-title">A modern boarding request flow built for campus life</h2>
+                <p class="section-sub">One platform for discovery, boarding requests, and onboarding. Clear, fast, and transparent.</p>
             </div>
             <a href="{{ route('public.properties.map') }}" class="btn btn-outline-success rounded-pill btn-flashy">Browse boarding houses</a>
         </div>
@@ -1639,7 +1639,7 @@
             <div class="col-12 col-md-6 col-xl-3">
                 <div class="glass-card h-100 reveal" style="animation-delay: .1s;">
                     <div class="feature-icon mb-3"><i class="bi bi-journal-check"></i></div>
-                    <h5 class="fw-semibold">Online booking requests</h5>
+                    <h5 class="fw-semibold">Online boarding requests</h5>
                     <p class="text-muted">Send requests in seconds and track approval in your dashboard.</p>
                 </div>
             </div>
@@ -1740,7 +1740,7 @@
             <div class="row align-items-center g-3">
                 <div class="col-12 col-lg-7">
                     <h2 class="section-title">For Students</h2>
-                    <p class="section-sub">Discover verified boarding houses, compare rooms, and request a booking with confidence.</p>
+                    <p class="section-sub">Discover verified boarding houses, compare rooms, and submit a boarding request with confidence.</p>
                     <div class="row g-2 mt-3">
                         <div class="col-12 col-md-6">
                             <div class="step-card glass-card h-100">
@@ -1751,7 +1751,7 @@
                         <div class="col-12 col-md-6">
                             <div class="step-card glass-card h-100">
                                 <h6 class="fw-semibold">Request & track</h6>
-                                <p class="text-muted small mb-0">Monitor booking status, onboarding progress, and messages.</p>
+                                <p class="text-muted small mb-0">Monitor request status, onboarding progress, and messages.</p>
                             </div>
                         </div>
                     </div>
@@ -1771,7 +1771,7 @@
             <div class="row align-items-center g-3">
                 <div class="col-12 col-lg-7">
                     <h2 class="section-title">For Landlords</h2>
-                    <p class="section-sub">Manage properties, rooms, bookings, and onboarding with a clean workflow.</p>
+                    <p class="section-sub">Manage properties, rooms, boarding requests, and onboarding with a clean workflow.</p>
                     <div class="row g-2 mt-3">
                         <div class="col-12 col-md-6">
                             <div class="step-card glass-card h-100">
@@ -1782,7 +1782,7 @@
                         <div class="col-12 col-md-6">
                             <div class="step-card glass-card h-100">
                                 <h6 class="fw-semibold">Approve & onboard</h6>
-                                <p class="text-muted small mb-0">Review documents, approve bookings, and track tenants.</p>
+                                <p class="text-muted small mb-0">Review documents, approve boarding requests, and track tenants.</p>
                             </div>
                         </div>
                     </div>

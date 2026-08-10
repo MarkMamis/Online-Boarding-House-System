@@ -144,7 +144,7 @@
   <div class="col-lg-5">
     <div class="card shadow-sm border-0 rounded-4 mb-4 panel-card">
       <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-        <strong>Active Bookings (Today)</strong>
+        <strong>Active Boarding Requests (Today)</strong>
         <span class="badge text-bg-light border">{{ $activeBookings->count() }}</span>
       </div>
       <div class="card-body p-3 pt-0">
@@ -155,7 +155,7 @@
             <div class="small text-muted">{{ $b->check_in->format('M d, Y') }} -> {{ $b->check_out->format('M d, Y') }}</div>
           </div>
         @empty
-          <div class="text-center text-muted py-4">No active bookings today.</div>
+          <div class="text-center text-muted py-4">No active boarding requests today.</div>
         @endforelse
       </div>
     </div>

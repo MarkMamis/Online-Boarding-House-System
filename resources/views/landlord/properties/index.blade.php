@@ -167,7 +167,7 @@
                                 <li><a class="dropdown-item" href="{{ route('landlord.properties.edit', $prop->id) }}">Edit Property</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form action="{{ route('landlord.properties.destroy', $prop->id) }}" method="POST" onsubmit="return confirm('Delete this property? All rooms and bookings under it will be removed.');">
+                                    <form action="{{ route('landlord.properties.destroy', $prop->id) }}" method="POST" onsubmit="return confirm('Delete this property? All rooms and boarding requests under it will be removed.');">
                                         @csrf
                                         @method('DELETE')
                                         <button class="dropdown-item text-danger" type="submit">Delete Property</button>

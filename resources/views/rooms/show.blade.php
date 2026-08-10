@@ -1134,13 +1134,13 @@
 
                 <div class="booking-access-body">
                     <div class="booking-info-card">
-                        <p><strong>Academic Booking Process:</strong> Account verification supports identity validation, onboarding compliance, and official tenancy records within the OBHS platform.</p>
+                        <p><strong>Academic Boarding Request Process:</strong> Account verification supports identity validation, onboarding compliance, and official tenancy records within the OBHS platform.</p>
                     </div>
 
                     <ol class="booking-steps">
                         <li>Sign in using your existing student account credentials.</li>
-                        <li>Review booking terms, room conditions, and required onboarding documents.</li>
-                        <li>Submit your booking and proceed to contract-signing and payment confirmation.</li>
+                        <li>Review boarding request terms, room conditions, and required onboarding documents.</li>
+                        <li>Submit your boarding request and proceed to contract-signing and payment confirmation.</li>
                     </ol>
 
                     <div class="booking-actions">

@@ -6,7 +6,7 @@
         <div>
             <div class="text-uppercase small text-muted fw-semibold">Finance & Occupancy</div>
             <h1 class="h3 mb-1">Analytics & Insights</h1>
-            <div class="text-muted small">Understand occupancy trends, booking performance, and portfolio-level room utilization.</div>
+            <div class="text-muted small">Understand occupancy trends, boarding request performance, and portfolio-level room utilization.</div>
         </div>
         <span class="updated-chip"><i class="bi bi-clock-history"></i>Updated {{ now()->format('M j, Y g:i A') }}</span>
     </div>
@@ -68,7 +68,7 @@
         <div class="col-12 col-xl-7">
             <div class="analytics-card h-100">
                 <div class="analytics-card-header">
-                    <h5 class="mb-0">Booking Trends (Last 7 Days)</h5>
+                    <h5 class="mb-0">Boarding Request Trends (Last 7 Days)</h5>
                 </div>
                 <div class="analytics-card-body chart-body">
                     <canvas id="bookingChart" height="180"></canvas>
@@ -96,7 +96,7 @@
                                 <div class="top-property-title">{{ $property->name }}</div>
                                 <div class="top-property-address">{{ $property->address }}</div>
                                 <div class="top-property-metrics">
-                                    <span class="metric-chip"><i class="bi bi-journal-check"></i>{{ $property->booking_count }} bookings</span>
+                                    <span class="metric-chip"><i class="bi bi-journal-check"></i>{{ $property->booking_count }} boarding requests</span>
                                     <span class="metric-chip"><i class="bi bi-bar-chart"></i>{{ $occupancy }}% occupancy</span>
                                 </div>
                             </div>
@@ -106,8 +106,8 @@
             @else
                 <div class="empty-state">
                     <i class="bi bi-bar-chart fs-1 mb-2"></i>
-                    <div class="empty-title">No Booking Data Yet</div>
-                    <div class="empty-copy">Top property insights will appear after approved bookings are recorded.</div>
+                    <div class="empty-title">No Boarding Request Data Yet</div>
+                    <div class="empty-copy">Top property insights will appear after approved boarding requests are recorded.</div>
                 </div>
             @endif
         </div>
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels,
             datasets: [{
-                label: 'Bookings',
+                label: 'Boarding Requests',
                 data: values,
                 borderColor: '#14532d',
                 backgroundColor: gradient,
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return 'Bookings: ' + context.parsed.y;
+                            return 'Boarding Requests: ' + context.parsed.y;
                         }
                     }
                 }

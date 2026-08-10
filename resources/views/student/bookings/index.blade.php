@@ -1,6 +1,6 @@
 @extends('layouts.student_dashboard')
 
-@section('title', 'Booking Requests')
+@section('title', 'Boarding Requests')
 
 @push('styles')
 <style>
@@ -164,8 +164,8 @@
 @endphp
 
 <div class="requests-hero mb-4">
-    <h3 class="fw-bold mb-1">Booking Requests</h3>
-    <p class="text-muted small mb-0">Track status updates, review booking timelines, and manage pending requests.</p>
+    <h3 class="fw-bold mb-1">Boarding Requests</h3>
+    <p class="text-muted small mb-0">Track status updates, review boarding request timelines, and manage pending requests.</p>
 
     <div class="requests-stats">
         <div class="requests-stat">
@@ -277,7 +277,7 @@
             </a>
 
             @if($booking->status === 'pending')
-                <form action="{{ route('student.bookings.cancel', $booking->id) }}" method="POST" class="cancel-form" onsubmit="return confirm('Cancel this booking request?');">
+                <form action="{{ route('student.bookings.cancel', $booking->id) }}" method="POST" class="cancel-form" onsubmit="return confirm('Cancel this boarding request?');">
                     @csrf
                     <input type="text" name="cancel_reason" class="form-control form-control-sm rounded-pill" placeholder="Reason (optional)" style="min-width: 200px;">
                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
@@ -286,15 +286,15 @@
                 </form>
             @elseif($booking->status === 'approved')
                 <div class="text-muted small">
-                    <i class="bi bi-check-circle text-success me-2"></i>Your booking is confirmed. Check-in on {{ $booking->check_in->format('M d, Y') }}
+                    <i class="bi bi-check-circle text-success me-2"></i>Your boarding request is confirmed. Check-in on {{ $booking->check_in->format('M d, Y') }}
                 </div>
             @elseif($booking->status === 'rejected')
                 <div class="text-muted small">
-                    <i class="bi bi-x-circle text-danger me-2"></i>Your booking request was rejected by the landlord
+                    <i class="bi bi-x-circle text-danger me-2"></i>Your boarding request was rejected by the landlord
                 </div>
             @elseif($booking->status === 'cancelled')
                 <div class="text-muted small">
-                    <i class="bi bi-dash-circle text-secondary me-2"></i>This booking request was cancelled
+                    <i class="bi bi-dash-circle text-secondary me-2"></i>This boarding request was cancelled
                 </div>
             @endif
         </div>
@@ -303,8 +303,8 @@
     <div class="request-card">
         <div class="empty-state">
             <i class="bi bi-inbox"></i>
-            <h5 class="fw-semibold mb-2">No Booking Requests Yet</h5>
-            <p class="text-muted mb-3">You have not made any room booking requests. Start by exploring available rooms.</p>
+            <h5 class="fw-semibold mb-2">No Boarding Requests Yet</h5>
+            <p class="text-muted mb-3">You have not made any boarding requests. Start by exploring available rooms.</p>
             <div class="d-flex gap-2 flex-wrap justify-content-center empty-actions">
                 <a href="{{ route('student.rooms.index') }}" class="btn btn-brand btn-sm rounded-pill">
                     <i class="bi bi-search me-1"></i>Browse Available Rooms

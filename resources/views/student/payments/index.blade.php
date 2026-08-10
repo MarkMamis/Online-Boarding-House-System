@@ -342,7 +342,7 @@
       <div class="tenant-pay-card-body">
         <div class="alert alert-warning rounded-3 mb-0">
           <i class="bi bi-info-circle me-2"></i>
-          No active tenant booking with completed onboarding was found. Payments are available only for active tenants.
+          No active tenant boarding request with completed onboarding was found. Payments are available only for active tenants.
         </div>
       </div>
     </div>
