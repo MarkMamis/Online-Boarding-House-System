@@ -4,8 +4,3 @@ package: .
 debug: true
 env:
   APP_DEBUG: "true"
-cli_args:
-  - -t
-  - /app/public
-  - -S
-  - 0.0.0.0:8080
