@@ -1,14 +1,4 @@
 kind: wasmer.io/App.v0
 name: online-boarding-house-system
 package: .
-debug: true
 
-env:
-  APP_DEBUG: "true"
-
-cli_args:
-  - -S
-  - localhost:8080
-  - -t
-  - public
-  - router.php
