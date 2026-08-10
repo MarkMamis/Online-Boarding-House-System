@@ -1,0 +1,9 @@
+kind: wasmer.io/App.v0
+name: online-boarding-house-system
+package: .
+cli_args:
+  - -t
+  - /app/public
+  - -S
+  - 0.0.0.0:8080
+  - /app/server.php
