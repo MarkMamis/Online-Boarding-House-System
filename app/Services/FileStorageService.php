@@ -11,10 +11,10 @@ use Throwable;
 /**
  * Central file storage service.
  *
- * New uploads go to the 'supabase' S3 disk when it is configured; otherwise
- * they fall back to the local 'public' disk so local development keeps working.
- * Reads (exists / size / url / download) always check Supabase first and then
- * the legacy public disk, so existing local-storage records keep resolving.
+ * New uploads go to the configured Cloudflare R2 disk first. If R2 is not
+ * configured in an environment, the existing Supabase-then-public development
+ * behavior remains available. Reads check R2, Supabase, and then the legacy
+ * public disk so existing records do not need a path migration.
  */
 class FileStorageService
 {
@@ -34,6 +34,18 @@ class FileStorageService
     }
 
     /**
+     * Determine whether the R2 disk has every value required for a real write.
+     *
+     * This deliberately reads the resolved disk configuration rather than
+     * checking a single environment variable. It returns only a boolean, so
+     * credentials never need to be exposed to callers or logs.
+     */
+    public function isR2Configured(): bool
+    {
+        return $this->hasConfiguredDiskValues('r2', ['key', 'secret', 'bucket', 'endpoint']);
+    }
+
+    /**
      * Upload an uploaded file into a logical directory.
      * Returns the normalized object path (e.g. landlords/25/business-permits/abc123.pdf).
      */
@@ -50,7 +62,7 @@ class FileStorageService
             Log::error('FileStorageService upload threw an exception.', [
                 'disk' => $this->disk,
                 'directory' => $directory,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ]);
         }
 
@@ -82,7 +94,7 @@ class FileStorageService
             Log::error('FileStorageService put threw an exception.', [
                 'disk' => $this->disk,
                 'directory' => $directory,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ]);
         }
 
@@ -123,27 +135,29 @@ class FileStorageService
             return false;
         }
 
-        $deleted = false;
-        foreach ($this->candidateDisks() as $disk) {
-            try {
-                if (Storage::disk($disk)->exists($path)) {
-                    Storage::disk($disk)->delete($path);
-                    $deleted = true;
-                }
-            } catch (Throwable $e) {
-                Log::warning('FileStorageService delete failed.', [
-                    'disk' => $disk,
-                    'path' => $path,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        // During the storage transition, the same provider-agnostic key may
+        // temporarily exist in more than one provider. Delete only the first
+        // disk that owns the key, matching the read resolution order.
+        $disk = $this->holdingDisk($path);
+        if ($disk === null) {
+            return false;
         }
 
-        return $deleted;
+        try {
+            return (bool) Storage::disk($disk)->delete($path);
+        } catch (Throwable $e) {
+            Log::warning('FileStorageService delete failed.', [
+                'disk' => $disk,
+                'path' => $path,
+                'error' => $this->safeErrorMessage($e),
+            ]);
+
+            return false;
+        }
     }
 
     /**
-     * Check existence on Supabase first, then the legacy public disk.
+     * Check existence on R2 first, then Supabase, then the legacy public disk.
      */
     public function exists(?string $path): bool
     {
@@ -199,23 +213,28 @@ class FileStorageService
             return null;
         }
 
-        try {
-            if (Storage::disk('supabase')->exists($path)) {
-                return Storage::disk('supabase')->temporaryUrl($path, now()->addMinutes($minutes));
-            }
-        } catch (Throwable $e) {
-            Log::warning('FileStorageService temporaryUrl failed (supabase).', [
-                'path' => $path,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        foreach ($this->candidateDisks() as $disk) {
+            try {
+                if (!Storage::disk($disk)->exists($path)) {
+                    continue;
+                }
 
-        try {
-            if (Storage::disk('public')->exists($path)) {
-                return asset('storage/' . $path);
+                if ($disk === 'public') {
+                    return asset('storage/' . $path);
+                }
+
+                // R2 and Supabase are private S3-compatible disks. This is
+                // available for callers that explicitly need a short-lived
+                // presigned URL; private document views continue to use the
+                // authorized Laravel /files route.
+                return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($minutes));
+            } catch (Throwable $e) {
+                Log::warning('FileStorageService temporaryUrl failed.', [
+                    'disk' => $disk,
+                    'path' => $path,
+                    'error' => $this->safeErrorMessage($e),
+                ]);
             }
-        } catch (Throwable $e) {
-            // ignore
         }
 
         return null;
@@ -299,7 +318,7 @@ class FileStorageService
             Log::error('FileStorageService copyToDirectory threw an exception.', [
                 'disk' => $this->disk,
                 'directory' => $directory,
-                'error' => $e->getMessage(),
+                'error' => $this->safeErrorMessage($e),
             ]);
         }
 
@@ -324,11 +343,27 @@ class FileStorageService
     }
 
     /**
-     * Disks to check when reading legacy/current files. Supabase is preferred.
+     * Disks to check when reading current and legacy files.
+     *
+     * R2 and Supabase are included only when their minimum connection values
+     * are present. This preserves fast, predictable local fallback behavior in
+     * environments that do not configure either cloud provider.
      */
     protected function candidateDisks(): array
     {
-        return ['supabase', 'public'];
+        $disks = [];
+
+        if ($this->isR2Configured()) {
+            $disks[] = 'r2';
+        }
+
+        if ($this->isSupabaseConfigured()) {
+            $disks[] = 'supabase';
+        }
+
+        $disks[] = 'public';
+
+        return $disks;
     }
 
     /**
@@ -355,14 +390,68 @@ class FileStorageService
     }
 
     /**
-     * Use Supabase when its endpoint + key are configured, otherwise local public.
+     * Resolve the disk for new writes.
+     *
+     * R2 is intentionally selected only when its complete S3-compatible
+     * configuration is present. A configured R2 disk is never silently
+     * replaced with another provider after a write failure.
      */
     protected function resolveActiveDisk(): string
     {
-        $endpoint = trim((string) config('filesystems.disks.supabase.endpoint', ''));
-        $key = trim((string) config('filesystems.disks.supabase.key', ''));
+        if ($this->isR2Configured()) {
+            return 'r2';
+        }
 
-        return ($endpoint !== '' && $key !== '') ? 'supabase' : 'public';
+        if ($this->isSupabaseConfigured()) {
+            return 'supabase';
+        }
+
+        return 'public';
+    }
+
+    /**
+     * Check a disk's resolved configuration without returning any values.
+     */
+    protected function hasConfiguredDiskValues(string $disk, array $keys): bool
+    {
+        $config = (array) config('filesystems.disks.' . $disk, []);
+
+        foreach ($keys as $key) {
+            if (trim((string) ($config[$key] ?? '')) === '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Keep the legacy Supabase activation rule for backward compatibility.
+     */
+    protected function isSupabaseConfigured(): bool
+    {
+        return $this->hasConfiguredDiskValues('supabase', ['endpoint', 'key']);
+    }
+
+    /**
+     * Redact configured connection values before writing an error to logs.
+     */
+    protected function safeErrorMessage(Throwable $exception): string
+    {
+        $message = $exception->getMessage();
+
+        foreach (['r2', 'supabase'] as $disk) {
+            $config = (array) config('filesystems.disks.' . $disk, []);
+
+            foreach (['key', 'secret', 'endpoint'] as $key) {
+                $value = trim((string) ($config[$key] ?? ''));
+                if ($value !== '') {
+                    $message = str_replace($value, '[redacted]', $message);
+                }
+            }
+        }
+
+        return $message;
     }
 
     protected function guessExtension(UploadedFile $file): string

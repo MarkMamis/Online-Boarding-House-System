@@ -13,7 +13,11 @@ return new class extends Migration
     {
         Schema::table('landlord_profiles', function (Blueprint $table) {
             if (!Schema::hasColumn('landlord_profiles', 'payment_gcash_qr_path')) {
-                $table->string('payment_gcash_qr_path')->nullable()->after('payment_gcash_number');
+                // NOTE: the original migration anchored this column after
+                // 'payment_gcash_number', but that column is never created by any
+                // migration (it exists only via the SQL dump). Fresh databases
+                // failed on the unknown anchor, so the cosmetic after() is dropped.
+                $table->string('payment_gcash_qr_path')->nullable();
             }
         });
     }

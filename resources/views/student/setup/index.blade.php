@@ -624,7 +624,7 @@
                                         <label class="form-label" id="schoolIdLabel">School ID Upload{{ $isFirstYearSelected ? '' : ' *' }}</label>
                                         <div class="d-flex align-items-center gap-3">
                                             @if(!empty($user->school_id_path))
-                                                <img id="school_id_preview" src="{{ file_url($user->school_id_path) }}" alt="School ID" class="upload-preview">
+                                                <img id="school_id_preview" src="{{ file_download_url($user->school_id_path) }}" alt="School ID" class="upload-preview">
                                             @else
                                                 <img id="school_id_preview" src="" alt="School ID" class="upload-preview d-none">
                                             @endif

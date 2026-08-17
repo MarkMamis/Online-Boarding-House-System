@@ -12,6 +12,7 @@ use App\Models\Report;
 use App\Models\RoomFeedback;
 use Illuminate\Support\Facades\Schema;
 use App\Models\LandlordProfile;
+use App\Models\LandlordDocument;
 use App\Models\TenantOnboarding;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -727,6 +728,18 @@ class AuthController extends Controller
 
         $user->loadMissing('landlordProfile');
 
+        $landlordDocuments = $user->landlordDocuments()
+            ->orderByDesc('is_current')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get();
+        $currentLandlordDocuments = $landlordDocuments
+            ->where('is_current', true)
+            ->keyBy('document_type');
+        $documentHistory = $landlordDocuments
+            ->where('is_current', false)
+            ->groupBy('document_type');
+
         // Get landlord's properties with room and tenant counts
         $properties = \App\Models\Property::where('landlord_id', $user->id)
             ->with(['rooms' => function($q) {
@@ -808,7 +821,8 @@ class AuthController extends Controller
             'user', 'properties', 'totalTenants', 'totalProperties',
             'totalRooms', 'occupiedRooms', 'occupancyRate',
             'pendingOnboarding', 'documentsUploaded', 'contractSigned',
-            'depositPaid', 'completedOnboarding', 'totalOnboarding', 'currentTenants'
+            'depositPaid', 'completedOnboarding', 'totalOnboarding',
+            'currentTenants', 'currentLandlordDocuments', 'documentHistory'
         ));
     }
 
@@ -1787,12 +1801,25 @@ class AuthController extends Controller
         $needsLandlordSetup = $setupCompletedCount < $setupTotalCount;
         $needsPaymentSetup = !$setupSnapshot['billing_methods_complete'];
 
+        // Documents & requirements summary (centralized landlord_documents records).
+        $documentsSummary = \App\Models\LandlordDocument::where('landlord_id', $landlordId)
+            ->current()
+            ->get()
+            ->map(fn (\App\Models\LandlordDocument $document) => [
+                'type' => $document->document_type,
+                'label' => $document->typeLabel($document->document_type),
+                'verification_status' => $document->verification_status,
+                'expiration' => $document->expirationInfo(),
+            ])
+            ->keyBy('type');
+
         return view('landlord.dashboard', compact(
             'properties','propertiesCount','totalRooms','vacantRooms','pendingRequests','recommendedRooms','unreadMessages','unreadMessagesList','recentReceivedMessages',
             'needsPaymentSetup',
             'setupChecklist', 'setupCompletedCount', 'setupTotalCount', 'needsLandlordSetup', 'setupSnapshot',
             'activeTenantsCount', 'recentCheckInsCount', 'tenantTrend', 'propertyOccupancyBreakdown',
-            'overduePayments', 'overduePaymentsCount'
+            'overduePayments', 'overduePaymentsCount',
+            'documentsSummary'
         ));
     }
 

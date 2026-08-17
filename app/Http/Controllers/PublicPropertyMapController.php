@@ -323,7 +323,7 @@ class PublicPropertyMapController extends Controller
                 'ratings_count' => (int) ($property->ratings_count ?? 0),
                 'available_rooms_count' => (int) ($property->available_rooms_count ?? 0),
                 'inclusions' => $inclusions,
-                'image_url' => $imageExists ? asset('storage/' . $imagePath) : null,
+                'image_url' => $imageExists ? file_url($imagePath) : null,
                 'rooms_url' => route('public.properties.rooms', $property->id),
             ];
         })->values();
@@ -398,7 +398,7 @@ class PublicPropertyMapController extends Controller
 
             $displayImage = $roomImageExists
                 ? file_url($roomImage)
-                : ($propertyImageExists ? asset('storage/' . $propertyImage) : null);
+                : ($propertyImageExists ? file_url($propertyImage) : null);
 
             $propertyInclusions = collect((array) ($supportsBuildingInclusions ? ($room->property->building_inclusions ?? []) : []))
                 ->map(fn ($key) => $amenityOptions[$key] ?? trim((string) $key))

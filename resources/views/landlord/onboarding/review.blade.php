@@ -38,12 +38,12 @@
       $uploadedDocs = collect($onboarding->uploaded_documents ?? []);
       $contractSignaturePath = (string) ($onboarding->contract_signature_path ?? '');
       $hasContractSignature = $contractSignaturePath !== '' && file_exists_any($contractSignaturePath);
-      $contractSignatureUrl = $hasContractSignature ? file_url($contractSignaturePath) : null;
+      $contractSignatureUrl = $hasContractSignature ? file_download_url($contractSignaturePath) : null;
       $contractSignerName = trim((string) ($onboarding->contract_signature_name ?? ($onboarding->booking->student->full_name ?? '')));
       $landlordUser = optional(optional(optional($onboarding->booking)->room)->property)->landlord;
       $landlordContractSignaturePath = (string) ($onboarding->landlord_contract_signature_path ?? '');
       $hasLandlordContractSignature = $landlordContractSignaturePath !== '' && file_exists_any($landlordContractSignaturePath);
-      $landlordContractSignatureUrl = $hasLandlordContractSignature ? file_url($landlordContractSignaturePath) : null;
+      $landlordContractSignatureUrl = $hasLandlordContractSignature ? file_download_url($landlordContractSignaturePath) : null;
       $landlordSignerName = trim((string) ($onboarding->landlord_contract_signature_name ?? ($landlordUser->full_name ?? $landlordUser->name ?? 'Landlord')));
       $landlordProfileSignaturePath = (string) (optional(optional($landlordUser)->landlordProfile)->contract_signature_path ?? '');
       $hasLandlordProfileSignature = $landlordProfileSignaturePath !== '' && file_exists_any($landlordProfileSignaturePath);

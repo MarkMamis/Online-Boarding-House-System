@@ -568,17 +568,31 @@
                             <i class="bi bi-buildings"></i>
                             <span>Properties</span>
                         </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'admin.bookings.index']) href="{{ route('admin.bookings.index') }}">
-                            <i class="bi bi-journal-check"></i>
-                            <span>Boarding Monitoring</span>
-                        </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'admin.boarded_students.index']) href="{{ route('admin.boarded_students.index') }}">
+                        <a @class(['list-group-item', 'active' => in_array($routeName, ['admin.boarding_monitoring.students', 'admin.boarded_students.index', 'admin.bookings.index'], true)]) href="{{ route('admin.boarding_monitoring.students') }}">
                             <i class="bi bi-door-open"></i>
-                            <span>Boarded Students</span>
+                            <span>Boarding Monitoring</span>
                         </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.')]) href="{{ route('admin.onboardings.index') }}">
                             <i class="bi bi-clipboard-check"></i>
                             <span>Onboardings</span>
+                        </a>
+
+                        <div class="nav-section">Documents</div>
+                        @php
+                            $pendingDocumentCount = \Illuminate\Support\Facades\Schema::hasTable('landlord_documents')
+                                ? \App\Models\LandlordDocument::current()->where('verification_status', 'pending')->count()
+                                : 0;
+                        @endphp
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.documents.verification']) href="{{ route('admin.documents.verification') }}">
+                            <i class="bi bi-file-earmark-check"></i>
+                            <span>Document Verification</span>
+                            @if($pendingDocumentCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingDocumentCount }}</span>
+                            @endif
+                        </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.documents.monitoring']) href="{{ route('admin.documents.monitoring') }}">
+                            <i class="bi bi-activity"></i>
+                            <span>Document Monitoring</span>
                         </a>
 
                         <div class="nav-section">Approvals</div>
@@ -667,7 +681,7 @@
             );
         $isStudentVerificationsRoute = is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'));
         $isBookingsRoute = $routeName === 'admin.bookings.index';
-        $isBoardedStudentsRoute = $routeName === 'admin.boarded_students.index';
+        $isBoardedStudentsRoute = in_array($routeName, ['admin.boarded_students.index', 'admin.boarding_monitoring.students'], true);
         $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
         $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
     @endphp
@@ -722,9 +736,9 @@
                     <i class="bi bi-journal-check"></i>
                     <span>Boarding Monitoring</span>
                 </a>
-                <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarded_students.index') }}">
+                <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarding_monitoring.students') }}">
                     <i class="bi bi-door-open"></i>
-                    <span>Boarded Students</span>
+                    <span>Students</span>
                 </a>
                 <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
                     <i class="bi bi-clipboard-check"></i>

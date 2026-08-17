@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LandlordDocument;
 use App\Models\LandlordProfile;
 use App\Models\TenantOnboarding;
 use App\Models\TenantPayment;
@@ -48,7 +49,19 @@ class FileController extends Controller
         switch ($prefix) {
             case 'landlords':
                 $landlordId = (int) ($segments[1] ?? 0);
-                return $user->role === 'landlord' && (int) $user->id === $landlordId;
+                if ($user->role !== 'landlord' || (int) $user->id !== $landlordId) {
+                    return false;
+                }
+
+                // New centralized landlord document paths:
+                //   landlords/{landlord_id}/documents/{type}/{filename}
+                if (($segments[2] ?? '') === 'documents') {
+                    return LandlordDocument::where('landlord_id', $user->id)
+                        ->where('file_path', $path)
+                        ->exists();
+                }
+
+                return true;
 
             case 'students':
                 $studentId = (int) ($segments[1] ?? 0);
@@ -125,6 +138,20 @@ class FileController extends Controller
                 return true;
             }
 
+            // A student's onboarding page may display the landlord's private
+            // GCash QR. Authorize it only when the path belongs to the
+            // landlord attached to one of that student's bookings.
+            $canViewLandlordPaymentQr = TenantOnboarding::whereHas('booking', function ($query) use ($user, $path) {
+                $query->where('student_id', $user->id)
+                    ->whereHas('room.property.landlord.landlordProfile', fn ($profileQuery) =>
+                        $profileQuery->where('payment_gcash_qr_path', $path)
+                    );
+            })->exists();
+
+            if ($canViewLandlordPaymentQr) {
+                return true;
+            }
+
             return TenantPayment::where('payment_proof_path', $path)
                 ->where('student_id', $user->id)
                 ->exists();
@@ -139,6 +166,14 @@ class FileController extends Controller
                         ->orWhere('contract_signature_path', $path);
                 })
                 ->exists();
+
+            // Backfilled landlord_documents records that still point at the
+            // original (possibly legacy) file path.
+            if (!$owned) {
+                $owned = LandlordDocument::where('landlord_id', $user->id)
+                    ->where('file_path', $path)
+                    ->exists();
+            }
 
             if ($owned) {
                 return true;

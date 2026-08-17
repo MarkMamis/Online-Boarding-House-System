@@ -1265,7 +1265,7 @@
           <div>
             <div class="signature-card">
               @if(!empty($onboarding->contract_signature_path))
-                <img class="signature-preview" src="{{ file_url($onboarding->contract_signature_path) }}" alt="Saved signature" />
+                <img class="signature-preview" src="{{ file_download_url($onboarding->contract_signature_path) }}" alt="Saved signature" />
               @else
                 <div class="signature-preview-placeholder">No signature on file</div>
               @endif
@@ -1623,7 +1623,7 @@
                 <div class="col-md-4 text-md-end">
                   @if(!empty($landlordProfile->payment_gcash_qr_path))
                     <a href="{{ file_download_url($landlordProfile->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="gcash-qr-preview" title="Open QR in new tab">
-                      <img src="{{ file_url($landlordProfile->payment_gcash_qr_path) }}" alt="GCash QR">
+                      <img src="{{ file_download_url($landlordProfile->payment_gcash_qr_path) }}" alt="GCash QR">
                     </a>
                   @endif
                 </div>

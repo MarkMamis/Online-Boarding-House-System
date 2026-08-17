@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Property;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class AdminBookingController extends Controller
@@ -98,76 +101,116 @@ class AdminBookingController extends Controller
         ));
     }
 
-    public function boardedStudents(Request $request)
+    public function boardedStudents(Request $request, \App\Services\BoardingMonitoringService $monitoringService)
     {
         $this->ensureAdmin();
 
         $search = trim((string) $request->query('search', ''));
-        $today = now()->toDateString();
+        $boardingHouse = $request->query('boarding_house', $request->query('property_id', ''));
+        $boardingHouse = is_scalar($boardingHouse) ? trim((string) $boardingHouse) : '';
+        $propertyId = ctype_digit($boardingHouse) ? (int) $boardingHouse : 0;
 
-        $applyActiveBoardingFilter = function ($query) use ($today) {
-            return $query
-                ->where('bookings.status', 'approved')
-                ->whereDate('bookings.check_in', '<=', $today)
-                ->where(function ($inner) use ($today) {
-                    $inner->whereNull('bookings.check_out')
-                        ->orWhereDate('bookings.check_out', '>', $today);
-                });
-        };
+        $college = trim((string) $request->query('college', ''));
+        $program = trim((string) $request->query('program', ''));
 
-        $metricsBaseQuery = $applyActiveBoardingFilter(Booking::query());
-
-        $activeBoardings = (clone $metricsBaseQuery)->count();
-        $activeTenants = (clone $metricsBaseQuery)->distinct('bookings.student_id')->count('bookings.student_id');
-        $activeRooms = (clone $metricsBaseQuery)->distinct('bookings.room_id')->count('bookings.room_id');
-        $activeProperties = (clone $metricsBaseQuery)
-            ->join('rooms as metric_rooms', 'metric_rooms.id', '=', 'bookings.room_id')
-            ->distinct('metric_rooms.property_id')
-            ->count('metric_rooms.property_id');
-
-        $boardedStudentsQuery = $applyActiveBoardingFilter(
-            Booking::query()
-                ->with(['student', 'room.property'])
-        );
-
-        if ($search !== '') {
-            $boardedStudentsQuery->where(function ($query) use ($search) {
-                if (ctype_digit($search)) {
-                    $query->orWhere('id', (int) $search)
-                        ->orWhere('student_id', (int) $search);
-                }
-
-                $like = '%' . $search . '%';
-
-                $query->orWhereHas('student', function ($studentQuery) use ($like) {
-                    $studentQuery->where('full_name', 'like', $like)
-                        ->orWhere('email', 'like', $like)
-                        ->orWhere('contact_number', 'like', $like);
-                });
-
-                $query->orWhereHas('room', function ($roomQuery) use ($like) {
-                    $roomQuery->where('room_number', 'like', $like);
-                });
-
-                $query->orWhereHas('room.property', function ($propertyQuery) use ($like) {
-                    $propertyQuery->where('name', 'like', $like)
-                        ->orWhere('address', 'like', $like);
-                });
-            });
+        $allowedStatuses = ['all', 'active', 'checked_out', 'pending', 'cancelled'];
+        $statusFilter = strtolower(trim((string) $request->query('status', 'all')));
+        if (!in_array($statusFilter, $allowedStatuses, true)) {
+            $statusFilter = 'all';
         }
 
-        $boardedStudents = $boardedStudentsQuery
-            ->orderBy('check_in')
+        $rawMonth = $request->query('month');
+        $rawYear = $request->query('year');
+
+        $period = $monitoringService->resolveReportingPeriod(
+            is_numeric($rawMonth) ? (int) $rawMonth : null,
+            is_numeric($rawYear) ? (int) $rawYear : null
+        );
+
+        $periodStart = $period['periodStart'];
+        $periodEnd = $period['periodEnd'];
+        $periodLabel = $period['periodLabel'];
+        $month = $period['month'];
+        $year = $period['year'];
+
+        $filters = [
+            'search' => $search,
+            'property_id' => $propertyId,
+            'college' => $college,
+            'program' => $program,
+            'periodStart' => $periodStart,
+            'periodEnd' => $periodEnd,
+        ];
+
+        $baseQuery = $monitoringService->buildBaseQuery($filters);
+
+        // Filtered query for pagination
+        $filteredQuery = clone $baseQuery;
+        if ($statusFilter !== 'all') {
+            $monitoringService->applyStatusFilter($filteredQuery, $statusFilter, now(), $periodStart, $periodEnd);
+        }
+
+        $boardedStudents = $filteredQuery
+            ->orderByDesc('check_in')
+            ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
+
+        // Summaries and distributions computed from the exact same common base query
+        $metrics = $monitoringService->getSummaryMetrics($baseQuery, now(), $periodStart, $periodEnd);
+        $collegeDistribution = $monitoringService->getCollegeDistribution($baseQuery);
+        $programDistribution = $monitoringService->getProgramDistribution($baseQuery);
+        $propertyDistribution = $monitoringService->getPropertyDistribution($baseQuery);
+        $filterOptions = $monitoringService->getFilterOptions();
+
+        $boardingHouses = $filterOptions['boardingHouses'];
+        $colleges = $filterOptions['colleges'];
+        $programs = $filterOptions['programs'];
+        $catalogPrograms = $filterOptions['catalogPrograms'];
+        $years = $filterOptions['years'];
+
+        // Map metrics variables for view compatibility
+        $totalRecords = $metrics['total_records'];
+        $uniqueStudents = $metrics['unique_students'];
+        $activeBoardings = $metrics['active_boardings'];
+        $activeTenants = $metrics['active_tenants'];
+        $checkedOutBoardings = $metrics['checked_out_boardings'];
+        $checkedOutTenants = $metrics['checked_out_tenants'];
+        $pendingBoardings = $metrics['pending_boardings'];
+        $cancelledBoardings = $metrics['cancelled_boardings'];
+        $activeRooms = $metrics['active_rooms'];
+        $activeProperties = $metrics['active_properties'];
 
         return view('admin.boarded_students.index', compact(
             'boardedStudents',
             'search',
+            'boardingHouse',
+            'college',
+            'program',
+            'month',
+            'year',
+            'statusFilter',
+            'boardingHouses',
+            'colleges',
+            'programs',
+            'catalogPrograms',
+            'years',
+            'periodStart',
+            'periodEnd',
+            'periodLabel',
+            'totalRecords',
+            'uniqueStudents',
             'activeBoardings',
             'activeTenants',
+            'checkedOutBoardings',
+            'checkedOutTenants',
+            'pendingBoardings',
+            'cancelledBoardings',
             'activeRooms',
-            'activeProperties'
+            'activeProperties',
+            'collegeDistribution',
+            'programDistribution',
+            'propertyDistribution'
         ));
     }
 }

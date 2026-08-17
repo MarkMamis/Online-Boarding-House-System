@@ -593,6 +593,10 @@
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard</span>
                         </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.documents.index']) href="{{ route('landlord.documents.index') }}">
+                            <i class="bi bi-folder-check"></i>
+                            <span>Documents &amp; Requirements</span>
+                        </a>
 
                         @if($landlordOpsLocked)
                             <div class="px-2 py-2">

@@ -143,6 +143,66 @@
 
         </div>
 
+        @php
+            $documentsSummary = $documentsSummary ?? collect();
+        @endphp
+        @if($documentsSummary->isNotEmpty())
+            <div class="row g-3 mt-1">
+                @foreach($documentsSummary as $docSummary)
+                    @php
+                        $docVStatus = $docSummary['verification_status'] ?? 'pending';
+                        $docExp = $docSummary['expiration'] ?? null;
+                        $docExpStatus = $docExp['status'] ?? null;
+
+                        $docVBadge = match ($docVStatus) {
+                            'approved' => 'text-bg-success',
+                            'rejected' => 'text-bg-danger',
+                            'pending' => 'text-bg-info',
+                            default => 'text-bg-secondary',
+                        };
+                        $docVLabel = match ($docVStatus) {
+                            'approved' => 'Approved',
+                            'rejected' => 'Rejected',
+                            'pending' => 'Pending Verification',
+                            default => 'Not Submitted',
+                        };
+                        $docEBadge = match ($docExpStatus) {
+                            'valid' => 'text-bg-success',
+                            'expiring_soon' => 'text-bg-warning',
+                            'expired' => 'text-bg-danger',
+                            default => 'text-bg-secondary',
+                        };
+                    @endphp
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="metric-tile h-100">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="metric-ic"><i class="bi bi-file-earmark-text"></i></div>
+                                <div class="min-w-0">
+                                    <div class="fw-semibold text-dark text-truncate">{{ $docSummary['label'] ?? 'Document' }}</div>
+                                    <div class="small metric-label">
+                                        <span class="badge rounded-pill {{ $docVBadge }} me-1">{{ $docVLabel }}</span>
+                                        @if($docExpStatus && in_array($docExpStatus, ['valid','expiring_soon','expired'], true))
+                                            <span class="badge rounded-pill {{ $docEBadge }}">
+                                                {{ ucwords(str_replace('_', ' ', $docExpStatus)) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @if($docExp && $docExp['label'] && $docExp['label'] !== 'No expiration date')
+                                        <div class="small text-muted mt-1">{{ $docExp['label'] }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+                <div class="col-12">
+                    <a href="{{ route('landlord.documents.index') }}" class="btn btn-sm btn-outline-brand rounded-pill">
+                        <i class="bi bi-folder-check me-1"></i>Manage Documents &amp; Requirements
+                    </a>
+                </div>
+            </div>
+        @endif
+
         <div class="row g-4 mt-1">
             <div class="col-12 col-xl-7">
                 <div class="border rounded-4 bg-white p-4 h-100">

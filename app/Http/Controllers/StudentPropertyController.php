@@ -139,7 +139,7 @@ class StudentPropertyController extends Controller
                 'available_rooms' => (int) ($p->available_rooms ?? 0),
                 'price_min' => $p->price_min !== null ? (float) $p->price_min : null,
                 'price_max' => $p->price_max !== null ? (float) $p->price_max : null,
-                'image_url' => $imageExists ? asset('storage/' . $imagePath) : null,
+                'image_url' => $imageExists ? file_url($imagePath) : null,
                 'inclusions' => $inclusions,
             ];
         })->values();

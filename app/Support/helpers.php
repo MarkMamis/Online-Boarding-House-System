@@ -14,7 +14,7 @@ if (!function_exists('file_storage')) {
 
 if (!function_exists('file_url')) {
     /**
-     * Display URL for a stored path (temporary URL for Supabase files,
+     * Display URL for a stored path (temporary URL for private cloud files,
      * legacy public URL for local files). Returns '' when the file is missing.
      */
     function file_url(?string $path, int $minutes = 60): string
@@ -29,7 +29,7 @@ if (!function_exists('file_url')) {
 
 if (!function_exists('file_exists_any')) {
     /**
-     * True when the stored path exists on Supabase or the legacy public disk.
+     * True when the stored path exists on R2, Supabase, or the legacy public disk.
      */
     function file_exists_any(?string $path): bool
     {

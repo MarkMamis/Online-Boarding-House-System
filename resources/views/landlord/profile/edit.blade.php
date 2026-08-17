@@ -201,7 +201,7 @@
                                     <div class="col-12">
                                         @php
                                             $existingLandlordSignaturePath = (string) (optional($user->landlordProfile)->contract_signature_path ?? '');
-                                            $existingLandlordSignatureUrl = $existingLandlordSignaturePath !== '' ? file_url($existingLandlordSignaturePath) : '';
+                                            $existingLandlordSignatureUrl = $existingLandlordSignaturePath !== '' ? file_download_url($existingLandlordSignaturePath) : '';
                                         @endphp
                                         <div class="profile-form-section section-focus-scope" data-focus-scope="contract-signature">
                                             <h6 class="fw-semibold mb-3 section-focus-target" id="contract-signature">

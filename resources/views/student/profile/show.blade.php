@@ -498,7 +498,7 @@
                                             <label class="form-label">Parent/Guardian ID or Photo (Optional)</label>
                                             <div class="d-flex align-items-center gap-3 profile-photo-panel">
                                                 @if(!empty($user->parent_contact_photo_path))
-                                                    <img id="parent_contact_photo_preview" src="{{ file_url($user->parent_contact_photo_path) }}" alt="Parent or guardian photo" class="rounded border" style="width:84px;height:84px;object-fit:cover;">
+                                                    <img id="parent_contact_photo_preview" src="{{ file_download_url($user->parent_contact_photo_path) }}" alt="Parent or guardian photo" class="rounded border" style="width:84px;height:84px;object-fit:cover;">
                                                 @else
                                                     <img id="parent_contact_photo_preview" src="" alt="Parent or guardian photo" class="rounded border d-none" style="width:84px;height:84px;object-fit:cover;">
                                                     <div id="parent_contact_photo_placeholder" class="rounded border bg-light d-flex align-items-center justify-content-center" style="width:84px;height:84px;">

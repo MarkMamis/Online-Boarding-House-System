@@ -237,7 +237,14 @@
 
 @php
     $permitProfile = optional($user->landlordProfile);
-    $permitStatus = $permitProfile->business_permit_status ?? 'not_submitted';
+    $documentTypes = \App\Models\LandlordDocument::types();
+    $currentLandlordDocuments = $currentLandlordDocuments ?? collect();
+    $documentHistory = $documentHistory ?? collect();
+    $businessPermitRecord = $currentLandlordDocuments->get(\App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT);
+    $businessPermitPath = $businessPermitRecord?->file_path ?: $permitProfile->business_permit_path;
+    $businessPermitReviewedAt = $businessPermitRecord?->approved_at ?: $permitProfile->business_permit_reviewed_at;
+    $businessPermitRejectionReason = $businessPermitRecord?->rejection_reason ?: $permitProfile->business_permit_rejection_reason;
+    $permitStatus = $businessPermitRecord?->verification_status ?: ($permitProfile->business_permit_status ?? 'not_submitted');
     $isAccountActive = (bool) ($user->is_active ?? true);
     $focusNextLabel = 'Review permit status';
 
@@ -279,6 +286,9 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-portfolio-btn" data-bs-toggle="pill" data-bs-target="#tab-portfolio" type="button" role="tab" aria-controls="tab-portfolio" aria-selected="false">Portfolio</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-documents-btn" data-bs-toggle="pill" data-bs-target="#tab-documents" type="button" role="tab" aria-controls="tab-documents" aria-selected="false">Documents &amp; Requirements</button>
         </li>
     </ul>
 
@@ -397,15 +407,15 @@
                         <div class="col-lg-5">
                             <div class="compliance-box">
                                 <div class="permit-label mb-1">Business Permit</div>
-                                @if(filled($permitProfile->business_permit_path))
+                                @if(filled($businessPermitPath))
                                     <div class="permit-value mb-2">Uploaded</div>
                                     <div class="small text-muted mb-2">
                                         <strong>Last Reviewed:</strong>
-                                        {{ filled($permitProfile->business_permit_reviewed_at) ? $permitProfile->business_permit_reviewed_at->format('M d, Y h:i A') : 'Not reviewed yet' }}
+                                        {{ filled($businessPermitReviewedAt) ? $businessPermitReviewedAt->format('M d, Y h:i A') : 'Not reviewed yet' }}
                                     </div>
                                     <div class="small text-muted">
-                                        @if($permitStatus === 'rejected' && filled($permitProfile->business_permit_rejection_reason))
-                                            {{ $permitProfile->business_permit_rejection_reason }}
+                                        @if($permitStatus === 'rejected' && filled($businessPermitRejectionReason))
+                                            {{ $businessPermitRejectionReason }}
                                         @elseif($permitStatus === 'approved')
                                             Permit has been approved.
                                         @elseif($permitStatus === 'pending')
@@ -415,7 +425,7 @@
                                         @endif
                                     </div>
                                     <div class="compliance-actions">
-                                        <a href="{{ file_download_url($permitProfile->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                        <a href="{{ file_download_url($businessPermitPath) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
                                             <i class="bi bi-file-earmark-pdf me-1"></i>View Permit
                                         </a>
                                         <a href="{{ route('admin.permits.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill">Open Permit Queue</a>
@@ -566,6 +576,183 @@
                 </div>
             </div>
         </div>
+
+        <div class="tab-pane fade" id="tab-documents" role="tabpanel" aria-labelledby="tab-documents-btn" tabindex="0">
+        <div class="section-card mb-4">
+            <div class="section-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <div class="fw-semibold"><i class="bi bi-folder-check me-1"></i> Documents &amp; Requirements</div>
+                    <div class="section-subtitle">Review the current version of each requirement. Replaced documents remain available for audit.</div>
+                </div>
+                <a href="{{ route('admin.documents.verification', ['landlord_id' => $user->id, 'verification_status' => 'all']) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                    <i class="bi bi-shield-check me-1"></i>Open Document Verification
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">Document</th>
+                            <th>Number</th>
+                            <th>Expiration</th>
+                            <th>Status</th>
+                            <th class="pe-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($documentTypes as $documentType => $documentLabel)
+                            @php
+                                $record = $currentLandlordDocuments->get($documentType);
+                                $legacyPath = $documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
+                                    ? $permitProfile->business_permit_path
+                                    : $permitProfile->safety_certificate_path;
+                                $legacyStatus = $documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
+                                    ? ($permitProfile->business_permit_status ?? null)
+                                    : ($permitProfile->safety_certificate_status ?? null);
+                                $filePath = $record?->file_path ?: $legacyPath;
+                                $documentNumber = $record?->document_number;
+                                $expirationDate = $record?->expiration_date;
+                                $status = $record?->verification_status ?: ($legacyStatus ?: 'not_submitted');
+                                $statusLabel = match($status) {
+                                    'approved' => 'Approved',
+                                    'rejected' => 'Rejected',
+                                    'pending' => 'Pending',
+                                    default => 'Not submitted',
+                                };
+                                $statusClass = match($status) {
+                                    'approved' => 'text-bg-success',
+                                    'rejected' => 'text-bg-danger',
+                                    'pending' => 'text-bg-warning',
+                                    default => 'text-bg-secondary',
+                                };
+                                $expirationLabel = $expirationDate
+                                    ? ($expirationDate->lte(\Illuminate\Support\Carbon::today()) ? 'Expired' : 'Valid')
+                                    : null;
+                                $historyRows = $documentHistory->get($documentType, collect());
+                                $approveRoute = $record
+                                    ? route('admin.documents.approve', $record)
+                                    : ($documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
+                                        ? route('admin.permits.approve', $user)
+                                        : route('admin.permits.safety.approve', $user));
+                                $rejectRoute = $record
+                                    ? route('admin.documents.reject', $record)
+                                    : ($documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
+                                        ? route('admin.permits.reject', $user)
+                                        : route('admin.permits.safety.reject', $user));
+                                $rejectModalId = 'landlordDetailReject' . \Illuminate\Support\Str::studly($documentType);
+                            @endphp
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="fw-semibold">{{ $documentLabel }}</div>
+                                    @if($record)
+                                        <div class="small text-muted">Current submitted version</div>
+                                    @elseif(filled($legacyPath))
+                                        <div class="small text-muted">Legacy profile submission</div>
+                                    @else
+                                        <div class="small text-muted">No document submitted</div>
+                                    @endif
+                                </td>
+                                <td>{{ $documentNumber ?: '—' }}</td>
+                                <td>
+                                    <div>{{ $expirationDate?->format('M d, Y') ?: '—' }}</div>
+                                    @if($expirationLabel)
+                                        <div class="small {{ $expirationLabel === 'Expired' ? 'text-danger' : 'text-success' }}">{{ $expirationLabel }}</div>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge {{ $statusClass }}">{{ $statusLabel }}</span>
+                                    @if($status === 'rejected' && filled($record?->rejection_reason))
+                                        <div class="small text-danger mt-1" title="{{ $record->rejection_reason }}">{{ \Illuminate\Support\Str::limit($record->rejection_reason, 45) }}</div>
+                                    @endif
+                                </td>
+                                <td class="pe-3">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @if(filled($filePath))
+                                            <a href="{{ file_download_url($filePath) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                <i class="bi bi-eye me-1"></i>View
+                                            </a>
+                                            <a href="{{ file_download_url($filePath, true) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                <i class="bi bi-download me-1"></i>Download
+                                            </a>
+                                        @endif
+                                        @if(filled($filePath) && $status !== 'approved')
+                                            <form method="POST" action="{{ $approveRoute }}" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success rounded-pill" onclick="return confirm('Approve this document?')">Approve</button>
+                                            </form>
+                                        @endif
+                                        @if(filled($filePath) && $status !== 'rejected')
+                                            <details class="d-inline-block position-relative">
+                                                <summary class="btn btn-sm btn-outline-danger rounded-pill">Reject</summary>
+                                                <div class="bg-white border rounded-3 shadow-sm p-3 mt-1 position-absolute end-0" style="z-index: 20; min-width: 280px;">
+                                                    <form method="POST" action="{{ $rejectRoute }}">
+                                                        @csrf
+                                                        <label for="{{ $rejectModalId }}Reason" class="form-label small fw-semibold">Rejection reason <span class="text-danger">*</span></label>
+                                                        <textarea id="{{ $rejectModalId }}Reason" name="rejection_reason" class="form-control form-control-sm mb-2" rows="3" maxlength="500" required></textarea>
+                                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill">Confirm Rejection</button>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        @endif
+                                        @if(!$filePath)
+                                            <span class="small text-muted align-self-center">Awaiting upload</span>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                            @if($historyRows->isNotEmpty())
+                                <tr>
+                                    <td colspan="5" class="px-3 py-2 bg-light">
+                                        <details>
+                                            <summary class="small fw-semibold text-success">View document history ({{ $historyRows->count() }})</summary>
+                                            <div class="table-responsive mt-2">
+                                                <table class="table table-sm align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Version</th>
+                                                            <th>Number</th>
+                                                            <th>Expiration</th>
+                                                            <th>Status</th>
+                                                            <th>Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($historyRows as $historyDocument)
+                                                            @php
+                                                                $historyExpired = $historyDocument->expiration_date && $historyDocument->expiration_date->lte(\Illuminate\Support\Carbon::today());
+                                                            @endphp
+                                                            <tr>
+                                                                <td>{{ $historyDocument->date_issued?->format('Y') ?: ($historyDocument->submitted_at?->format('Y') ?: 'Previous') }}</td>
+                                                                <td>{{ $historyDocument->document_number ?: '—' }}</td>
+                                                                <td>
+                                                                    {{ $historyDocument->expiration_date?->format('M d, Y') ?: '—' }}
+                                                                    @if($historyExpired)
+                                                                        <div class="small text-danger">Expired</div>
+                                                                    @endif
+                                                                </td>
+                                                                <td><span class="badge {{ $historyDocument->verification_status === 'approved' ? 'text-bg-success' : ($historyDocument->verification_status === 'rejected' ? 'text-bg-danger' : 'text-bg-warning') }}">{{ ucfirst($historyDocument->verification_status) }}</span></td>
+                                                                <td>
+                                                                    @if(filled($historyDocument->file_path))
+                                                                        <a href="{{ file_download_url($historyDocument->file_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View</a>
+                                                                        <a href="{{ file_download_url($historyDocument->file_path, true) }}" class="btn btn-sm btn-outline-secondary rounded-pill">Download</a>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </details>
+                                    </td>
+                                </tr>
+                            @endif
+
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
     </div>
 </div>
 
@@ -692,5 +879,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 @endsection
-
-

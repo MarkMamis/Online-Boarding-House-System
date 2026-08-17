@@ -28,6 +28,8 @@ use App\Http\Controllers\LandlordLeaveRequestController;
 use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\OnboardingRoleController;
+use App\Http\Controllers\LandlordDocumentController;
+use App\Http\Controllers\AdminLandlordDocumentController;
 use App\Models\Room;
 use App\Models\Property;
 use App\Models\User;
@@ -304,6 +306,12 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/users/students/{user}/edit', [AuthController::class, 'adminEditStudent'])->name('admin.users.students.edit');
     Route::put('/admin/users/students/{user}', [AuthController::class, 'adminUpdateStudent'])->name('admin.users.students.update');
 
+    // Admin landlord document verification & monitoring
+    Route::get('/admin/documents/verification', [AdminLandlordDocumentController::class, 'verification'])->name('admin.documents.verification');
+    Route::get('/admin/documents/monitoring', [AdminLandlordDocumentController::class, 'monitoring'])->name('admin.documents.monitoring');
+    Route::post('/admin/documents/{document}/approve', [AdminLandlordDocumentController::class, 'approve'])->name('admin.documents.approve');
+    Route::post('/admin/documents/{document}/reject', [AdminLandlordDocumentController::class, 'reject'])->name('admin.documents.reject');
+
     // Admin direct messaging
     Route::post('/admin/messages', [MessageController::class, 'store'])->name('admin.messages.store');
 
@@ -312,7 +320,10 @@ Route::middleware(['role:admin'])->group(function () {
 
     // Admin bookings monitoring
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->name('admin.bookings.index');
-    Route::get('/admin/boarded-students', [AdminBookingController::class, 'boardedStudents'])->name('admin.boarded_students.index');
+    Route::get('/admin/boarding-monitoring/students', [AdminBookingController::class, 'boardedStudents'])->name('admin.boarding_monitoring.students');
+    Route::get('/admin/boarded-students', function (Request $request) {
+        return redirect()->route('admin.boarding_monitoring.students', $request->query());
+    })->name('admin.boarded_students.index');
 
     // Property approval workflow
     Route::get('/admin/properties/approval', function (Request $request) {
@@ -348,6 +359,11 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
     Route::put('/landlord/setup', [LandlordSetupController::class, 'update'])->name('landlord.setup.update');
 
     Route::get('/landlord/dashboard', [AuthController::class, 'landlordDashboard'])->name('landlord.dashboard');
+
+    // Landlord documents & requirements
+    Route::get('/landlord/documents', [LandlordDocumentController::class, 'index'])->name('landlord.documents.index');
+    Route::post('/landlord/documents', [LandlordDocumentController::class, 'store'])->name('landlord.documents.store');
+    Route::post('/landlord/documents/{document}/resubmit', [LandlordDocumentController::class, 'resubmit'])->name('landlord.documents.resubmit');
 
     // Landlord profile management
     Route::get('/landlord/profile', [AuthController::class, 'landlordProfile'])->name('landlord.profile.edit');
