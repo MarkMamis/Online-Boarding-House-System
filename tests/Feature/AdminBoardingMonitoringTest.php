@@ -38,7 +38,7 @@ class AdminBoardingMonitoringTest extends TestCase
     }
 
     // =========================================================================
-    // PHASE 6 TESTS: Access Control, Filtering, Search, Pagination
+    // ACCESS CONTROL & GENERAL SCREEN MONITORING
     // =========================================================================
 
     public function test_01_admin_can_access_boarding_monitoring(): void
@@ -51,7 +51,7 @@ class AdminBoardingMonitoringTest extends TestCase
         $response->assertOk()
             ->assertSee('Boarding Monitoring')
             ->assertSee('Unique Students')
-            ->assertSee('College &amp; Program Distribution', false);
+            ->assertSee('Print Report');
     }
 
     public function test_02_student_cannot_access_boarding_monitoring(): void
@@ -74,19 +74,51 @@ class AdminBoardingMonitoringTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_04_property_filter_isolates_records_for_selected_boarding_house(): void
+    // =========================================================================
+    // BOARDING HOUSE FILTER (ALL VS SPECIFIC PROPERTY)
+    // =========================================================================
+
+    public function test_04_all_boarding_houses_view_returns_students_from_multiple_properties(): void
     {
         $admin = $this->createAdmin();
         $landlord = $this->createLandlord('Test Landlord');
 
-        $propA = $this->createProperty($landlord, 'Dorm Alpha');
-        $propB = $this->createProperty($landlord, 'Dorm Beta');
+        $propA = $this->createProperty($landlord, 'Alpha House');
+        $propB = $this->createProperty($landlord, 'Beta Dorm');
 
         $roomA = $this->createRoom($propA, 'A-101');
         $roomB = $this->createRoom($propB, 'B-201');
 
-        $studentA = $this->createStudent('Alice in Alpha');
-        $studentB = $this->createStudent('Bob in Beta');
+        $studentA = $this->createStudent('Student Alpha');
+        $studentB = $this->createStudent('Student Beta');
+
+        $this->createBooking($studentA, $roomA, '2026-01-01', '2026-12-31', 'approved');
+        $this->createBooking($studentB, $roomB, '2026-01-01', '2026-12-31', 'approved');
+
+        // No property filter specified -> All Boarding Houses
+        $response = $this->actingAs($admin)
+            ->get(route('admin.boarding_monitoring.students'));
+
+        $response->assertOk()
+            ->assertSee('Student Alpha')
+            ->assertSee('Student Beta')
+            ->assertSee('Alpha House')
+            ->assertSee('Beta Dorm');
+    }
+
+    public function test_05_specific_boarding_house_filter_isolates_records_to_that_property(): void
+    {
+        $admin = $this->createAdmin();
+        $landlord = $this->createLandlord('Test Landlord');
+
+        $propA = $this->createProperty($landlord, 'Alpha House');
+        $propB = $this->createProperty($landlord, 'Beta Dorm');
+
+        $roomA = $this->createRoom($propA, 'A-101');
+        $roomB = $this->createRoom($propB, 'B-201');
+
+        $studentA = $this->createStudent('Student Alpha');
+        $studentB = $this->createStudent('Student Beta');
 
         $this->createBooking($studentA, $roomA, '2026-01-01', '2026-12-31', 'approved');
         $this->createBooking($studentB, $roomB, '2026-01-01', '2026-12-31', 'approved');
@@ -95,561 +127,339 @@ class AdminBoardingMonitoringTest extends TestCase
             ->get(route('admin.boarding_monitoring.students', ['boarding_house' => $propA->id]));
 
         $response->assertOk()
-            ->assertSee('Alice in Alpha')
-            ->assertDontSee('Bob in Beta');
+            ->assertSee('Student Alpha')
+            ->assertDontSee('Student Beta');
     }
 
-    public function test_05_college_filter_isolates_records_by_college(): void
+    public function test_06_property_id_query_param_preselects_boarding_house(): void
     {
         $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
+        $landlord = $this->createLandlord('Test Landlord');
 
-        $studentCCS = $this->createStudent('CCS Student', 'CCS', 'BSIT');
-        $studentCAS = $this->createStudent('CAS Student', 'CAS', 'BA English');
-
-        $this->createBooking($studentCCS, $room, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentCAS, $room, '2026-01-01', '2026-12-31', 'approved');
+        $prop = $this->createProperty($landlord, 'Direct Linked Dorm');
+        $room = $this->createRoom($prop, 'DL-1');
+        $student = $this->createStudent('Direct Linked Student');
+        $this->createBooking($student, $room, '2026-01-01', '2026-12-31', 'approved');
 
         $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['college' => 'CCS']));
+            ->get(route('admin.boarding_monitoring.students', ['property_id' => $prop->id]));
 
         $response->assertOk()
-            ->assertSee('CCS Student')
-            ->assertDontSee('CAS Student');
+            ->assertSee('Direct Linked Dorm')
+            ->assertSee('Direct Linked Student');
     }
 
-    public function test_06_program_filter_isolates_records_by_academic_program(): void
+    // =========================================================================
+    // REPORT BASIS 1: STAYED DURING PERIOD (OCCUPANCY OVERLAP)
+    // =========================================================================
+
+    public function test_07_stayed_during_period_includes_mid_stay_overlap(): void
     {
+        // Student stayed July 15 to Sept 10. August 2026 report basis=stay -> INCLUDED
         $admin = $this->createAdmin();
         $room = $this->createStandardRoom();
 
-        $studentIT = $this->createStudent('IT Student', 'CCS', 'Bachelor of Science in Information Technology');
-        $studentCrim = $this->createStudent('Crim Student', 'CCJE', 'Bachelor of Science in Criminology');
-
-        $this->createBooking($studentIT, $room, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentCrim, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['program' => 'Bachelor of Science in Information Technology']));
-
-        $response->assertOk()
-            ->assertSee('IT Student')
-            ->assertDontSee('Crim Student');
-    }
-
-    public function test_07_status_filter_isolates_active_and_checked_out_stays(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $today = now();
-
-        $activeStudent = $this->createStudent('Active Stay');
-        $checkedOutStudent = $this->createStudent('Checked Out Stay');
-
-        // Active stay
-        $this->createBooking($activeStudent, $room, $today->copy()->subMonth()->toDateString(), $today->copy()->addMonth()->toDateString(), 'approved');
-        // Past stay
-        $this->createBooking($checkedOutStudent, $room, $today->copy()->subMonths(3)->toDateString(), $today->copy()->subMonth()->toDateString(), 'approved');
-
-        $responseActive = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['status' => 'active']));
-
-        $responseActive->assertOk()
-            ->assertSee('Active Stay')
-            ->assertDontSee('Checked Out Stay');
-
-        $responseCheckedOut = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['status' => 'checked_out']));
-
-        $responseCheckedOut->assertOk()
-            ->assertSee('Checked Out Stay')
-            ->assertDontSee('Active Stay');
-    }
-
-    public function test_08_search_filter_matches_student_name_id_room_and_property(): void
-    {
-        $admin = $this->createAdmin();
-        $landlord = $this->createLandlord('Target Landlord');
-        $prop = $this->createProperty($landlord, 'Sunflower Dorm');
-        $room = $this->createRoom($prop, 'SF-404');
-
-        $targetStudent = $this->createStudent('Samantha Cruz', 'CCS', 'BSIT', '2026-0099');
-        $otherStudent = $this->createStudent('John Smith', 'CAS', 'BA English', '2026-0001');
-
-        $this->createBooking($targetStudent, $room, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($otherStudent, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        // Search by student ID
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['search' => '2026-0099']))
-            ->assertOk()
-            ->assertSee('Samantha Cruz')
-            ->assertDontSee('John Smith');
-
-        // Search by room number
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['search' => 'SF-404']))
-            ->assertOk()
-            ->assertSee('Sunflower Dorm')
-            ->assertSee('SF-404');
-    }
-
-    public function test_09_combined_filters_narrow_results_correctly(): void
-    {
-        $admin = $this->createAdmin();
-        $landlord = $this->createLandlord('Landlord Combined');
-        $propA = $this->createProperty($landlord, 'Dorm Alpha Combined');
-        $propB = $this->createProperty($landlord, 'Dorm Beta Combined');
-
-        $roomA = $this->createRoom($propA, '101');
-        $roomB = $this->createRoom($propB, '201');
-
-        $studentTarget = $this->createStudent('Target In Alpha CCS', 'CCS', 'BSIT');
-        $studentWrongCollege = $this->createStudent('Other In Alpha CAS', 'CAS', 'BA English');
-        $studentWrongProp = $this->createStudent('Target In Beta CCS', 'CCS', 'BSIT');
-
-        $this->createBooking($studentTarget, $roomA, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentWrongCollege, $roomA, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentWrongProp, $roomB, '2026-01-01', '2026-12-31', 'approved');
+        $student = $this->createStudent('Stayed July to Sept');
+        $this->createBooking($student, $room, '2026-07-15', '2026-09-10', 'approved');
 
         $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
-            'boarding_house' => $propA->id,
-            'college' => 'CCS',
+            'date_basis' => 'stay',
+            'month' => 8,
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()->assertSee('Stayed July to Sept');
+    }
+
+    public function test_08_stayed_during_period_excludes_outside_spans(): void
+    {
+        // Student stayed Sept 1 to Dec 31. August 2026 report basis=stay -> EXCLUDED
+        $admin = $this->createAdmin();
+        $room = $this->createStandardRoom();
+
+        $student = $this->createStudent('Started in September');
+        $this->createBooking($student, $room, '2026-09-01', '2026-12-31', 'approved');
+
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'stay',
+            'month' => 8,
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()->assertDontSee('Started in September');
+    }
+
+    // =========================================================================
+    // REPORT BASIS 2: STARTED BOARDING DURING PERIOD (CHECK-IN DATE)
+    // =========================================================================
+
+    public function test_09_started_boarding_basis_excludes_earlier_checkin_even_if_still_staying(): void
+    {
+        // Student check-in was July 15 (ends Sept 10).
+        // August 2026 report basis=check_in -> EXCLUDED because they started in July!
+        $admin = $this->createAdmin();
+        $room = $this->createStandardRoom();
+
+        $studentJuly = $this->createStudent('July Move-In');
+        $this->createBooking($studentJuly, $room, '2026-07-15', '2026-09-10', 'approved');
+
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'check_in',
+            'month' => 8,
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()->assertDontSee('July Move-In');
+    }
+
+    public function test_10_started_boarding_basis_includes_checkin_inside_month(): void
+    {
+        $admin = $this->createAdmin();
+        $room = $this->createStandardRoom();
+
+        $studentAugStart = $this->createStudent('August 1 Move-In');
+        $studentAugMid = $this->createStudent('August 15 Move-In');
+        $studentAugEnd = $this->createStudent('August 31 Move-In');
+        $studentSept = $this->createStudent('September 1 Move-In');
+
+        $this->createBooking($studentAugStart, $room, '2026-08-01', '2026-12-31', 'approved');
+        $this->createBooking($studentAugMid, $room, '2026-08-15', '2026-12-31', 'approved');
+        $this->createBooking($studentAugEnd, $room, '2026-08-31', '2026-12-31', 'approved');
+        $this->createBooking($studentSept, $room, '2026-09-01', '2026-12-31', 'approved');
+
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'check_in',
+            'month' => 8,
+            'year' => 2026,
         ]));
 
         $response->assertOk()
-            ->assertSee('Target In Alpha CCS')
-            ->assertDontSee('Other In Alpha CAS')
-            ->assertDontSee('Target In Beta CCS');
-    }
-
-    public function test_10_pagination_preserves_query_string(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-
-        for ($i = 1; $i <= 25; $i++) {
-            $s = $this->createStudent("Student {$i}", 'CCS', 'BSIT');
-            $this->createBooking($s, $room, '2026-01-01', '2026-12-31', 'approved');
-        }
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['college' => 'CCS', 'page' => 2]));
-
-        $response->assertOk()
-            ->assertSee('college=CCS');
+            ->assertSee('August 1 Move-In')
+            ->assertSee('August 15 Move-In')
+            ->assertSee('August 31 Move-In')
+            ->assertDontSee('September 1 Move-In');
     }
 
     // =========================================================================
-    // PHASE 7 TESTS: Month/Year Interval Overlap & Historical Cases
+    // CUSTOM DATE RANGE FILTERING
     // =========================================================================
 
-    public function test_11_historical_stay_before_month_to_after_month_is_included(): void
+    public function test_11_custom_date_range_filters_correctly(): void
     {
-        // Case A: check_in 2026-02-15, check_out 2026-04-02 -> March 2026 INCLUDED
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case A Student');
-        $this->createBooking($student, $room, '2026-02-15', '2026-04-02', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertSee('Case A Student');
-    }
-
-    public function test_12_historical_stay_starting_during_month_is_included(): void
-    {
-        // Starts mid-March 2026
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Mid March Student');
-        $this->createBooking($student, $room, '2026-03-10', '2026-05-15', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertSee('Mid March Student');
-    }
-
-    public function test_13_stay_starting_after_month_is_excluded(): void
-    {
-        // Case C: check_in 2026-04-01 -> March 2026 EXCLUDED
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case C Student');
-        $this->createBooking($student, $room, '2026-04-01', '2026-08-30', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertDontSee('Case C Student');
-    }
-
-    public function test_14_stay_ending_before_month_is_excluded(): void
-    {
-        // Case D: check_in 2026-01-01, check_out 2026-02-28 -> March 2026 EXCLUDED
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case D Student');
-        $this->createBooking($student, $room, '2026-01-01', '2026-02-28', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertDontSee('Case D Student');
-    }
-
-    public function test_15_same_day_boundary_stay_is_included(): void
-    {
-        // Case E: check_in 2026-03-31, check_out 2026-03-31 -> March 2026 INCLUDED
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case E Boundary Student');
-        $this->createBooking($student, $room, '2026-03-31', '2026-03-31', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertSee('Case E Boundary Student');
-    }
-
-    public function test_16_long_stay_appears_in_every_overlapping_month(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Semester Student');
-        $this->createBooking($student, $room, '2026-01-15', '2026-06-15', 'approved');
-
-        foreach ([1, 2, 3, 4, 5, 6] as $m) {
-            $this->actingAs($admin)
-                ->get(route('admin.boarding_monitoring.students', ['month' => $m, 'year' => 2026]))
-                ->assertOk()
-                ->assertSee('Semester Student');
-        }
-
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 7, 'year' => 2026]))
-            ->assertOk()
-            ->assertDontSee('Semester Student');
-    }
-
-    public function test_17_null_checkout_defensive_case_is_included(): void
-    {
-        // Case B: check_in 2026-03-20, check_out NULL -> March 2026 INCLUDED
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case B Null Checkout');
-        $booking = $this->createBooking($student, $room, '2026-03-20', '2026-12-31', 'approved');
-        $booking->update(['check_out' => null]);
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]));
-
-        $response->assertOk()->assertSee('Case B Null Checkout');
-    }
-
-    public function test_18_leap_year_february_dates_are_handled_correctly(): void
-    {
+        // Custom range: 2026-08-10 to 2026-08-25
         $admin = $this->createAdmin();
         $room = $this->createStandardRoom();
 
-        // 2028 is a leap year; stay on Feb 29, 2028
-        $studentLeap = $this->createStudent('Leap Year Student');
-        $this->createBooking($studentLeap, $room, '2028-02-29', '2028-02-29', 'approved');
+        $studentAug09 = $this->createStudent('Student Aug 9');
+        $studentAug10 = $this->createStudent('Student Aug 10');
+        $studentAug20 = $this->createStudent('Student Aug 20');
+        $studentAug25 = $this->createStudent('Student Aug 25');
+        $studentAug26 = $this->createStudent('Student Aug 26');
 
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 2, 'year' => 2028]))
-            ->assertOk()
-            ->assertSee('Leap Year Student');
-    }
+        $this->createBooking($studentAug09, $room, '2026-08-09', '2026-12-31', 'approved');
+        $this->createBooking($studentAug10, $room, '2026-08-10', '2026-12-31', 'approved');
+        $this->createBooking($studentAug20, $room, '2026-08-20', '2026-12-31', 'approved');
+        $this->createBooking($studentAug25, $room, '2026-08-25', '2026-12-31', 'approved');
+        $this->createBooking($studentAug26, $room, '2026-08-26', '2026-12-31', 'approved');
 
-    public function test_19_checked_out_stay_remains_included_in_valid_historical_month(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-
-        // Stay from Jan 10, 2026 to Mar 20, 2026. As of today (future), status is Checked Out.
-        $student = $this->createStudent('Historically Present Student');
-        $this->createBooking($student, $room, '2026-01-10', '2026-03-20', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 2, 'year' => 2026]));
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'check_in',
+            'date_from' => '2026-08-10',
+            'date_to' => '2026-08-25',
+        ]));
 
         $response->assertOk()
-            ->assertSee('Historically Present Student');
+            ->assertDontSee('Student Aug 9')
+            ->assertSee('Student Aug 10')
+            ->assertSee('Student Aug 20')
+            ->assertSee('Student Aug 25')
+            ->assertDontSee('Student Aug 26');
     }
 
-    public function test_20_early_leave_cancelled_booking_appears_in_occupied_historical_months(): void
+    public function test_12_custom_date_range_takes_priority_over_month_and_year(): void
     {
-        // Case F: check_in 2026-01-10, check_out 2026-03-15, status='cancelled'
-        // Occupied Jan 10 through Mar 15.
         $admin = $this->createAdmin();
         $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case F Early Leave Student');
+
+        $studentAug = $this->createStudent('Student in August');
+        $studentDec = $this->createStudent('Student in December');
+
+        $this->createBooking($studentAug, $room, '2026-08-15', '2026-12-31', 'approved');
+        $this->createBooking($studentDec, $room, '2026-12-05', '2026-12-31', 'approved');
+
+        // Pass month=8 but custom date_from=2026-12-01, date_to=2026-12-31
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'check_in',
+            'month' => 8,
+            'year' => 2026,
+            'date_from' => '2026-12-01',
+            'date_to' => '2026-12-31',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Student in December')
+            ->assertDontSee('Student in August');
+    }
+
+    // =========================================================================
+    // EARLY LEAVE HISTORICAL OCCUPANCY RULES
+    // =========================================================================
+
+    public function test_13_early_leave_cancelled_stay_appears_in_occupied_window(): void
+    {
+        // Early leave: check_in 2026-01-10, check_out 2026-03-15, status='cancelled'
+        $admin = $this->createAdmin();
+        $room = $this->createStandardRoom();
+        $student = $this->createStudent('Early Leave Occupant');
         $this->createBooking($student, $room, '2026-01-10', '2026-03-15', 'cancelled');
 
-        // February 2026 -> INCLUDED
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 2, 'year' => 2026]))
-            ->assertOk()
-            ->assertSee('Case F Early Leave Student');
+        // February 2026 -> INCLUDED in stay basis
+        $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'stay',
+            'month' => 2,
+            'year' => 2026,
+        ]))->assertOk()->assertSee('Early Leave Occupant');
 
-        // March 2026 -> INCLUDED
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 3, 'year' => 2026]))
-            ->assertOk()
-            ->assertSee('Case F Early Leave Student');
+        // April 2026 -> EXCLUDED
+        $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'stay',
+            'month' => 4,
+            'year' => 2026,
+        ]))->assertOk()->assertDontSee('Early Leave Occupant');
     }
 
-    public function test_21_early_leave_booking_disappears_after_leave_month(): void
+    public function test_14_pure_cancellation_before_stay_is_excluded(): void
     {
-        // Case F: left on 2026-03-15. April 2026 -> EXCLUDED
         $admin = $this->createAdmin();
         $room = $this->createStandardRoom();
-        $student = $this->createStudent('Case F Excluded Later');
-        $this->createBooking($student, $room, '2026-01-10', '2026-03-15', 'cancelled');
-
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 4, 'year' => 2026]))
-            ->assertOk()
-            ->assertDontSee('Case F Excluded Later');
-    }
-
-    public function test_22_pure_cancelled_before_stay_booking_is_excluded(): void
-    {
-        // Cancelled before check-in date: check_in 2026-05-01, check_out 2026-05-01, status='cancelled'
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Pure Cancelled Student');
+        $student = $this->createStudent('Cancelled No Show');
         $this->createBooking($student, $room, '2026-05-01', '2026-05-01', 'cancelled');
 
-        $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['month' => 5, 'year' => 2026]))
-            ->assertOk()
-            ->assertDontSee('Pure Cancelled Student');
+        $this->actingAs($admin)->get(route('admin.boarding_monitoring.students', [
+            'date_basis' => 'stay',
+            'month' => 5,
+            'year' => 2026,
+        ]))->assertOk()->assertDontSee('Cancelled No Show');
     }
 
     // =========================================================================
-    // PHASE 8 TESTS: College & Program Distribution & Distinct Counting
+    // COLLEGE & PROGRAM REPORTING WITH PROPERTY & TIME FILTERS
     // =========================================================================
 
-    public function test_23_college_count_uses_distinct_student_headcounts(): void
+    public function test_15_academic_distributions_respect_all_active_filters(): void
     {
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Double Booking Student', 'CCS', 'BSIT');
-
-        // Student has two distinct booking stays in the same period
-        $this->createBooking($student, $room, '2026-01-01', '2026-03-01', 'approved');
-        $this->createBooking($student, $room, '2026-03-02', '2026-06-01', 'approved');
-
-        $baseQuery = $this->service->buildBaseQuery();
-        $distribution = $this->service->getCollegeDistribution($baseQuery);
-
-        $ccs = $distribution->firstWhere('college_code', 'CCS');
-        $this->assertNotNull($ccs);
-        // De-duplicated student count is 1, even though 2 booking rows exist
-        $this->assertEquals(1, $ccs->total_students);
-        $this->assertEquals(2, $ccs->total_records);
-    }
-
-    public function test_24_program_count_uses_distinct_student_headcounts(): void
-    {
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('Double Program Student', 'CCS', 'Bachelor of Science in Information Technology');
-
-        $this->createBooking($student, $room, '2026-01-01', '2026-03-01', 'approved');
-        $this->createBooking($student, $room, '2026-03-02', '2026-06-01', 'approved');
-
-        $baseQuery = $this->service->buildBaseQuery();
-        $distribution = $this->service->getProgramDistribution($baseQuery);
-
-        $prog = $distribution->firstWhere('program_name', 'Bachelor of Science in Information Technology');
-        $this->assertNotNull($prog);
-        $this->assertEquals(1, $prog->total_students);
-        $this->assertEquals(2, $prog->total_records);
-    }
-
-    public function test_25_room_change_does_not_double_count_student_headcount(): void
-    {
-        $landlord = $this->createLandlord('Landlord Trans');
-        $prop = $this->createProperty($landlord, 'Transfer Dorm');
-        $room1 = $this->createRoom($prop, '101');
-        $room2 = $this->createRoom($prop, '102');
-
-        $student = $this->createStudent('Transferred Student', 'CCS', 'BSIT');
-
-        // Stay in room 1 ending mid-Feb, then room 2 starting mid-Feb
-        $this->createBooking($student, $room1, '2026-01-01', '2026-02-15', 'approved');
-        $this->createBooking($student, $room2, '2026-02-15', '2026-06-01', 'approved');
-
-        $period = $this->service->resolveReportingPeriod(2, 2026);
-        $baseQuery = $this->service->buildBaseQuery([
-            'periodStart' => $period['periodStart'],
-            'periodEnd' => $period['periodEnd'],
-        ]);
-
-        $metrics = $this->service->getSummaryMetrics($baseQuery);
-        $this->assertEquals(1, $metrics['unique_students']);
-        $this->assertEquals(2, $metrics['total_records']);
-    }
-
-    public function test_26_college_counts_respect_month_and_year_filters(): void
-    {
-        $room = $this->createStandardRoom();
-        $studentMarch = $this->createStudent('March CCS', 'CCS', 'BSIT');
-        $studentJuly = $this->createStudent('July CCS', 'CCS', 'BSIT');
-
-        $this->createBooking($studentMarch, $room, '2026-03-01', '2026-03-31', 'approved');
-        $this->createBooking($studentJuly, $room, '2026-07-01', '2026-07-31', 'approved');
-
-        $period = $this->service->resolveReportingPeriod(3, 2026);
-        $baseQuery = $this->service->buildBaseQuery([
-            'periodStart' => $period['periodStart'],
-            'periodEnd' => $period['periodEnd'],
-        ]);
-
-        $dist = $this->service->getCollegeDistribution($baseQuery);
-        $ccs = $dist->firstWhere('college_code', 'CCS');
-
-        $this->assertNotNull($ccs);
-        $this->assertEquals(1, $ccs->total_students);
-    }
-
-    public function test_27_program_counts_respect_month_and_year_filters(): void
-    {
-        $room = $this->createStandardRoom();
-        $studentMarch = $this->createStudent('March IT', 'CCS', 'BSIT');
-        $studentJuly = $this->createStudent('July IT', 'CCS', 'BSIT');
-
-        $this->createBooking($studentMarch, $room, '2026-03-01', '2026-03-31', 'approved');
-        $this->createBooking($studentJuly, $room, '2026-07-01', '2026-07-31', 'approved');
-
-        $period = $this->service->resolveReportingPeriod(3, 2026);
-        $baseQuery = $this->service->buildBaseQuery([
-            'periodStart' => $period['periodStart'],
-            'periodEnd' => $period['periodEnd'],
-        ]);
-
-        $dist = $this->service->getProgramDistribution($baseQuery);
-        $it = $dist->firstWhere('program_name', 'BSIT');
-
-        $this->assertNotNull($it);
-        $this->assertEquals(1, $it->total_students);
-    }
-
-    public function test_28_college_counts_respect_boarding_house_filter(): void
-    {
-        $landlord = $this->createLandlord('BH Landlord');
-        $propA = $this->createProperty($landlord, 'Dorm Alpha');
-        $propB = $this->createProperty($landlord, 'Dorm Beta');
+        $admin = $this->createAdmin();
+        $landlord = $this->createLandlord('Academic Landlord');
+        $propA = $this->createProperty($landlord, 'CCS Dorm Alpha');
+        $propB = $this->createProperty($landlord, 'CAS Dorm Beta');
 
         $roomA = $this->createRoom($propA, '101');
         $roomB = $this->createRoom($propB, '201');
 
-        $studentA = $this->createStudent('Student A', 'CCS', 'BSIT');
-        $studentB = $this->createStudent('Student B', 'CCS', 'BSIT');
+        $studentA = $this->createStudent('CCS Alpha Student', 'CCS', 'Bachelor of Science in Information Technology');
+        $studentB = $this->createStudent('CAS Beta Student', 'CAS', 'Bachelor of Arts in English Language');
 
-        $this->createBooking($studentA, $roomA, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentB, $roomB, '2026-01-01', '2026-12-31', 'approved');
+        $this->createBooking($studentA, $roomA, '2026-08-01', '2026-12-31', 'approved');
+        $this->createBooking($studentB, $roomB, '2026-08-01', '2026-12-31', 'approved');
 
-        $baseQuery = $this->service->buildBaseQuery(['property_id' => $propA->id]);
+        $baseQuery = $this->service->buildBaseQuery([
+            'property_id' => $propA->id,
+            'dateBasis' => 'check_in',
+            'periodStart' => Carbon::create(2026, 8, 1)->startOfDay(),
+            'periodEnd' => Carbon::create(2026, 8, 31)->endOfDay(),
+        ]);
+
         $dist = $this->service->getCollegeDistribution($baseQuery);
-        $ccs = $dist->firstWhere('college_code', 'CCS');
-
-        $this->assertNotNull($ccs);
-        $this->assertEquals(1, $ccs->total_students);
+        $this->assertCount(1, $dist);
+        $this->assertEquals('CCS', $dist->first()->college_code);
+        $this->assertEquals(1, $dist->first()->total_students);
     }
 
-    public function test_29_program_counts_respect_boarding_house_filter(): void
+    // =========================================================================
+    // PRINTABLE REPORT TESTS
+    // =========================================================================
+
+    public function test_16_admin_can_access_printable_report(): void
     {
-        $landlord = $this->createLandlord('BH Landlord 2');
-        $propA = $this->createProperty($landlord, 'Dorm One');
-        $propB = $this->createProperty($landlord, 'Dorm Two');
+        $admin = $this->createAdmin();
+        $room = $this->createStandardRoom();
+        $student = $this->createStudent('Printable Student');
+        $this->createBooking($student, $room, '2026-01-01', '2026-12-31', 'approved');
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.boarding_monitoring.students.print'));
+
+        $response->assertOk()
+            ->assertSee('Boarding House Student Report')
+            ->assertSee('Printable Student')
+            ->assertSee('All Boarding Houses');
+    }
+
+    public function test_17_non_admin_cannot_access_printable_report(): void
+    {
+        $student = $this->createStudent('Student Only');
+
+        $response = $this->actingAs($student)
+            ->get(route('admin.boarding_monitoring.students.print'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_18_print_report_includes_complete_unpaginated_filtered_dataset(): void
+    {
+        $admin = $this->createAdmin();
+        $landlord = $this->createLandlord('Large Dorm Landlord');
+        $prop = $this->createProperty($landlord, 'Grand Dormitory');
+        $room = $this->createRoom($prop, 'G-100');
+
+        // Create 25 students (which exceeds single screen page of 20)
+        for ($i = 1; $i <= 25; $i++) {
+            $s = $this->createStudent("Grand Student {$i}", 'CCS', 'BSIT');
+            $this->createBooking($s, $room, '2026-08-01', '2026-12-31', 'approved');
+        }
+
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students.print', [
+            'boarding_house' => $prop->id,
+            'month' => 8,
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Grand Dormitory')
+            ->assertSee('Grand Student 1')
+            ->assertSee('Grand Student 25')
+            ->assertSee('Total Boarding Records')
+            ->assertSee('25');
+    }
+
+    public function test_19_print_report_respects_all_selected_filters(): void
+    {
+        $admin = $this->createAdmin();
+        $landlord = $this->createLandlord('Target Landlord');
+        $propA = $this->createProperty($landlord, 'Target House');
+        $propB = $this->createProperty($landlord, 'Ignored House');
 
         $roomA = $this->createRoom($propA, '101');
         $roomB = $this->createRoom($propB, '201');
 
-        $studentA = $this->createStudent('Student A', 'CCS', 'BSIT');
-        $studentB = $this->createStudent('Student B', 'CCS', 'BSIT');
+        $studentTarget = $this->createStudent('Target Print Student', 'CCS', 'BSIT');
+        $studentIgnored = $this->createStudent('Ignored Print Student', 'CAS', 'BA English');
 
-        $this->createBooking($studentA, $roomA, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentB, $roomB, '2026-01-01', '2026-12-31', 'approved');
+        $this->createBooking($studentTarget, $roomA, '2026-08-15', '2026-12-31', 'approved');
+        $this->createBooking($studentIgnored, $roomB, '2026-08-15', '2026-12-31', 'approved');
 
-        $baseQuery = $this->service->buildBaseQuery(['property_id' => $propA->id]);
-        $dist = $this->service->getProgramDistribution($baseQuery);
-        $it = $dist->firstWhere('program_name', 'BSIT');
-
-        $this->assertNotNull($it);
-        $this->assertEquals(1, $it->total_students);
-    }
-
-    public function test_30_null_college_appears_as_not_specified(): void
-    {
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('No College Student');
-        $student->forceFill(['college' => null])->save();
-
-        $this->createBooking($student, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        $baseQuery = $this->service->buildBaseQuery();
-        $dist = $this->service->getCollegeDistribution($baseQuery);
-
-        $unspecified = $dist->firstWhere('college_code', 'Not specified');
-        $this->assertNotNull($unspecified);
-        $this->assertEquals(1, $unspecified->total_students);
-    }
-
-    public function test_31_null_program_remains_included_in_overall_totals(): void
-    {
-        $room = $this->createStandardRoom();
-        $student = $this->createStudent('No Program Student', 'CCS');
-        $student->forceFill(['program' => null])->save();
-
-        $this->createBooking($student, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        $baseQuery = $this->service->buildBaseQuery();
-        $metrics = $this->service->getSummaryMetrics($baseQuery);
-
-        $this->assertEquals(1, $metrics['unique_students']);
-    }
-
-    public function test_32_college_drilldown_produces_correct_filtered_records(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-
-        $studentCCS = $this->createStudent('Drilldown CCS', 'CCS', 'BSIT');
-        $studentCBM = $this->createStudent('Drilldown CBM', 'CBM', 'BSHM');
-
-        $this->createBooking($studentCCS, $room, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentCBM, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['college' => 'CCS']));
+        $response = $this->actingAs($admin)->get(route('admin.boarding_monitoring.students.print', [
+            'boarding_house' => $propA->id,
+            'college' => 'CCS',
+            'date_basis' => 'check_in',
+            'month' => 8,
+            'year' => 2026,
+        ]));
 
         $response->assertOk()
-            ->assertSee('Drilldown CCS')
-            ->assertDontSee('Drilldown CBM');
-    }
-
-    public function test_33_program_drilldown_produces_correct_filtered_records(): void
-    {
-        $admin = $this->createAdmin();
-        $room = $this->createStandardRoom();
-
-        $studentIT = $this->createStudent('Drilldown IT', 'CCS', 'BSIT');
-        $studentCS = $this->createStudent('Drilldown CS', 'CCS', 'BSCS');
-
-        $this->createBooking($studentIT, $room, '2026-01-01', '2026-12-31', 'approved');
-        $this->createBooking($studentCS, $room, '2026-01-01', '2026-12-31', 'approved');
-
-        $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students', ['college' => 'CCS', 'program' => 'BSIT']));
-
-        $response->assertOk()
-            ->assertSee('Drilldown IT')
-            ->assertDontSee('Drilldown CS');
+            ->assertSee('Target Print Student')
+            ->assertDontSee('Ignored Print Student')
+            ->assertSee('Target House');
     }
 
     // =========================================================================

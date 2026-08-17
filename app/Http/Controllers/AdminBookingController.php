@@ -121,10 +121,16 @@ class AdminBookingController extends Controller
 
         $rawMonth = $request->query('month');
         $rawYear = $request->query('year');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $dateBasis = $request->query('date_basis', 'stay');
 
         $period = $monitoringService->resolveReportingPeriod(
             is_numeric($rawMonth) ? (int) $rawMonth : null,
-            is_numeric($rawYear) ? (int) $rawYear : null
+            is_numeric($rawYear) ? (int) $rawYear : null,
+            is_string($dateFrom) ? $dateFrom : null,
+            is_string($dateTo) ? $dateTo : null,
+            is_string($dateBasis) ? $dateBasis : 'stay'
         );
 
         $periodStart = $period['periodStart'];
@@ -132,6 +138,9 @@ class AdminBookingController extends Controller
         $periodLabel = $period['periodLabel'];
         $month = $period['month'];
         $year = $period['year'];
+        $dateFrom = $period['dateFrom'];
+        $dateTo = $period['dateTo'];
+        $dateBasis = $period['dateBasis'];
 
         $filters = [
             'search' => $search,
@@ -140,6 +149,7 @@ class AdminBookingController extends Controller
             'program' => $program,
             'periodStart' => $periodStart,
             'periodEnd' => $periodEnd,
+            'dateBasis' => $dateBasis,
         ];
 
         $baseQuery = $monitoringService->buildBaseQuery($filters);
@@ -147,7 +157,7 @@ class AdminBookingController extends Controller
         // Filtered query for pagination
         $filteredQuery = clone $baseQuery;
         if ($statusFilter !== 'all') {
-            $monitoringService->applyStatusFilter($filteredQuery, $statusFilter, now(), $periodStart, $periodEnd);
+            $monitoringService->applyStatusFilter($filteredQuery, $statusFilter, now(), $periodStart, $periodEnd, $dateBasis);
         }
 
         $boardedStudents = $filteredQuery
@@ -157,7 +167,7 @@ class AdminBookingController extends Controller
             ->withQueryString();
 
         // Summaries and distributions computed from the exact same common base query
-        $metrics = $monitoringService->getSummaryMetrics($baseQuery, now(), $periodStart, $periodEnd);
+        $metrics = $monitoringService->getSummaryMetrics($baseQuery, now(), $periodStart, $periodEnd, $dateBasis);
         $collegeDistribution = $monitoringService->getCollegeDistribution($baseQuery);
         $programDistribution = $monitoringService->getProgramDistribution($baseQuery);
         $propertyDistribution = $monitoringService->getPropertyDistribution($baseQuery);
@@ -168,6 +178,10 @@ class AdminBookingController extends Controller
         $programs = $filterOptions['programs'];
         $catalogPrograms = $filterOptions['catalogPrograms'];
         $years = $filterOptions['years'];
+        $dateBases = $filterOptions['dateBases'];
+
+        // Selected Boarding House Model if specific property is selected
+        $selectedProperty = $propertyId > 0 ? Property::find($propertyId) : null;
 
         // Map metrics variables for view compatibility
         $totalRecords = $metrics['total_records'];
@@ -185,10 +199,15 @@ class AdminBookingController extends Controller
             'boardedStudents',
             'search',
             'boardingHouse',
+            'selectedProperty',
             'college',
             'program',
             'month',
             'year',
+            'dateFrom',
+            'dateTo',
+            'dateBasis',
+            'dateBases',
             'statusFilter',
             'boardingHouses',
             'colleges',
@@ -211,6 +230,98 @@ class AdminBookingController extends Controller
             'collegeDistribution',
             'programDistribution',
             'propertyDistribution'
+        ));
+    }
+
+    public function printBoardedStudents(Request $request, \App\Services\BoardingMonitoringService $monitoringService)
+    {
+        $this->ensureAdmin();
+
+        $search = trim((string) $request->query('search', ''));
+        $boardingHouse = $request->query('boarding_house', $request->query('property_id', ''));
+        $boardingHouse = is_scalar($boardingHouse) ? trim((string) $boardingHouse) : '';
+        $propertyId = ctype_digit($boardingHouse) ? (int) $boardingHouse : 0;
+
+        $college = trim((string) $request->query('college', ''));
+        $program = trim((string) $request->query('program', ''));
+
+        $allowedStatuses = ['all', 'active', 'checked_out', 'pending', 'cancelled'];
+        $statusFilter = strtolower(trim((string) $request->query('status', 'all')));
+        if (!in_array($statusFilter, $allowedStatuses, true)) {
+            $statusFilter = 'all';
+        }
+
+        $rawMonth = $request->query('month');
+        $rawYear = $request->query('year');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $dateBasis = $request->query('date_basis', 'stay');
+
+        $period = $monitoringService->resolveReportingPeriod(
+            is_numeric($rawMonth) ? (int) $rawMonth : null,
+            is_numeric($rawYear) ? (int) $rawYear : null,
+            is_string($dateFrom) ? $dateFrom : null,
+            is_string($dateTo) ? $dateTo : null,
+            is_string($dateBasis) ? $dateBasis : 'stay'
+        );
+
+        $periodStart = $period['periodStart'];
+        $periodEnd = $period['periodEnd'];
+        $periodLabel = $period['periodLabel'];
+        $dateBasis = $period['dateBasis'];
+
+        $filters = [
+            'search' => $search,
+            'property_id' => $propertyId,
+            'college' => $college,
+            'program' => $program,
+            'periodStart' => $periodStart,
+            'periodEnd' => $periodEnd,
+            'dateBasis' => $dateBasis,
+        ];
+
+        $baseQuery = $monitoringService->buildBaseQuery($filters);
+
+        $filteredQuery = clone $baseQuery;
+        if ($statusFilter !== 'all') {
+            $monitoringService->applyStatusFilter($filteredQuery, $statusFilter, now(), $periodStart, $periodEnd, $dateBasis);
+        }
+
+        // Complete unpaginated result set for printing
+        $boardedStudents = $filteredQuery
+            ->orderByDesc('check_in')
+            ->orderByDesc('id')
+            ->get();
+
+        $metrics = $monitoringService->getSummaryMetrics($baseQuery, now(), $periodStart, $periodEnd, $dateBasis);
+        $uniqueStudents = $metrics['unique_students'];
+        $totalRecords = $boardedStudents->count();
+
+        $selectedProperty = $propertyId > 0 ? Property::find($propertyId) : null;
+        $boardingHouseLabel = $selectedProperty ? $selectedProperty->name : 'All Boarding Houses';
+
+        $reportBasisLabel = ($dateBasis === 'check_in')
+            ? 'Started Boarding During Period (Check-in Date)'
+            : 'Stayed During Period (Occupancy)';
+
+        $generatedDate = now()->format('F d, Y · h:i A');
+
+        return view('admin.boarded_students.print', compact(
+            'boardedStudents',
+            'selectedProperty',
+            'boardingHouseLabel',
+            'reportBasisLabel',
+            'dateBasis',
+            'periodStart',
+            'periodEnd',
+            'periodLabel',
+            'uniqueStudents',
+            'totalRecords',
+            'generatedDate',
+            'search',
+            'college',
+            'program',
+            'statusFilter'
         ));
     }
 }

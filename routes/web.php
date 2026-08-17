@@ -321,6 +321,7 @@ Route::middleware(['role:admin'])->group(function () {
     // Admin bookings monitoring
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->name('admin.bookings.index');
     Route::get('/admin/boarding-monitoring/students', [AdminBookingController::class, 'boardedStudents'])->name('admin.boarding_monitoring.students');
+    Route::get('/admin/boarding-monitoring/students/print', [AdminBookingController::class, 'printBoardedStudents'])->name('admin.boarding_monitoring.students.print');
     Route::get('/admin/boarded-students', function (Request $request) {
         return redirect()->route('admin.boarding_monitoring.students', $request->query());
     })->name('admin.boarded_students.index');

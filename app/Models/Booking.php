@@ -132,8 +132,12 @@ class Booking extends Model
      * Early-leave cancelled stays with physical occupancy (check_out > check_in)
      * are projected as Checked Out or Active during the occupied window.
      */
-    public function monitoringStatus(?Carbon $asOf = null, ?Carbon $periodStart = null, ?Carbon $periodEnd = null): string
-    {
+    public function monitoringStatus(
+        ?Carbon $asOf = null,
+        ?Carbon $periodStart = null,
+        ?Carbon $periodEnd = null,
+        string $dateBasis = 'stay'
+    ): string {
         $asOfDate = ($asOf ?: now())->copy()->startOfDay();
         $storedStatus = strtolower((string) $this->status);
 
@@ -147,8 +151,14 @@ class Booking extends Model
                 $checkOut = Carbon::parse($this->check_out)->startOfDay();
                 if ($checkOut->gt($checkIn)) {
                     if ($periodStart && $periodEnd) {
-                        if ($checkIn->lte($periodEnd) && $checkOut->gte($periodStart)) {
-                            return 'active';
+                        if ($dateBasis === 'check_in') {
+                            if ($checkIn->gte($periodStart) && $checkIn->lte($periodEnd)) {
+                                return 'active';
+                            }
+                        } else {
+                            if ($checkIn->lte($periodEnd) && $checkOut->gte($periodStart)) {
+                                return 'active';
+                            }
                         }
                     } else {
                         if ($checkOut->lte($asOfDate)) {
@@ -172,14 +182,23 @@ class Booking extends Model
             $checkOut = $this->check_out ? Carbon::parse($this->check_out)->startOfDay() : null;
 
             if ($periodStart && $periodEnd) {
-                if ($checkIn && $checkIn->gt($periodEnd)) {
-                    return 'pending';
-                }
-                if ($checkIn && $checkIn->lte($periodEnd) && (!$checkOut || $checkOut->gte($periodStart))) {
-                    if ($checkOut && $checkOut->lte($asOfDate) && $asOfDate->gte($periodEnd)) {
-                        return 'checked_out';
+                if ($dateBasis === 'check_in') {
+                    if ($checkIn && $checkIn->gte($periodStart) && $checkIn->lte($periodEnd)) {
+                        return 'active';
                     }
-                    return 'active';
+                    if ($checkIn && $checkIn->gt($periodEnd)) {
+                        return 'pending';
+                    }
+                } else {
+                    if ($checkIn && $checkIn->gt($periodEnd)) {
+                        return 'pending';
+                    }
+                    if ($checkIn && $checkIn->lte($periodEnd) && (!$checkOut || $checkOut->gte($periodStart))) {
+                        if ($checkOut && $checkOut->lte($asOfDate) && $asOfDate->gte($periodEnd)) {
+                            return 'checked_out';
+                        }
+                        return 'active';
+                    }
                 }
             }
 
@@ -200,14 +219,16 @@ class Booking extends Model
         string $status,
         ?Carbon $asOf = null,
         ?Carbon $periodStart = null,
-        ?Carbon $periodEnd = null
+        ?Carbon $periodEnd = null,
+        string $dateBasis = 'stay'
     ): Builder {
         return app(\App\Services\BoardingMonitoringService::class)->applyStatusFilter(
             $query,
             $status,
             $asOf,
             $periodStart,
-            $periodEnd
+            $periodEnd,
+            $dateBasis
         );
     }
 }

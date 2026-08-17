@@ -14,7 +14,12 @@ use Illuminate\Support\Facades\DB;
 class BoardingMonitoringService
 {
     /**
-     * Resolve reporting period boundaries from raw month/year filter inputs.
+     * Resolve reporting period boundaries and basis from filter inputs.
+     *
+     * Priority:
+     * 1. Custom Date Range (date_from, date_to) if provided
+     * 2. Month + Year or Year if provided
+     * 3. Default current monitoring (null period)
      *
      * @return array{
      *     periodStart: ?Carbon,
@@ -22,11 +27,70 @@ class BoardingMonitoringService
      *     periodLabel: ?string,
      *     month: ?int,
      *     year: ?int,
+     *     dateFrom: ?string,
+     *     dateTo: ?string,
+     *     dateBasis: string,
      *     isHistorical: bool
      * }
      */
-    public function resolveReportingPeriod(?int $month, ?int $year): array
-    {
+    public function resolveReportingPeriod(
+        ?int $month = null,
+        ?int $year = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        ?string $dateBasis = 'stay'
+    ): array {
+        $allowedBases = ['stay', 'check_in'];
+        $basis = in_array(strtolower(trim((string) $dateBasis)), $allowedBases, true)
+            ? strtolower(trim((string) $dateBasis))
+            : 'stay';
+
+        $periodStart = null;
+        $periodEnd = null;
+        $periodLabel = null;
+        $isHistorical = false;
+
+        $cleanDateFrom = trim((string) ($dateFrom ?? ''));
+        $cleanDateTo = trim((string) ($dateTo ?? ''));
+
+        // 1. Priority 1: Custom Date Range (date_from and/or date_to)
+        if ($cleanDateFrom !== '' || $cleanDateTo !== '') {
+            try {
+                if ($cleanDateFrom !== '' && $cleanDateTo !== '') {
+                    $startCandidate = Carbon::parse($cleanDateFrom)->startOfDay();
+                    $endCandidate = Carbon::parse($cleanDateTo)->endOfDay();
+
+                    if ($endCandidate->lt($startCandidate)) {
+                        // Prevent inverted date range
+                        $temp = $startCandidate;
+                        $startCandidate = $endCandidate->copy()->startOfDay();
+                        $endCandidate = $temp->copy()->endOfDay();
+                    }
+
+                    $periodStart = $startCandidate;
+                    $periodEnd = $endCandidate;
+                    $periodLabel = $periodStart->format('M d, Y') . ' – ' . $periodEnd->format('M d, Y');
+                    $isHistorical = true;
+                } elseif ($cleanDateFrom !== '') {
+                    $periodStart = Carbon::parse($cleanDateFrom)->startOfDay();
+                    $periodEnd = $periodStart->copy()->endOfDay();
+                    $periodLabel = $periodStart->format('M d, Y');
+                    $isHistorical = true;
+                } else {
+                    $periodEnd = Carbon::parse($cleanDateTo)->endOfDay();
+                    $periodStart = Carbon::create(2000, 1, 1)->startOfDay();
+                    $periodLabel = 'Up to ' . $periodEnd->format('M d, Y');
+                    $isHistorical = true;
+                }
+            } catch (\Throwable $e) {
+                // Fall back if invalid date string passed
+                $periodStart = null;
+                $periodEnd = null;
+                $periodLabel = null;
+            }
+        }
+
+        // 2. Priority 2: Month / Year selection if custom range was not applied
         $validMonth = is_numeric($month) && (int) $month >= 1 && (int) $month <= 12
             ? (int) $month
             : null;
@@ -35,17 +99,11 @@ class BoardingMonitoringService
             ? (int) $year
             : null;
 
-        $periodStart = null;
-        $periodEnd = null;
-        $periodLabel = null;
-        $isHistorical = false;
-
-        if ($validMonth !== null || $validYear !== null) {
+        if (!$isHistorical && ($validMonth !== null || $validYear !== null)) {
             $isHistorical = true;
             $periodYear = $validYear ?: now()->year;
 
             if ($validMonth !== null) {
-                // Carbon safely handles all month end dates including leap years (Feb 28/29, Apr 30, Mar 31)
                 $periodStart = Carbon::create($periodYear, $validMonth, 1)->startOfDay();
                 $periodEnd = $periodStart->copy()->endOfMonth()->endOfDay();
                 $periodLabel = $periodStart->format('F Y');
@@ -62,6 +120,9 @@ class BoardingMonitoringService
             'periodLabel' => $periodLabel,
             'month' => $validMonth,
             'year' => $validYear,
+            'dateFrom' => $cleanDateFrom !== '' ? $cleanDateFrom : null,
+            'dateTo' => $cleanDateTo !== '' ? $cleanDateTo : null,
+            'dateBasis' => $basis,
             'isHistorical' => $isHistorical,
         ];
     }
@@ -93,11 +154,13 @@ class BoardingMonitoringService
         $program = $filters['program'] ?? null;
         $this->applyAcademicFilters($query, $college, $program);
 
-        // 3. Reporting Period / Interval-Overlap Filter
+        // 3. Reporting Period Filter with explicit Date Basis
         $periodStart = $filters['periodStart'] ?? null;
         $periodEnd = $filters['periodEnd'] ?? null;
+        $dateBasis = $filters['dateBasis'] ?? $filters['date_basis'] ?? 'stay';
+
         if ($periodStart instanceof Carbon && $periodEnd instanceof Carbon) {
-            $this->applyPeriodFilter($query, $periodStart, $periodEnd);
+            $this->applyPeriodFilter($query, $periodStart, $periodEnd, (string) $dateBasis);
         }
 
         // 4. Search Filter
@@ -161,22 +224,44 @@ class BoardingMonitoringService
     }
 
     /**
-     * Apply date interval overlap filtering for a historical reporting window [periodStart, periodEnd].
+     * Apply date filtering based on the selected reporting mode:
      *
-     * Mathematical overlap condition:
+     * MODE 1: 'stay' (Stayed During Period)
+     *   Mathematical overlap condition:
      *   check_in <= periodEnd AND (check_out IS NULL OR check_out >= periodStart)
+     *   (Plus early-leave cancelled stays where check_out > check_in)
      *
-     * Early-leave rule:
-     *   Approved stays that ended early have status='cancelled' and check_out=leave_date.
-     *   When check_out > check_in, the student genuinely occupied the room during [check_in, check_out].
-     *   Pure cancellations prior to stay (check_out <= check_in) are excluded from historical occupancy.
+     * MODE 2: 'check_in' (Started Boarding During Period)
+     *   Started condition:
+     *   check_in >= periodStart AND check_in <= periodEnd
      */
-    public function applyPeriodFilter(Builder $query, Carbon $periodStart, Carbon $periodEnd): Builder
-    {
+    public function applyPeriodFilter(
+        Builder $query,
+        Carbon $periodStart,
+        Carbon $periodEnd,
+        string $dateBasis = 'stay'
+    ): Builder {
         $startStr = $periodStart->toDateString();
         $endStr = $periodEnd->toDateString();
         $table = $query->getModel()->getTable();
+        $isCheckInBasis = (strtolower(trim($dateBasis)) === 'check_in');
 
+        if ($isCheckInBasis) {
+            return $query->where(function (Builder $q) use ($startStr, $endStr, $table) {
+                $q->whereDate("{$table}.check_in", '>=', $startStr)
+                    ->whereDate("{$table}.check_in", '<=', $endStr)
+                    ->where(function (Builder $validStatus) use ($table) {
+                        $validStatus->whereIn("{$table}.status", ['approved', 'pending'])
+                            ->orWhere(function (Builder $earlyLeave) use ($table) {
+                                $earlyLeave->where("{$table}.status", 'cancelled')
+                                    ->whereNotNull("{$table}.check_out")
+                                    ->whereColumn("{$table}.check_out", '>', "{$table}.check_in");
+                            });
+                    });
+            });
+        }
+
+        // Default 'stay' overlap mode
         return $query->where(function (Builder $outer) use ($startStr, $endStr, $table) {
             // Case 1: Approved stays overlapping the reporting period
             $outer->where(function (Builder $approved) use ($startStr, $endStr, $table) {
@@ -196,7 +281,7 @@ class BoardingMonitoringService
                     ->whereDate("{$table}.check_in", '<=', $endStr)
                     ->whereDate("{$table}.check_out", '>=', $startStr);
             })
-            // Case 3: Pending stays with requested date overlap (for visibility when filtering pending)
+            // Case 3: Pending stays with requested date overlap
             ->orWhere(function (Builder $pending) use ($startStr, $endStr, $table) {
                 $pending->where("{$table}.status", 'pending')
                     ->where(function (Builder $pDates) use ($startStr, $endStr, $table) {
@@ -269,7 +354,8 @@ class BoardingMonitoringService
         string $status,
         ?Carbon $asOf = null,
         ?Carbon $periodStart = null,
-        ?Carbon $periodEnd = null
+        ?Carbon $periodEnd = null,
+        string $dateBasis = 'stay'
     ): Builder {
         $status = strtolower(trim($status));
         if ($status === '' || $status === 'all') {
@@ -279,31 +365,35 @@ class BoardingMonitoringService
         $asOfDate = ($asOf ?: now())->copy()->startOfDay()->toDateString();
         $table = $query->getModel()->getTable();
 
-        // When a historical reporting period is selected, presence is evaluated against that period
         $periodStartStr = $periodStart ? $periodStart->toDateString() : $asOfDate;
         $periodEndStr = $periodEnd ? $periodEnd->toDateString() : $asOfDate;
+        $isCheckInBasis = (strtolower(trim($dateBasis)) === 'check_in');
 
         return match ($status) {
-            'active' => $query->where(function (Builder $activeQuery) use ($table, $asOfDate, $periodStartStr, $periodEndStr, $periodStart) {
+            'active' => $query->where(function (Builder $activeQuery) use ($table, $asOfDate, $periodStartStr, $periodEndStr, $periodStart, $isCheckInBasis) {
                 if ($periodStart) {
-                    // Active / present during historical period:
-                    $activeQuery->where(function (Builder $approved) use ($table, $periodStartStr, $periodEndStr) {
-                        $approved->where("{$table}.status", 'approved')
+                    if ($isCheckInBasis) {
+                        $activeQuery->whereDate("{$table}.check_in", '>=', $periodStartStr)
                             ->whereDate("{$table}.check_in", '<=', $periodEndStr)
-                            ->where(function (Builder $dates) use ($table, $periodStartStr) {
-                                $dates->whereNull("{$table}.check_out")
-                                    ->orWhereDate("{$table}.check_out", '>=', $periodStartStr);
-                            });
-                    })->orWhere(function (Builder $earlyLeave) use ($table, $periodStartStr, $periodEndStr) {
-                        $earlyLeave->where("{$table}.status", 'cancelled')
-                            ->whereNotNull("{$table}.check_in")
-                            ->whereNotNull("{$table}.check_out")
-                            ->whereColumn("{$table}.check_out", '>', "{$table}.check_in")
-                            ->whereDate("{$table}.check_in", '<=', $periodEndStr)
-                            ->whereDate("{$table}.check_out", '>=', $periodStartStr);
-                    });
+                            ->where("{$table}.status", 'approved');
+                    } else {
+                        $activeQuery->where(function (Builder $approved) use ($table, $periodStartStr, $periodEndStr) {
+                            $approved->where("{$table}.status", 'approved')
+                                ->whereDate("{$table}.check_in", '<=', $periodEndStr)
+                                ->where(function (Builder $dates) use ($table, $periodStartStr) {
+                                    $dates->whereNull("{$table}.check_out")
+                                        ->orWhereDate("{$table}.check_out", '>=', $periodStartStr);
+                                });
+                        })->orWhere(function (Builder $earlyLeave) use ($table, $periodStartStr, $periodEndStr) {
+                            $earlyLeave->where("{$table}.status", 'cancelled')
+                                ->whereNotNull("{$table}.check_in")
+                                ->whereNotNull("{$table}.check_out")
+                                ->whereColumn("{$table}.check_out", '>', "{$table}.check_in")
+                                ->whereDate("{$table}.check_in", '<=', $periodEndStr)
+                                ->whereDate("{$table}.check_out", '>=', $periodStartStr);
+                        });
+                    }
                 } else {
-                    // Active today:
                     $activeQuery->where("{$table}.status", 'approved')
                         ->whereDate("{$table}.check_in", '<=', $asOfDate)
                         ->where(function (Builder $dates) use ($table, $asOfDate) {
@@ -313,14 +403,12 @@ class BoardingMonitoringService
                 }
             }),
 
-            'checked_out' => $query->where(function (Builder $checkedOutQuery) use ($table, $asOfDate, $periodStart, $periodStartStr, $periodEndStr) {
+            'checked_out' => $query->where(function (Builder $checkedOutQuery) use ($table, $asOfDate, $periodStart, $periodEndStr) {
                 if ($periodStart) {
-                    // Completed stay prior to or within period
                     $checkedOutQuery->where("{$table}.status", 'approved')
                         ->whereNotNull("{$table}.check_out")
                         ->whereDate("{$table}.check_out", '<=', $periodEndStr);
                 } else {
-                    // Checked out relative to today:
                     $checkedOutQuery->where("{$table}.status", 'approved')
                         ->whereNotNull("{$table}.check_out")
                         ->whereDate("{$table}.check_out", '<=', $asOfDate);
@@ -343,7 +431,6 @@ class BoardingMonitoringService
             }),
 
             'cancelled' => $query->where(function (Builder $cancelledQuery) use ($table) {
-                // Pure cancellations or rejected stays
                 $cancelledQuery->whereIn("{$table}.status", ['cancelled', 'rejected']);
             }),
 
@@ -362,27 +449,28 @@ class BoardingMonitoringService
         Builder $baseQuery,
         ?Carbon $asOf = null,
         ?Carbon $periodStart = null,
-        ?Carbon $periodEnd = null
+        ?Carbon $periodEnd = null,
+        string $dateBasis = 'stay'
     ): array {
         $totalRecords = (clone $baseQuery)->count();
         $uniqueStudents = (clone $baseQuery)->distinct('bookings.student_id')->count('bookings.student_id');
 
         $activeQuery = (clone $baseQuery);
-        $this->applyStatusFilter($activeQuery, 'active', $asOf, $periodStart, $periodEnd);
+        $this->applyStatusFilter($activeQuery, 'active', $asOf, $periodStart, $periodEnd, $dateBasis);
         $activeBoardings = (clone $activeQuery)->count();
         $activeTenants = (clone $activeQuery)->distinct('bookings.student_id')->count('bookings.student_id');
 
         $checkedOutQuery = (clone $baseQuery);
-        $this->applyStatusFilter($checkedOutQuery, 'checked_out', $asOf, $periodStart, $periodEnd);
+        $this->applyStatusFilter($checkedOutQuery, 'checked_out', $asOf, $periodStart, $periodEnd, $dateBasis);
         $checkedOutBoardings = (clone $checkedOutQuery)->count();
         $checkedOutTenants = (clone $checkedOutQuery)->distinct('bookings.student_id')->count('bookings.student_id');
 
         $pendingQuery = (clone $baseQuery);
-        $this->applyStatusFilter($pendingQuery, 'pending', $asOf, $periodStart, $periodEnd);
+        $this->applyStatusFilter($pendingQuery, 'pending', $asOf, $periodStart, $periodEnd, $dateBasis);
         $pendingBoardings = (clone $pendingQuery)->count();
 
         $cancelledQuery = (clone $baseQuery);
-        $this->applyStatusFilter($cancelledQuery, 'cancelled', $asOf, $periodStart, $periodEnd);
+        $this->applyStatusFilter($cancelledQuery, 'cancelled', $asOf, $periodStart, $periodEnd, $dateBasis);
         $cancelledBoardings = (clone $cancelledQuery)->count();
 
         $activeRooms = (clone $activeQuery)->distinct('bookings.room_id')->count('bookings.room_id');
@@ -468,7 +556,6 @@ class BoardingMonitoringService
             $collegeCode = trim((string) $row->college_code);
             $programName = trim((string) $row->program_name);
 
-            // Attempt to infer college if program is known but college is unspecified
             if ($collegeCode === 'Not specified' && $programName !== 'Not specified') {
                 $inferred = AcademicCatalogService::inferCollegeByProgram($programName);
                 if ($inferred) {
@@ -557,7 +644,6 @@ class BoardingMonitoringService
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        // Collect existing college values from users
         $existingColleges = User::query()
             ->where('role', 'student')
             ->whereNotNull('college')
@@ -579,7 +665,6 @@ class BoardingMonitoringService
             ];
         });
 
-        // Collect existing program values
         $existingPrograms = User::query()
             ->where('role', 'student')
             ->whereNotNull('program')
@@ -602,9 +687,13 @@ class BoardingMonitoringService
             'catalogColleges' => $catalogColleges,
             'catalogPrograms' => $catalogPrograms,
             'years' => $this->getAvailableYears(),
+            'dateBases' => [
+                'stay' => 'Stayed During Period (Occupancy)',
+                'check_in' => 'Started Boarding During Period (Check-in Date)',
+            ],
             'statuses' => [
                 'all' => 'All Statuses',
-                'active' => 'Active',
+                'active' => 'Active / Present',
                 'checked_out' => 'Checked Out',
                 'pending' => 'Pending',
                 'cancelled' => 'Cancelled',

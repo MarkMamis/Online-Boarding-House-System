@@ -109,23 +109,11 @@
             color: rgba(2, 8, 20, .58);
         }
 
-        .distribution-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-            background: #f8fafc;
-            border: 1px solid rgba(2, 8, 20, .08);
-            border-radius: .5rem;
-            padding: .2rem .5rem;
-            font-size: .76rem;
-            font-weight: 600;
-        }
-
         .period-banner {
             background: linear-gradient(90deg, rgba(22, 101, 52, .08) 0%, rgba(22, 101, 52, .03) 100%);
             border: 1px solid rgba(22, 101, 52, .20);
             border-radius: .75rem;
-            padding: .65rem 1rem;
+            padding: .75rem 1.15rem;
         }
     </style>
 
@@ -135,36 +123,52 @@
             <div>
                 <div class="text-uppercase small boarded-muted fw-bold">Boarding House Management</div>
                 <h1 class="h3 mb-1 fw-bold text-dark">Boarding Monitoring</h1>
-                <p class="boarded-muted mb-0">Student occupancy tracking, historical time-travel filtering, and institutional academic distribution.</p>
+                <p class="boarded-muted mb-0">Student occupancy tracking, check-in history, and printable institutional reports.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('admin.boarding_monitoring.students.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-printer me-1"></i>Print Report
+                </a>
                 <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
                     <i class="bi bi-journal-check me-1"></i>All Bookings Table
                 </a>
             </div>
         </div>
 
-        {{-- Reporting Mode Notice --}}
-        @if($periodLabel)
-            <div class="period-banner d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                <div class="d-flex align-items-center gap-2 text-success fw-bold">
-                    <i class="bi bi-calendar-check fs-5"></i>
-                    <span>Historical Reporting Period: {{ $periodLabel }}</span>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">Interval Overlap Active</span>
+        {{-- Active Report Context Banner --}}
+        <div class="period-banner d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span class="badge bg-success text-white px-2 py-1 fs-6">
+                        <i class="bi bi-building me-1"></i>{{ $selectedProperty ? $selectedProperty->name : 'All Boarding Houses' }}
+                    </span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                        <i class="bi bi-funnel me-1"></i>Basis: {{ $dateBasis === 'check_in' ? 'Started Boarding (Check-in)' : 'Stayed During Period (Occupancy)' }}
+                    </span>
+                    @if($periodLabel)
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                            <i class="bi bi-calendar3 me-1"></i>Period: {{ $periodLabel }}
+                        </span>
+                    @else
+                        <span class="badge bg-light text-dark border px-2 py-1">
+                            <i class="bi bi-clock-history me-1"></i>All Recorded Stays (Current)
+                        </span>
+                    @endif
                 </div>
                 <div class="small boarded-muted">
-                    Showing students and stays that overlapped {{ $periodLabel }}.
-                    <a href="{{ route('admin.boarding_monitoring.students') }}" class="text-decoration-none ms-2 text-success fw-semibold">
-                        <i class="bi bi-x-circle me-1"></i>Switch to Current View
-                    </a>
+                    @if($dateBasis === 'check_in')
+                        Filtering strictly by student boarding start date (check-in) within the selected period.
+                    @else
+                        Filtering by physical stay overlap (active or occupying during any part of the selected period).
+                    @endif
                 </div>
             </div>
-        @else
-            <div class="d-flex align-items-center gap-2 mb-3 small boarded-muted">
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Current Monitoring Mode</span>
-                <span>Displaying all recorded stays and today's active occupancy. Select a Month and Year to view historical periods.</span>
-            </div>
-        @endif
+            @if($search || $boardingHouse || $college || $program || $month || $year || $dateFrom || $dateTo || $statusFilter !== 'all' || $dateBasis !== 'stay')
+                <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-success rounded-pill">
+                    <i class="bi bi-x-circle me-1"></i>Reset All Filters
+                </a>
+            @endif
+        </div>
 
         {{-- Summary Cards Section --}}
         <div class="row g-3 mb-4">
@@ -172,12 +176,12 @@
                 <div class="boarded-metric">
                     <div class="boarded-metric-label"><i class="bi bi-people-fill me-1 text-success"></i>Unique Students</div>
                     <div class="boarded-metric-value">{{ number_format($uniqueStudents) }}</div>
-                    <div class="small boarded-muted mt-1">{{ number_format($totalRecords) }} total stays</div>
+                    <div class="small boarded-muted mt-1">{{ number_format($totalRecords) }} stay records</div>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="boarded-metric">
-                    <div class="boarded-metric-label"><i class="bi bi-check-circle-fill me-1 text-success"></i>Active {{ $periodLabel ? 'in Period' : 'Now' }}</div>
+                    <div class="boarded-metric-label"><i class="bi bi-check-circle-fill me-1 text-success"></i>Active / Present</div>
                     <div class="boarded-metric-value text-success">{{ number_format($activeBoardings) }}</div>
                     <div class="small text-success mt-1">{{ number_format($activeTenants) }} distinct students</div>
                 </div>
@@ -191,7 +195,7 @@
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="boarded-metric">
-                    <div class="boarded-metric-label"><i class="bi bi-clock-history me-1 text-warning"></i>Pending Requests</div>
+                    <div class="boarded-metric-label"><i class="bi bi-clock-history me-1 text-warning"></i>Pending</div>
                     <div class="boarded-metric-value text-warning">{{ number_format($pendingBoardings) }}</div>
                     <div class="small boarded-muted mt-1">Awaiting confirmation</div>
                 </div>
@@ -205,9 +209,9 @@
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="boarded-metric">
-                    <div class="boarded-metric-label"><i class="bi bi-building-check me-1 text-primary"></i>Houses & Rooms</div>
+                    <div class="boarded-metric-label"><i class="bi bi-building-check me-1 text-primary"></i>Houses &amp; Rooms</div>
                     <div class="boarded-metric-value text-primary">{{ number_format($activeProperties) }} <span class="fs-6 fw-normal text-muted">/ {{ number_format($activeRooms) }} rooms</span></div>
-                    <div class="small boarded-muted mt-1">With active tenants</div>
+                    <div class="small boarded-muted mt-1">Represented in filter</div>
                 </div>
             </div>
         </div>
@@ -215,10 +219,12 @@
         {{-- Filter Bar Card --}}
         <div class="boarded-card mb-4">
             <div class="boarded-card-header d-flex align-items-center justify-content-between">
-                <div class="fw-bold text-dark"><i class="bi bi-funnel-fill text-success me-1"></i> Multi-Dimensional Monitoring Filters</div>
-                @if($search || $boardingHouse || $college || $program || $month || $year || $statusFilter !== 'all')
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Filters Applied</span>
-                @endif
+                <div class="fw-bold text-dark"><i class="bi bi-funnel-fill text-success me-1"></i> Multi-Dimensional Monitoring &amp; Reporting Filters</div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('admin.boarding_monitoring.students.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-printer me-1"></i>Print This Filter
+                    </a>
+                </div>
             </div>
             <div class="p-3">
                 <form id="monitoringFilterForm" class="row g-3 align-items-end" method="GET" action="{{ route('admin.boarding_monitoring.students') }}">
@@ -232,25 +238,11 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-6 col-xl-2">
-                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">College</label>
-                        <select name="college" id="collegeSelect" class="form-select form-select-sm">
-                            <option value="">All Colleges</option>
-                            @foreach($colleges as $c)
-                                <option value="{{ $c['code'] }}" @selected($college === $c['code'])>{{ $c['code'] }} — {{ $c['name'] }}</option>
-                            @endforeach
-                            <option value="Not specified" @selected($college === 'Not specified')>Not Specified</option>
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-xl-2">
-                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">Program</label>
-                        <select name="program" id="programSelect" class="form-select form-select-sm">
-                            <option value="">All Programs</option>
-                            @foreach($programs as $prog)
-                                <option value="{{ $prog }}" @selected($program === $prog)>{{ $prog }}</option>
-                            @endforeach
-                            <option value="Not specified" @selected($program === 'Not specified')>Not Specified</option>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">Report Basis</label>
+                        <select name="date_basis" class="form-select form-select-sm">
+                            <option value="stay" @selected($dateBasis === 'stay')>Stayed During Period (Occupancy)</option>
+                            <option value="check_in" @selected($dateBasis === 'check_in')>Started Boarding During Period (Check-in Date)</option>
                         </select>
                     </div>
 
@@ -274,24 +266,56 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-6 col-xl-1">
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">Date From</label>
+                        <input type="date" class="form-control form-control-sm" name="date_from" value="{{ $dateFrom }}">
+                    </div>
+
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">Date To</label>
+                        <input type="date" class="form-control form-control-sm" name="date_to" value="{{ $dateTo }}">
+                    </div>
+
+                    <div class="col-12 col-md-4 col-xl-2">
+                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">College</label>
+                        <select name="college" id="collegeSelect" class="form-select form-select-sm">
+                            <option value="">All Colleges</option>
+                            @foreach($colleges as $c)
+                                <option value="{{ $c['code'] }}" @selected($college === $c['code'])>{{ $c['code'] }} — {{ $c['name'] }}</option>
+                            @endforeach
+                            <option value="Not specified" @selected($college === 'Not specified')>Not Specified</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-4 col-xl-3">
+                        <label class="form-label small text-uppercase text-muted fw-bold mb-1">Program</label>
+                        <select name="program" id="programSelect" class="form-select form-select-sm">
+                            <option value="">All Programs</option>
+                            @foreach($programs as $prog)
+                                <option value="{{ $prog }}" @selected($program === $prog)>{{ $prog }}</option>
+                            @endforeach
+                            <option value="Not specified" @selected($program === 'Not specified')>Not Specified</option>
+                        </select>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-xl-2">
                         <label class="form-label small text-uppercase text-muted fw-bold mb-1">Status</label>
                         <select name="status" class="form-select form-select-sm">
-                            <option value="all" @selected($statusFilter === 'all')>All</option>
-                            <option value="active" @selected($statusFilter === 'active')>Active</option>
+                            <option value="all" @selected($statusFilter === 'all')>All Statuses</option>
+                            <option value="active" @selected($statusFilter === 'active')>Active / Present</option>
                             <option value="checked_out" @selected($statusFilter === 'checked_out')>Checked Out</option>
                             <option value="pending" @selected($statusFilter === 'pending')>Pending</option>
                             <option value="cancelled" @selected($statusFilter === 'cancelled')>Cancelled</option>
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-6 col-xl-2">
+                    <div class="col-12 col-md-8 col-xl-3">
                         <label class="form-label small text-uppercase text-muted fw-bold mb-1">Search</label>
-                        <input type="text" class="form-control form-control-sm" name="search" value="{{ $search }}" placeholder="Name, ID, Room...">
+                        <input type="text" class="form-control form-control-sm" name="search" value="{{ $search }}" placeholder="Student name, student ID, room...">
                     </div>
 
-                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                        <button class="btn btn-sm btn-success px-4" type="submit"><i class="bi bi-funnel me-1"></i>Apply Filters</button>
+                    <div class="col-12 col-md-4 col-xl-2 d-flex gap-2">
+                        <button class="btn btn-sm btn-success flex-fill" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button>
                         <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     </div>
                 </form>
@@ -307,7 +331,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic-panel" type="button" role="tab">
-                    <i class="bi bi-mortarboard me-1"></i> College & Program Distribution
+                    <i class="bi bi-mortarboard me-1"></i> College &amp; Program Distribution
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -322,8 +346,13 @@
             <div class="tab-pane fade show active" id="students-panel" role="tabpanel">
                 <div class="boarded-card">
                     <div class="boarded-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <div class="fw-bold text-dark"><i class="bi bi-table me-1 text-success"></i> Student Occupancy Records</div>
-                        <span class="small boarded-muted">Displaying {{ $boardedStudents->firstItem() ?? 0 }}–{{ $boardedStudents->lastItem() ?? 0 }} of {{ number_format($boardedStudents->total()) }} records</span>
+                        <div class="fw-bold text-dark"><i class="bi bi-table me-1 text-success"></i> Student Records ({{ $selectedProperty ? $selectedProperty->name : 'All Houses' }})</div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small boarded-muted">Showing {{ $boardedStudents->firstItem() ?? 0 }}–{{ $boardedStudents->lastItem() ?? 0 }} of {{ number_format($boardedStudents->total()) }} records</span>
+                            <a href="{{ route('admin.boarding_monitoring.students.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2 py-0">
+                                <i class="bi bi-printer me-1"></i>Print
+                            </a>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table align-middle mb-0">
@@ -343,7 +372,7 @@
                             <tbody>
                                 @forelse($boardedStudents as $boarding)
                                     @php
-                                        $monitoringStatus = $boarding->monitoringStatus(now(), $periodStart ?? null, $periodEnd ?? null);
+                                        $monitoringStatus = $boarding->monitoringStatus(now(), $periodStart ?? null, $periodEnd ?? null, $dateBasis ?? 'stay');
                                         $monitoringStatusLabel = match($monitoringStatus) {
                                             'checked_out' => 'Checked Out',
                                             'cancelled' => 'Cancelled',
@@ -517,7 +546,7 @@
                 <div class="boarded-card">
                     <div class="boarded-card-header d-flex justify-content-between align-items-center">
                         <div class="fw-bold text-dark"><i class="bi bi-buildings-fill text-success me-1"></i> Students by Boarding House</div>
-                        <span class="small text-muted">Boarding houses represented in current filter selection</span>
+                        <span class="small text-muted">Click a boarding house to filter records</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table align-middle mb-0">
