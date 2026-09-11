@@ -38,7 +38,8 @@ class BoardingMonitoringService
         ?int $year = null,
         ?string $dateFrom = null,
         ?string $dateTo = null,
-        ?string $dateBasis = 'stay'
+        ?string $dateBasis = 'stay',
+        ?string $periodPreset = null
     ): array {
         $allowedBases = ['stay', 'check_in'];
         $basis = in_array(strtolower(trim((string) $dateBasis)), $allowedBases, true)
@@ -52,67 +53,93 @@ class BoardingMonitoringService
 
         $cleanDateFrom = trim((string) ($dateFrom ?? ''));
         $cleanDateTo = trim((string) ($dateTo ?? ''));
+        $preset = strtolower(trim((string) ($periodPreset ?? '')));
 
-        // 1. Priority 1: Custom Date Range (date_from and/or date_to)
-        if ($cleanDateFrom !== '' || $cleanDateTo !== '') {
-            try {
-                if ($cleanDateFrom !== '' && $cleanDateTo !== '') {
-                    $startCandidate = Carbon::parse($cleanDateFrom)->startOfDay();
-                    $endCandidate = Carbon::parse($cleanDateTo)->endOfDay();
-
-                    if ($endCandidate->lt($startCandidate)) {
-                        // Prevent inverted date range
-                        $temp = $startCandidate;
-                        $startCandidate = $endCandidate->copy()->startOfDay();
-                        $endCandidate = $temp->copy()->endOfDay();
-                    }
-
-                    $periodStart = $startCandidate;
-                    $periodEnd = $endCandidate;
-                    $periodLabel = $periodStart->format('M d, Y') . ' – ' . $periodEnd->format('M d, Y');
-                    $isHistorical = true;
-                } elseif ($cleanDateFrom !== '') {
-                    $periodStart = Carbon::parse($cleanDateFrom)->startOfDay();
-                    $periodEnd = $periodStart->copy()->endOfDay();
-                    $periodLabel = $periodStart->format('M d, Y');
-                    $isHistorical = true;
-                } else {
-                    $periodEnd = Carbon::parse($cleanDateTo)->endOfDay();
-                    $periodStart = Carbon::create(2000, 1, 1)->startOfDay();
-                    $periodLabel = 'Up to ' . $periodEnd->format('M d, Y');
-                    $isHistorical = true;
-                }
-            } catch (\Throwable $e) {
-                // Fall back if invalid date string passed
-                $periodStart = null;
-                $periodEnd = null;
-                $periodLabel = null;
-            }
-        }
-
-        // 2. Priority 2: Month / Year selection if custom range was not applied
-        $validMonth = is_numeric($month) && (int) $month >= 1 && (int) $month <= 12
-            ? (int) $month
-            : null;
-
-        $validYear = is_numeric($year) && (int) $year >= 2000 && (int) $year <= 2100
-            ? (int) $year
-            : null;
-
-        if (!$isHistorical && ($validMonth !== null || $validYear !== null)) {
+        // Handle specific presets if provided
+        if ($preset === 'this_month') {
+            $periodStart = now()->startOfMonth()->startOfDay();
+            $periodEnd = now()->endOfMonth()->endOfDay();
+            $periodLabel = $periodStart->format('F Y');
             $isHistorical = true;
-            $periodYear = $validYear ?: now()->year;
+        } elseif ($preset === 'last_month') {
+            $periodStart = now()->subMonthNoOverflow()->startOfMonth()->startOfDay();
+            $periodEnd = $periodStart->copy()->endOfMonth()->endOfDay();
+            $periodLabel = $periodStart->format('F Y');
+            $isHistorical = true;
+        } elseif ($preset === 'all') {
+            $periodStart = null;
+            $periodEnd = null;
+            $periodLabel = null;
+            $isHistorical = true;
+            $cleanDateFrom = '';
+            $cleanDateTo = '';
+            $month = null;
+            $year = null;
+        } else {
+            // 1. Priority 1: Custom Date Range (date_from and/or date_to)
+            if ($cleanDateFrom !== '' || $cleanDateTo !== '') {
+                try {
+                    if ($cleanDateFrom !== '' && $cleanDateTo !== '') {
+                        $startCandidate = Carbon::parse($cleanDateFrom)->startOfDay();
+                        $endCandidate = Carbon::parse($cleanDateTo)->endOfDay();
 
-            if ($validMonth !== null) {
-                $periodStart = Carbon::create($periodYear, $validMonth, 1)->startOfDay();
-                $periodEnd = $periodStart->copy()->endOfMonth()->endOfDay();
-                $periodLabel = $periodStart->format('F Y');
-            } else {
-                $periodStart = Carbon::create($periodYear, 1, 1)->startOfDay();
-                $periodEnd = Carbon::create($periodYear, 12, 31)->endOfDay();
-                $periodLabel = (string) $periodYear;
+                        if ($endCandidate->lt($startCandidate)) {
+                            // Prevent inverted date range
+                            $temp = $startCandidate;
+                            $startCandidate = $endCandidate->copy()->startOfDay();
+                            $endCandidate = $temp->copy()->endOfDay();
+                        }
+
+                        $periodStart = $startCandidate;
+                        $periodEnd = $endCandidate;
+                        $periodLabel = $periodStart->format('M d, Y') . ' – ' . $periodEnd->format('M d, Y');
+                        $isHistorical = true;
+                    } elseif ($cleanDateFrom !== '') {
+                        $periodStart = Carbon::parse($cleanDateFrom)->startOfDay();
+                        $periodEnd = $periodStart->copy()->endOfDay();
+                        $periodLabel = $periodStart->format('M d, Y');
+                        $isHistorical = true;
+                    } else {
+                        $periodEnd = Carbon::parse($cleanDateTo)->endOfDay();
+                        $periodStart = Carbon::create(2000, 1, 1)->startOfDay();
+                        $periodLabel = 'Up to ' . $periodEnd->format('M d, Y');
+                        $isHistorical = true;
+                    }
+                } catch (\Throwable $e) {
+                    // Fall back if invalid date string passed
+                    $periodStart = null;
+                    $periodEnd = null;
+                    $periodLabel = null;
+                }
+            }
+
+            // 2. Priority 2: Month / Year selection if custom range was not applied
+            $validMonth = is_numeric($month) && (int) $month >= 1 && (int) $month <= 12
+                ? (int) $month
+                : null;
+
+            $validYear = is_numeric($year) && (int) $year >= 2000 && (int) $year <= 2100
+                ? (int) $year
+                : null;
+
+            if (!$isHistorical && ($validMonth !== null || $validYear !== null)) {
+                $isHistorical = true;
+                $periodYear = $validYear ?: now()->year;
+
+                if ($validMonth !== null) {
+                    $periodStart = Carbon::create($periodYear, $validMonth, 1)->startOfDay();
+                    $periodEnd = $periodStart->copy()->endOfMonth()->endOfDay();
+                    $periodLabel = $periodStart->format('F Y');
+                } else {
+                    $periodStart = Carbon::create($periodYear, 1, 1)->startOfDay();
+                    $periodEnd = Carbon::create($periodYear, 12, 31)->endOfDay();
+                    $periodLabel = (string) $periodYear;
+                }
             }
         }
+
+        $validMonth = is_numeric($month) && (int) $month >= 1 && (int) $month <= 12 ? (int) $month : null;
+        $validYear = is_numeric($year) && (int) $year >= 2000 && (int) $year <= 2100 ? (int) $year : null;
 
         return [
             'periodStart' => $periodStart,
@@ -123,6 +150,7 @@ class BoardingMonitoringService
             'dateFrom' => $cleanDateFrom !== '' ? $cleanDateFrom : null,
             'dateTo' => $cleanDateTo !== '' ? $cleanDateTo : null,
             'dateBasis' => $basis,
+            'periodPreset' => $preset ?: ($cleanDateFrom !== '' || $cleanDateTo !== '' ? 'custom' : ($validMonth !== null || $validYear !== null ? 'specific_month' : 'all')),
             'isHistorical' => $isHistorical,
         ];
     }
@@ -480,6 +508,13 @@ class BoardingMonitoringService
             ->distinct('metric_rooms.property_id')
             ->count('metric_rooms.property_id');
 
+        $representedRooms = (clone $baseQuery)->distinct('bookings.room_id')->count('bookings.room_id');
+
+        $representedProperties = (clone $baseQuery)
+            ->join('rooms as rep_rooms', 'rep_rooms.id', '=', 'bookings.room_id')
+            ->distinct('rep_rooms.property_id')
+            ->count('rep_rooms.property_id');
+
         return [
             'total_records' => $totalRecords,
             'unique_students' => $uniqueStudents,
@@ -491,6 +526,8 @@ class BoardingMonitoringService
             'cancelled_boardings' => $cancelledBoardings,
             'active_rooms' => $activeRooms,
             'active_properties' => $activeProperties,
+            'represented_rooms' => $representedRooms,
+            'represented_properties' => $representedProperties,
         ];
     }
 
@@ -611,21 +648,26 @@ class BoardingMonitoringService
     {
         $years = collect([now()->year, now()->year - 1, now()->year - 2, now()->year + 1]);
 
-        Booking::query()
-            ->select(['check_in', 'check_out'])
-            ->whereNotNull('check_in')
-            ->chunk(200, function ($bookings) use (&$years) {
-                foreach ($bookings as $booking) {
-                    if ($booking->check_in) {
-                        $years->push(Carbon::parse($booking->check_in)->year);
-                    }
-                    if ($booking->check_out) {
-                        $years->push(Carbon::parse($booking->check_out)->year);
-                    }
-                }
-            });
+        try {
+            $inYears = Booking::query()
+                ->whereNotNull('check_in')
+                ->selectRaw('DISTINCT YEAR(check_in) as yr')
+                ->pluck('yr')
+                ->filter();
 
-        return $years->filter(fn ($y) => $y >= 2000 && $y <= 2100)
+            $outYears = Booking::query()
+                ->whereNotNull('check_out')
+                ->selectRaw('DISTINCT YEAR(check_out) as yr')
+                ->pluck('yr')
+                ->filter();
+
+            $years = $years->merge($inYears)->merge($outYears);
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        return $years->filter(fn ($y) => is_numeric($y) && (int)$y >= 2000 && (int)$y <= 2100)
+            ->map(fn ($y) => (int) $y)
             ->unique()
             ->sortDesc()
             ->values();

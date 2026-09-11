@@ -114,9 +114,10 @@ class AdminBookingController extends Controller
         $program = trim((string) $request->query('program', ''));
 
         $allowedStatuses = ['all', 'active', 'checked_out', 'pending', 'cancelled'];
-        $statusFilter = strtolower(trim((string) $request->query('status', 'all')));
+        $rawStatus = $request->query('status');
+        $statusFilter = is_string($rawStatus) ? strtolower(trim($rawStatus)) : '';
         if (!in_array($statusFilter, $allowedStatuses, true)) {
-            $statusFilter = 'all';
+            $statusFilter = '';
         }
 
         $rawMonth = $request->query('month');
@@ -124,23 +125,47 @@ class AdminBookingController extends Controller
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
         $dateBasis = $request->query('date_basis', 'stay');
+        $periodPreset = $request->query('period_preset');
+
+        // Determine active workspace tab
+        $requestedTab = strtolower(trim((string) $request->query('tab', '')));
+        if (in_array($requestedTab, ['current', 'history', 'analytics'], true)) {
+            $activeTab = $requestedTab;
+        } else {
+            // Auto-detect view mode if tab not explicitly provided
+            $hasHistoryDates = filled($rawMonth) || filled($rawYear) || filled($dateFrom) || filled($dateTo) || (filled($periodPreset) && $periodPreset !== 'current');
+            $hasHistoryStatus = in_array($statusFilter, ['checked_out', 'cancelled', 'pending'], true);
+
+            if ($hasHistoryDates || $hasHistoryStatus) {
+                $activeTab = 'history';
+            } else {
+                $activeTab = 'current';
+            }
+        }
+
+        // Set default status filter per tab if not explicitly set
+        if ($statusFilter === '') {
+            $statusFilter = ($activeTab === 'current') ? 'active' : 'all';
+        }
 
         $period = $monitoringService->resolveReportingPeriod(
             is_numeric($rawMonth) ? (int) $rawMonth : null,
             is_numeric($rawYear) ? (int) $rawYear : null,
             is_string($dateFrom) ? $dateFrom : null,
             is_string($dateTo) ? $dateTo : null,
-            is_string($dateBasis) ? $dateBasis : 'stay'
+            is_string($dateBasis) ? $dateBasis : 'stay',
+            is_string($periodPreset) ? $periodPreset : null
         );
 
-        $periodStart = $period['periodStart'];
-        $periodEnd = $period['periodEnd'];
-        $periodLabel = $period['periodLabel'];
+        $periodStart = ($activeTab === 'current') ? null : $period['periodStart'];
+        $periodEnd = ($activeTab === 'current') ? null : $period['periodEnd'];
+        $periodLabel = ($activeTab === 'current') ? 'Current Active Boarding' : $period['periodLabel'];
         $month = $period['month'];
         $year = $period['year'];
         $dateFrom = $period['dateFrom'];
         $dateTo = $period['dateTo'];
         $dateBasis = $period['dateBasis'];
+        $periodPreset = $period['periodPreset'];
 
         $filters = [
             'search' => $search,
@@ -156,7 +181,9 @@ class AdminBookingController extends Controller
 
         // Filtered query for pagination
         $filteredQuery = clone $baseQuery;
-        if ($statusFilter !== 'all') {
+        if ($activeTab === 'current') {
+            $monitoringService->applyStatusFilter($filteredQuery, 'active', now());
+        } elseif ($statusFilter !== 'all') {
             $monitoringService->applyStatusFilter($filteredQuery, $statusFilter, now(), $periodStart, $periodEnd, $dateBasis);
         }
 
@@ -166,7 +193,7 @@ class AdminBookingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // Summaries and distributions computed from the exact same common base query
+        // Summaries and distributions computed from the common base query
         $metrics = $monitoringService->getSummaryMetrics($baseQuery, now(), $periodStart, $periodEnd, $dateBasis);
         $collegeDistribution = $monitoringService->getCollegeDistribution($baseQuery);
         $programDistribution = $monitoringService->getProgramDistribution($baseQuery);
@@ -194,6 +221,22 @@ class AdminBookingController extends Controller
         $cancelledBoardings = $metrics['cancelled_boardings'];
         $activeRooms = $metrics['active_rooms'];
         $activeProperties = $metrics['active_properties'];
+        $representedRooms = $metrics['represented_rooms'] ?? $activeRooms;
+        $representedProperties = $metrics['represented_properties'] ?? $activeProperties;
+
+        // Global live active count for Current Boarders tab badge
+        $todayStr = now()->toDateString();
+        $currentBoardersCount = Booking::where('status', 'approved')
+            ->where('check_in', '<=', $todayStr)
+            ->where(function ($q) use ($todayStr) {
+                $q->whereNull('check_out')
+                    ->orWhere('check_out', '>', $todayStr);
+            })
+            ->distinct('student_id')
+            ->count('student_id');
+
+        // Total available capacity across active properties
+        $totalRoomsCount = \App\Models\Room::count();
 
         return view('admin.boarded_students.index', compact(
             'boardedStudents',
@@ -208,7 +251,9 @@ class AdminBookingController extends Controller
             'dateTo',
             'dateBasis',
             'dateBases',
+            'periodPreset',
             'statusFilter',
+            'activeTab',
             'boardingHouses',
             'colleges',
             'programs',
@@ -227,6 +272,10 @@ class AdminBookingController extends Controller
             'cancelledBoardings',
             'activeRooms',
             'activeProperties',
+            'representedRooms',
+            'representedProperties',
+            'currentBoardersCount',
+            'totalRoomsCount',
             'collegeDistribution',
             'programDistribution',
             'propertyDistribution'
@@ -256,13 +305,15 @@ class AdminBookingController extends Controller
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
         $dateBasis = $request->query('date_basis', 'stay');
+        $periodPreset = $request->query('period_preset');
 
         $period = $monitoringService->resolveReportingPeriod(
             is_numeric($rawMonth) ? (int) $rawMonth : null,
             is_numeric($rawYear) ? (int) $rawYear : null,
             is_string($dateFrom) ? $dateFrom : null,
             is_string($dateTo) ? $dateTo : null,
-            is_string($dateBasis) ? $dateBasis : 'stay'
+            is_string($dateBasis) ? $dateBasis : 'stay',
+            is_string($periodPreset) ? $periodPreset : null
         );
 
         $periodStart = $period['periodStart'];

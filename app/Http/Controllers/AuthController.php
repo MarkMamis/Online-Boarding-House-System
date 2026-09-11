@@ -817,12 +817,23 @@ class AuthController extends Controller
             ];
         });
 
+        // Resolve landlord compliance summary
+        $complianceService = app(\App\Services\LandlordDocumentStatusService::class);
+        $profile = $user->landlordProfile;
+        $compliance = [
+            'business_permit' => $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_BUSINESS_PERMIT),
+            'safety_certificate' => $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_SAFETY_CERTIFICATE),
+        ];
+        $compliance['is_compliant'] = ($compliance['business_permit'] === 'approved' && $compliance['safety_certificate'] === 'approved');
+        $activeTab = request('tab', 'overview');
+
         return view('admin.users.landlords.show', compact(
             'user', 'properties', 'totalTenants', 'totalProperties',
             'totalRooms', 'occupiedRooms', 'occupancyRate',
             'pendingOnboarding', 'documentsUploaded', 'contractSigned',
             'depositPaid', 'completedOnboarding', 'totalOnboarding',
-            'currentTenants', 'currentLandlordDocuments', 'documentHistory'
+            'currentTenants', 'currentLandlordDocuments', 'documentHistory',
+            'compliance', 'activeTab'
         ));
     }
 
@@ -941,36 +952,30 @@ class AuthController extends Controller
             abort(403);
         }
 
-        $activeTab = strtolower((string) $request->query('tab', 'properties'));
-        if (!in_array($activeTab, ['properties', 'permits'], true)) {
-            $activeTab = 'properties';
+        $activeTab = strtolower((string) $request->query('tab', ''));
+        // If tab is properties (or default when not explicitly asking for permits), redirect to unified properties workspace!
+        if ($activeTab === 'properties' || ($activeTab === '' && !$request->has('tab'))) {
+            return redirect()->route('admin.properties.index', array_filter([
+                'status' => 'pending',
+                'page' => $request->query('page'),
+            ], fn ($v) => $v !== null && $v !== ''));
         }
 
-        $statusFilter = $activeTab === 'permits'
-            ? $this->normalizeLandlordPermitFilter((string) $request->query('status', 'all'))
-            : $this->normalizeApprovalStatusFilter((string) $request->query('status', 'pending'));
+        $activeTab = 'permits';
+        $statusFilter = $this->normalizeLandlordPermitFilter((string) $request->query('status', 'all'));
 
-        $propertyCounts = [];
-        $landlords = null;
-        $permitCounts = [];
-
-        if ($activeTab === 'properties') {
-            [$landlords, $propertyCounts] = $this->buildPropertyApprovalPayload($statusFilter);
-        } else {
-            if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
-                return redirect()->route('admin.dashboard')
-                    ->with('error', 'Permit approval columns are not available yet. Run migrations first.');
-            }
-
-            [$landlords, $permitCounts] = $this->buildPermitApprovalPayload($statusFilter);
+        if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Permit approval columns are not available yet. Run migrations first.');
         }
+
+        [$landlords, $permitCounts] = $this->buildPermitApprovalPayload($statusFilter);
 
         return view('admin.approvals.landlords', compact(
             'activeTab',
             'statusFilter',
             'landlords',
-            'permitCounts',
-            'propertyCounts'
+            'permitCounts'
         ));
     }
 
@@ -1271,16 +1276,16 @@ class AuthController extends Controller
             ->with('landlordProfile')
             ->get();
 
+        $statusService = app(\App\Services\LandlordDocumentStatusService::class);
+        $stats = $statusService->getAggregateStatistics();
+
         $counts = [
-            'all' => $allLandlords->count(),
-            'missing' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'missing'
-                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'missing')->count(),
-            'pending' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'pending'
-                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'pending')->count(),
-            'approved' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'approved'
-                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'approved')->count(),
-            'rejected' => $allLandlords->filter(fn ($landlord) => $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'business') === 'rejected'
-                || $this->resolveLandlordDocumentStatus($landlord?->landlordProfile, 'safety') === 'rejected')->count(),
+            'all' => $stats['total_landlords'],
+            'missing' => $stats['landlords_with_missing_documents'],
+            'pending' => $stats['landlords_with_pending_documents'],
+            'approved' => $allLandlords->filter(fn ($landlord) => $statusService->resolveDocumentStatus($landlord?->landlordProfile, 'business') === 'approved'
+                || $statusService->resolveDocumentStatus($landlord?->landlordProfile, 'safety') === 'approved')->count(),
+            'rejected' => $stats['landlords_with_rejected_documents'],
         ];
 
         return [$landlords, $counts];
@@ -1389,35 +1394,12 @@ class AuthController extends Controller
 
     private function supportsSafetyCertificateApproval(): bool
     {
-        return Schema::hasColumn('landlord_profiles', 'safety_certificate_status')
-            && Schema::hasColumn('landlord_profiles', 'safety_certificate_reviewed_at')
-            && Schema::hasColumn('landlord_profiles', 'safety_certificate_reviewed_by')
-            && Schema::hasColumn('landlord_profiles', 'safety_certificate_rejection_reason');
+        return app(\App\Services\LandlordDocumentStatusService::class)->supportsSafetyCertificateApproval();
     }
 
     private function resolveLandlordDocumentStatus(?LandlordProfile $profile, string $document): string
     {
-        if (!$profile) {
-            return 'missing';
-        }
-
-        if ($document === 'business') {
-            if (!filled($profile->business_permit_path)) {
-                return 'missing';
-            }
-
-            return (string) ($profile->business_permit_status ?: 'pending');
-        }
-
-        if (!filled($profile->safety_certificate_path)) {
-            return 'missing';
-        }
-
-        if ($this->supportsSafetyCertificateApproval()) {
-            return (string) ($profile->safety_certificate_status ?: 'pending');
-        }
-
-        return 'pending';
+        return app(\App\Services\LandlordDocumentStatusService::class)->resolveDocumentStatus($profile, $document);
     }
 
     public function adminApproveStudentVerification(User $user)
@@ -1606,48 +1588,167 @@ class AuthController extends Controller
             ->with('success', 'Student profile updated successfully.');
     }
 
-    public function adminProperties()
+    public function adminProperties(Request $request)
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        // Get all properties with landlord information and location data
-        $properties = Property::with(['landlord', 'rooms'])
+        $search = trim((string) $request->query('search', ''));
+        $statusFilter = strtolower(trim((string) $request->query('status', 'all')));
+        $availabilityFilter = strtolower(trim((string) $request->query('availability', 'all')));
+        $locationFilter = trim((string) $request->query('location', 'all'));
+        $activeView = strtolower(trim((string) $request->query('view', 'list')));
+        if (!in_array($activeView, ['list', 'map'], true)) {
+            $activeView = 'list';
+        }
+
+        $today = now()->toDateString();
+
+        // Optimized query without eager loading full rooms collection
+        $query = Property::query()
+            ->with(['landlord:id,name,full_name,email,contact_number'])
             ->withCount([
                 'rooms as total_rooms',
-                'rooms as available_rooms' => function($q) {
+                'rooms as available_rooms' => function ($q) {
                     $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
-                'rooms as occupied_rooms' => function($q) {
-                    $q->whereHas('bookings', function($bq) {
+                'rooms as occupied_rooms' => function ($q) use ($today) {
+                    $q->whereHas('bookings', function ($bq) use ($today) {
                         $bq->where('status', 'approved')
-                           ->where('check_in', '<=', now()->toDateString())
-                           ->where('check_out', '>', now()->toDateString());
+                           ->whereDate('check_in', '<=', $today)
+                           ->whereDate('check_out', '>', $today);
                     });
-                }
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get();
+                },
+            ]);
 
-        // Calculate occupancy rates and add to properties
-        $properties->transform(function($property) {
+        // Search filter (property name, address, landlord name/email)
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%")
+                  ->orWhereHas('landlord', function ($lq) use ($search) {
+                      $lq->where('name', 'like', "%{$search}%")
+                         ->orWhere('full_name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Approval status filter
+        if ($statusFilter !== '' && $statusFilter !== 'all') {
+            $query->where('approval_status', $statusFilter);
+        }
+
+        // Availability filter
+        if ($availabilityFilter === 'available') {
+            $query->whereHas('rooms', function ($rq) {
+                $rq->where('status', 'available')->where('slots_available', '>', 0);
+            });
+        } elseif ($availabilityFilter === 'occupied') {
+            $query->whereHas('rooms')->whereDoesntHave('rooms', function ($rq) {
+                $rq->where('status', 'available')->where('slots_available', '>', 0);
+            });
+        } elseif ($availabilityFilter === 'no_rooms') {
+            $query->whereDoesntHave('rooms');
+        }
+
+        // Location / Barangay filter
+        if ($locationFilter !== '' && $locationFilter !== 'all') {
+            $query->where('address', 'like', "%{$locationFilter}%");
+        }
+
+        // Paginated properties for table (persisting query string)
+        $properties = (clone $query)
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Calculate occupancy rate for each paginated item
+        $properties->getCollection()->transform(function ($property) {
             $property->occupancy_rate = $property->total_rooms > 0
                 ? round(($property->occupied_rooms / $property->total_rooms) * 100, 1)
                 : 0;
             return $property;
         });
 
-        // Get summary statistics
-        $totalProperties = $properties->count();
-        $totalRooms = $properties->sum('total_rooms');
-        $occupiedRooms = $properties->sum('occupied_rooms');
-        $availableRooms = $properties->sum('available_rooms');
-        $totalLandlords = $properties->pluck('landlord_id')->unique()->count();
+        // Authoritative system-wide summary metrics
+        $summary = [
+            'total_properties' => Property::count(),
+            'approved_properties' => Property::where('approval_status', 'approved')->count(),
+            'pending_properties' => Property::where('approval_status', 'pending')->count(),
+            'rejected_properties' => Property::where('approval_status', 'rejected')->count(),
+            'available_rooms' => Room::where('status', 'available')->where('slots_available', '>', 0)->count(),
+            'available_slots' => (int) Room::where('status', 'available')->sum('slots_available'),
+        ];
+
+        // Mapped properties for Map View (only needed columns to keep payload minimal)
+        $mapProperties = (clone $query)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->select(['id', 'name', 'address', 'latitude', 'longitude', 'image_path', 'price_min', 'price_max', 'approval_status', 'landlord_id'])
+            ->get()
+            ->map(function ($p) {
+                $totalRooms = (int) ($p->total_rooms ?? 0);
+                $occupiedRooms = (int) ($p->occupied_rooms ?? 0);
+                $availableRooms = (int) ($p->available_rooms ?? 0);
+                $rate = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 1) : 0;
+
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'address' => $p->address,
+                    'latitude' => (float) $p->latitude,
+                    'longitude' => (float) $p->longitude,
+                    'image_url' => $p->image_path ? file_url($p->image_path) : null,
+                    'approval_status' => $p->approval_status ?? 'pending',
+                    'landlord_name' => $p->landlord->full_name ?? $p->landlord->name ?? 'Landlord',
+                    'price_min' => $p->price_min,
+                    'price_max' => $p->price_max,
+                    'total_rooms' => $totalRooms,
+                    'available_rooms' => $availableRooms,
+                    'occupied_rooms' => $occupiedRooms,
+                    'occupancy_rate' => $rate,
+                    'show_url' => route('admin.properties.show', $p->id),
+                ];
+            });
+
+        // Distinct location values for filter dropdown
+        $distinctLocations = Property::whereNotNull('address')
+            ->where('address', '!=', '')
+            ->distinct()
+            ->pluck('address')
+            ->map(function ($addr) {
+                $parts = array_map('trim', explode(',', $addr));
+                return $parts[0] ?? $addr;
+            })
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        // Ordered list of all pending property IDs for inspector batch review navigation
+        $pendingPropertyIds = Property::where('approval_status', 'pending')
+            ->orderByDesc('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        // Selected deep-link property ID (e.g. from ?property=123)
+        $selectedPropertyId = (int) $request->query('property', 0);
 
         return view('admin.properties.index', compact(
-            'properties', 'totalProperties', 'totalRooms', 'occupiedRooms',
-            'availableRooms', 'totalLandlords'
+            'properties',
+            'summary',
+            'mapProperties',
+            'distinctLocations',
+            'search',
+            'statusFilter',
+            'availabilityFilter',
+            'locationFilter',
+            'activeView',
+            'pendingPropertyIds',
+            'selectedPropertyId'
         ));
     }
 

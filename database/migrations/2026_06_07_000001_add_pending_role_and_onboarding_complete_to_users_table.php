@@ -17,7 +17,9 @@ return new class extends Migration
             }
         });
 
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'landlord', 'student', 'pending') NOT NULL DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'landlord', 'student', 'pending') NOT NULL DEFAULT 'pending'");
+        }
 
         DB::table('users')
             ->where('role', 'admin')
@@ -77,7 +79,9 @@ return new class extends Migration
             ->where('role', 'pending')
             ->update(['role' => 'student']);
 
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'landlord', 'student') NOT NULL DEFAULT 'student'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'landlord', 'student') NOT NULL DEFAULT 'student'");
+        }
 
         Schema::table('users', function (Blueprint $table) {
             if (Schema::hasColumn('users', 'onboarding_complete')) {

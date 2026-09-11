@@ -37,7 +37,9 @@ return [
 
     'huggingface' => [
         'token' => env('HF_TOKEN'),
-        'model' => env('HF_QWEN_MODEL', 'Qwen/Qwen2.5-7B-Instruct:together'),
+        'model' => env('HF_MODEL', env('HF_QWEN_MODEL', 'Qwen/Qwen3.8-27B:cerebras')),
+        'endpoint' => env('HF_CHAT_ENDPOINT', 'https://router.huggingface.co/v1/chat/completions'),
+        'timeout' => (int) env('HF_TIMEOUT', 30),
     ],
 
 ];

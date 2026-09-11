@@ -14,7 +14,7 @@ class ReportPriorityClassifier
         }
 
         $token = config('services.huggingface.token');
-        $model = (string) config('services.huggingface.model', 'Qwen/Qwen2.5-7B-Instruct:together');
+        $model = (string) config('services.huggingface.model', 'deepseek-ai/DeepSeek-V4.1-Flash:novita');
 
         if (empty($token)) {
             return $this->heuristicClassify($content);

@@ -140,13 +140,173 @@ class PropertyController extends Controller
             ? round((($property->occupied_rooms ?? 0) / $property->total_rooms) * 100)
             : 0);
 
+        // Landlord compliance summary for deep details page
+        $complianceService = app(\App\Services\LandlordDocumentStatusService::class);
+        $profile = $property->landlord?->landlordProfile;
+        $compliance = [
+            'business_permit' => $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_BUSINESS_PERMIT),
+            'safety_certificate' => $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_SAFETY_CERTIFICATE),
+        ];
+        $compliance['is_compliant'] = ($compliance['business_permit'] === 'approved' && $compliance['safety_certificate'] === 'approved');
+        $activeTab = request('tab', 'overview');
+
         return view('admin.properties.show', compact(
             'property',
             'minPrice',
             'maxPrice',
             'servicesOffered',
-            'occupancyRate'
+            'occupancyRate',
+            'compliance',
+            'activeTab'
         ));
+    }
+
+    public function adminInspect(Property $property)
+    {
+        $this->ensureAdmin();
+
+        $today = now()->toDateString();
+
+        $property->load([
+            'landlord.landlordProfile',
+            'rooms' => function ($query) use ($today) {
+                $query->with(['roomImages'])
+                    ->withCount([
+                        'bookings as active_bookings_count' => function ($bookingQuery) use ($today) {
+                            $bookingQuery->where('status', 'approved')
+                                ->where('check_in', '<=', $today)
+                                ->where('check_out', '>', $today);
+                        },
+                    ])
+                    ->orderBy('room_number');
+            },
+        ])->loadCount([
+            'rooms as total_rooms',
+            'rooms as available_rooms' => function ($query) {
+                $query->where('status', 'available')->where('slots_available', '>', 0);
+            },
+            'rooms as occupied_rooms' => function ($query) use ($today) {
+                $query->whereHas('bookings', function ($bookingQuery) use ($today) {
+                    $bookingQuery->where('status', 'approved')
+                        ->where('check_in', '<=', $today)
+                        ->where('check_out', '>', $today);
+                });
+            },
+        ]);
+
+        $landlord = $property->landlord;
+        $profile = $landlord?->landlordProfile;
+
+        // Landlord compliance using LandlordDocumentStatusService
+        $complianceService = app(\App\Services\LandlordDocumentStatusService::class);
+        $bpStatus = $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_BUSINESS_PERMIT);
+        $scStatus = $complianceService->resolveDocumentStatus($profile, \App\Services\LandlordDocumentStatusService::DOC_SAFETY_CERTIFICATE);
+
+        $isCompliant = ($bpStatus === 'approved' && $scStatus === 'approved');
+
+        // Quick check
+        $hasImage = !empty($property->image_path);
+        $hasDescription = filled($property->description);
+        $hasCoordinates = !empty($property->latitude) && !empty($property->longitude);
+        $hasRooms = $property->total_rooms > 0;
+
+        // Room pricing
+        $priceValues = $property->rooms
+            ->pluck('price')
+            ->filter(fn ($price) => is_numeric($price) && (float) $price > 0)
+            ->map(fn ($price) => (float) $price)
+            ->values();
+
+        $minPrice = $priceValues->isNotEmpty() ? $priceValues->min() : null;
+        $maxPrice = $priceValues->isNotEmpty() ? $priceValues->max() : null;
+        $totalCapacity = (int) $property->rooms->sum('capacity');
+        $occupancyRate = (float) ($property->total_rooms > 0
+            ? round((($property->occupied_rooms ?? 0) / $property->total_rooms) * 100, 1)
+            : 0);
+
+        // Building inclusions / amenities
+        $amenityLabelMap = collect((array) config('property_amenities.flat', []))
+            ->mapWithKeys(fn ($label, $key) => [strtolower((string) $key) => (string) $label]);
+
+        $buildingServices = collect((array) ($property->building_inclusions ?? []))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->map(function (string $item) use ($amenityLabelMap): string {
+                $normalized = strtolower($item);
+                return $amenityLabelMap->has($normalized)
+                    ? (string) $amenityLabelMap->get($normalized)
+                    : ucwords(str_replace(['_', '-'], ' ', $item));
+            })->values()->all();
+
+        // Rooms detailed list
+        $roomsData = $property->rooms->map(function ($room) {
+            $imagePath = $room->image_path ?: optional($room->roomImages->first())->image_path;
+            $inclusions = collect(preg_split('/[,\n;]+/', (string) $room->inclusions))
+                ->map(fn ($item) => trim($item))
+                ->filter()
+                ->values()
+                ->all();
+
+            return [
+                'id' => $room->id,
+                'room_number' => $room->room_number,
+                'capacity' => (int) $room->capacity,
+                'occupied' => (int) ($room->active_bookings_count ?? 0),
+                'available' => (int) $room->getAvailableSlots(),
+                'price' => (float) $room->price,
+                'status' => $room->status ?? 'available',
+                'inclusions' => $inclusions,
+                'photo_url' => $imagePath ? file_url($imagePath) : null,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'id' => $property->id,
+            'name' => $property->name,
+            'approval_status' => $property->approval_status ?? 'pending',
+            'created_at_formatted' => $property->created_at?->format('M d, Y') ?? 'N/A',
+            'address' => $property->address ?: 'Address not set',
+            'latitude' => $property->latitude ? (float) $property->latitude : null,
+            'longitude' => $property->longitude ? (float) $property->longitude : null,
+            'image_url' => $property->image_path ? file_url($property->image_path) : null,
+            'description' => $property->description ?: null,
+            'rejection_reason' => $property->rejection_reason ?: null,
+            'landlord' => [
+                'id' => $landlord?->id,
+                'name' => $landlord?->name ?? 'N/A',
+                'full_name' => $landlord?->full_name ?: ($landlord?->name ?? 'N/A'),
+                'email' => $landlord?->email ?? 'N/A',
+                'contact_number' => $landlord?->contact_number,
+                'profile_url' => $landlord ? route('admin.users.landlords.show', $landlord->id) : null,
+            ],
+            'compliance' => [
+                'business_permit' => $bpStatus,
+                'safety_certificate' => $scStatus,
+                'is_complete' => $isCompliant,
+                'summary_label' => $isCompliant ? 'Compliant' : 'Documents incomplete',
+            ],
+            'quick_check' => [
+                'image_uploaded' => $hasImage,
+                'description_added' => $hasDescription,
+                'coordinates_pinned' => $hasCoordinates,
+                'rooms_added' => $hasRooms,
+                'room_count' => (int) $property->total_rooms,
+            ],
+            'rooms_summary' => [
+                'total_rooms' => (int) $property->total_rooms,
+                'occupied_rooms' => (int) ($property->occupied_rooms ?? 0),
+                'available_rooms' => (int) ($property->available_rooms ?? 0),
+                'total_capacity' => $totalCapacity,
+                'occupancy_rate' => $occupancyRate,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
+            ],
+            'building_inclusions' => $buildingServices,
+            'rooms' => $roomsData,
+            'full_details_url' => route('admin.properties.show', $property),
+            'approve_url' => route('admin.properties.approve', $property),
+            'reject_url' => route('admin.properties.reject', $property),
+        ]);
     }
 
     public function adminApprove(Property $property)
@@ -190,6 +350,15 @@ class PropertyController extends Controller
             }
         }
 
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Property \"{$property->name}\" approved and published to students.",
+                'approval_status' => 'approved',
+                'property_id' => $property->id,
+            ]);
+        }
+
         return back()->with('success', 'Property approved and published to students.');
     }
 
@@ -198,7 +367,7 @@ class PropertyController extends Controller
         $this->ensureAdmin();
 
         $request->validate([
-            'rejection_reason' => 'nullable|string|max:500',
+            'rejection_reason' => 'required|string|max:500',
         ]);
 
         $property->update([
@@ -238,6 +407,16 @@ class PropertyController extends Controller
             } catch (\Throwable $e) {
                 // ignore email transport errors
             }
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Property \"{$property->name}\" was rejected.",
+                'approval_status' => 'rejected',
+                'property_id' => $property->id,
+                'rejection_reason' => $property->rejection_reason,
+            ]);
         }
 
         return back()->with('success', 'Property rejected.');

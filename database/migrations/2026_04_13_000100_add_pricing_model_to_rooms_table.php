@@ -26,7 +26,8 @@ return new class extends Migration
         DB::statement("UPDATE rooms SET pricing_model = COALESCE(NULLIF(pricing_model, ''), 'hybrid')");
         DB::statement('UPDATE rooms SET price_per_room = COALESCE(price_per_room, price)');
         DB::statement('UPDATE rooms SET price_per_bed = COALESCE(price_per_bed, CASE WHEN capacity > 0 THEN ROUND(price / capacity, 2) ELSE price END)');
-        DB::statement('UPDATE rooms SET price = CASE pricing_model WHEN \'per_room\' THEN COALESCE(price_per_room, price) WHEN \'per_bed\' THEN COALESCE(price_per_bed, price) ELSE LEAST(COALESCE(price_per_room, price), COALESCE(price_per_bed, price)) END');
+        $leastFn = DB::connection()->getDriverName() === 'sqlite' ? 'MIN' : 'LEAST';
+        DB::statement("UPDATE rooms SET price = CASE pricing_model WHEN 'per_room' THEN COALESCE(price_per_room, price) WHEN 'per_bed' THEN COALESCE(price_per_bed, price) ELSE {$leastFn}(COALESCE(price_per_room, price), COALESCE(price_per_bed, price)) END");
     }
 
     public function down(): void

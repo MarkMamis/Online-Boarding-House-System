@@ -221,7 +221,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Chatbot (global, authenticated)
 Route::middleware(['auth', 'verified', 'role.selected', 'student.setup'])->group(function () {
     Route::get('/chatbot/history', [ChatbotController::class, 'history'])->name('chatbot.history');
-    Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
+    Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message')->middleware('throttle:chatbot');
 });
 
 Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, string $hash) {
@@ -326,14 +326,15 @@ Route::middleware(['role:admin'])->group(function () {
         return redirect()->route('admin.boarding_monitoring.students', $request->query());
     })->name('admin.boarded_students.index');
 
-    // Property approval workflow
+    // Property approval workflow & inspection
     Route::get('/admin/properties/approval', function (Request $request) {
-        return redirect()->route('admin.approvals.landlords', array_filter([
-            'tab' => 'properties',
-            'status' => $request->query('status'),
+        return redirect()->route('admin.properties.index', array_filter([
+            'status' => 'pending',
+            'search' => $request->query('search'),
             'page' => $request->query('page'),
         ], fn ($value) => $value !== null && $value !== ''));
     })->name('admin.properties.pending');
+    Route::get('/admin/properties/{property}/inspect', [PropertyController::class, 'adminInspect'])->name('admin.properties.inspect');
     Route::post('/admin/properties/{property}/approve', [PropertyController::class, 'adminApprove'])->name('admin.properties.approve');
     Route::post('/admin/properties/{property}/reject', [PropertyController::class, 'adminReject'])->name('admin.properties.reject');
     Route::get('/admin/properties/{property}', [PropertyController::class, 'adminShow'])->name('admin.properties.show');
