@@ -642,6 +642,10 @@
                         </a>
 
                         <div class="nav-section">Insights</div>
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ route('admin.analytics.index') }}">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Analytics</span>
+                        </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.reports.')]) href="{{ route('admin.reports.index') }}">
                             <i class="bi bi-flag"></i>
                             <span>Reports</span>
@@ -763,6 +767,10 @@
                 <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
                     <i class="bi bi-clipboard-check"></i>
                     <span>Onboardings</span>
+                </a>
+                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ route('admin.analytics.index') }}">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Analytics</span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -345,6 +345,9 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/reports/{report}', [ReportController::class, 'show'])->name('admin.reports.show');
     Route::put('/admin/reports/{report}', [ReportController::class, 'update'])->name('admin.reports.update');
 
+    // Admin analytics & operational insights
+    Route::get('/admin/analytics', [\App\Http\Controllers\AdminAnalyticsController::class, 'index'])->name('admin.analytics.index');
+
     // Admin onboarding management
     Route::get('/admin/onboardings', [TenantOnboardingController::class, 'adminIndex'])->name('admin.onboardings.index');
     Route::get('/admin/onboardings/active', [TenantOnboardingController::class, 'adminActive'])->name('admin.onboardings.active');

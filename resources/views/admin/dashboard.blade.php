@@ -427,9 +427,9 @@
                     <a class="btn btn-outline-secondary" href="{{ route('admin.bookings.index') }}">
                         <i class="bi bi-journal-check me-1"></i> Boarding Monitoring
                     </a>
-                    <!-- <button class="btn btn-brand" onclick="location.reload()">
-                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                    </button> -->
+                    <a class="btn btn-outline-success" href="{{ route('admin.analytics.index') }}">
+                        <i class="bi bi-graph-up-arrow me-1"></i> Reports &amp; Analytics
+                    </a>
                 </div>
             </div>
 
