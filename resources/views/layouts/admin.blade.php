@@ -642,7 +642,7 @@
                         </a>
 
                         <div class="nav-section">Insights</div>
-                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ route('admin.analytics.index') }}">
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                             <i class="bi bi-graph-up-arrow"></i>
                             <span>Analytics</span>
                         </a>
@@ -768,7 +768,7 @@
                     <i class="bi bi-clipboard-check"></i>
                     <span>Onboardings</span>
                 </a>
-                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ route('admin.analytics.index') }}">
+                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                     <i class="bi bi-graph-up-arrow"></i>
                     <span>Analytics</span>
                 </a>

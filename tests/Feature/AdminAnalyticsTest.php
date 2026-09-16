@@ -42,6 +42,20 @@ class AdminAnalyticsTest extends TestCase
         $response->assertSee('Active Boarders');
     }
 
+    public function test_admin_dashboard_renders_analytics_link_cleanly(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee(route('admin.analytics.index'), false);
+        $response->assertSee('Reports &amp; Analytics', false);
+    }
+
     public function test_non_admin_cannot_access_analytics_page(): void
     {
         $student = User::factory()->create(['role' => 'student', 'email_verified_at' => now()]);

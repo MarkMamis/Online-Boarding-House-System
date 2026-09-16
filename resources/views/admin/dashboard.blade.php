@@ -427,7 +427,7 @@
                     <a class="btn btn-outline-secondary" href="{{ route('admin.bookings.index') }}">
                         <i class="bi bi-journal-check me-1"></i> Boarding Monitoring
                     </a>
-                    <a class="btn btn-outline-success" href="{{ route('admin.analytics.index') }}">
+                    <a class="btn btn-outline-success" href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                         <i class="bi bi-graph-up-arrow me-1"></i> Reports &amp; Analytics
                     </a>
                 </div>

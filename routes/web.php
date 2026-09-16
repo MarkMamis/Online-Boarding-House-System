@@ -30,6 +30,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\OnboardingRoleController;
 use App\Http\Controllers\LandlordDocumentController;
 use App\Http\Controllers\AdminLandlordDocumentController;
+use App\Http\Controllers\AdminAnalyticsController;
 use App\Models\Room;
 use App\Models\Property;
 use App\Models\User;
@@ -346,7 +347,7 @@ Route::middleware(['role:admin'])->group(function () {
     Route::put('/admin/reports/{report}', [ReportController::class, 'update'])->name('admin.reports.update');
 
     // Admin analytics & operational insights
-    Route::get('/admin/analytics', [\App\Http\Controllers\AdminAnalyticsController::class, 'index'])->name('admin.analytics.index');
+    Route::get('/admin/analytics', [AdminAnalyticsController::class, 'index'])->name('admin.analytics.index');
 
     // Admin onboarding management
     Route::get('/admin/onboardings', [TenantOnboardingController::class, 'adminIndex'])->name('admin.onboardings.index');
