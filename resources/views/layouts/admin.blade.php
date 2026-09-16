@@ -434,18 +434,33 @@
         $routeName = \Illuminate\Support\Facades\Route::currentRouteName();
         $usersOpen = is_string($routeName) && str_starts_with($routeName, 'admin.users.');
 
-        $pendingApprovalsCount = \App\Models\Property::where('approval_status', 'pending')->count();
-        $pendingPermitApprovalsCount = \Illuminate\Support\Facades\Schema::hasColumn('landlord_profiles', 'business_permit_status')
-            ? \App\Models\LandlordProfile::where('business_permit_status', 'pending')->count()
-            : 0;
-            $pendingLandlordApprovalCount = $pendingApprovalsCount + $pendingPermitApprovalsCount;
-            $pendingStudentVerificationCount = \Illuminate\Support\Facades\Schema::hasColumn('users', 'school_id_verification_status')
-                ? \App\Models\User::query()
+        $pendingApprovalsCount = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('properties') && \Illuminate\Support\Facades\Schema::hasColumn('properties', 'approval_status')) {
+                $pendingApprovalsCount = \App\Models\Property::where('approval_status', 'pending')->count();
+            }
+        } catch (\Throwable $e) {}
+
+        $pendingPermitApprovalsCount = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('landlord_profiles') && \Illuminate\Support\Facades\Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+                $pendingPermitApprovalsCount = \App\Models\LandlordProfile::where('business_permit_status', 'pending')->count();
+            }
+        } catch (\Throwable $e) {}
+
+        $pendingLandlordApprovalCount = $pendingApprovalsCount + $pendingPermitApprovalsCount;
+
+        $pendingStudentVerificationCount = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('users') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'school_id_verification_status')) {
+                $pendingStudentVerificationCount = \App\Models\User::query()
                     ->where('role', 'student')
                     ->where(function ($docQuery) {
                         $docQuery->where(function ($schoolIdQuery) {
-                            $schoolIdQuery->whereNotNull('school_id_path')
-                                ->where('school_id_path', '!=', '');
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'school_id_path')) {
+                                $schoolIdQuery->whereNotNull('school_id_path')
+                                    ->where('school_id_path', '!=', '');
+                            }
                         });
 
                         if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'enrollment_proof_path')) {
@@ -460,15 +475,20 @@
                             ->orWhereNull('school_id_verification_status')
                             ->orWhere('school_id_verification_status', '');
                     })
-                    ->count()
-                : 0;
-        $notificationsCount = \Illuminate\Support\Facades\Schema::hasTable('notifications')
-            ? \Illuminate\Notifications\DatabaseNotification::query()
-                ->where('notifiable_type', get_class(Auth::user()))
-                ->where('notifiable_id', Auth::id())
-                ->whereNull('read_at')
-                ->count()
-            : 0;
+                    ->count();
+            }
+        } catch (\Throwable $e) {}
+
+        $notificationsCount = 0;
+        try {
+            if (Auth::check() && \Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                $notificationsCount = \Illuminate\Notifications\DatabaseNotification::query()
+                    ->where('notifiable_type', get_class(Auth::user()))
+                    ->where('notifiable_id', Auth::id())
+                    ->whereNull('read_at')
+                    ->count();
+            }
+        } catch (\Throwable $e) {}
     @endphp
 
     <nav class="navbar navbar-expand-lg navbar-light navbar-glass fixed-top">
@@ -755,7 +775,83 @@
         </div>
     </div>
 
+    <!-- OBHS Document Preview Modal -->
+    <div class="modal fade" id="obhsDocumentPreviewModal" tabindex="-1" aria-labelledby="obhsDocumentPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light py-2 px-3 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-text text-primary fs-5"></i>
+                        <h6 class="modal-title fw-semibold mb-0" id="obhsDocumentPreviewModalLabel">Document Preview</h6>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0 bg-dark position-relative text-center d-flex justify-content-center align-items-center" style="min-height: 520px; max-height: 82vh;">
+                    <div id="obhsDocumentPreviewSpinner" class="position-absolute top-50 start-50 translate-middle text-white text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading document...</span>
+                        </div>
+                        <div class="small mt-2 text-white-50">Loading document...</div>
+                    </div>
+                    <iframe id="obhsDocumentPreviewIframe" src="" class="w-100 border-0 d-none" style="height: 78vh;" onload="const sp = document.getElementById('obhsDocumentPreviewSpinner'); if(sp) sp.classList.add('d-none');" onerror="const sp = document.getElementById('obhsDocumentPreviewSpinner'); if(sp) sp.classList.add('d-none'); const err = document.getElementById('obhsDocumentPreviewError'); if(err) err.classList.remove('d-none');"></iframe>
+                    <img id="obhsDocumentPreviewImage" src="" alt="Document Preview" class="img-fluid d-none" style="max-height: 78vh; object-fit: contain;" onload="const sp = document.getElementById('obhsDocumentPreviewSpinner'); if(sp) sp.classList.add('d-none');" onerror="const sp = document.getElementById('obhsDocumentPreviewSpinner'); if(sp) sp.classList.add('d-none'); const err = document.getElementById('obhsDocumentPreviewError'); if(err) err.classList.remove('d-none');" />
+                    <div id="obhsDocumentPreviewError" class="d-none text-white p-4">
+                        <i class="bi bi-exclamation-triangle text-warning fs-1"></i>
+                        <p class="mt-2 mb-0">Unable to preview this document format directly.</p>
+                        <a id="obhsDocumentPreviewFallbackLink" href="#" class="btn btn-sm btn-primary mt-3" download>Download File</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openDocumentPreview(url, title = 'Document Preview', forcedType = null) {
+            if (!url) return;
+            const modalEl = document.getElementById('obhsDocumentPreviewModal');
+            if (!modalEl) {
+                window.location.href = url;
+                return;
+            }
+
+            const modalTitle = document.getElementById('obhsDocumentPreviewModalLabel');
+            const spinner = document.getElementById('obhsDocumentPreviewSpinner');
+            const iframe = document.getElementById('obhsDocumentPreviewIframe');
+            const img = document.getElementById('obhsDocumentPreviewImage');
+            const errorBox = document.getElementById('obhsDocumentPreviewError');
+            const fallbackLink = document.getElementById('obhsDocumentPreviewFallbackLink');
+
+            if (modalTitle) modalTitle.textContent = title;
+            if (fallbackLink) fallbackLink.href = url;
+
+            if (spinner) spinner.classList.remove('d-none');
+            if (iframe) { iframe.classList.add('d-none'); iframe.src = ''; }
+            if (img) { img.classList.add('d-none'); img.src = ''; }
+            if (errorBox) errorBox.classList.add('d-none');
+
+            const cleanUrl = url.split('?')[0].toLowerCase();
+            const isImg = forcedType === 'image' || cleanUrl.match(/\.(jpg|jpeg|png|webp|gif|svg)$/);
+
+            if (isImg && img) {
+                img.src = url;
+                img.classList.remove('d-none');
+            } else if (iframe) {
+                iframe.src = url;
+                iframe.classList.remove('d-none');
+            }
+
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modalInstance.show();
+        }
+
+        document.getElementById('obhsDocumentPreviewModal')?.addEventListener('hidden.bs.modal', function () {
+            const iframe = document.getElementById('obhsDocumentPreviewIframe');
+            const img = document.getElementById('obhsDocumentPreviewImage');
+            if (iframe) iframe.src = '';
+            if (img) img.src = '';
+        });
+    </script>
     <x-toast />
     <x-chatbot />
     @stack('scripts')

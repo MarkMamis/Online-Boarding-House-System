@@ -5,6 +5,7 @@ namespace App\Services\AI\Tools;
 use App\Models\Booking;
 use App\Models\User;
 use App\Services\AI\Support\AiDateRangeResolver;
+use Illuminate\Support\Facades\DB;
 
 class StudentTools
 {
@@ -115,15 +116,18 @@ class StudentTools
 
         if ($groupByKey !== null) {
             if ($groupByKey === 'onboarding_complete') {
-                $rawSql = "CASE WHEN onboarding_complete = 1 THEN 'Completed' ELSE 'Incomplete' END as label, COUNT(*) as count";
+                $labelExpr = "CASE WHEN onboarding_complete = 1 THEN 'Completed' ELSE 'Incomplete' END";
             } elseif ($groupByKey === 'school_id_verification_status') {
-                $rawSql = "COALESCE(NULLIF(TRIM(school_id_verification_status), ''), 'pending') as label, COUNT(*) as count";
+                $labelExpr = "COALESCE(NULLIF(TRIM(school_id_verification_status), ''), 'pending')";
             } else {
-                $rawSql = "COALESCE(NULLIF(TRIM({$groupByKey}), ''), 'Not specified') as label, COUNT(*) as count";
+                $labelExpr = "COALESCE(NULLIF(TRIM({$groupByKey}), ''), 'Not specified')";
             }
 
-            $groups = (clone $baseQuery)
-                ->selectRaw($rawSql)
+            $subQuery = (clone $baseQuery)->selectRaw("{$labelExpr} as label");
+
+            $groups = DB::query()
+                ->fromSub($subQuery, 'grouped_students')
+                ->select('label', DB::raw('COUNT(*) as count'))
                 ->groupBy('label')
                 ->orderByDesc('count')
                 ->get()
@@ -185,8 +189,11 @@ class StudentTools
             $formatSql = $isSqlite ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')";
         }
 
-        $seriesRows = (clone $baseQuery)
-            ->selectRaw("{$formatSql} as period_key, COUNT(*) as count")
+        $subQuery = (clone $baseQuery)->selectRaw("{$formatSql} as period_key");
+
+        $seriesRows = DB::query()
+            ->fromSub($subQuery, 'time_series')
+            ->select('period_key', DB::raw('COUNT(*) as count'))
             ->groupBy('period_key')
             ->orderBy('period_key')
             ->get();

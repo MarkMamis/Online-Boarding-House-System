@@ -268,6 +268,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/dashboard/stats', [AuthController::class, 'adminDashboardStats'])->name('admin.dashboard.stats');
+    Route::post('/admin/system/migrate', [AuthController::class, 'runMigrationsWeb'])->name('admin.system.migrate');
 
     // Admin settings
     Route::get('/admin/settings', [AuthController::class, 'adminSettings'])->name('admin.settings.edit');

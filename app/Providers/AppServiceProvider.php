@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
                 \App\Console\Commands\AdminReset::class,
                 \App\Console\Commands\ExportDatabase::class,
                 \App\Console\Commands\ImportDatabase::class,
+                \App\Console\Commands\DeploymentCheck::class,
             ]);
         }
     }

@@ -212,15 +212,15 @@
                             <td>
                                 <div class="verification-docs-grid">
                                     @if(!empty($student->school_id_path))
-                                        <a href="{{ file_download_url($student->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary doc-btn">
+                                        <button type="button" onclick="openDocumentPreview('{{ file_download_url($student->school_id_path) }}', 'School ID - {{ addslashes($student->full_name) }}')" class="btn btn-sm btn-outline-secondary doc-btn">
                                             <i class="bi bi-file-earmark-image me-1"></i>View School ID
-                                        </a>
+                                        </button>
                                     @endif
 
                                     @if(!empty($student->enrollment_proof_path))
-                                        <a href="{{ file_download_url($student->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary doc-btn">
+                                        <button type="button" onclick="openDocumentPreview('{{ file_download_url($student->enrollment_proof_path) }}', '{{ strtoupper((string) ($student->enrollment_proof_type ?? 'COR/COE')) }} - {{ addslashes($student->full_name) }}')" class="btn btn-sm btn-outline-secondary doc-btn">
                                             <i class="bi bi-file-earmark-text me-1"></i>View {{ strtoupper((string) ($student->enrollment_proof_type ?? 'COR/COE')) }}
-                                        </a>
+                                        </button>
                                     @endif
 
                                     @if(empty($student->school_id_path) && empty($student->enrollment_proof_path))

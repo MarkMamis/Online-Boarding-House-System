@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use App\Notifications\SystemNotification;
 use App\Services\AcademicCatalogService;
 
@@ -174,19 +175,28 @@ class AuthController extends Controller
     public function adminDashboard()
     {
         // Aggregate user role counts
-        $roleCounts = User::select('role', DB::raw('COUNT(*) as total'))
-            ->groupBy('role')
-            ->pluck('total', 'role');
+        $roleCounts = collect();
+        $totalUsers = 0;
+        $todayNew = 0;
+        $last7DaysNew = 0;
+        $recentUsers = collect();
+        $growthPct = 0;
 
-        $totalUsers = User::count();
-        $todayNew = User::whereDate('created_at', Carbon::today())->count();
-        $last7DaysNew = User::where('created_at', '>=', Carbon::now()->subDays(7))->count();
+        try {
+            if (Schema::hasTable('users')) {
+                $roleCounts = User::select('role', DB::raw('COUNT(*) as total'))
+                    ->groupBy('role')
+                    ->pluck('total', 'role');
 
-        // Recent registrations (limit 8)
-        $recentUsers = User::orderBy('created_at', 'desc')->limit(8)->get(['full_name','email','role','created_at']);
-
-        // Simple growth percentage (last 7 days vs total)
-        $growthPct = $totalUsers > 0 ? round(($last7DaysNew / $totalUsers) * 100, 1) : 0;
+                $totalUsers = User::count();
+                $todayNew = User::whereDate('created_at', Carbon::today())->count();
+                $last7DaysNew = User::where('created_at', '>=', Carbon::now()->subDays(7))->count();
+                $recentUsers = User::orderBy('created_at', 'desc')->limit(8)->get(['full_name','email','role','created_at']);
+                $growthPct = $totalUsers > 0 ? round(($last7DaysNew / $totalUsers) * 100, 1) : 0;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard user stats error: ' . $e->getMessage());
+        }
 
         // Basic system status (from configuration)
         $systemStatus = [
@@ -197,127 +207,242 @@ class AuthController extends Controller
         ];
 
         // Reports count
-        $totalReports = \App\Models\Report::count();
-        $pendingReports = \App\Models\Report::where('status', 'pending')->count();
+        $totalReports = 0;
+        $pendingReports = 0;
+        try {
+            if (Schema::hasTable('reports')) {
+                $totalReports = \App\Models\Report::count();
+                $pendingReports = \App\Models\Report::where('status', 'pending')->count();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard reports error: ' . $e->getMessage());
+        }
 
         // Onboarding statistics
-        $totalOnboardings = \App\Models\TenantOnboarding::count();
-        $pendingOnboardings = \App\Models\TenantOnboarding::where('status', 'pending')->count();
-        $completedOnboardings = \App\Models\TenantOnboarding::where('status', 'completed')->count();
-        $activeOnboardings = \App\Models\TenantOnboarding::whereNotIn('status', ['completed', 'cancelled'])->count();
+        $totalOnboardings = 0;
+        $pendingOnboardings = 0;
+        $completedOnboardings = 0;
+        $activeOnboardings = 0;
+        try {
+            if (Schema::hasTable('tenant_onboardings')) {
+                $totalOnboardings = \App\Models\TenantOnboarding::count();
+                $pendingOnboardings = \App\Models\TenantOnboarding::where('status', 'pending')->count();
+                $completedOnboardings = \App\Models\TenantOnboarding::where('status', 'completed')->count();
+                $activeOnboardings = \App\Models\TenantOnboarding::whereNotIn('status', ['completed', 'cancelled'])->count();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard onboardings error: ' . $e->getMessage());
+        }
 
         // Properties statistics
-        $totalProperties = Property::count();
-        $activeProperties = Property::whereHas('rooms')->count();
-
-        // Property approval statistics
-        $pendingApprovals = Property::where('approval_status', 'pending')->count();
+        $totalProperties = 0;
+        $activeProperties = 0;
+        $pendingApprovals = 0;
+        try {
+            if (Schema::hasTable('properties')) {
+                $totalProperties = Property::count();
+                if (Schema::hasTable('rooms')) {
+                    $activeProperties = Property::whereHas('rooms')->count();
+                }
+                if (Schema::hasColumn('properties', 'approval_status')) {
+                    $pendingApprovals = Property::where('approval_status', 'pending')->count();
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard properties error: ' . $e->getMessage());
+        }
 
         // Permit approval statistics (schema-safe for environments not yet migrated)
         $pendingPermitApprovals = 0;
         $approvedPermitApprovals = 0;
         $rejectedPermitApprovals = 0;
-        if (Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
-            $pendingPermitApprovals = LandlordProfile::where('business_permit_status', 'pending')->count();
-            $approvedPermitApprovals = LandlordProfile::where('business_permit_status', 'approved')->count();
-            $rejectedPermitApprovals = LandlordProfile::where('business_permit_status', 'rejected')->count();
+        try {
+            if (Schema::hasTable('landlord_profiles') && Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+                $pendingPermitApprovals = LandlordProfile::where('business_permit_status', 'pending')->count();
+                $approvedPermitApprovals = LandlordProfile::where('business_permit_status', 'approved')->count();
+                $rejectedPermitApprovals = LandlordProfile::where('business_permit_status', 'rejected')->count();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard permits error: ' . $e->getMessage());
         }
 
         // Booking statistics
-        $totalBookings = Booking::count();
-        $pendingBookings = Booking::where('status', 'pending')->count();
-        $approvedBookings = Booking::where('status', 'approved')->count();
+        $totalBookings = 0;
+        $pendingBookings = 0;
+        $approvedBookings = 0;
+        try {
+            if (Schema::hasTable('bookings')) {
+                $totalBookings = Booking::count();
+                $pendingBookings = Booking::where('status', 'pending')->count();
+                $approvedBookings = Booking::where('status', 'approved')->count();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard bookings error: ' . $e->getMessage());
+        }
 
         $today = Carbon::today()->toDateString();
+        $boardedByBoardingHouse = collect();
+        $boardedByAcademic = collect();
+        $activeBoardedStudents = 0;
 
-        // Active boarded students (approved + currently in stay window)
-        $activeBoardingsBase = DB::table('bookings')
-            ->join('rooms', 'rooms.id', '=', 'bookings.room_id')
-            ->join('properties', 'properties.id', '=', 'rooms.property_id')
-            ->join('users as students', 'students.id', '=', 'bookings.student_id')
-            ->where('bookings.status', 'approved')
-            ->whereDate('bookings.check_in', '<=', $today)
-            ->where(function ($query) use ($today) {
-                $query->whereNull('bookings.check_out')
-                    ->orWhereDate('bookings.check_out', '>', $today);
-            });
+        try {
+            if (Schema::hasTable('bookings') && Schema::hasTable('rooms') && Schema::hasTable('properties') && Schema::hasTable('users')) {
+                $activeBoardingsBase = DB::table('bookings')
+                    ->join('rooms', 'rooms.id', '=', 'bookings.room_id')
+                    ->join('properties', 'properties.id', '=', 'rooms.property_id')
+                    ->join('users as students', 'students.id', '=', 'bookings.student_id')
+                    ->where('bookings.status', 'approved')
+                    ->whereDate('bookings.check_in', '<=', $today)
+                    ->where(function ($query) use ($today) {
+                        $query->whereNull('bookings.check_out')
+                            ->orWhereDate('bookings.check_out', '>', $today);
+                    });
 
-        $boardedByBoardingHouse = (clone $activeBoardingsBase)
-            ->select(
-                'properties.id',
-                'properties.name',
-                'properties.address',
-                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
-            )
-            ->groupBy('properties.id', 'properties.name', 'properties.address')
-            ->orderByDesc('total_students')
-            ->limit(8)
-            ->get();
+                $boardedByBoardingHouse = (clone $activeBoardingsBase)
+                    ->select(
+                        'properties.id',
+                        'properties.name',
+                        'properties.address',
+                        DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
+                    )
+                    ->groupBy('properties.id', 'properties.name', 'properties.address')
+                    ->orderByDesc('total_students')
+                    ->limit(8)
+                    ->get();
 
-        $boardedByAcademic = $this->buildBoardedByAcademic($activeBoardingsBase);
+                $boardedByAcademic = $this->buildBoardedByAcademic($activeBoardingsBase);
 
-        $activeBoardedStudents = (clone $activeBoardingsBase)
-            ->distinct('bookings.student_id')
-            ->count('bookings.student_id');
+                $activeBoardedStudents = (clone $activeBoardingsBase)
+                    ->distinct('bookings.student_id')
+                    ->count('bookings.student_id');
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard active boardings error: ' . $e->getMessage());
+        }
 
         // Gender analytics with schema-safe fallback if column does not exist.
-        $genderCounts = [
+        $boarderGenderCounts = [
+            'male' => 0,
+            'female' => 0,
+            'unspecified' => 0,
+        ];
+        $registeredGenderCounts = [
             'male' => 0,
             'female' => 0,
             'unspecified' => 0,
         ];
 
-        if (Schema::hasColumn('users', 'gender')) {
-            $genderExpression = "LOWER(COALESCE(NULLIF(TRIM(students.gender), ''), 'unspecified'))";
+        try {
+            if (Schema::hasColumn('users', 'gender')) {
+                // 1. Registered students gender breakdown
+                $regExpression = "LOWER(COALESCE(NULLIF(TRIM(gender), ''), 'unspecified'))";
+                $regSubQuery = User::where('role', 'student')
+                    ->select([
+                        'id',
+                        DB::raw($regExpression . ' as gender_key'),
+                    ]);
 
-            $genderBreakdown = (clone $activeBoardingsBase)
-                ->select(
-                    DB::raw($genderExpression . ' as gender_key'),
-                    DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
-                )
-                ->groupByRaw($genderExpression)
-                ->pluck('total_students', 'gender_key');
+                $registeredBreakdown = DB::query()
+                    ->fromSub($regSubQuery, 'registered_student_genders')
+                    ->select('gender_key', DB::raw('COUNT(*) as total_students'))
+                    ->groupBy('gender_key')
+                    ->pluck('total_students', 'gender_key');
 
-            $genderCounts['male'] = (int) ($genderBreakdown['male'] ?? 0);
-            $genderCounts['female'] = (int) ($genderBreakdown['female'] ?? 0);
-            $genderCounts['unspecified'] = (int) ($genderBreakdown['unspecified'] ?? 0);
+                $registeredGenderCounts['male'] = (int) ($registeredBreakdown['male'] ?? 0);
+                $registeredGenderCounts['female'] = (int) ($registeredBreakdown['female'] ?? 0);
+                $registeredGenderCounts['unspecified'] = (int) ($registeredBreakdown['unspecified'] ?? 0);
 
-            foreach ($genderBreakdown as $key => $count) {
-                if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
-                    $genderCounts['unspecified'] += (int) $count;
+                foreach ($registeredBreakdown as $key => $count) {
+                    if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
+                        $registeredGenderCounts['unspecified'] += (int) $count;
+                    }
+                }
+
+                // 2. Active boarders gender breakdown
+                if (isset($activeBoardingsBase)) {
+                    $boarderExpression = "LOWER(COALESCE(NULLIF(TRIM(students.gender), ''), 'unspecified'))";
+                    $boarderSubQuery = (clone $activeBoardingsBase)
+                        ->select([
+                            'bookings.student_id',
+                            DB::raw($boarderExpression . ' as gender_key'),
+                        ]);
+
+                    $boarderBreakdown = DB::query()
+                        ->fromSub($boarderSubQuery, 'active_boarder_genders')
+                        ->select('gender_key', DB::raw('COUNT(DISTINCT student_id) as total_students'))
+                        ->groupBy('gender_key')
+                        ->pluck('total_students', 'gender_key');
+
+                    $boarderGenderCounts['male'] = (int) ($boarderBreakdown['male'] ?? 0);
+                    $boarderGenderCounts['female'] = (int) ($boarderBreakdown['female'] ?? 0);
+                    $boarderGenderCounts['unspecified'] = (int) ($boarderBreakdown['unspecified'] ?? 0);
+
+                    foreach ($boarderBreakdown as $key => $count) {
+                        if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
+                            $boarderGenderCounts['unspecified'] += (int) $count;
+                        }
+                    }
                 }
             }
-        } else {
-            $genderCounts['unspecified'] = $activeBoardedStudents;
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard gender aggregation error: ' . $e->getMessage());
         }
 
+        // Gender counts displayed on dashboard:
+        // Use active boarders distribution if active boarders exist, otherwise registered students distribution
+        $genderCounts = ($activeBoardedStudents > 0) ? $boarderGenderCounts : $registeredGenderCounts;
+
         // Map points for all approved landlord properties with coordinates.
-        $landlordMapPoints = Property::query()
-            ->with('landlord:id,full_name,email')
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->where('approval_status', 'approved')
-            ->orderBy('name')
-            ->get(['id', 'name', 'address', 'latitude', 'longitude', 'landlord_id'])
-            ->map(function ($property) {
-                return [
-                    'id' => $property->id,
-                    'name' => $property->name,
-                    'address' => $property->address,
-                    'latitude' => (float) $property->latitude,
-                    'longitude' => (float) $property->longitude,
-                    'landlord_name' => $property->landlord?->full_name,
-                    'landlord_email' => $property->landlord?->email,
-                ];
-            })
-            ->values();
+        $landlordMapPoints = collect();
+        try {
+            if (Schema::hasTable('properties') && Schema::hasColumn('properties', 'latitude') && Schema::hasColumn('properties', 'longitude')) {
+                $mapQuery = Property::query()
+                    ->with('landlord:id,full_name,email')
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude');
+
+                if (Schema::hasColumn('properties', 'approval_status')) {
+                    $mapQuery->where('approval_status', 'approved');
+                }
+
+                $landlordMapPoints = $mapQuery->orderBy('name')
+                    ->get(['id', 'name', 'address', 'latitude', 'longitude', 'landlord_id'])
+                    ->map(function ($property) {
+                        return [
+                            'id' => $property->id,
+                            'name' => $property->name,
+                            'address' => $property->address,
+                            'latitude' => (float) $property->latitude,
+                            'longitude' => (float) $property->longitude,
+                            'landlord_name' => $property->landlord?->full_name,
+                            'landlord_email' => $property->landlord?->email,
+                        ];
+                    })
+                    ->values();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard map points error: ' . $e->getMessage());
+        }
+
+        // Check for pending migrations
+        $hasPendingMigrations = false;
+        try {
+            $migrator = app('migrator');
+            $files = $migrator->getMigrationFiles(database_path('migrations'));
+            $ran = $migrator->getRepository()->getRan();
+            $pending = array_diff(array_keys($files), $ran);
+            $hasPendingMigrations = count($pending) > 0;
+        } catch (\Throwable $e) {
+            $hasPendingMigrations = true;
+        }
 
         return view('admin.dashboard', compact(
             'roleCounts', 'totalUsers', 'todayNew', 'last7DaysNew', 'growthPct', 'recentUsers', 'systemStatus', 'totalReports', 'pendingReports',
             'totalOnboardings', 'pendingOnboardings', 'completedOnboardings', 'activeOnboardings', 'totalProperties', 'activeProperties',
             'pendingApprovals', 'totalBookings', 'pendingBookings', 'approvedBookings',
             'pendingPermitApprovals', 'approvedPermitApprovals', 'rejectedPermitApprovals',
-            'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByAcademic', 'genderCounts', 'landlordMapPoints'
+            'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByAcademic', 'genderCounts', 'registeredGenderCounts', 'boarderGenderCounts', 'landlordMapPoints',
+            'hasPendingMigrations'
         ));
     }
 
@@ -358,72 +483,102 @@ class AuthController extends Controller
 
     private function buildBoardedByAcademic($activeBoardingsBase)
     {
-        $academicCatalog = $this->registrationAcademicCatalog();
-        $collegeCatalog = $academicCatalog['colleges'] ?? [];
-        $programCatalog = $academicCatalog['programs'] ?? [];
+        try {
+            $academicCatalog = $this->registrationAcademicCatalog();
+            $collegeCatalog = $academicCatalog['colleges'] ?? [];
+            $programCatalog = $academicCatalog['programs'] ?? [];
 
-        $programCollegeLookup = [];
-        foreach ($programCatalog as $collegeCode => $programs) {
-            foreach ((array) $programs as $programName) {
-                $programCollegeLookup[(string) $programName] = (string) $collegeCode;
+            $programCollegeLookup = [];
+            foreach ($programCatalog as $collegeCode => $programs) {
+                foreach ((array) $programs as $programName) {
+                    $programCollegeLookup[(string) $programName] = (string) $collegeCode;
+                }
             }
+
+            $hasCollege = Schema::hasTable('users') && Schema::hasColumn('users', 'college');
+            $hasProgram = Schema::hasTable('users') && Schema::hasColumn('users', 'program');
+
+            $collegeExpression = $hasCollege ? "COALESCE(NULLIF(TRIM(students.college), ''), 'Not specified')" : "'Not specified'";
+            $programExpression = $hasProgram ? "COALESCE(NULLIF(TRIM(students.program), ''), 'Not specified')" : "'Not specified'";
+
+            $subQuery = (clone $activeBoardingsBase)
+                ->select([
+                    'bookings.student_id',
+                    DB::raw($collegeExpression . ' as college_code'),
+                    DB::raw($programExpression . ' as program_name'),
+                ]);
+
+            $academicRows = DB::query()
+                ->fromSub($subQuery, 'normalized_students')
+                ->select([
+                    'college_code',
+                    'program_name',
+                    DB::raw('COUNT(DISTINCT student_id) as total_students'),
+                ])
+                ->groupBy('college_code', 'program_name')
+                ->orderByDesc('total_students')
+                ->get();
+
+            return $academicRows
+                ->map(function ($row) use ($programCollegeLookup) {
+                    $collegeCode = trim((string) $row->college_code);
+                    $programName = trim((string) $row->program_name);
+
+                    if ($collegeCode === '' || strcasecmp($collegeCode, 'Not specified') === 0) {
+                        $collegeCode = $programCollegeLookup[$programName] ?? 'Not specified';
+                    }
+
+                    if ($programName === '') {
+                        $programName = 'Not specified';
+                    }
+
+                    return [
+                        'college_code' => $collegeCode,
+                        'program_name' => $programName,
+                        'total_students' => (int) $row->total_students,
+                    ];
+                })
+                ->groupBy('college_code')
+                ->map(function ($rows, $collegeCode) use ($collegeCatalog) {
+                    $programs = collect($rows)
+                        ->groupBy('program_name')
+                        ->map(function ($programRows, $programName) {
+                            return [
+                                'name' => $programName,
+                                'total_students' => collect($programRows)->sum('total_students'),
+                            ];
+                        })
+                        ->sortByDesc('total_students')
+                        ->values();
+
+                    return (object) [
+                        'college_code' => $collegeCode,
+                        'college_name' => $collegeCatalog[$collegeCode] ?? ($collegeCode === 'Not specified' ? 'Not specified' : $collegeCode),
+                        'total_students' => (int) $programs->sum('total_students'),
+                        'programs' => $programs,
+                    ];
+                })
+                ->sortByDesc('total_students')
+                ->values();
+        } catch (\Throwable $e) {
+            Log::warning('buildBoardedByAcademic error: ' . $e->getMessage());
+            return collect();
+        }
+    }
+
+    public function runMigrationsWeb(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized action.');
         }
 
-        $collegeExpression = "COALESCE(NULLIF(TRIM(students.college), ''), 'Not specified')";
-        $programExpression = "COALESCE(NULLIF(TRIM(students.program), ''), 'Not specified')";
-
-        $academicRows = (clone $activeBoardingsBase)
-            ->select(
-                DB::raw($collegeExpression . ' as college_code'),
-                DB::raw($programExpression . ' as program_name'),
-                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students')
-            )
-            ->groupByRaw($collegeExpression)
-            ->groupByRaw($programExpression)
-            ->orderByDesc('total_students')
-            ->get();
-
-        return $academicRows
-            ->map(function ($row) use ($programCollegeLookup) {
-                $collegeCode = trim((string) $row->college_code);
-                $programName = trim((string) $row->program_name);
-
-                if ($collegeCode === '' || strcasecmp($collegeCode, 'Not specified') === 0) {
-                    $collegeCode = $programCollegeLookup[$programName] ?? 'Not specified';
-                }
-
-                if ($programName === '') {
-                    $programName = 'Not specified';
-                }
-
-                return [
-                    'college_code' => $collegeCode,
-                    'program_name' => $programName,
-                    'total_students' => (int) $row->total_students,
-                ];
-            })
-            ->groupBy('college_code')
-            ->map(function ($rows, $collegeCode) use ($collegeCatalog) {
-                $programs = collect($rows)
-                    ->groupBy('program_name')
-                    ->map(function ($programRows, $programName) {
-                        return [
-                            'name' => $programName,
-                            'total_students' => collect($programRows)->sum('total_students'),
-                        ];
-                    })
-                    ->sortByDesc('total_students')
-                    ->values();
-
-                return (object) [
-                    'college_code' => $collegeCode,
-                    'college_name' => $collegeCatalog[$collegeCode] ?? ($collegeCode === 'Not specified' ? 'Not specified' : $collegeCode),
-                    'total_students' => (int) $programs->sum('total_students'),
-                    'programs' => $programs,
-                ];
-            })
-            ->sortByDesc('total_students')
-            ->values();
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            return back()->with('success', 'Database migrations completed successfully! Output: ' . $output);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Migration failed: ' . $e->getMessage());
+        }
     }
 
     public function adminDashboardStats(Request $request)
@@ -452,7 +607,7 @@ class AuthController extends Controller
             ->select(DB::raw('DATE(created_at) as d'), DB::raw('COUNT(*) as c'))
             ->whereDate('created_at', '>=', $start)
             ->whereDate('created_at', '<=', $end)
-            ->groupBy('d')
+            ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('c', 'd');
 
         $registrations = array_map(function ($label) use ($userCounts) {
@@ -464,7 +619,7 @@ class AuthController extends Controller
             ->whereNotNull('approved_at')
             ->whereDate('approved_at', '>=', $start)
             ->whereDate('approved_at', '<=', $end)
-            ->groupBy('d')
+            ->groupBy(DB::raw('DATE(approved_at)'))
             ->pluck('c', 'd');
 
         $rejectedByDate = Property::query()
@@ -472,7 +627,7 @@ class AuthController extends Controller
             ->whereNotNull('rejected_at')
             ->whereDate('rejected_at', '>=', $start)
             ->whereDate('rejected_at', '<=', $end)
-            ->groupBy('d')
+            ->groupBy(DB::raw('DATE(rejected_at)'))
             ->pluck('c', 'd');
 
         $approvalsApproved = array_map(function ($label) use ($approvedByDate) {
@@ -1005,6 +1160,25 @@ class AuthController extends Controller
             'business_permit_rejection_reason' => null,
         ]);
 
+        if (Schema::hasTable('landlord_documents')) {
+            LandlordDocument::updateOrCreate(
+                [
+                    'landlord_id' => $user->id,
+                    'document_type' => LandlordDocument::TYPE_BUSINESS_PERMIT,
+                    'is_current' => true,
+                ],
+                [
+                    'file_path' => $landlordProfile->business_permit_path,
+                    'verification_status' => LandlordDocument::STATUS_APPROVED,
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                    'rejection_reason' => null,
+                    'rejected_at' => null,
+                    'submitted_at' => $landlordProfile->created_at ?? now(),
+                ]
+            );
+        }
+
         $user->notify(new SystemNotification(
             'Business permit approved',
             'Your business permit has been approved. You can now proceed with full landlord operations.',
@@ -1045,6 +1219,25 @@ class AuthController extends Controller
             'business_permit_rejection_reason' => $validated['rejection_reason'],
         ]);
 
+        if (Schema::hasTable('landlord_documents')) {
+            LandlordDocument::updateOrCreate(
+                [
+                    'landlord_id' => $user->id,
+                    'document_type' => LandlordDocument::TYPE_BUSINESS_PERMIT,
+                    'is_current' => true,
+                ],
+                [
+                    'file_path' => $landlordProfile->business_permit_path,
+                    'verification_status' => LandlordDocument::STATUS_REJECTED,
+                    'rejection_reason' => $validated['rejection_reason'],
+                    'rejected_at' => now(),
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'submitted_at' => $landlordProfile->created_at ?? now(),
+                ]
+            );
+        }
+
         $user->notify(new SystemNotification(
             'Business permit rejected',
             'Your business permit was rejected. Please review the reason and upload an updated permit.',
@@ -1083,6 +1276,25 @@ class AuthController extends Controller
             'safety_certificate_reviewed_by' => Auth::id(),
             'safety_certificate_rejection_reason' => null,
         ]);
+
+        if (Schema::hasTable('landlord_documents')) {
+            LandlordDocument::updateOrCreate(
+                [
+                    'landlord_id' => $user->id,
+                    'document_type' => LandlordDocument::TYPE_SAFETY_CERTIFICATE,
+                    'is_current' => true,
+                ],
+                [
+                    'file_path' => $landlordProfile->safety_certificate_path,
+                    'verification_status' => LandlordDocument::STATUS_APPROVED,
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                    'rejection_reason' => null,
+                    'rejected_at' => null,
+                    'submitted_at' => $landlordProfile->created_at ?? now(),
+                ]
+            );
+        }
 
         $user->notify(new SystemNotification(
             'Safety certificate approved',
@@ -1123,6 +1335,25 @@ class AuthController extends Controller
             'safety_certificate_reviewed_by' => Auth::id(),
             'safety_certificate_rejection_reason' => $validated['rejection_reason'],
         ]);
+
+        if (Schema::hasTable('landlord_documents')) {
+            LandlordDocument::updateOrCreate(
+                [
+                    'landlord_id' => $user->id,
+                    'document_type' => LandlordDocument::TYPE_SAFETY_CERTIFICATE,
+                    'is_current' => true,
+                ],
+                [
+                    'file_path' => $landlordProfile->safety_certificate_path,
+                    'verification_status' => LandlordDocument::STATUS_REJECTED,
+                    'rejection_reason' => $validated['rejection_reason'],
+                    'rejected_at' => now(),
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'submitted_at' => $landlordProfile->created_at ?? now(),
+                ]
+            );
+        }
 
         $user->notify(new SystemNotification(
             'Safety certificate rejected',

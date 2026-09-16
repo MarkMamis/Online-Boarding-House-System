@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LandlordDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class LandlordSetupController extends Controller
@@ -163,6 +165,10 @@ class LandlordSetupController extends Controller
                 $request->file('safety_certificate'),
                 'landlords/' . $user->id . '/safety-certificates'
             );
+            $profileData['safety_certificate_status'] = 'pending';
+            $profileData['safety_certificate_reviewed_at'] = null;
+            $profileData['safety_certificate_reviewed_by'] = null;
+            $profileData['safety_certificate_rejection_reason'] = null;
         }
 
         if ($request->hasFile('payment_gcash_qr')) {
@@ -214,7 +220,57 @@ class LandlordSetupController extends Controller
                 : 'not_submitted';
         }
 
+        if (empty($profileData['safety_certificate_status']) || $profileData['safety_certificate_status'] === 'not_submitted') {
+            if (filled($profileData['safety_certificate_path'] ?? $landlordProfile->safety_certificate_path)) {
+                $profileData['safety_certificate_status'] = 'pending';
+            }
+        }
+
         $landlordProfile->update($profileData);
+
+        if (Schema::hasTable('landlord_documents')) {
+            $effectivePermitPath = $profileData['business_permit_path'] ?? $landlordProfile->business_permit_path;
+            if (filled($effectivePermitPath)) {
+                $permitStatus = $profileData['business_permit_status'] ?? $landlordProfile->business_permit_status;
+                if (!in_array($permitStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
+                    $permitStatus = LandlordDocument::STATUS_PENDING;
+                }
+
+                LandlordDocument::updateOrCreate(
+                    [
+                        'landlord_id' => $user->id,
+                        'document_type' => LandlordDocument::TYPE_BUSINESS_PERMIT,
+                        'is_current' => true,
+                    ],
+                    [
+                        'file_path' => $effectivePermitPath,
+                        'verification_status' => $permitStatus,
+                        'submitted_at' => now(),
+                    ]
+                );
+            }
+
+            $effectiveSafetyPath = $profileData['safety_certificate_path'] ?? $landlordProfile->safety_certificate_path;
+            if (filled($effectiveSafetyPath)) {
+                $safetyStatus = $profileData['safety_certificate_status'] ?? $landlordProfile->safety_certificate_status;
+                if (!in_array($safetyStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
+                    $safetyStatus = LandlordDocument::STATUS_PENDING;
+                }
+
+                LandlordDocument::updateOrCreate(
+                    [
+                        'landlord_id' => $user->id,
+                        'document_type' => LandlordDocument::TYPE_SAFETY_CERTIFICATE,
+                        'is_current' => true,
+                    ],
+                    [
+                        'file_path' => $effectiveSafetyPath,
+                        'verification_status' => $safetyStatus,
+                        'submitted_at' => now(),
+                    ]
+                );
+            }
+        }
 
         $setupSnapshot = $this->getSetupSnapshot($user->fresh('landlordProfile'));
         $user->forceFill([

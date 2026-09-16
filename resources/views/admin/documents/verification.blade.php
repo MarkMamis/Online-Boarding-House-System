@@ -147,10 +147,10 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex flex-wrap justify-content-end gap-1">
-                                <a href="{{ file_download_url($document->file_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                <button type="button" onclick="openDocumentPreview('{{ file_download_url($document->file_path) }}', '{{ addslashes($document->typeLabel($document->document_type)) }} - {{ addslashes(optional($document->landlord)->full_name ?? 'Landlord') }}')" class="btn btn-sm btn-outline-secondary rounded-pill">
                                     <i class="bi bi-eye me-1"></i>View
-                                </a>
-                                <a href="{{ file_download_url($document->file_path, true) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                </button>
+                                <a href="{{ file_download_url($document->file_path, true) }}" download class="btn btn-sm btn-outline-secondary rounded-pill">
                                     <i class="bi bi-download me-1"></i>Download
                                 </a>
                                 @if($document->is_current && $document->verification_status !== 'approved')

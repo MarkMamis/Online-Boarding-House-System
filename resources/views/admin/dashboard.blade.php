@@ -362,6 +362,40 @@
     </style>
 
     <div class="container-fluid px-0 admin-page">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {!! session('success') !!}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(!empty($hasPendingMigrations))
+            <div class="alert alert-warning d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 p-3 mb-4 rounded-4 border border-warning shadow-sm">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning-emphasis d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-database-fill-exclamation fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">Database Migrations Pending / Incomplete</div>
+                        <div class="small text-muted">Your database needs to be synced with the latest database schema for all dashboard features to work.</div>
+                    </div>
+                </div>
+                <form method="POST" action="{{ Route::has('admin.system.migrate') ? route('admin.system.migrate') : url('/admin/system/migrate') }}" class="m-0 flex-shrink-0">
+                    @csrf
+                    <button type="submit" class="btn btn-warning fw-semibold rounded-pill px-3 shadow-sm" onclick="return confirm('Run database migrations now?')">
+                        <i class="bi bi-play-circle-fill me-1"></i> Run Migrations Now
+                    </button>
+                </form>
+            </div>
+        @endif
+
         <div class="hero p-3 p-lg-4 mb-4">
             <div class="d-flex flex-column flex-xl-row align-items-xl-start justify-content-between gap-3 gap-lg-4">
                 <div>
@@ -384,7 +418,7 @@
                             <span class="badge text-bg-danger ms-1">{{ $pendingApprovals }}</span>
                         @endif
                     </a>
-                    <a class="btn btn-outline-success" href="{{ route('admin.permits.index') }}">
+                    <a class="btn btn-outline-success" href="{{ route('admin.documents.verification') }}">
                         <i class="bi bi-file-earmark-check me-1"></i> Review Permits
                         @if(($pendingPermitApprovals ?? 0) > 0)
                             <span class="badge text-bg-danger ms-1">{{ $pendingPermitApprovals }}</span>
@@ -498,7 +532,7 @@
                 </div>
 
                 <div>
-                    <a href="{{ route('admin.permits.index') }}" class="btn btn-success rounded-pill px-3">
+                    <a href="{{ route('admin.documents.verification') }}" class="btn btn-success rounded-pill px-3">
                         <i class="bi bi-arrow-right-circle me-1"></i> Open Permit Queue
                     </a>
                 </div>
@@ -613,9 +647,12 @@
                                     <canvas id="chartAcademicPrograms"></canvas>
                                 </div>
                             </div>
+                        <div class="small muted d-flex justify-content-between align-items-center">
+                            <span>Male/Female distribution {{ ($activeBoardedStudents ?? 0) > 0 ? '(active boarders)' : '(registered students)' }}</span>
+                            @if(($activeBoardedStudents ?? 0) > 0 && isset($registeredGenderCounts))
+                                <span class="text-muted" style="font-size: 0.75rem;">Registered: M: {{ $registeredGenderCounts['male'] ?? 0 }} | F: {{ $registeredGenderCounts['female'] ?? 0 }}</span>
+                            @endif
                         </div>
-
-                        <div class="small muted">Male/Female distribution (active boarders)</div>
                         <div class="row g-2 mt-1">
                             <div class="col-4">
                                 <div class="gender-pill text-center">

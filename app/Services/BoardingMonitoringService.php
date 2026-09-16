@@ -542,6 +542,7 @@ class BoardingMonitoringService
         $collegeExpr = "COALESCE(NULLIF(TRIM(users.college), ''), 'Not specified')";
 
         $rows = (clone $baseQuery)
+            ->toBase()
             ->join('users', 'users.id', '=', 'bookings.student_id')
             ->select(
                 DB::raw("{$collegeExpr} as college_code"),
@@ -577,6 +578,7 @@ class BoardingMonitoringService
         $programExpr = "COALESCE(NULLIF(TRIM(users.program), ''), 'Not specified')";
 
         $rows = (clone $baseQuery)
+            ->toBase()
             ->join('users', 'users.id', '=', 'bookings.student_id')
             ->select(
                 DB::raw("{$collegeExpr} as college_code"),
@@ -616,6 +618,7 @@ class BoardingMonitoringService
     public function getPropertyDistribution(Builder $baseQuery): Collection
     {
         return (clone $baseQuery)
+            ->toBase()
             ->join('rooms as prop_rooms', 'prop_rooms.id', '=', 'bookings.room_id')
             ->join('properties as prop_properties', 'prop_properties.id', '=', 'prop_rooms.property_id')
             ->select(

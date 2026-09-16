@@ -261,8 +261,16 @@ class FileStorageService
         }
 
         $disposition = $inline ? 'inline' : 'attachment';
+        $safeFilename = str_replace(['"', "\r", "\n"], '', basename($filename ?: $path));
 
-        return Storage::disk($disk)->response($path, $filename, [], $disposition);
+        $headers = [
+            'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $safeFilename),
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+
+        return Storage::disk($disk)->response($path, $safeFilename, $headers, $disposition);
     }
 
     /**

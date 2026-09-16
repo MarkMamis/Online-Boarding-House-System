@@ -46,7 +46,7 @@ class AdminBoardingMonitoringTest extends TestCase
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)
-            ->get(route('admin.boarding_monitoring.students'));
+            ->get(route('admin.boarding_monitoring.students', ['tab' => 'history']));
 
         $response->assertOk()
             ->assertSee('Boarding Monitoring')
@@ -474,6 +474,8 @@ class AdminBoardingMonitoringTest extends TestCase
             'email' => 'admin_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
             'role' => 'admin',
+            'contact_number' => '09171234567',
+            'boarding_house_name' => 'Admin Office',
             'onboarding_complete' => true,
         ]);
         $admin->forceFill(['email_verified_at' => now()])->save();
@@ -512,6 +514,7 @@ class AdminBoardingMonitoringTest extends TestCase
             'college' => $college,
             'program' => $program,
             'contact_number' => '09181234567',
+            'boarding_house_name' => 'Campus Dorm',
             'onboarding_complete' => true,
         ]);
         $student->forceFill(['email_verified_at' => now()])->save();

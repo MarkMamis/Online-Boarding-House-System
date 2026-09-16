@@ -29,7 +29,11 @@ class FileController extends Controller
         }
 
         $filename = basename($path);
-        $inline = !$request->boolean('download');
+        $isDownload = $request->boolean('download')
+            || $request->query('download') === '1'
+            || $request->query('download') === 'true'
+            || ($request->has('download') && $request->query('download') !== '0');
+        $inline = !$isDownload;
 
         return $this->files->response($path, $filename, $inline);
     }

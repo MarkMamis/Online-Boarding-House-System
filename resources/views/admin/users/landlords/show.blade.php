@@ -880,10 +880,10 @@
                                     <td class="pe-3 text-end">
                                         <div class="d-flex flex-wrap justify-content-end gap-1">
                                             @if(filled($filePath))
-                                                <a href="{{ file_download_url($filePath) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                <button type="button" onclick="openDocumentPreview('{{ file_download_url($filePath) }}', '{{ addslashes($documentLabel) }} - {{ addslashes($user->full_name) }}')" class="btn btn-sm btn-outline-secondary rounded-pill">
                                                     <i class="bi bi-eye me-1"></i>View
-                                                </a>
-                                                <a href="{{ file_download_url($filePath, true) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                                </button>
+                                                <a href="{{ file_download_url($filePath, true) }}" download class="btn btn-sm btn-outline-secondary rounded-pill">
                                                     <i class="bi bi-download me-1"></i>Download
                                                 </a>
                                             @endif
@@ -945,8 +945,8 @@
                                                                     <td><span class="badge {{ $historyDocument->verification_status === 'approved' ? 'text-bg-success' : ($historyDocument->verification_status === 'rejected' ? 'text-bg-danger' : 'text-bg-warning') }} rounded-pill">{{ ucfirst($historyDocument->verification_status) }}</span></td>
                                                                     <td>
                                                                         @if(filled($historyDocument->file_path))
-                                                                            <a href="{{ file_download_url($historyDocument->file_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">View</a>
-                                                                            <a href="{{ file_download_url($historyDocument->file_path, true) }}" class="btn btn-sm btn-outline-secondary rounded-pill">Download</a>
+                                                                            <button type="button" onclick="openDocumentPreview('{{ file_download_url($historyDocument->file_path) }}', '{{ addslashes($documentLabel) }} (History) - {{ addslashes($user->full_name) }}')" class="btn btn-sm btn-outline-secondary rounded-pill">View</button>
+                                                                            <a href="{{ file_download_url($historyDocument->file_path, true) }}" download class="btn btn-sm btn-outline-secondary rounded-pill">Download</a>
                                                                         @endif
                                                                     </td>
                                                                 </tr>
