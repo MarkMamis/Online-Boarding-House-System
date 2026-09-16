@@ -436,6 +436,12 @@ class AuthController extends Controller
             $hasPendingMigrations = true;
         }
 
+        // Self-heal stale route cache on Hostinger shared hosting if missing admin.analytics.index
+        $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
+        if (file_exists($cachedRoutes) && !\Illuminate\Support\Facades\Route::has('admin.analytics.index')) {
+            @unlink($cachedRoutes);
+        }
+
         return view('admin.dashboard', compact(
             'roleCounts', 'totalUsers', 'todayNew', 'last7DaysNew', 'growthPct', 'recentUsers', 'systemStatus', 'totalReports', 'pendingReports',
             'totalOnboardings', 'pendingOnboardings', 'completedOnboardings', 'activeOnboardings', 'totalProperties', 'activeProperties',
@@ -574,8 +580,15 @@ class AuthController extends Controller
 
         try {
             \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
+            if (file_exists($cachedRoutes)) {
+                @unlink($cachedRoutes);
+            }
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
             $output = \Illuminate\Support\Facades\Artisan::output();
-            return back()->with('success', 'Database migrations completed successfully! Output: ' . $output);
+            return back()->with('success', 'Database migrations and cache clearance completed successfully! Output: ' . $output);
         } catch (\Throwable $e) {
             return back()->with('error', 'Migration failed: ' . $e->getMessage());
         }

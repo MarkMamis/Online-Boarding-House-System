@@ -42,6 +42,12 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
+            $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
+            if ($request->is('admin/analytics*') && file_exists($cachedRoutes)) {
+                @unlink($cachedRoutes);
+                return redirect()->to($request->fullUrl());
+            }
+
             if ($request->expectsJson()) {
                 return null;
             }
