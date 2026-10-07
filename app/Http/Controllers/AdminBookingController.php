@@ -129,7 +129,18 @@ class AdminBookingController extends Controller
 
         // Determine active workspace tab
         $requestedTab = strtolower(trim((string) $request->query('tab', '')));
-        if (in_array($requestedTab, ['current', 'history', 'analytics'], true)) {
+        if ($requestedTab === 'analytics') {
+            return redirect()->route('admin.analytics.index', array_filter([
+                'property_id' => $propertyId ?: null,
+                'college' => $college ?: null,
+                'program' => $program ?: null,
+                'period_preset' => $periodPreset ?: null,
+                'date_from' => $dateFrom ?: null,
+                'date_to' => $dateTo ?: null,
+            ]));
+        }
+
+        if (in_array($requestedTab, ['current', 'history'], true)) {
             $activeTab = $requestedTab;
         } else {
             // Auto-detect view mode if tab not explicitly provided

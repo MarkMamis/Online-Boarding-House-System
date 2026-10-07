@@ -261,29 +261,20 @@ class AdminBoardingMonitoringRefinementTest extends TestCase
             'period_preset' => 'all',
         ]));
 
-        $response->assertOk()
-            ->assertViewHas('activeTab', 'analytics')
-            ->assertViewHas('trendSeries')
-            ->assertViewHas('genderDistribution')
-            ->assertSee('Student Boarding Trend')
-            ->assertSee('Students by Boarding House')
-            ->assertSee('Students by College')
-            ->assertSee('Top Academic Programs')
-            ->assertSee('Gender Distribution')
-            ->assertSee('Detailed Breakdown')
-            ->assertSee('Metro Living')
-            ->assertSee('CCS')
-            ->assertSee('chartBoardingTrend')
-            ->assertSee('chartBhDistribution')
-            ->assertSee('chartCollegeDistribution')
-            ->assertSee('chartProgramDistribution')
-            ->assertSee('chartGenderDonut');
+        $response->assertRedirect(route('admin.analytics.index', ['period_preset' => 'all']));
 
-        $genderDist = $response->viewData('genderDistribution');
-        $this->assertEquals(1, $genderDist['female']);
-        $this->assertEquals(0, $genderDist['male']);
+        $followResponse = $this->actingAs($admin)->get(route('admin.analytics.index', ['period_preset' => 'all']));
+        $followResponse->assertOk()
+            ->assertViewHas('trend')
+            ->assertViewHas('demographics')
+            ->assertSee('Admin Reports & Analytics')
+            ->assertSee('Active Boarders');
 
-        $trend = $response->viewData('trendSeries');
+        $demographics = $followResponse->viewData('demographics');
+        $this->assertEquals(1, $demographics['boarder_gender']['female']);
+        $this->assertEquals(0, $demographics['boarder_gender']['male']);
+
+        $trend = $followResponse->viewData('trend');
         $this->assertIsArray($trend['labels']);
         $this->assertNotEmpty($trend['labels']);
     }
