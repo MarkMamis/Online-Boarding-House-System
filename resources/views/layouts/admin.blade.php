@@ -772,37 +772,209 @@
                 bottom: 4.1rem !important;
             }
 
-            .more-list .list-group-item {
-                border: 1px solid var(--admin-border);
-                border-radius: var(--admin-radius-md);
-                margin-bottom: .5rem;
+            /* ── Full-Page Admin Mobile Navigation Screen ── */
+            .admin-mobile-nav-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+                background: var(--admin-bg);
+                z-index: 2000;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                display: flex;
+                flex-direction: column;
+                transform: translateY(100%);
+                opacity: 0;
+                visibility: hidden;
+                transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.28s ease;
+            }
+
+            .admin-mobile-nav-screen.is-open {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+
+            body.admin-mobile-nav-open {
+                overflow: hidden !important;
+                touch-action: none;
+            }
+
+            .admin-mobile-nav-header {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                background: var(--admin-surface);
+                border-bottom: 1px solid var(--admin-border);
+                padding: 0.85rem 1rem;
                 display: flex;
                 align-items: center;
-                gap: .55rem;
-                color: var(--admin-text-secondary);
-                font-weight: 600;
+                justify-content: space-between;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
             }
 
-            .more-list .list-group-item i {
+            .admin-mobile-nav-body {
+                padding: 1rem 1rem 5.5rem 1rem;
+                flex: 1;
+                width: 100%;
+                max-width: 640px;
+                margin: 0 auto;
+            }
+
+            .admin-mobile-user-card {
+                background: var(--admin-surface);
+                border: 1px solid var(--admin-border);
+                border-radius: var(--admin-radius-lg);
+                padding: 0.9rem 1rem;
+                margin-bottom: 1.25rem;
+                box-shadow: var(--admin-shadow-xs);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .admin-mobile-user-avatar {
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                background: var(--admin-primary-soft);
+                border: 1px solid var(--admin-primary-border);
+                color: var(--admin-primary);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+                font-weight: 700;
+                flex-shrink: 0;
+            }
+
+            .mobile-nav-section-title {
+                font-size: 0.72rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
                 color: var(--admin-text-muted);
+                margin: 1.2rem 0 0.45rem 0.25rem;
             }
 
-            #adminMoreSheet {
-                border-top-left-radius: 1rem;
-                border-top-right-radius: 1rem;
-                --bs-offcanvas-height: clamp(245px, 37vh, 380px);
-                height: clamp(245px, 37vh, 380px);
+            .mobile-nav-card {
+                background: var(--admin-surface);
+                border: 1px solid var(--admin-border);
+                border-radius: var(--admin-radius-lg);
+                box-shadow: var(--admin-shadow-xs);
+                overflow: hidden;
+                margin-bottom: 0.6rem;
+            }
+
+            .mobile-nav-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.8rem 1rem;
+                text-decoration: none;
+                color: var(--admin-text);
+                border-bottom: 1px solid var(--admin-border-subtle);
+                transition: all 0.15s ease;
+                position: relative;
+            }
+
+            .mobile-nav-row:last-child {
+                border-bottom: none;
+            }
+
+            .mobile-nav-row:hover,
+            .mobile-nav-row:active {
+                background: var(--admin-surface-hover);
+                color: var(--admin-primary-dark);
+            }
+
+            .mobile-nav-row.active {
+                background: rgba(22, 101, 52, 0.05);
+                color: var(--admin-primary-dark);
+            }
+
+            .mobile-nav-row.active::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
                 bottom: 0;
-                z-index: 1065;
+                width: 4px;
+                background: var(--admin-primary);
+                border-top-right-radius: 4px;
+                border-bottom-right-radius: 4px;
             }
 
-            #adminMoreSheet .offcanvas-body {
-                padding-top: .25rem;
-                overflow-y: auto;
+            .mobile-nav-row-icon {
+                width: 38px;
+                height: 38px;
+                border-radius: 10px;
+                background: var(--admin-surface-subtle);
+                border: 1px solid var(--admin-border-subtle);
+                color: var(--admin-text-secondary);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.1rem;
+                flex-shrink: 0;
+                transition: all 0.15s ease;
             }
 
-            .offcanvas-backdrop.show {
-                z-index: 1060;
+            .mobile-nav-row.active .mobile-nav-row-icon {
+                background: var(--admin-primary-soft);
+                color: var(--admin-primary);
+                border-color: var(--admin-primary-border);
+            }
+
+            .mobile-nav-row-content {
+                flex: 1;
+                min-width: 0;
+                margin-left: 0.8rem;
+            }
+
+            .mobile-nav-row-title {
+                font-size: 0.9rem;
+                font-weight: 700;
+                line-height: 1.25;
+                color: var(--admin-text);
+            }
+
+            .mobile-nav-row.active .mobile-nav-row-title {
+                color: var(--admin-primary-dark);
+            }
+
+            .mobile-nav-row-desc {
+                font-size: 0.74rem;
+                color: var(--admin-text-muted);
+                line-height: 1.2;
+                margin-top: 0.15rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .mobile-nav-row-end {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                flex-shrink: 0;
+            }
+
+            .mobile-nav-row-end .badge {
+                font-size: 0.72rem;
+                font-weight: 700;
+                padding: 0.25rem 0.55rem;
+            }
+
+            .mobile-nav-chevron {
+                font-size: 0.8rem;
+                color: var(--admin-text-faint);
             }
 
             .chatbot-widget,
@@ -1158,35 +1330,44 @@
     </main>
 
     @php
-        $isUsersRoute = is_string($routeName) && str_starts_with($routeName, 'admin.users.');
+        $isUsersIndexRoute = $routeName === 'admin.users.index';
+        $isUsersStudentsRoute = $routeName === 'admin.users.students';
+        $isUsersLandlordsRoute = $routeName === 'admin.users.landlords';
+        $isUsersRoute = $isUsersIndexRoute || $isUsersStudentsRoute || $isUsersLandlordsRoute;
+
         $isPropertiesRoute = is_string($routeName)
             && str_starts_with($routeName, 'admin.properties.')
             && !str_starts_with($routeName, 'admin.properties.pending')
             && !str_starts_with($routeName, 'admin.properties.approve')
             && !str_starts_with($routeName, 'admin.properties.reject')
             && $routeName !== 'admin.property_reviews.index';
-        $isManagementRoute = is_string($routeName)
+        $isBoardedStudentsRoute = in_array($routeName, ['admin.boarded_students.index', 'admin.boarding_monitoring.students', 'admin.bookings.index'], true);
+        $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
+        $isDocMonitoringRoute = $routeName === 'admin.documents.monitoring';
+
+        $isActionCenterRoute = $routeName === 'admin.action_center.index';
+        $isPropertyReviewsRoute = is_string($routeName)
             && (
                 $routeName === 'admin.property_reviews.index'
-                || $routeName === 'admin.approvals.landlords'
-                || $routeName === 'admin.approvals.students'
-                || $routeName === 'admin.documents.verification'
                 || str_starts_with($routeName, 'admin.properties.pending')
-                || str_starts_with($routeName, 'admin.permits.')
                 || str_starts_with($routeName, 'admin.properties.approve')
                 || str_starts_with($routeName, 'admin.properties.reject')
-                || str_starts_with($routeName, 'admin.permits.approve')
-                || str_starts_with($routeName, 'admin.permits.reject')
-                || str_starts_with($routeName, 'admin.student_verifications.')
             );
-        $isPropertyReviewsRoute = is_string($routeName) && ($routeName === 'admin.property_reviews.index' || str_starts_with($routeName, 'admin.properties.pending'));
-        $isLandlordAccreditationRoute = is_string($routeName) && ($routeName === 'admin.approvals.landlords' || str_starts_with($routeName, 'admin.permits.'));
         $isStudentVerificationsRoute = is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'));
+        $isLandlordAccreditationRoute = is_string($routeName) && ($routeName === 'admin.approvals.landlords' || str_starts_with($routeName, 'admin.permits.'));
         $isDocVerificationRoute = $routeName === 'admin.documents.verification';
-        $isDocMonitoringRoute = $routeName === 'admin.documents.monitoring';
-        $isBoardedStudentsRoute = in_array($routeName, ['admin.boarded_students.index', 'admin.boarding_monitoring.students'], true);
-        $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
         $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
+
+        $isManagementRoute = $isActionCenterRoute || $isPropertyReviewsRoute || $isStudentVerificationsRoute || $isLandlordAccreditationRoute || $isDocVerificationRoute || $isReportsRoute;
+
+        $isAnalyticsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.analytics.');
+        $isInstitutionalReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.institutional_reports.');
+        $isInsightsRoute = $isAnalyticsRoute || $isInstitutionalReportsRoute;
+
+        $isNotificationsRoute = $routeName === 'notifications.index';
+        $isSettingsRoute = $routeName === 'admin.settings.edit';
+
+        $isMoreActive = $isUsersRoute || $isOnboardingsRoute || $isDocMonitoringRoute || $isInsightsRoute || $isActionCenterRoute || $isDocVerificationRoute || $isReportsRoute || $isStudentVerificationsRoute || $isLandlordAccreditationRoute || $isNotificationsRoute || $isSettingsRoute;
     @endphp
 
     <nav class="mobile-bottom-nav d-lg-none" aria-label="Admin mobile navigation">
@@ -1203,91 +1384,331 @@
                 <i class="bi bi-house-door"></i>
                 <span>Home</span>
             </a>
-            <a @class(['nav-link', 'active' => $isManagementRoute]) href="{{ route('admin.property_reviews.index') }}">
+            <a @class(['nav-link', 'active' => $isPropertyReviewsRoute]) href="{{ route('admin.property_reviews.index') }}">
                 <i class="bi bi-shield-check"></i>
                 <span>Reviews</span>
             </a>
-            <button type="button" @class(['nav-link', 'active' => $isUsersRoute || $isOnboardingsRoute || $isDocMonitoringRoute || $isReportsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
-                <i class="bi bi-three-dots"></i>
+            <button type="button" id="adminMoreNavBtn" @class(['nav-link', 'active' => $isMoreActive]) onclick="toggleAdminMobileNav()" aria-controls="adminMobileNavScreen" aria-expanded="false">
+                <i class="bi bi-grid"></i>
                 <span>More</span>
             </button>
         </div>
     </nav>
 
-    <div class="offcanvas offcanvas-bottom d-lg-none" tabindex="-1" id="adminMoreSheet" aria-labelledby="adminMoreSheetLabel">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title fw-semibold" id="adminMoreSheetLabel">Admin Navigation</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body">
-            <div class="list-group more-list">
-                <div class="nav-section px-2 py-1 small text-uppercase text-muted fw-bold">Monitoring</div>
-                <a @class(['list-group-item', 'active' => $isPropertiesRoute]) href="{{ route('admin.properties.index') }}">
-                    <i class="bi bi-buildings"></i>
-                    <span>Boarding Houses</span>
-                </a>
-                <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarding_monitoring.students') }}">
-                    <i class="bi bi-door-open"></i>
-                    <span>Active Boarders</span>
-                </a>
-                <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
-                    <i class="bi bi-clipboard-check"></i>
-                    <span>Onboarding Pipeline</span>
-                </a>
-                <a @class(['list-group-item', 'active' => $isDocMonitoringRoute]) href="{{ route('admin.documents.monitoring') }}">
-                    <i class="bi bi-activity"></i>
-                    <span>Compliance Monitor</span>
-                </a>
+    <!-- Dedicated Full-Page Admin Mobile Navigation Screen -->
+    <div id="adminMobileNavScreen" class="admin-mobile-nav-screen d-lg-none" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Admin Navigation Menu">
+        {{-- Sticky Top Header --}}
+        <header class="admin-mobile-nav-header">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="icon-btn" onclick="closeAdminMobileNav()" aria-label="Back / Close Navigation">
+                    <i class="bi bi-arrow-left fs-6"></i>
+                </button>
+                <div>
+                    <div class="fw-bold fs-6 text-dark" style="line-height: 1.2;">Admin Navigation</div>
+                    <div class="text-xs text-muted">MinSU Management &amp; Monitoring</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-light border rounded-pill px-3 py-1 text-secondary fw-semibold" onclick="closeAdminMobileNav()">
+                <i class="bi bi-x me-1"></i>Close
+            </button>
+        </header>
 
-                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Management</div>
-                <a @class(['list-group-item', 'active' => $isPropertyReviewsRoute]) href="{{ route('admin.property_reviews.index') }}">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Property Reviews</span>
-                    @if($pendingPropertyReviewsCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPropertyReviewsCount }}</span>
+        {{-- Scrollable Navigation Content --}}
+        <div class="admin-mobile-nav-body">
+            {{-- User Summary Card --}}
+            <div class="admin-mobile-user-card">
+                <div class="d-flex align-items-center gap-2.5 min-w-0">
+                    @if(!empty(Auth::user()->profile_image_path))
+                        <img src="{{ file_url(Auth::user()->profile_image_path) }}" alt="Profile photo" class="admin-mobile-user-avatar" style="object-fit: cover;">
+                    @else
+                        <div class="admin-mobile-user-avatar">
+                            <i class="bi bi-person-badge"></i>
+                        </div>
                     @endif
-                </a>
-                <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.approvals.students') }}">
-                    <i class="bi bi-person-vcard"></i>
-                    <span>Student Verification</span>
-                    @if($pendingStudentVerificationCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
-                    @endif
-                </a>
-                <a @class(['list-group-item', 'active' => $isLandlordAccreditationRoute]) href="{{ route('admin.approvals.landlords') }}">
-                    <i class="bi bi-check2-circle"></i>
-                    <span>Landlord Accreditation</span>
-                    @if($pendingLandlordAccreditationCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordAccreditationCount }}</span>
-                    @endif
-                </a>
-                <a @class(['list-group-item', 'active' => $isDocVerificationRoute]) href="{{ route('admin.documents.verification') }}">
-                    <i class="bi bi-file-earmark-check"></i>
-                    <span>Document Review Queue</span>
-                    @if($pendingDocumentCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingDocumentCount }}</span>
-                    @endif
-                </a>
+                    <div class="min-w-0">
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;">{{ Auth::user()->full_name }}</div>
+                        <div class="text-xs text-muted text-truncate">{{ Auth::user()->email }}</div>
+                    </div>
+                </div>
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle flex-shrink-0">
+                    Administrator
+                </span>
+            </div>
 
-                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Insights</div>
-                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
-                    <i class="bi bi-graph-up-arrow"></i>
-                    <span>Analytics</span>
+            {{-- 1. Overview Section --}}
+            <div class="mobile-nav-section-title">Overview</div>
+            <div class="mobile-nav-card">
+                <a @class(['mobile-nav-row', 'active' => $routeName === 'admin.dashboard']) href="{{ route('admin.dashboard') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Dashboard</div>
+                        <div class="mobile-nav-row-desc">Real-time statistics &amp; metrics summary</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
                 </a>
-                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.institutional_reports.')]) href="{{ route('admin.institutional_reports.index') }}">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Institutional Reports</span>
+            </div>
+
+            {{-- 2. Monitoring Section --}}
+            <div class="mobile-nav-section-title">Monitoring</div>
+            <div class="mobile-nav-card">
+                <a @class(['mobile-nav-row', 'active' => $isPropertiesRoute]) href="{{ route('admin.properties.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-buildings"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Boarding Houses</div>
+                        <div class="mobile-nav-row-desc">Registered properties &amp; room availability</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
                 </a>
-                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">System</div>
-                <a @class(['list-group-item', 'active' => $isUsersRoute]) href="{{ route('admin.users.index') }}">
-                    <i class="bi bi-people"></i>
-                    <span>User Accounts</span>
+                <a @class(['mobile-nav-row', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarding_monitoring.students') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-door-open"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Active Boarders</div>
+                        <div class="mobile-nav-row-desc">Student occupancy, records &amp; stays</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
                 </a>
-                <form method="POST" action="{{ route('logout') }}">
+                <a @class(['mobile-nav-row', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Onboarding Pipeline</div>
+                        <div class="mobile-nav-row-desc">Step-by-step student onboarding flow</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isDocMonitoringRoute]) href="{{ route('admin.documents.monitoring') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Compliance Monitor</div>
+                        <div class="mobile-nav-row-desc">Permit &amp; certificate expiration lifecycle</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+            </div>
+
+            {{-- 3. Management Section --}}
+            <div class="mobile-nav-section-title">Management</div>
+            <div class="mobile-nav-card">
+                <a @class(['mobile-nav-row', 'active' => $isActionCenterRoute]) href="{{ route('admin.action_center.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Action Center</div>
+                        <div class="mobile-nav-row-desc">High priority operational workflow cockpit</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if(($pendingPropertyReviewsCount + $pendingStudentVerificationCount + $pendingDocumentCount) > 0)
+                            <span class="badge rounded-pill text-bg-warning">{{ $pendingPropertyReviewsCount + $pendingStudentVerificationCount + $pendingDocumentCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isPropertyReviewsRoute]) href="{{ route('admin.property_reviews.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Property Reviews</div>
+                        <div class="mobile-nav-row-desc">Boarding house submissions awaiting review</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if($pendingPropertyReviewsCount > 0)
+                            <span class="badge rounded-pill text-bg-danger">{{ $pendingPropertyReviewsCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.approvals.students') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-person-vcard"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Student Verification</div>
+                        <div class="mobile-nav-row-desc">School ID &amp; enrollment proof validation</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if($pendingStudentVerificationCount > 0)
+                            <span class="badge rounded-pill text-bg-danger">{{ $pendingStudentVerificationCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isLandlordAccreditationRoute]) href="{{ route('admin.approvals.landlords') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Landlord Accreditation</div>
+                        <div class="mobile-nav-row-desc">Business permits &amp; safety certifications</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if($pendingLandlordAccreditationCount > 0)
+                            <span class="badge rounded-pill text-bg-danger">{{ $pendingLandlordAccreditationCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isDocVerificationRoute]) href="{{ route('admin.documents.verification') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-file-earmark-check"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Document Review Queue</div>
+                        <div class="mobile-nav-row-desc">Submitted regulatory document review desk</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if($pendingDocumentCount > 0)
+                            <span class="badge rounded-pill text-bg-danger">{{ $pendingDocumentCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isReportsRoute]) href="{{ route('admin.reports.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-flag"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Incident Reports</div>
+                        <div class="mobile-nav-row-desc">Student safety &amp; maintenance grievances</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+            </div>
+
+            {{-- 4. Insights Section --}}
+            <div class="mobile-nav-section-title">Insights</div>
+            <div class="mobile-nav-card">
+                <a @class(['mobile-nav-row', 'active' => $isAnalyticsRoute]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Analytics</div>
+                        <div class="mobile-nav-row-desc">Institutional KPIs &amp; occupancy analytics</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isInstitutionalReportsRoute]) href="{{ route('admin.institutional_reports.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Institutional Reports</div>
+                        <div class="mobile-nav-row-desc">Exportable CSV &amp; printable reporting presets</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+            </div>
+
+            {{-- 5. System & Accounts Section --}}
+            <div class="mobile-nav-section-title">System &amp; Accounts</div>
+            <div class="mobile-nav-card">
+                <a @class(['mobile-nav-row', 'active' => $isUsersIndexRoute]) href="{{ route('admin.users.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">All User Accounts</div>
+                        <div class="mobile-nav-row-desc">Central user directory &amp; access control</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isUsersStudentsRoute]) href="{{ route('admin.users.students') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-mortarboard"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Student Accounts</div>
+                        <div class="mobile-nav-row-desc">Enrolled student profiles &amp; programs</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isUsersLandlordsRoute]) href="{{ route('admin.users.landlords') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Landlord Accounts</div>
+                        <div class="mobile-nav-row-desc">Property owners &amp; accreditation profiles</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isNotificationsRoute]) href="{{ route('notifications.index') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">Notifications</div>
+                        <div class="mobile-nav-row-desc">System alerts &amp; administrative broadcasts</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        @if($notificationsCount > 0)
+                            <span class="badge rounded-pill text-bg-danger">{{ $notificationsCount }}</span>
+                        @endif
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+                <a @class(['mobile-nav-row', 'active' => $isSettingsRoute]) href="{{ route('admin.settings.edit') }}">
+                    <div class="mobile-nav-row-icon">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <div class="mobile-nav-row-content">
+                        <div class="mobile-nav-row-title">System Settings</div>
+                        <div class="mobile-nav-row-desc">Platform configuration &amp; account settings</div>
+                    </div>
+                    <div class="mobile-nav-row-end">
+                        <i class="bi bi-chevron-right mobile-nav-chevron"></i>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Logout Section --}}
+            <div class="mobile-nav-card mt-3" style="border-color: rgba(220, 38, 38, 0.15);">
+                <form method="POST" action="{{ route('logout') }}" id="mobileNavLogoutForm">
                     @csrf
-                    <button type="submit" class="list-group-item text-danger bg-white">
-                        <i class="bi bi-box-arrow-right text-danger"></i>
-                        <span>Logout</span>
+                    <button type="submit" class="mobile-nav-row w-100 border-0 text-start bg-transparent py-3" onclick="return confirm('Sign out of Admin Portal?');">
+                        <div class="mobile-nav-row-icon" style="background: rgba(220, 38, 38, 0.08); border-color: rgba(220, 38, 38, 0.2); color: #dc2626;">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </div>
+                        <div class="mobile-nav-row-content">
+                            <div class="mobile-nav-row-title text-danger">Sign Out</div>
+                            <div class="mobile-nav-row-desc text-danger opacity-75">End current administrative session</div>
+                        </div>
+                        <div class="mobile-nav-row-end">
+                            <i class="bi bi-chevron-right text-danger opacity-50 mobile-nav-chevron"></i>
+                        </div>
                     </button>
                 </form>
             </div>
@@ -1326,6 +1747,52 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function openAdminMobileNav() {
+            const screen = document.getElementById('adminMobileNavScreen');
+            if (!screen) return;
+            screen.classList.add('is-open');
+            document.body.classList.add('admin-mobile-nav-open');
+            try {
+                history.pushState({ adminMobileNavOpen: true }, '', window.location.href);
+            } catch (e) {
+                // Ignore history push state errors in restricted contexts
+            }
+        }
+
+        function closeAdminMobileNav() {
+            const screen = document.getElementById('adminMobileNavScreen');
+            if (!screen) return;
+            screen.classList.remove('is-open');
+            document.body.classList.remove('admin-mobile-nav-open');
+        }
+
+        function toggleAdminMobileNav() {
+            const screen = document.getElementById('adminMobileNavScreen');
+            if (!screen) return;
+            if (screen.classList.contains('is-open')) {
+                closeAdminMobileNav();
+            } else {
+                openAdminMobileNav();
+            }
+        }
+
+        window.addEventListener('popstate', function (event) {
+            const screen = document.getElementById('adminMobileNavScreen');
+            if (screen && screen.classList.contains('is-open')) {
+                screen.classList.remove('is-open');
+                document.body.classList.remove('admin-mobile-nav-open');
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                const screen = document.getElementById('adminMobileNavScreen');
+                if (screen && screen.classList.contains('is-open')) {
+                    closeAdminMobileNav();
+                }
+            }
+        });
+
         function openDocumentPreview(url, title = 'Document Preview', forcedType = null) {
             if (!url) return;
             const modalEl = document.getElementById('obhsDocumentPreviewModal');
