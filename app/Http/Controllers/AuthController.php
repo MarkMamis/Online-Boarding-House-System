@@ -424,6 +424,57 @@ class AuthController extends Controller
             Log::warning('Dashboard map points error: ' . $e->getMessage());
         }
 
+        // Occupancy & Capacity calculations (canonical sum from rooms table)
+        $totalCapacity = 0;
+        $slotsAvailable = 0;
+        $occupiedBeds = 0;
+        $bedOccupancyRate = 0;
+        $propertyOccupancies = collect();
+
+        try {
+            if (Schema::hasTable('rooms')) {
+                $roomCounts = Room::query()
+                    ->selectRaw("
+                        COALESCE(SUM(capacity), 0) as capacity,
+                        COALESCE(SUM(slots_available), 0) as slots_available
+                    ")
+                    ->first();
+
+                $totalCapacity = (int) ($roomCounts->capacity ?? 0);
+                $slotsAvailable = (int) ($roomCounts->slots_available ?? 0);
+                $occupiedBeds = max(0, $totalCapacity - $slotsAvailable);
+                $bedOccupancyRate = $totalCapacity > 0
+                    ? round(($occupiedBeds / $totalCapacity) * 100, 1)
+                    : 0;
+
+                if (Schema::hasTable('properties')) {
+                    $propertyOccupancies = Property::query()
+                        ->where('approval_status', 'approved')
+                        ->withSum('rooms as total_capacity', 'capacity')
+                        ->withSum('rooms as slots_available', 'slots_available')
+                        ->orderBy('name')
+                        ->limit(8)
+                        ->get()
+                        ->map(function ($prop) {
+                            $cap = (int) ($prop->total_capacity ?? 0);
+                            $avail = (int) ($prop->slots_available ?? 0);
+                            $occ = max(0, $cap - $avail);
+                            $rate = $cap > 0 ? round(($occ / $cap) * 100, 1) : 0;
+                            return [
+                                'id' => $prop->id,
+                                'name' => $prop->name,
+                                'capacity' => $cap,
+                                'available' => $avail,
+                                'occupied' => $occ,
+                                'occupancy_rate' => $rate,
+                            ];
+                        });
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard occupancy aggregation error: ' . $e->getMessage());
+        }
+
         // Check for pending migrations
         $hasPendingMigrations = false;
         try {
@@ -448,6 +499,7 @@ class AuthController extends Controller
             'pendingApprovals', 'totalBookings', 'pendingBookings', 'approvedBookings',
             'pendingPermitApprovals', 'approvedPermitApprovals', 'rejectedPermitApprovals',
             'activeBoardedStudents', 'boardedByBoardingHouse', 'boardedByAcademic', 'genderCounts', 'registeredGenderCounts', 'boarderGenderCounts', 'landlordMapPoints',
+            'totalCapacity', 'slotsAvailable', 'occupiedBeds', 'bedOccupancyRate', 'propertyOccupancies',
             'hasPendingMigrations'
         ));
     }

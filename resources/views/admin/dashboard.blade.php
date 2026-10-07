@@ -9,7 +9,7 @@
             --line: #e2e8f0;
             --card: #ffffff;
             --brand: #166534;
-            --brand-soft: #f0fdf4;
+            --brand-light: rgba(22, 101, 52, 0.08);
             --brand-border: #bbf7d0;
             --amber-soft: #fffbeb;
             --amber-border: #fef3c7;
@@ -21,7 +21,7 @@
         }
 
         .page-greeting {
-            font-size: 1.55rem;
+            font-size: 1.5rem;
             font-weight: 800;
             letter-spacing: -0.025em;
             color: #0f172a;
@@ -52,8 +52,8 @@
         }
 
         .kpi-icon-wrap {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             border-radius: 10px;
             display: inline-flex;
             align-items: center;
@@ -63,7 +63,7 @@
         }
 
         .kpi-val {
-            font-size: 1.75rem;
+            font-size: 1.8rem;
             font-weight: 800;
             line-height: 1.1;
             letter-spacing: -0.02em;
@@ -71,7 +71,7 @@
         }
 
         .kpi-title {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -96,7 +96,7 @@
         }
 
         .dash-card-header {
-            padding: 1rem 1.25rem;
+            padding: 0.9rem 1.25rem;
             border-bottom: 1px solid #f1f5f9;
             background: #ffffff;
             display: flex;
@@ -119,43 +119,71 @@
             flex: 1 1 auto;
         }
 
-        .bh-bar-item {
-            padding: 0.75rem 0.85rem;
-            border-radius: 10px;
+        .chart-container-distribution {
+            position: relative;
+            width: 100%;
+            min-height: 220px;
+            max-height: 320px;
+        }
+
+        .chart-container-trend {
+            position: relative;
+            width: 100%;
+            height: 220px;
+        }
+
+        .chart-container-donut {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+
+        .chart-container-college {
+            position: relative;
+            width: 100%;
+            height: 230px;
+        }
+
+        .occupancy-prop-row {
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
             border: 1px solid #f1f5f9;
-            background: #fafafa;
-            margin-bottom: 0.65rem;
-            transition: background 0.15s ease;
-        }
-
-        .bh-bar-item:hover {
             background: #f8fafc;
-            border-color: #e2e8f0;
+            margin-bottom: 0.5rem;
         }
 
-        .bh-progress-bg {
-            height: 7px;
+        .occupancy-prop-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .occupancy-stacked-bar {
+            height: 8px;
             border-radius: 999px;
             background: #e2e8f0;
+            display: flex;
             overflow: hidden;
-            margin-top: 0.5rem;
+            margin-top: 0.45rem;
         }
 
-        .bh-progress-fill {
+        .stacked-occupied {
+            background: #166534;
             height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #166534, #22c55e);
+        }
+
+        .stacked-available {
+            background: #86efac;
+            height: 100%;
         }
 
         .attention-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.75rem 0.85rem;
+            padding: 0.7rem 0.85rem;
             border-radius: 10px;
             border: 1px solid #f1f5f9;
             background: #ffffff;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.55rem;
             text-decoration: none;
             color: inherit;
             transition: all 0.15s ease;
@@ -172,7 +200,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.65rem 0;
+            padding: 0.6rem 0;
             border-bottom: 1px dashed #f1f5f9;
         }
 
@@ -196,26 +224,19 @@
             flex-shrink: 0;
         }
 
-        .academic-metric-box {
-            padding: 0.75rem;
-            border-radius: 10px;
-            background: #f8fafc;
-            border: 1px solid #f1f5f9;
-            text-align: center;
+        .stat-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
         }
 
         .map-container {
-            height: 320px;
+            height: 280px;
             width: 100%;
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #e2e8f0;
-        }
-
-        .chart-trend-box {
-            position: relative;
-            height: 200px;
-            width: 100%;
         }
 
         .badge-soft-green {
@@ -283,7 +304,7 @@
             </div>
         @endif
 
-        {{-- ROW 1: Greeting & Calm Monitoring Intro --}}
+        {{-- GREETING & CONSOLE HEADER --}}
         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-4">
             <div>
                 @php
@@ -291,25 +312,22 @@
                     $greetingPrefix = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
                 @endphp
                 <h1 class="page-greeting mb-1">{{ $greetingPrefix }}, {{ Auth::user()->full_name ?? 'Administrator' }}</h1>
-                <p class="page-subtext mb-0">Here is the current MinSU boarding-house monitoring and occupancy overview.</p>
+                <p class="page-subtext mb-0">Current MinSU student boarding monitoring, capacity distribution, and system activity.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge badge-soft-green px-3 py-2 rounded-pill small">
-                    <i class="bi bi-shield-check me-1"></i> System Healthy
+                    <i class="bi bi-shield-check me-1"></i> Live Monitoring Console
                 </span>
-                <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-door-open me-1"></i> Boarding Monitor
-                </a>
             </div>
         </div>
 
-        {{-- ROW 2: Primary Summary Cards (Exactly 4 High-Value Monitoring Metrics) --}}
+        {{-- SECTION 1: 4 KPI STATISTICS --}}
         @php
             $totalPendingApprovals = ($pendingApprovals ?? 0) + ($pendingPermitApprovals ?? 0);
             $totalNeedsAttention = $totalPendingApprovals + ($pendingReports ?? 0);
         @endphp
         <div class="row g-3 mb-4">
-            {{-- Card 1: Active Boarded Students --}}
+            {{-- KPI 1: Active Boarders --}}
             <div class="col-12 col-sm-6 col-xl-3">
                 <a href="{{ route('admin.boarding_monitoring.students') }}" class="text-decoration-none">
                     <div class="kpi-card">
@@ -323,13 +341,13 @@
                             </div>
                         </div>
                         <div class="kpi-sub">
-                            <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Currently boarded</span> students
+                            <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Currently verified</span> boarding
                         </div>
                     </div>
                 </a>
             </div>
 
-            {{-- Card 2: Boarding Houses --}}
+            {{-- KPI 2: Boarding Houses --}}
             <div class="col-12 col-sm-6 col-xl-3">
                 <a href="{{ route('admin.properties.index') }}" class="text-decoration-none">
                     <div class="kpi-card">
@@ -343,54 +361,48 @@
                             </div>
                         </div>
                         <div class="kpi-sub">
-                            <span class="text-muted">{{ $activeProperties ?? 0 }} with active rooms</span>
+                            <span class="text-muted">{{ $activeProperties ?? 0 }} active properties with rooms</span>
                         </div>
                     </div>
                 </a>
             </div>
 
-            {{-- Card 3: Pending Approvals --}}
+            {{-- KPI 3: Available Slots / Capacity --}}
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="kpi-card">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="kpi-title">Available Slots</div>
+                            <div class="kpi-val text-success">{{ $slotsAvailable ?? 0 }}</div>
+                        </div>
+                        <div class="kpi-icon-wrap" style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;">
+                            <i class="bi bi-door-open-fill"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-sub">
+                        <span class="text-muted">Total capacity: <strong>{{ $totalCapacity ?? 0 }}</strong> slots ({{ $bedOccupancyRate ?? 0 }}% full)</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- KPI 4: Needs Attention --}}
             <div class="col-12 col-sm-6 col-xl-3">
                 <a href="{{ route('admin.approvals.landlords') }}" class="text-decoration-none">
                     <div class="kpi-card">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="kpi-title">Pending Approvals</div>
-                                <div class="kpi-val {{ $totalPendingApprovals > 0 ? 'text-warning' : 'text-dark' }}">{{ $totalPendingApprovals }}</div>
+                                <div class="kpi-title">Needs Attention</div>
+                                <div class="kpi-val {{ $totalNeedsAttention > 0 ? 'text-warning' : 'text-dark' }}">{{ $totalNeedsAttention }}</div>
                             </div>
                             <div class="kpi-icon-wrap" style="background: #fef3c7; color: #b45309;">
-                                <i class="bi bi-hourglass-split"></i>
+                                <i class="bi bi-exclamation-triangle-fill"></i>
                             </div>
                         </div>
                         <div class="kpi-sub">
-                            @if($totalPendingApprovals > 0)
-                                <span class="text-warning fw-semibold">{{ $totalPendingApprovals }} item(s) awaiting review</span>
+                            @if($totalNeedsAttention > 0)
+                                <span class="text-warning fw-semibold">{{ $totalNeedsAttention }} pending item(s) to resolve</span>
                             @else
-                                <span class="text-success"><i class="bi bi-check2"></i> All reviews completed</span>
-                            @endif
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            {{-- Card 4: Reports / Open Issues --}}
-            <div class="col-12 col-sm-6 col-xl-3">
-                <a href="{{ route('admin.reports.index') }}" class="text-decoration-none">
-                    <div class="kpi-card">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="kpi-title">Open Reports</div>
-                                <div class="kpi-val {{ ($pendingReports ?? 0) > 0 ? 'text-danger' : 'text-dark' }}">{{ $pendingReports ?? 0 }}</div>
-                            </div>
-                            <div class="kpi-icon-wrap" style="background: #fee2e2; color: #b91c1c;">
-                                <i class="bi bi-flag"></i>
-                            </div>
-                        </div>
-                        <div class="kpi-sub">
-                            @if(($pendingReports ?? 0) > 0)
-                                <span class="text-danger fw-semibold">{{ $pendingReports }} unresolved issue(s)</span>
-                            @else
-                                <span class="text-success"><i class="bi bi-check2"></i> No unresolved reports</span>
+                                <span class="text-success"><i class="bi bi-check2"></i> All queues clear</span>
                             @endif
                         </div>
                     </div>
@@ -398,86 +410,296 @@
             </div>
         </div>
 
-        {{-- ROW 3: Primary Monitoring (Student Distribution + Needs Attention) --}}
+        {{-- PRIMARY ANALYTICS ROW: Boarded Student Distribution (Left 65%) & Overall Occupancy (Right 35%) --}}
         <div class="row g-3 mb-4">
-            {{-- Primary Left: Boarded Student Distribution (Dominant Section) --}}
-            <div class="col-12 col-lg-8">
+            {{-- Dominant Graph: Boarded Student Distribution (Horizontal Bar Chart) --}}
+            <div class="col-12 col-xl-8">
                 <div class="dash-card h-100">
                     <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-bar-chart-steps text-success"></i>
-                            Boarded Student Distribution
-                        </h2>
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-bar-chart-steps text-success"></i>
+                                Boarded Student Distribution
+                            </h2>
+                            <div class="text-xs text-muted">Active boarded students per registered boarding house</div>
+                        </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge badge-soft-green rounded-pill px-2.5 py-1 text-xs">
-                                Total: {{ $activeBoardedStudents ?? 0 }} Active
+                                {{ $activeBoardedStudents ?? 0 }} Total Boarders
                             </span>
                             <a href="{{ route('admin.boarding_monitoring.students') }}" class="text-xs text-decoration-none fw-semibold text-success ms-1">
-                                View Full List <i class="bi bi-chevron-right"></i>
+                                Full Roster <i class="bi bi-chevron-right"></i>
                             </a>
                         </div>
                     </div>
-                    <div class="dash-card-body">
-                        @php
-                            $maxStudents = $boardedByBoardingHouse->max('total_students') ?: 1;
-                        @endphp
-
+                    <div class="dash-card-body d-flex flex-column justify-content-center">
                         @if($boardedByBoardingHouse->count() > 0)
-                            <div class="text-xs text-muted mb-3 d-flex justify-content-between align-items-center">
-                                <span>Showing top boarding houses by verified resident count:</span>
-                                <span>{{ $boardedByBoardingHouse->count() }} active propert{{ $boardedByBoardingHouse->count() === 1 ? 'y' : 'ies' }}</span>
+                            <div class="chart-container-distribution" style="height: {{ max(220, min(360, $boardedByBoardingHouse->count() * 42 + 60)) }}px;">
+                                <canvas id="chartBhDistribution"></canvas>
                             </div>
-
-                            @foreach($boardedByBoardingHouse as $bh)
-                                @php
-                                    $pct = round(($bh->total_students / $maxStudents) * 100);
-                                @endphp
-                                <div class="bh-bar-item">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="min-w-0 pe-2">
-                                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.88rem;">{{ $bh->name }}</div>
-                                            <div class="text-muted text-truncate" style="font-size: 0.75rem;">
-                                                <i class="bi bi-geo-alt me-1"></i>{{ $bh->address ?: 'Calapan City' }}
-                                            </div>
-                                        </div>
-                                        <div class="text-end flex-shrink-0">
-                                            <span class="badge badge-soft-green rounded-pill px-2 py-1" style="font-size: 0.78rem;">
-                                                {{ $bh->total_students }} student{{ (int)$bh->total_students === 1 ? '' : 's' }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="bh-progress-bg" title="{{ $bh->total_students }} students">
-                                        <div class="bh-progress-fill" style="width: {{ max(6, $pct) }}%;"></div>
-                                    </div>
-                                </div>
-                            @endforeach
+                            <div class="d-flex align-items-center justify-content-between pt-2 mt-2 border-top text-xs text-muted">
+                                <span><i class="bi bi-info-circle me-1"></i>Sorted by verified resident student population</span>
+                                <span>Top {{ $boardedByBoardingHouse->count() }} properties shown</span>
+                            </div>
                         @else
                             <div class="text-center py-5 text-muted">
-                                <div class="mb-2" style="font-size: 2rem; color: #cbd5e1;">
-                                    <i class="bi bi-house-door"></i>
-                                </div>
-                                <div class="fw-semibold text-dark small">No Active Boarded Students Yet</div>
-                                <p class="text-xs text-muted mb-0">Student distribution will display here as approved boarding records become active.</p>
+                                <i class="bi bi-house-door fs-2 text-secondary"></i>
+                                <div class="fw-semibold text-dark small mt-2">No Active Boarded Students Yet</div>
+                                <p class="text-xs text-muted mb-0">Student distribution bar graph will populate once student check-in records are active.</p>
                             </div>
                         @endif
                     </div>
                 </div>
             </div>
 
-            {{-- Primary Right: Needs Attention Module --}}
-            <div class="col-12 col-lg-4">
+            {{-- Occupancy / Capacity Monitoring (Right 35%) --}}
+            <div class="col-12 col-xl-4">
                 <div class="dash-card h-100">
                     <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-exclamation-circle text-warning"></i>
-                            Needs Attention
-                        </h2>
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-pie-chart text-success"></i>
+                                Occupancy &amp; Capacity
+                            </h2>
+                            <div class="text-xs text-muted">Slots utilized across monitored properties</div>
+                        </div>
+                        <span class="badge text-bg-light border text-xs text-muted">
+                            {{ $bedOccupancyRate ?? 0 }}% Full
+                        </span>
+                    </div>
+                    <div class="dash-card-body d-flex flex-column justify-content-between">
+                        {{-- Overall Progress Meter --}}
+                        @php
+                            $safeTotalCap = (int) ($totalCapacity ?? 0);
+                            $safeOccupied = (int) ($occupiedBeds ?? 0);
+                            $safeSlotsAvail = (int) ($slotsAvailable ?? 0);
+                            $safeBedRate = (float) ($bedOccupancyRate ?? 0);
+                            $occPct = $safeTotalCap > 0 ? min(100, round(($safeOccupied / $safeTotalCap) * 100)) : 0;
+                            $availPct = 100 - $occPct;
+                        @endphp
+                        <div class="p-3 rounded-3 bg-light border mb-3">
+                            <div class="d-flex align-items-center justify-content-between text-xs mb-1">
+                                <span class="fw-bold text-dark">Overall Bed Capacity</span>
+                                <span><strong class="text-success">{{ $safeOccupied }}</strong> occupied / <strong>{{ $safeTotalCap }}</strong> total</span>
+                            </div>
+                            <div class="occupancy-stacked-bar" style="height: 10px;">
+                                <div class="stacked-occupied" style="width: {{ $occPct }}%;" title="{{ $safeOccupied }} occupied"></div>
+                                <div class="stacked-available" style="width: {{ $availPct }}%;" title="{{ $safeSlotsAvail }} available"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between text-xs text-muted mt-2">
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #166534;"></span> Occupied: {{ $safeOccupied }}</span>
+                                <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #86efac;"></span> Available: {{ $safeSlotsAvail }}</span>
+                            </div>
+                        </div>
+
+                        {{-- Per Property Compact Stacked List --}}
+                        <div class="text-xs fw-bold text-dark text-uppercase tracking-wider mb-2">Property Capacity Status</div>
+                        <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 200px;">
+                            @forelse(($propertyOccupancies ?? collect())->take(4) as $pOcc)
+                                @php
+                                    $pCap = (int) ($pOcc['capacity'] ?? 0);
+                                    $pOccVal = (int) ($pOcc['occupied'] ?? 0);
+                                    $pRate = (float) ($pOcc['occupancy_rate'] ?? 0);
+                                    $pOccPct = $pCap > 0 ? min(100, round(($pOccVal / $pCap) * 100)) : 0;
+                                    $pAvailPct = 100 - $pOccPct;
+                                @endphp
+                                <div class="occupancy-prop-row">
+                                    <div class="d-flex align-items-center justify-content-between text-xs">
+                                        <span class="fw-bold text-dark text-truncate pe-2" style="max-width: 60%;">{{ $pOcc['name'] ?? 'Property' }}</span>
+                                        <span class="text-muted" style="font-size: 0.72rem;">{{ $pOccVal }}/{{ $pCap }} slots ({{ $pRate }}%)</span>
+                                    </div>
+                                    <div class="occupancy-stacked-bar">
+                                        <div class="stacked-occupied" style="width: {{ $pOccPct }}%;"></div>
+                                        <div class="stacked-available" style="width: {{ $pAvailPct }}%;"></div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-center py-3 text-muted text-xs">No property capacity data recorded.</div>
+                            @endforelse
+                        </div>
+
+                        <div class="pt-2 mt-2 border-top text-end">
+                            <a href="{{ route('admin.properties.index') }}" class="text-xs text-decoration-none fw-semibold text-success">
+                                View all properties <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- SECOND ANALYTICS ROW: Boarding Trend (Left 65%) & Student Gender (Right 35%) --}}
+        <div class="row g-3 mb-4">
+            {{-- Boarding Trend (Line Graph) --}}
+            <div class="col-12 col-xl-8">
+                <div class="dash-card h-100">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-graph-up text-success"></i>
+                                Boarding &amp; Registration Trend
+                            </h2>
+                            <div class="text-xs text-muted">Daily account registrations and activity trajectory (Last 30 Days)</div>
+                        </div>
+                        <span class="badge text-bg-light border text-xs text-muted" id="rangeLabel">
+                            Loading 30-day window...
+                        </span>
+                    </div>
+                    <div class="dash-card-body d-flex flex-column justify-content-between">
+                        <div class="chart-container-trend">
+                            <canvas id="chartRegistrations"></canvas>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top text-xs text-muted">
+                            <span>Total Users: <strong class="text-dark">{{ $totalUsers ?? 0 }}</strong></span>
+                            <span>7-Day Growth: <strong class="text-success">{{ $growthPct ?? 0 }}%</strong></span>
+                            <a href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}" class="text-success text-decoration-none fw-semibold">
+                                Full Analytics Engine <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Student Gender Distribution (Donut Chart + Metrics) --}}
+            <div class="col-12 col-xl-4">
+                <div class="dash-card h-100">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-gender-ambiguous text-success"></i>
+                                Student Gender
+                            </h2>
+                            <div class="text-xs text-muted">Demographic breakdown of {{ ($activeBoardedStudents ?? 0) > 0 ? 'active boarders' : 'registered students' }}</div>
+                        </div>
+                        <span class="badge text-bg-light border text-xs text-muted">
+                            Total: {{ array_sum($genderCounts ?? []) }}
+                        </span>
+                    </div>
+                    <div class="dash-card-body d-flex flex-column justify-content-between">
+                        <div class="chart-container-donut">
+                            <canvas id="chartGenderDonut"></canvas>
+                        </div>
+                        <div class="row g-2 pt-2 border-top text-center">
+                            <div class="col-4">
+                                <div class="p-1.5 rounded-2 bg-light border">
+                                    <div class="text-muted" style="font-size: 0.7rem;">Male</div>
+                                    <div class="fw-bold text-dark text-xs">{{ $genderCounts['male'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-1.5 rounded-2 bg-light border">
+                                    <div class="text-muted" style="font-size: 0.7rem;">Female</div>
+                                    <div class="fw-bold text-dark text-xs">{{ $genderCounts['female'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-1.5 rounded-2 bg-light border">
+                                    <div class="text-muted" style="font-size: 0.7rem;">Unspecified</div>
+                                    <div class="fw-bold text-dark text-xs">{{ $genderCounts['unspecified'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- THIRD ANALYTICS ROW: Academic Distribution (Left 50%) & Boarding Locations Map (Right 50%) --}}
+        <div class="row g-3 mb-4">
+            {{-- Students by College (Horizontal Bar Chart) --}}
+            <div class="col-12 col-lg-6">
+                <div class="dash-card h-100">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-mortarboard text-success"></i>
+                                Boarded Students by College
+                            </h2>
+                            <div class="text-xs text-muted">Distribution of active students across MinSU colleges</div>
+                        </div>
+                        @php
+                            $academicColleges = collect($boardedByAcademic ?? []);
+                            $academicCollegeCount = $academicColleges->count();
+                        @endphp
+                        <span class="badge text-bg-light border text-xs text-muted">
+                            {{ $academicCollegeCount }} College{{ $academicCollegeCount === 1 ? '' : 's' }}
+                        </span>
+                    </div>
+                    <div class="dash-card-body d-flex flex-column justify-content-between">
+                        @if($academicCollegeCount > 0)
+                            <div class="chart-container-college">
+                                <canvas id="chartCollegeDistribution"></canvas>
+                            </div>
+                        @else
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-mortarboard fs-3 text-secondary"></i>
+                                <div class="fw-semibold text-dark small mt-2">No College Data Available</div>
+                                <div class="text-xs text-muted">College affiliations will display as verified students board.</div>
+                            </div>
+                        @endif
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top text-xs text-muted">
+                            <span>Top College: <strong class="text-dark">{{ $academicColleges->first()?->college_name ?? 'None' }}</strong></span>
+                            <a href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}" class="text-success text-decoration-none fw-semibold">
+                                View Academic Breakdown <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Boarding House Locations (Leaflet Map) --}}
+            <div class="col-12 col-lg-6">
+                <div class="dash-card h-100">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-geo-alt text-success"></i>
+                                Boarding House Locations
+                            </h2>
+                            <div class="text-xs text-muted">Geographical distribution of approved properties</div>
+                        </div>
+                        <span class="badge text-bg-light border text-xs text-muted">
+                            <i class="bi bi-pin-map-fill text-success me-1"></i>{{ ($landlordMapPoints ?? collect())->count() }} Mapped
+                        </span>
+                    </div>
+                    <div class="dash-card-body d-flex flex-column justify-content-between">
+                        @if(($landlordMapPoints ?? collect())->count() > 0)
+                            <div id="adminLandlordMap" class="map-container"></div>
+                            <div class="text-xs text-muted mt-2 d-flex align-items-center justify-content-between">
+                                <span>Approved properties with GPS coordinates.</span>
+                                <span>Click pin to view landlord &amp; address.</span>
+                            </div>
+                        @else
+                            <div class="text-center py-5 text-muted bg-light rounded-3">
+                                <i class="bi bi-map fs-3 text-secondary"></i>
+                                <div class="fw-semibold text-dark small mt-2">No Properties Mapped Yet</div>
+                                <div class="text-xs text-muted">Coordinates will appear once landlords set property map locations.</div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- BOTTOM ROW: Needs Attention (Left 50%) & Recent Activity (Right 50%) --}}
+        <div class="row g-3">
+            {{-- Needs Attention Summary --}}
+            <div class="col-12 col-lg-6">
+                <div class="dash-card h-100">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-exclamation-circle text-warning"></i>
+                                Needs Attention
+                            </h2>
+                            <div class="text-xs text-muted">Pending administrative approvals and open reports</div>
+                        </div>
                         @if($totalNeedsAttention > 0)
-                            <span class="badge badge-soft-amber rounded-pill px-2 py-1 text-xs">
-                                {{ $totalNeedsAttention }} Pending
+                            <span class="badge badge-soft-amber rounded-pill px-2.5 py-1 text-xs">
+                                {{ $totalNeedsAttention }} Items Pending
                             </span>
                         @else
-                            <span class="badge badge-soft-green rounded-pill px-2 py-1 text-xs">
+                            <span class="badge badge-soft-green rounded-pill px-2.5 py-1 text-xs">
                                 All Clear
                             </span>
                         @endif
@@ -489,7 +711,7 @@
                                     <i class="bi bi-check2-all fs-4"></i>
                                 </div>
                                 <div class="fw-bold text-dark small">Everything Looks Good</div>
-                                <div class="text-muted text-xs mt-1">No pending approvals or open reports requiring immediate administrative review.</div>
+                                <div class="text-muted text-xs mt-1">No pending property approvals, permit reviews, or open complaints.</div>
                             </div>
                         @else
                             <div class="text-xs text-muted mb-2">Items requiring administrative action:</div>
@@ -504,7 +726,7 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-dark text-xs">Landlord Properties</div>
-                                        <div class="text-muted" style="font-size: 0.72rem;">Pending listing reviews</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Pending property listing reviews</div>
                                     </div>
                                 </div>
                                 <div>
@@ -523,8 +745,8 @@
                                         <i class="bi bi-file-earmark-check"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold text-dark text-xs">Permit Verifications</div>
-                                        <div class="text-muted" style="font-size: 0.72rem;">Business permit documents</div>
+                                        <div class="fw-semibold text-dark text-xs">Business Permits</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Landlord compliance verifications</div>
                                     </div>
                                 </div>
                                 <div>
@@ -544,7 +766,7 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-dark text-xs">Student ID Approvals</div>
-                                        <div class="text-muted" style="font-size: 0.72rem;">Enrollment proof reviews</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">Enrollment identity proof reviews</div>
                                     </div>
                                 </div>
                                 <div>
@@ -575,48 +797,18 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- ROW 4: Secondary Monitoring (Map Locations & Recent Activity) --}}
-        <div class="row g-3 mb-4">
-            {{-- Left: Boarding House Locations Map --}}
-            <div class="col-12 col-lg-7">
+            {{-- Recent Activity Feed --}}
+            <div class="col-12 col-lg-6">
                 <div class="dash-card h-100">
                     <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-geo-alt text-success"></i>
-                            Boarding House Locations
-                        </h2>
-                        <span class="badge text-bg-light border text-xs text-muted">
-                            <i class="bi bi-pin-map-fill text-success me-1"></i>{{ ($landlordMapPoints ?? collect())->count() }} Mapped
-                        </span>
-                    </div>
-                    <div class="dash-card-body">
-                        @if(($landlordMapPoints ?? collect())->count() > 0)
-                            <div id="adminLandlordMap" class="map-container"></div>
-                            <div class="text-xs text-muted mt-2 d-flex align-items-center justify-content-between">
-                                <span>Approved properties registered with geographical coordinates.</span>
-                                <span>Click pin to view landlord &amp; address.</span>
-                            </div>
-                        @else
-                            <div class="text-center py-5 text-muted bg-light rounded-3">
-                                <i class="bi bi-map fs-3 text-secondary"></i>
-                                <div class="fw-semibold text-dark small mt-2">No Properties Mapped Yet</div>
-                                <div class="text-xs text-muted">Coordinates will appear once landlords set property map locations.</div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            {{-- Right: Recent Activity / Registrations Feed --}}
-            <div class="col-12 col-lg-5">
-                <div class="dash-card h-100">
-                    <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-clock-history text-success"></i>
-                            Recent System Activity
-                        </h2>
+                        <div>
+                            <h2 class="dash-card-title">
+                                <i class="bi bi-clock-history text-success"></i>
+                                Recent Activity
+                            </h2>
+                            <div class="text-xs text-muted">Latest account and onboarding events</div>
+                        </div>
                         <a href="{{ route('admin.users.index') }}" class="text-xs text-decoration-none fw-semibold text-success">
                             All Users <i class="bi bi-chevron-right"></i>
                         </a>
@@ -636,7 +828,7 @@
                                             </span>
                                         </div>
                                         <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.73rem;">
-                                            <span>Registered new account</span>
+                                            <span>Registered account</span>
                                             <span>{{ $u->created_at->diffForHumans(null, true, true) }} ago</span>
                                         </div>
                                     </div>
@@ -651,132 +843,29 @@
                 </div>
             </div>
         </div>
-
-        {{-- ROW 5: Secondary Monitoring (Academic Snapshot & Registrations Trend) --}}
-        <div class="row g-3">
-            {{-- Academic Snapshot --}}
-            <div class="col-12 col-lg-6">
-                <div class="dash-card h-100">
-                    <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-mortarboard text-success"></i>
-                            Academic Snapshot
-                        </h2>
-                        <span class="badge text-bg-light border text-xs text-muted">
-                            Active Boarders
-                        </span>
-                    </div>
-                    <div class="dash-card-body">
-                        @php
-                            $academicColleges = collect($boardedByAcademic ?? []);
-                            $academicCollegeCount = $academicColleges->count();
-                            $programTotals = [];
-
-                            foreach ($academicColleges as $college) {
-                                foreach ((array) ($college->programs ?? []) as $program) {
-                                    $pName = trim((string) ($program['name'] ?? 'Not specified'));
-                                    if ($pName === '') $pName = 'Not specified';
-                                    $programTotals[$pName] = ($programTotals[$pName] ?? 0) + (int) ($program['total_students'] ?? 0);
-                                }
-                            }
-                            arsort($programTotals);
-                            $academicProgramCount = count($programTotals);
-                            $topCollegeObj = $academicColleges->sortByDesc(fn ($c) => (int) ($c->total_students ?? 0))->first();
-                            $topCollegeName = $topCollegeObj ? ($topCollegeObj->college_name ?? 'Not specified') : 'None';
-                            $topProgramName = array_key_first($programTotals) ?: 'None';
-                        @endphp
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <div class="academic-metric-box">
-                                    <div class="text-xs text-muted text-uppercase fw-semibold">Colleges Represented</div>
-                                    <div class="fw-bold text-dark fs-5 mt-1">{{ $academicCollegeCount }}</div>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="academic-metric-box">
-                                    <div class="text-xs text-muted text-uppercase fw-semibold">Academic Programs</div>
-                                    <div class="fw-bold text-dark fs-5 mt-1">{{ $academicProgramCount }}</div>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="p-2 rounded-2 bg-light border text-xs">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted fw-semibold">Top College:</span>
-                                        <span class="text-dark fw-bold text-truncate text-end ms-2" style="max-width: 70%;">{{ $topCollegeName }}</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="text-muted fw-semibold">Top Program:</span>
-                                        <span class="text-dark fw-bold text-truncate text-end ms-2" style="max-width: 70%;">{{ $topProgramName }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Gender Distribution Pills --}}
-                        <div class="text-xs text-muted fw-semibold mb-2">Gender Distribution (Active Boarders)</div>
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <div class="academic-metric-box py-1.5">
-                                    <div class="text-xs text-muted">Male</div>
-                                    <div class="fw-bold text-dark text-sm">{{ $genderCounts['male'] ?? 0 }}</div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="academic-metric-box py-1.5">
-                                    <div class="text-xs text-muted">Female</div>
-                                    <div class="fw-bold text-dark text-sm">{{ $genderCounts['female'] ?? 0 }}</div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="academic-metric-box py-1.5">
-                                    <div class="text-xs text-muted">Unspecified</div>
-                                    <div class="fw-bold text-dark text-sm">{{ $genderCounts['unspecified'] ?? 0 }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Compact 30-Day Registrations Trend --}}
-            <div class="col-12 col-lg-6">
-                <div class="dash-card h-100">
-                    <div class="dash-card-header">
-                        <h2 class="dash-card-title">
-                            <i class="bi bi-graph-up text-success"></i>
-                            Registrations Trend (30 Days)
-                        </h2>
-                        <span class="badge text-bg-light border text-xs text-muted" id="rangeLabel">
-                            Loading trend...
-                        </span>
-                    </div>
-                    <div class="dash-card-body d-flex flex-column justify-content-between">
-                        <div class="chart-trend-box">
-                            <canvas id="chartRegistrations"></canvas>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between pt-2 border-top text-xs text-muted">
-                            <span>Total Users: <strong class="text-dark">{{ $totalUsers ?? 0 }}</strong></span>
-                            <span>7-Day Growth: <strong class="text-success">{{ $growthPct ?? 0 }}%</strong></span>
-                            <a href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}" class="text-success text-decoration-none fw-semibold">
-                                Full Analytics <i class="bi bi-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
+    {{-- CHART.JS & LEAFLET SCRIPTS --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
         (function () {
+            const bhDistributionData = @json($boardedByBoardingHouse ?? []);
+            const genderData = @json($genderCounts ?? []);
+            const academicCollegeData = @json($boardedByAcademic ?? []);
             const landlordPoints = @json($landlordMapPoints ?? []);
+
             const colors = {
                 brand: '#166534',
-                brandLight: 'rgba(22, 101, 52, 0.12)',
+                brandLight: 'rgba(22, 101, 52, 0.14)',
+                brandHover: '#15803d',
+                mint: '#86efac',
+                amber: '#f59e0b',
+                amberLight: 'rgba(245, 158, 11, 0.14)',
+                blue: '#0ea5e9',
+                blueLight: 'rgba(14, 165, 233, 0.14)',
                 gray: '#64748b',
+                grayLight: '#e2e8f0',
             };
 
             const fmt = (iso) => {
@@ -789,47 +878,191 @@
                 return iso;
             };
 
-            const initLandlordMap = () => {
-                const mapEl = document.getElementById('adminLandlordMap');
-                if (!mapEl || typeof L === 'undefined' || !Array.isArray(landlordPoints) || landlordPoints.length === 0) {
-                    return;
-                }
+            // 1. Primary Graph: Horizontal Bar Chart for Boarded Students per BH
+            const initBhDistributionChart = () => {
+                const ctx = document.getElementById('chartBhDistribution');
+                if (!ctx || !Array.isArray(bhDistributionData) || bhDistributionData.length === 0) return;
 
-                const map = L.map(mapEl, { zoomControl: true, attributionControl: true });
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxNativeZoom: 19,
-                    maxZoom: 22,
-                    attribution: '&copy; OpenStreetMap'
-                }).addTo(map);
+                const labels = bhDistributionData.map(item => item.name);
+                const values = bhDistributionData.map(item => Number(item.total_students || 0));
 
-                const bounds = [];
-                landlordPoints.forEach((point) => {
-                    if (typeof point.latitude !== 'number' || typeof point.longitude !== 'number') return;
-                    const marker = L.marker([point.latitude, point.longitude]).addTo(map);
-                    const popupHtml = `
-                        <div style="font-family: inherit; min-width: 180px; padding: 2px;">
-                            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${point.name || 'Property'}</div>
-                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${point.address || 'Address not set'}</div>
-                            <div style="font-size: 11px; color: #166534; margin-top: 6px; font-weight: 600;">Landlord: ${point.landlord_name || 'N/A'}</div>
-                        </div>
-                    `;
-                    marker.bindPopup(popupHtml);
-                    bounds.push([point.latitude, point.longitude]);
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Active Boarders',
+                            data: values,
+                            backgroundColor: colors.brand,
+                            borderRadius: 6,
+                            borderSkipped: false,
+                            barThickness: Math.min(26, Math.max(16, Math.floor(180 / Math.max(1, labels.length)))),
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#f8fafc',
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const count = context.raw;
+                                        return ` ${count} active student${count === 1 ? '' : 's'}`;
+                                    },
+                                    afterLabel: function(context) {
+                                        const idx = context.dataIndex;
+                                        const item = bhDistributionData[idx];
+                                        return item?.address ? `Location: ${item.address}` : '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { precision: 0, color: colors.gray, font: { size: 11 } },
+                                grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#0f172a',
+                                    font: { size: 12, weight: '600' },
+                                    callback: function(val) {
+                                        const label = this.getLabelForValue(val);
+                                        return label.length > 24 ? label.substr(0, 22) + '…' : label;
+                                    }
+                                },
+                                grid: { display: false }
+                            }
+                        }
+                    }
                 });
-
-                if (bounds.length === 1) {
-                    map.setView(bounds[0], 14);
-                } else if (bounds.length > 1) {
-                    map.fitBounds(bounds, { padding: [20, 20] });
-                } else {
-                    map.setView([13.4115, 121.1803], 13); // Default Calapan City
-                }
             };
 
+            // 2. Gender Distribution Donut Chart
+            const initGenderDonutChart = () => {
+                const ctx = document.getElementById('chartGenderDonut');
+                if (!ctx) return;
+
+                const male = Number(genderData.male || 0);
+                const female = Number(genderData.female || 0);
+                const unspecified = Number(genderData.unspecified || 0);
+                const hasData = (male + female + unspecified) > 0;
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Male', 'Female', 'Unspecified'],
+                        datasets: [{
+                            data: hasData ? [male, female, unspecified] : [1],
+                            backgroundColor: hasData 
+                                ? ['#0284c7', '#ec4899', '#94a3b8'] 
+                                : ['#e2e8f0'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '72%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 12,
+                                    font: { size: 11, weight: '600' },
+                                    color: colors.gray
+                                }
+                            },
+                            tooltip: {
+                                enabled: hasData,
+                                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#f8fafc',
+                                padding: 8,
+                                cornerRadius: 8
+                            }
+                        }
+                    }
+                });
+            };
+
+            // 3. Academic College Distribution (Horizontal Bar Chart)
+            const initCollegeChart = () => {
+                const ctx = document.getElementById('chartCollegeDistribution');
+                if (!ctx || !Array.isArray(academicCollegeData) || academicCollegeData.length === 0) return;
+
+                const labels = academicCollegeData.map(c => c.college_code || c.college_name || 'Not specified');
+                const values = academicCollegeData.map(c => Number(c.total_students || 0));
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Students',
+                            data: values,
+                            backgroundColor: 'rgba(14, 165, 233, 0.85)',
+                            borderRadius: 6,
+                            barThickness: Math.min(24, Math.max(16, Math.floor(160 / Math.max(1, labels.length)))),
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#f8fafc',
+                                padding: 8,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    title: function(items) {
+                                        const idx = items[0].dataIndex;
+                                        return academicCollegeData[idx]?.college_name || items[0].label;
+                                    },
+                                    label: function(context) {
+                                        return ` ${context.raw} resident student${context.raw === 1 ? '' : 's'}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { precision: 0, color: colors.gray, font: { size: 10 } },
+                                grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                            },
+                            y: {
+                                ticks: { color: '#0f172a', font: { size: 11, weight: '600' } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // 4. Boarding & Registration Trend (Line Graph)
             const buildTrendChart = (ctx, labels, data) => {
                 const canvasCtx = ctx.getContext('2d');
                 const gradient = canvasCtx.createLinearGradient(0, 0, 0, 180);
-                gradient.addColorStop(0, 'rgba(22, 101, 52, 0.22)');
+                gradient.addColorStop(0, 'rgba(22, 101, 52, 0.24)');
                 gradient.addColorStop(1, 'rgba(22, 101, 52, 0.00)');
 
                 return new Chart(ctx, {
@@ -844,8 +1077,8 @@
                             fill: true,
                             tension: 0.35,
                             borderWidth: 2,
-                            pointRadius: 2,
-                            pointHoverRadius: 4,
+                            pointRadius: 2.5,
+                            pointHoverRadius: 4.5,
                             pointBackgroundColor: '#ffffff',
                             pointBorderColor: colors.brand,
                             pointBorderWidth: 1.5,
@@ -880,6 +1113,45 @@
                 });
             };
 
+            // 5. Leaflet Property Locations Map
+            const initLandlordMap = () => {
+                const mapEl = document.getElementById('adminLandlordMap');
+                if (!mapEl || typeof L === 'undefined' || !Array.isArray(landlordPoints) || landlordPoints.length === 0) {
+                    return;
+                }
+
+                const map = L.map(mapEl, { zoomControl: true, attributionControl: true });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxNativeZoom: 19,
+                    maxZoom: 22,
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+
+                const bounds = [];
+                landlordPoints.forEach((point) => {
+                    if (typeof point.latitude !== 'number' || typeof point.longitude !== 'number') return;
+                    const marker = L.marker([point.latitude, point.longitude]).addTo(map);
+                    const popupHtml = `
+                        <div style="font-family: inherit; min-width: 180px; padding: 2px;">
+                            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${point.name || 'Property'}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${point.address || 'Address not set'}</div>
+                            <div style="font-size: 11px; color: #166534; margin-top: 6px; font-weight: 600;">Landlord: ${point.landlord_name || 'N/A'}</div>
+                        </div>
+                    `;
+                    marker.bindPopup(popupHtml);
+                    bounds.push([point.latitude, point.longitude]);
+                });
+
+                if (bounds.length === 1) {
+                    map.setView(bounds[0], 14);
+                } else if (bounds.length > 1) {
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                } else {
+                    map.setView([13.4115, 121.1803], 13);
+                }
+            };
+
+            // Async Stats Fetching for 30-Day Trend
             async function initStats() {
                 try {
                     const res = await fetch("{{ route('admin.dashboard.stats') }}?days=30", {
@@ -906,6 +1178,9 @@
             }
 
             document.addEventListener('DOMContentLoaded', () => {
+                initBhDistributionChart();
+                initGenderDonutChart();
+                initCollegeChart();
                 initLandlordMap();
                 initStats();
             });
