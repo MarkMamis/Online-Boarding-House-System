@@ -36,8 +36,8 @@ ADMIN PORTAL
 │   └── Document Review Queue (/admin/documents/verification)
 │
 ├── INSIGHTS
-│   ├── Reports (/admin/reports)
-│   └── Analytics (/admin/analytics)
+│   ├── Analytics (/admin/analytics)
+│   └── Institutional Reports (/admin/institutional-reports)
 │
 └── SYSTEM
     ├── User Accounts (/admin/users)
@@ -139,3 +139,6 @@ All legacy routes remain functional:
 - `/admin/permits` -> Redirects to `/admin/approvals/landlords` (Management)
 - `/admin/student-verifications` -> Redirects to `/admin/approvals/students` (Management)
 - `/admin/boarded-students` -> Redirects to `/admin/boarding-monitoring/students` (Monitoring)
+- `/admin/analytics?report_preset=...` -> Redirects to `/admin/institutional-reports?report_preset=...` (Insights)
+- `/admin/boarding-monitoring/students?tab=analytics` -> Redirects to `/admin/analytics` (Insights)
+- `/admin/analytics/export` -> Streams CSV via `AdminReportingService` with full preset support
