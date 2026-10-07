@@ -3,180 +3,88 @@
 @section('title', 'Property Reviews - Admin Panel')
 
 @section('content')
-<style>
-    .admin-properties-shell {
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-        border: 1px solid rgba(2, 8, 20, .08);
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 26px rgba(2, 8, 20, .06);
-        padding: 1.25rem;
-    }
-
-    .section-muted {
-        color: rgba(2, 8, 20, .58);
-    }
-
-    .admin-metric {
-        border: 1px solid rgba(2, 8, 20, .08);
-        border-radius: 1rem;
-        background: #fff;
-        box-shadow: 0 6px 16px rgba(2, 8, 20, .04);
-        padding: .95rem 1rem;
-        height: 100%;
-    }
-
-    .admin-metric-label {
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        color: rgba(2, 8, 20, .55);
-    }
-
-    .admin-metric-value {
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: #166534;
-    }
-
-    .admin-table-card {
-        border: 1px solid rgba(2, 8, 20, .08);
-        border-radius: 1rem;
-        background: #fff;
-        box-shadow: 0 8px 20px rgba(2, 8, 20, .05);
-        overflow: hidden;
-    }
-
-    .admin-card-header {
-        padding: .85rem 1rem;
-        border-bottom: 1px solid rgba(2, 8, 20, .08);
-        background: #fff;
-    }
-
-    .property-avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(22, 101, 52, .12);
-        color: #166534;
-        border: 1px solid rgba(22, 101, 52, .22);
-        flex-shrink: 0;
-    }
-
-    .table thead th {
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: rgba(2, 8, 20, .62);
-        background: rgba(248, 250, 252, .96);
-        border-bottom: 1px solid rgba(2, 8, 20, .08);
-    }
-
-    .table tbody td {
-        vertical-align: middle;
-    }
-
-    .table-empty {
-        padding: 3rem 1rem;
-        text-align: center;
-        color: rgba(2, 8, 20, .58);
-    }
-
-    .actions-col {
-        min-width: 220px;
-    }
-
-    .action-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 42px);
-        gap: .45rem;
-        justify-content: start;
-    }
-
-    .action-btn {
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        border-radius: .7rem;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-    }
-
-    @media (max-width: 767.98px) {
-        .admin-properties-shell {
-            padding: .95rem;
-        }
-
-        .actions-col {
-            min-width: 220px;
-        }
-    }
-</style>
-
-<div class="admin-properties-shell">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <div class="text-uppercase small section-muted fw-semibold mb-1">
-                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
-                <span class="text-muted">Management</span> /
-                <span>Property Reviews</span>
-            </div>
-            <h1 class="h3 mb-1"><i class="bi bi-shield-check me-2"></i>Property Reviews</h1>
-            <p class="section-muted mb-0">Review boarding house submissions requiring administrative approval.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.properties.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
+<div class="admin-page-shell">
+    <x-admin.page-header
+        title="Property Reviews"
+        subtitle="Review boarding house submissions requiring administrative approval."
+        icon="bi-shield-check"
+        :breadcrumb="[
+            ['label' => 'Admin', 'url' => route('admin.dashboard')],
+            ['label' => 'Management'],
+            ['label' => 'Property Reviews']
+        ]"
+    >
+        <x-slot:actions>
+            <a href="{{ route('admin.properties.index') }}" class="btn btn-sm btn-outline-brand px-3">
                 <i class="bi bi-buildings me-1"></i>Boarding Houses
+            </a>
+        </x-slot:actions>
+    </x-admin.page-header>
+
+    {{-- Metric Strip --}}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <x-admin.metric-card
+                label="Pending Review"
+                :value="number_format($counts['pending'] ?? 0)"
+                variant="{{ ($counts['pending'] ?? 0) > 0 ? 'warning' : 'success' }}"
+                icon="bi-hourglass-split"
+            />
+        </div>
+        <div class="col-6 col-lg-3">
+            <x-admin.metric-card
+                label="Approved"
+                :value="number_format($counts['approved'] ?? 0)"
+                variant="success"
+                icon="bi-check2-circle"
+            />
+        </div>
+        <div class="col-6 col-lg-3">
+            <x-admin.metric-card
+                label="Rejected"
+                :value="number_format($counts['rejected'] ?? 0)"
+                variant="danger"
+                icon="bi-x-octagon"
+            />
+        </div>
+        <div class="col-6 col-lg-3">
+            <x-admin.metric-card
+                label="Total Submissions"
+                :value="number_format($counts['all'] ?? $properties->total())"
+                variant="neutral"
+                icon="bi-collection"
+            />
+        </div>
+    </div>
+
+    {{-- Filter Segmented Tabs --}}
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <div class="d-flex flex-wrap gap-1">
+            <a href="{{ route('admin.property_reviews.index', ['status' => 'pending']) }}" class="filter-chip {{ $statusFilter === 'pending' ? 'active' : '' }}">
+                <i class="bi bi-hourglass-split"></i> Pending Review
+            </a>
+            <a href="{{ route('admin.property_reviews.index', ['status' => 'approved']) }}" class="filter-chip {{ $statusFilter === 'approved' ? 'active' : '' }}">
+                <i class="bi bi-check2-circle"></i> Approved
+            </a>
+            <a href="{{ route('admin.property_reviews.index', ['status' => 'rejected']) }}" class="filter-chip {{ $statusFilter === 'rejected' ? 'active' : '' }}">
+                <i class="bi bi-x-octagon"></i> Rejected
+            </a>
+            <a href="{{ route('admin.property_reviews.index', ['status' => 'all']) }}" class="filter-chip {{ $statusFilter === 'all' ? 'active' : '' }}">
+                <i class="bi bi-list-ul"></i> All
             </a>
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="admin-metric">
-                <div class="admin-metric-label">Pending Review</div>
-                <div class="admin-metric-value {{ ($counts['pending'] ?? 0) > 0 ? 'text-warning' : 'text-success' }}">{{ number_format($counts['pending'] ?? 0) }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="admin-metric">
-                <div class="admin-metric-label">Approved</div>
-                <div class="admin-metric-value">{{ number_format($counts['approved'] ?? 0) }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="admin-metric">
-                <div class="admin-metric-label">Rejected</div>
-                <div class="admin-metric-value text-danger">{{ number_format($counts['rejected'] ?? 0) }}</div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="admin-metric">
-                <div class="admin-metric-label">Total Submissions</div>
-                <div class="admin-metric-value">{{ number_format($counts['all'] ?? $properties->total()) }}</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="{{ route('admin.property_reviews.index', ['status' => 'pending']) }}" class="btn rounded-pill {{ $statusFilter === 'pending' ? 'btn-success' : 'btn-outline-secondary' }}">Pending Review</a>
-        <a href="{{ route('admin.property_reviews.index', ['status' => 'approved']) }}" class="btn rounded-pill {{ $statusFilter === 'approved' ? 'btn-success' : 'btn-outline-secondary' }}">Approved</a>
-        <a href="{{ route('admin.property_reviews.index', ['status' => 'rejected']) }}" class="btn rounded-pill {{ $statusFilter === 'rejected' ? 'btn-success' : 'btn-outline-secondary' }}">Rejected</a>
-        <a href="{{ route('admin.property_reviews.index', ['status' => 'all']) }}" class="btn rounded-pill {{ $statusFilter === 'all' ? 'btn-success' : 'btn-outline-secondary' }}">All</a>
-    </div>
-
     @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
+        <div class="alert alert-success border-0 shadow-sm py-2 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>{{ session('success') }}</span>
+        </div>
     @endif
 
     @if($errors->any())
-        <div class="alert alert-danger border-0 shadow-sm">
-            <ul class="mb-0">
+        <div class="alert alert-danger border-0 shadow-sm py-2 mb-3">
+            <ul class="mb-0 ps-3">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -189,18 +97,21 @@
             'approved' => 'Approved Queue',
             'rejected' => 'Rejected Queue',
             'all' => 'All Property Submissions',
-            default => 'Pending Queue',
+            default => 'Pending Review Queue',
         };
     @endphp
 
     <div class="admin-table-card">
         <div class="admin-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div class="fw-semibold"><i class="bi bi-hourglass-split me-1"></i> {{ $queueTitle }}</div>
-            <span class="badge {{ $statusFilter === 'approved' ? 'text-bg-success' : ($statusFilter === 'rejected' ? 'text-bg-danger' : ($statusFilter === 'all' ? 'text-bg-secondary' : 'text-bg-warning')) }}">{{ $properties->total() }} records</span>
+            <div class="fw-bold d-flex align-items-center gap-2">
+                <i class="bi bi-inbox text-success"></i>
+                <span>{{ $queueTitle }}</span>
+            </div>
+            <span class="badge rounded-pill bg-light text-secondary border">{{ $properties->total() }} records</span>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
+        <div class="admin-table-wrap">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th class="ps-3">Property</th>
@@ -209,16 +120,13 @@
                         <th>Submitted</th>
                         <th>Status</th>
                         <th>Reviewed</th>
-                        <th class="pe-3 actions-col">Actions</th>
+                        <th class="pe-3 text-end" style="min-width: 180px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($properties as $property)
                         @php
                             $status = (string) ($property->approval_status ?? 'pending');
-                            $statusClass = $status === 'approved'
-                                ? 'text-bg-success'
-                                : ($status === 'rejected' ? 'text-bg-danger' : 'text-bg-warning');
                             $reviewedAt = $property->approved_at ?? $property->rejected_at;
                             $reviewedAtValue = !empty($reviewedAt)
                                 ? \Illuminate\Support\Carbon::parse($reviewedAt)
@@ -227,91 +135,91 @@
                         <tr>
                             <td class="ps-3">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="property-avatar">
+                                    <div class="admin-avatar">
                                         <i class="bi bi-building"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold">{{ $property->name }}</div>
-                                        <div class="small section-muted">Submitted for review</div>
+                                        <div class="fw-bold text-dark">{{ $property->name }}</div>
+                                        <div class="small text-muted">Submitted for review</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div>{{ $property->landlord->full_name }}</div>
-                                <div class="small section-muted">{{ $property->landlord->email }}</div>
+                                <div class="fw-semibold text-dark">{{ $property->landlord->full_name }}</div>
+                                <div class="small text-muted">{{ $property->landlord->email }}</div>
                             </td>
                             <td>
-                                <div class="fw-semibold">{{ $property->address }}</div>
+                                <div class="text-secondary small">{{ $property->address }}</div>
                             </td>
                             <td>
                                 <div class="fw-semibold">{{ $property->created_at->format('M d, Y') }}</div>
-                                <div class="small section-muted">{{ $property->created_at->format('h:i A') }}</div>
+                                <div class="small text-muted">{{ $property->created_at->format('h:i A') }}</div>
                             </td>
                             <td>
-                                <span class="badge {{ $statusClass }}">{{ str_replace('_', ' ', $status) }}</span>
+                                <x-admin.status-badge :status="$status" />
                                 @if($status === 'rejected' && !empty($property->rejection_reason))
-                                    <div class="small text-danger mt-1">{{ $property->rejection_reason }}</div>
+                                    <div class="small text-danger mt-1" style="max-width: 200px;">{{ $property->rejection_reason }}</div>
                                 @endif
                             </td>
                             <td>
                                 @if($reviewedAtValue)
                                     <div>{{ $reviewedAtValue->format('M d, Y') }}</div>
-                                    <div class="small section-muted">{{ $reviewedAtValue->format('h:i A') }}</div>
+                                    <div class="small text-muted">{{ $reviewedAtValue->format('h:i A') }}</div>
                                 @else
-                                    <span class="small section-muted">Not reviewed</span>
+                                    <span class="small text-muted">Not reviewed</span>
                                 @endif
                             </td>
-                            <td class="pe-3 actions-col">
-                                <div class="action-grid">
+                            <td class="pe-3 text-end">
+                                <div class="d-inline-flex align-items-center gap-1">
                                     @if($status === 'approved')
-                                        <span class="btn btn-sm btn-success action-btn disabled" aria-disabled="true" title="Already approved">
+                                        <span class="btn btn-sm btn-light border btn-action-icon text-muted disabled" aria-disabled="true" title="Already approved">
                                             <i class="bi bi-check2-circle"></i>
-                                            <span class="visually-hidden">Already approved</span>
                                         </span>
                                     @else
-                                        <button type="button" class="btn btn-sm btn-success action-btn" data-bs-toggle="modal" data-bs-target="#approvePropertyModal{{ $property->id }}" title="Approve Property" aria-label="Approve Property">
+                                        <button type="button" class="btn btn-sm btn-brand btn-action-icon" data-bs-toggle="modal" data-bs-target="#approvePropertyModal{{ $property->id }}" title="Approve Property" aria-label="Approve Property">
                                             <i class="bi bi-check2"></i>
                                         </button>
                                     @endif
 
-                                    <button type="button" class="btn btn-sm btn-outline-danger action-btn" data-bs-toggle="modal" data-bs-target="#rejectPropertyModal{{ $property->id }}" title="Reject Property" aria-label="Reject Property">
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action-icon" data-bs-toggle="modal" data-bs-target="#rejectPropertyModal{{ $property->id }}" title="Reject Property" aria-label="Reject Property">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
 
-                                    <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-sm btn-outline-secondary action-btn" title="View Property Details" aria-label="View Property Details">
+                                    <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-sm btn-light border btn-action-icon text-secondary" title="View Property Details" aria-label="View Property Details">
                                         <i class="bi bi-eye"></i>
                                     </a>
 
-                                    <a href="{{ route('admin.users.landlords.show', $property->landlord) }}" class="btn btn-sm btn-outline-secondary action-btn" title="View Landlord" aria-label="View Landlord">
+                                    <a href="{{ route('admin.users.landlords.show', $property->landlord) }}" class="btn btn-sm btn-light border btn-action-icon text-secondary" title="View Landlord" aria-label="View Landlord">
                                         <i class="bi bi-person"></i>
                                     </a>
                                 </div>
 
+                                {{-- Approve Modal --}}
                                 <div class="modal fade" id="approvePropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="approvePropertyModalLabel{{ $property->id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content rounded-4 border-0 shadow">
                                             <form method="POST" action="{{ route('admin.properties.approve', $property) }}">
                                                 @csrf
                                                 <div class="modal-header border-0 pb-0">
-                                                    <h5 class="modal-title" id="approvePropertyModalLabel{{ $property->id }}">
+                                                    <h5 class="modal-title fw-bold" id="approvePropertyModalLabel{{ $property->id }}">
                                                         <i class="bi bi-check2-circle text-success me-2"></i>Approve Property
                                                     </h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
-                                                <div class="modal-body pt-2">
+                                                <div class="modal-body pt-2 text-start">
                                                     <div class="mb-2 fw-semibold">{{ $property->name }}</div>
-                                                    <div class="small section-muted mb-3">Landlord: {{ $property->landlord->full_name }}</div>
+                                                    <div class="small text-muted mb-3">Landlord: {{ $property->landlord->full_name }}</div>
 
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" value="1" id="approve_property_confirm_{{ $property->id }}" required>
                                                         <label class="form-check-label small" for="approve_property_confirm_{{ $property->id }}">
-                                                            I confirm this property is valid and ready to be published.
+                                                            I confirm this property is valid and ready to be published on OBHS.
                                                         </label>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer border-0 pt-0">
-                                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-success rounded-pill px-3">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-sm btn-brand px-3">
                                                         <i class="bi bi-check2 me-1"></i>Confirm Approval
                                                     </button>
                                                 </div>
@@ -320,36 +228,37 @@
                                     </div>
                                 </div>
 
+                                {{-- Reject Modal --}}
                                 <div class="modal fade" id="rejectPropertyModal{{ $property->id }}" tabindex="-1" aria-labelledby="rejectPropertyModalLabel{{ $property->id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content rounded-4 border-0 shadow">
                                             <form method="POST" action="{{ route('admin.properties.reject', $property) }}">
                                                 @csrf
                                                 <div class="modal-header border-0 pb-0">
-                                                    <h5 class="modal-title" id="rejectPropertyModalLabel{{ $property->id }}">
+                                                    <h5 class="modal-title fw-bold" id="rejectPropertyModalLabel{{ $property->id }}">
                                                         <i class="bi bi-x-octagon text-danger me-2"></i>Reject Property
                                                     </h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
-                                                <div class="modal-body pt-2">
+                                                <div class="modal-body pt-2 text-start">
                                                     <div class="mb-2 fw-semibold">{{ $property->name }}</div>
-                                                    <div class="small section-muted mb-3">Provide a reason to help the landlord correct the listing (optional).</div>
+                                                    <div class="small text-muted mb-3">Provide a reason to help the landlord correct the listing (optional).</div>
 
                                                     <div class="mb-3">
-                                                        <label for="rejection_reason_{{ $property->id }}" class="form-label small">Rejection reason <span class="text-muted">(Optional)</span></label>
+                                                        <label for="rejection_reason_{{ $property->id }}" class="form-label small fw-semibold">Rejection reason <span class="text-muted">(Optional)</span></label>
                                                         <textarea id="rejection_reason_{{ $property->id }}" name="rejection_reason" class="form-control" rows="3" maxlength="500" placeholder="Explain what needs to be corrected."></textarea>
                                                     </div>
 
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" value="1" id="reject_property_confirm_{{ $property->id }}" required>
                                                         <label class="form-check-label small" for="reject_property_confirm_{{ $property->id }}">
-                                                            I confirm this property should be rejected.
+                                                            I confirm this property listing should be rejected.
                                                         </label>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer border-0 pt-0">
-                                                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-danger rounded-pill px-3">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-sm btn-danger px-3">
                                                         <i class="bi bi-x-lg me-1"></i>Confirm Rejection
                                                     </button>
                                                 </div>
@@ -361,9 +270,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="table-empty">
-                                <div class="h6 mb-1"><i class="bi bi-check2-circle me-1"></i>No properties found for this filter.</div>
-                                <div>Try switching filters or wait for new submissions.</div>
+                            <td colspan="7">
+                                <x-admin.empty-state
+                                    icon="bi-shield-check"
+                                    title="No properties found for this queue"
+                                    message="There are no property listings currently matching the selected review status filter."
+                                />
                             </td>
                         </tr>
                     @endforelse
@@ -372,10 +284,11 @@
         </div>
 
         @if($properties->hasPages())
-            <div class="admin-card-header border-top">
+            <div class="admin-card-header border-top d-flex justify-content-center">
                 {{ $properties->links() }}
             </div>
         @endif
     </div>
 </div>
 @endsection
+

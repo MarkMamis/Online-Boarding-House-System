@@ -268,24 +268,24 @@
         }
     </style>
 
-    <div class="container-fluid px-0 admin-page pb-4">
+    <div class="admin-page-shell pb-4">
         {{-- Alerts and Migration Notices --}}
         @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-3 py-2 px-3 small" role="alert">
-                <i class="bi bi-check-circle-fill me-1"></i> {!! session('success') !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem;"></button>
+            <div class="alert alert-success border-0 shadow-sm alert-dismissible fade show mb-3" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {!! session('success') !!}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-3 py-2 px-3 small" role="alert">
-                <i class="bi bi-exclamation-octagon-fill me-1"></i> {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem;"></button>
+            <div class="alert alert-danger border-0 shadow-sm alert-dismissible fade show mb-3" role="alert">
+                <i class="bi bi-exclamation-octagon-fill me-2"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
 
         @if(!empty($hasPendingMigrations))
-            <div class="alert alert-warning d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 p-3 mb-3 rounded-3 border border-warning shadow-sm">
+            <div class="alert alert-warning d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 p-3 mb-4 rounded-3 border border-warning shadow-sm">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning-emphasis d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                         <i class="bi bi-database-fill-exclamation fs-5"></i>
@@ -297,7 +297,7 @@
                 </div>
                 <form method="POST" action="{{ Route::has('admin.system.migrate') ? route('admin.system.migrate') : url('/admin/system/migrate') }}" class="m-0 flex-shrink-0">
                     @csrf
-                    <button type="submit" class="btn btn-sm btn-warning fw-semibold rounded-pill px-3 shadow-sm" onclick="return confirm('Run database migrations now?')">
+                    <button type="submit" class="btn btn-sm btn-warning fw-semibold px-3 shadow-sm" onclick="return confirm('Run database migrations now?')">
                         <i class="bi bi-play-circle-fill me-1"></i> Run Migrations Now
                     </button>
                 </form>
@@ -305,108 +305,75 @@
         @endif
 
         {{-- GREETING & CONSOLE HEADER --}}
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-4">
-            <div>
-                @php
-                    $hour = (int) now()->format('H');
-                    $greetingPrefix = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
-                @endphp
-                <h1 class="page-greeting mb-1">{{ $greetingPrefix }}, {{ Auth::user()->full_name ?? 'Administrator' }}</h1>
-                <p class="page-subtext mb-0">Current MinSU student boarding monitoring, capacity distribution, and system activity.</p>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge badge-soft-green px-3 py-2 rounded-pill small">
-                    <i class="bi bi-shield-check me-1"></i> Live Monitoring Console
-                </span>
-            </div>
-        </div>
-
-        {{-- SECTION 1: 4 KPI STATISTICS --}}
         @php
+            $hour = (int) now()->format('H');
+            $greetingPrefix = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
             $totalPendingApprovals = ($pendingApprovals ?? 0) + ($pendingPermitApprovals ?? 0);
             $totalNeedsAttention = $totalPendingApprovals + ($pendingReports ?? 0);
         @endphp
+        <x-admin.page-header
+            :title="$greetingPrefix . ', ' . (Auth::user()->full_name ?? 'Administrator')"
+            subtitle="Current MinSU student boarding monitoring, capacity distribution, and system activity."
+            icon="bi-speedometer2"
+            :breadcrumbs="[
+                ['label' => 'Overview', 'url' => route('admin.dashboard')],
+                ['label' => 'Dashboard']
+            ]"
+        >
+            <x-slot name="actions">
+                <span class="badge bg-success-subtle text-success border px-3 py-2 fw-semibold">
+                    <i class="bi bi-shield-check me-1"></i> Live Monitoring Console
+                </span>
+            </x-slot>
+        </x-admin.page-header>
+
+        {{-- SECTION 1: 4 KPI STATISTICS --}}
         <div class="row g-3 mb-4">
             {{-- KPI 1: Active Boarders --}}
             <div class="col-12 col-sm-6 col-xl-3">
-                <a href="{{ route('admin.boarding_monitoring.students') }}" class="text-decoration-none">
-                    <div class="kpi-card">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="kpi-title">Active Boarders</div>
-                                <div class="kpi-val">{{ $activeBoardedStudents ?? 0 }}</div>
-                            </div>
-                            <div class="kpi-icon-wrap" style="background: #dcfce7; color: #166534;">
-                                <i class="bi bi-people-fill"></i>
-                            </div>
-                        </div>
-                        <div class="kpi-sub">
-                            <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Currently verified</span> boarding
-                        </div>
-                    </div>
-                </a>
+                <x-admin.metric-card
+                    label="Active Boarders"
+                    :value="$activeBoardedStudents ?? 0"
+                    icon="bi-people-fill"
+                    variant="brand"
+                    subtext="Currently verified boarding"
+                    :url="route('admin.boarding_monitoring.students')"
+                />
             </div>
 
             {{-- KPI 2: Boarding Houses --}}
             <div class="col-12 col-sm-6 col-xl-3">
-                <a href="{{ route('admin.properties.index') }}" class="text-decoration-none">
-                    <div class="kpi-card">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="kpi-title">Boarding Houses</div>
-                                <div class="kpi-val">{{ $totalProperties ?? 0 }}</div>
-                            </div>
-                            <div class="kpi-icon-wrap" style="background: #e0f2fe; color: #0369a1;">
-                                <i class="bi bi-buildings"></i>
-                            </div>
-                        </div>
-                        <div class="kpi-sub">
-                            <span class="text-muted">{{ $activeProperties ?? 0 }} active properties with rooms</span>
-                        </div>
-                    </div>
-                </a>
+                <x-admin.metric-card
+                    label="Boarding Houses"
+                    :value="$totalProperties ?? 0"
+                    icon="bi-buildings"
+                    variant="neutral"
+                    :subtext="($activeProperties ?? 0) . ' active properties with rooms'"
+                    :url="route('admin.properties.index')"
+                />
             </div>
 
             {{-- KPI 3: Available Slots / Capacity --}}
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="kpi-card">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="kpi-title">Available Slots</div>
-                            <div class="kpi-val text-success">{{ $slotsAvailable ?? 0 }}</div>
-                        </div>
-                        <div class="kpi-icon-wrap" style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;">
-                            <i class="bi bi-door-open-fill"></i>
-                        </div>
-                    </div>
-                    <div class="kpi-sub">
-                        <span class="text-muted">Total capacity: <strong>{{ $totalCapacity ?? 0 }}</strong> slots ({{ $bedOccupancyRate ?? 0 }}% full)</span>
-                    </div>
-                </div>
+                <x-admin.metric-card
+                    label="Available Slots"
+                    :value="$slotsAvailable ?? 0"
+                    icon="bi-door-open-fill"
+                    variant="brand"
+                    :subtext="'Total capacity: ' . ($totalCapacity ?? 0) . ' (' . ($bedOccupancyRate ?? 0) . '% full)'"
+                />
             </div>
 
             {{-- KPI 4: Needs Attention --}}
             <div class="col-12 col-sm-6 col-xl-3">
-                <a href="{{ route('admin.approvals.landlords') }}" class="text-decoration-none">
-                    <div class="kpi-card">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="kpi-title">Needs Attention</div>
-                                <div class="kpi-val {{ $totalNeedsAttention > 0 ? 'text-warning' : 'text-dark' }}">{{ $totalNeedsAttention }}</div>
-                            </div>
-                            <div class="kpi-icon-wrap" style="background: #fef3c7; color: #b45309;">
-                                <i class="bi bi-exclamation-triangle-fill"></i>
-                            </div>
-                        </div>
-                        <div class="kpi-sub">
-                            @if($totalNeedsAttention > 0)
-                                <span class="text-warning fw-semibold">{{ $totalNeedsAttention }} pending item(s) to resolve</span>
-                            @else
-                                <span class="text-success"><i class="bi bi-check2"></i> All queues clear</span>
-                            @endif
-                        </div>
-                    </div>
-                </a>
+                <x-admin.metric-card
+                    label="Needs Attention"
+                    :value="$totalNeedsAttention"
+                    icon="bi-exclamation-triangle-fill"
+                    :variant="$totalNeedsAttention > 0 ? 'warning' : 'brand'"
+                    :subtext="$totalNeedsAttention > 0 ? $totalNeedsAttention . ' pending item(s) to resolve' : 'All queues clear'"
+                    :url="route('admin.approvals.landlords')"
+                />
             </div>
         </div>
 

@@ -653,98 +653,98 @@
     }
 </style>
 
-<div class="properties-shell">
+<div class="admin-page-shell">
     {{-- 1. PAGE HEADER --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <div class="properties-breadcrumb">
-                <a href="{{ route('admin.dashboard') }}">Admin</a> / <span class="text-muted">Monitoring</span> / <span>Boarding Houses</span>
-            </div>
-            <h1 class="page-title">Boarding Houses</h1>
-            <p class="page-subtitle">Monitor registered boarding houses, occupancy, capacity and compliance.</p>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
+    <x-admin.page-header
+        title="Boarding Houses"
+        subtitle="Monitor registered boarding houses, occupancy, capacity and compliance."
+        icon="bi-buildings"
+        :breadcrumbs="[
+            ['label' => 'Monitoring', 'url' => route('admin.dashboard')],
+            ['label' => 'Boarding Houses']
+        ]"
+    >
+        <x-slot name="actions">
             @if(($summary['pending_properties'] ?? 0) > 0)
-                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2">
+                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-2">
                     <i class="bi bi-shield-check"></i>
                     <span>Property Reviews</span>
                     <span class="badge rounded-pill bg-danger text-white" id="headerPendingBadge">{{ $summary['pending_properties'] }}</span>
                 </a>
             @else
-                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2">
+                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
                     <i class="bi bi-shield-check"></i>
                     <span>Review Queue</span>
                 </a>
             @endif
-        </div>
-    </div>
+        </x-slot>
+    </x-admin.page-header>
 
     {{-- 2. COMPACT SUMMARY KPI ROW --}}
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <div class="metric-chip">
-                <div class="metric-chip-label">Total Properties</div>
-                <div class="metric-chip-value" id="kpiTotalProperties">{{ number_format($summary['total_properties']) }}</div>
-                <div class="metric-chip-sub">Registered across OBHS</div>
-            </div>
+            <x-admin.metric-card
+                label="Total Properties"
+                :value="number_format($summary['total_properties'])"
+                icon="bi-buildings"
+                variant="neutral"
+                subtext="Registered across OBHS"
+            />
         </div>
 
         <div class="col-6 col-md-3">
-            <div class="metric-chip">
-                <div class="metric-chip-label">Approved</div>
-                <div class="metric-chip-value text-success" id="kpiApprovedProperties">{{ number_format($summary['approved_properties']) }}</div>
-                <div class="metric-chip-sub">Active & compliant listings</div>
-            </div>
+            <x-admin.metric-card
+                label="Approved"
+                :value="number_format($summary['approved_properties'])"
+                icon="bi-check-circle-fill"
+                variant="brand"
+                subtext="Active & compliant listings"
+            />
         </div>
 
         <div class="col-6 col-md-3">
-            <div class="metric-chip {{ ($summary['pending_properties'] ?? 0) > 0 ? 'attention' : '' }}" id="kpiPendingCard">
-                <div class="metric-chip-label">Pending Review</div>
-                <div class="metric-chip-value" id="kpiPendingProperties">{{ number_format($summary['pending_properties']) }}</div>
-                <div class="metric-chip-sub" id="kpiPendingSub">
-                    @if(($summary['pending_properties'] ?? 0) > 0)
-                        <span class="fw-bold text-amber-700">Requires attention</span>
-                    @else
-                        <span>All submissions reviewed</span>
-                    @endif
-                </div>
-            </div>
+            <x-admin.metric-card
+                label="Pending Review"
+                :value="number_format($summary['pending_properties'])"
+                icon="bi-clock-history"
+                :variant="($summary['pending_properties'] ?? 0) > 0 ? 'warning' : 'neutral'"
+                :subtext="($summary['pending_properties'] ?? 0) > 0 ? 'Requires attention' : 'All submissions reviewed'"
+            />
         </div>
 
         <div class="col-6 col-md-3">
-            <div class="metric-chip">
-                <div class="metric-chip-label">Available Capacity</div>
-                <div class="metric-chip-value">{{ number_format($summary['available_rooms']) }} <span class="fs-6 fw-normal text-muted">rooms</span></div>
-                <div class="metric-chip-sub">{{ number_format($summary['available_slots']) }} total slots open</div>
-            </div>
+            <x-admin.metric-card
+                label="Available Capacity"
+                :value="number_format($summary['available_rooms']) . ' rooms'"
+                icon="bi-door-open"
+                variant="neutral"
+                :subtext="number_format($summary['available_slots']) . ' total slots open'"
+            />
         </div>
     </div>
 
     {{-- 2.5 WORKSPACE STATUS NAVIGATION TABS --}}
-    <div class="workspace-status-tabs-wrapper">
-        <div class="workspace-status-tabs" role="tablist" aria-label="Filter properties by approval status">
-            <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'all'])) }}"
-               class="workspace-tab-link {{ $statusFilter === 'all' ? 'active' : '' }}">
-                <span>All Properties</span>
-                <span class="workspace-tab-badge" id="tabCountAll">{{ number_format($summary['total_properties'] ?? 0) }}</span>
-            </a>
-            <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'pending'])) }}"
-               class="workspace-tab-link {{ $statusFilter === 'pending' ? 'active attention' : '' }}">
-                <span>Pending Review</span>
-                <span class="workspace-tab-badge {{ ($summary['pending_properties'] ?? 0) > 0 ? 'attention' : '' }}" id="tabCountPending">{{ number_format($summary['pending_properties'] ?? 0) }}</span>
-            </a>
-            <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'approved'])) }}"
-               class="workspace-tab-link {{ $statusFilter === 'approved' ? 'active' : '' }}">
-                <span>Approved</span>
-                <span class="workspace-tab-badge" id="tabCountApproved">{{ number_format($summary['approved_properties'] ?? 0) }}</span>
-            </a>
-            <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'rejected'])) }}"
-               class="workspace-tab-link {{ $statusFilter === 'rejected' ? 'active' : '' }}">
-                <span>Rejected</span>
-                <span class="workspace-tab-badge" id="tabCountRejected">{{ number_format($summary['rejected_properties'] ?? 0) }}</span>
-            </a>
-        </div>
+    <div class="d-flex flex-wrap gap-1 mb-3">
+        <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'all'])) }}"
+           class="filter-chip {{ $statusFilter === 'all' ? 'active' : '' }}">
+            <span>All Properties</span>
+            <span class="badge bg-light text-dark ms-1" id="tabCountAll">{{ number_format($summary['total_properties'] ?? 0) }}</span>
+        </a>
+        <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'pending'])) }}"
+           class="filter-chip {{ $statusFilter === 'pending' ? 'active' : '' }}">
+            <span>Pending Review</span>
+            <span class="badge {{ ($summary['pending_properties'] ?? 0) > 0 ? 'bg-warning text-dark' : 'bg-light text-dark' }} ms-1" id="tabCountPending">{{ number_format($summary['pending_properties'] ?? 0) }}</span>
+        </a>
+        <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'approved'])) }}"
+           class="filter-chip {{ $statusFilter === 'approved' ? 'active' : '' }}">
+            <span>Approved</span>
+            <span class="badge bg-light text-dark ms-1" id="tabCountApproved">{{ number_format($summary['approved_properties'] ?? 0) }}</span>
+        </a>
+        <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'rejected'])) }}"
+           class="filter-chip {{ $statusFilter === 'rejected' ? 'active' : '' }}">
+            <span>Rejected</span>
+            <span class="badge bg-light text-dark ms-1" id="tabCountRejected">{{ number_format($summary['rejected_properties'] ?? 0) }}</span>
+        </a>
     </div>
 
     {{-- 3. VIEW MODE & FILTER TOOLBAR --}}

@@ -599,35 +599,26 @@
     if ($dateBasis !== 'stay') $activeFilterCount++;
 @endphp
 
-<div class="monitoring-shell">
-    {{-- Top Navigation Breadcrumb --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-        <nav aria-label="breadcrumb">
-            <div class="monitoring-breadcrumb">
-                <a href="{{ route('admin.dashboard') }}">Admin</a>
-                <span class="mx-1 text-muted">/</span>
-                <span class="text-muted">Monitoring</span>
-                <span class="mx-1 text-muted">/</span>
-                <span class="text-dark">Active Boarders</span>
-            </div>
-        </nav>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="View raw transactional bookings">
-                <i class="bi bi-journal-check me-1"></i>All Bookings Table
+<div class="admin-page-shell">
+    {{-- Page Header --}}
+    <x-admin.page-header
+        title="Active Boarders"
+        subtitle="Monitor students currently residing in registered boarding houses, review stay history, and generate institutional reports."
+        icon="bi-people"
+        :breadcrumbs="[
+            ['label' => 'Monitoring', 'url' => route('admin.dashboard')],
+            ['label' => 'Active Boarders']
+        ]"
+    >
+        <x-slot name="actions">
+            <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-secondary" title="View raw transactional bookings">
+                <i class="bi bi-journal-check me-1"></i>All Bookings
             </a>
-        </div>
-    </div>
-
-    {{-- Clean Page Header --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 pb-3 border-bottom">
-        <div>
-            <h1 class="monitoring-title mb-1">Active Boarders</h1>
-            <p class="text-secondary small mb-0">Monitor students currently residing in registered boarding houses, review stay history, and generate institutional reports.</p>
-        </div>
-    </div>
+        </x-slot>
+    </x-admin.page-header>
 
     {{-- Top-Level Workspace Tabs --}}
-    <ul class="nav workspace-tabs" id="monitoringWorkspaceTabs" role="tablist">
+    <ul class="nav admin-tabs mb-4" id="monitoringWorkspaceTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'current']) }}" class="nav-link {{ $isCurrentTab ? 'active' : '' }}" id="tab-current-link">
                 <i class="bi bi-person-check me-1"></i>Current Boarders
