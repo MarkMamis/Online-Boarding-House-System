@@ -58,4 +58,32 @@ class AdminInstitutionalReportingTest extends TestCase
         $response = $this->actingAs($student)->get('/admin/analytics/export');
         $response->assertForbidden();
     }
+
+    public function test_admin_can_preview_and_export_all_six_report_presets(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $presets = [
+            'active_boarders',
+            'property_distribution',
+            'academic_distribution',
+            'occupancy_availability',
+            'compliance_summary',
+            'incident_summary',
+        ];
+
+        foreach ($presets as $preset) {
+            // Preview
+            $responsePreview = $this->actingAs($admin)->get('/admin/analytics?report_preset=' . $preset);
+            $responsePreview->assertOk();
+
+            // Export
+            $responseExport = $this->actingAs($admin)->get('/admin/analytics/export?report_preset=' . $preset);
+            $responseExport->assertOk();
+            $responseExport->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        }
+    }
 }

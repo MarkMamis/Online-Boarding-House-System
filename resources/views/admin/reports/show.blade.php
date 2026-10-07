@@ -62,16 +62,19 @@
                         </div>
 
                         <div class="col-sm-6">
-                            <label class="text-uppercase text-secondary fw-semibold small tracking-wider mb-1">Associated Accommodation</label>
+                            <label class="text-uppercase text-secondary fw-semibold small tracking-wider mb-1">Accommodation Reference</label>
                             @if($activeBooking && $activeBooking->room && $activeBooking->room->property)
                                 <div class="p-2 rounded-2 bg-light border">
-                                    <div class="fw-bold text-dark">{{ $activeBooking->room->property->name }}</div>
-                                    <div class="text-secondary small">Room {{ $activeBooking->room->room_number }}</div>
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="fw-bold text-dark">{{ $activeBooking->room->property->name }}</span>
+                                        <span class="badge bg-success-subtle text-success border">Active Stay</span>
+                                    </div>
+                                    <div class="text-secondary small">Room {{ $activeBooking->room->room_number }} · Check-in: {{ $activeBooking->check_in->format('M d, Y') }}</div>
                                     <div class="text-muted small">Landlord: {{ $activeBooking->room->property->landlord?->full_name ?: 'Landlord' }}</div>
                                 </div>
                             @else
                                 <div class="text-muted small p-2 bg-light rounded-2 border">
-                                    <i class="bi bi-info-circle me-1"></i>General inquiry or no active stay recorded
+                                    <i class="bi bi-info-circle me-1"></i>No active stay at inspection time (General inquiry or past tenant)
                                 </div>
                             @endif
                         </div>

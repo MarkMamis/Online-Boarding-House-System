@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AdminReportingService;
 use App\Services\AnalyticsService;
 use App\Services\BoardingMonitoringService;
 use Illuminate\Http\Request;
@@ -11,7 +12,8 @@ class AdminAnalyticsController extends Controller
 {
     public function __construct(
         protected AnalyticsService $analyticsService,
-        protected BoardingMonitoringService $monitoringService
+        protected BoardingMonitoringService $monitoringService,
+        protected AdminReportingService $reportingService
     ) {
     }
 
@@ -67,6 +69,10 @@ class AdminAnalyticsController extends Controller
         $compliance = $this->analyticsService->getDocumentComplianceBreakdown();
         $filterOptions = $this->monitoringService->getFilterOptions();
 
+        $reportPresets = $this->reportingService->getPresetDefinitions();
+        $selectedPreset = $request->query('report_preset', AdminReportingService::PRESET_OCCUPANCY_AVAILABILITY);
+        $presetData = $this->reportingService->getReportData($selectedPreset, $filters);
+
         return view('admin.analytics.index', compact(
             'kpis',
             'trend',
@@ -79,7 +85,10 @@ class AdminAnalyticsController extends Controller
             'propertyId',
             'college',
             'program',
-            'trendYear'
+            'trendYear',
+            'reportPresets',
+            'selectedPreset',
+            'presetData'
         ));
     }
 
@@ -90,9 +99,17 @@ class AdminAnalyticsController extends Controller
         }
 
         $propertyId = $request->filled('property_id') ? (int) $request->query('property_id') : null;
-        $occupancy = $this->analyticsService->getPropertyOccupancyAnalytics($propertyId);
+        $college = $request->query('college');
+        $selectedPreset = $request->query('report_preset', AdminReportingService::PRESET_OCCUPANCY_AVAILABILITY);
 
-        $filename = 'minsu_obhs_occupancy_report_' . now()->format('Y-m-d_His') . '.csv';
+        $filters = [
+            'property_id' => $propertyId,
+            'college' => $college,
+        ];
+
+        $reportData = $this->reportingService->getReportData($selectedPreset, $filters);
+
+        $filename = 'minsu_obhs_' . $selectedPreset . '_' . now()->format('Y-m-d_His') . '.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -102,43 +119,20 @@ class AdminAnalyticsController extends Controller
             'Expires' => '0',
         ];
 
-        $callback = function () use ($occupancy) {
+        $callback = function () use ($reportData) {
             $handle = fopen('php://output', 'w');
             // Add UTF-8 BOM
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Header row
-            fputcsv($handle, [
-                'Property Name',
-                'Address',
-                'Landlord Name',
-                'Landlord Email',
-                'Total Rooms',
-                'Occupied Rooms',
-                'Available Rooms',
-                'Total Bed Capacity',
-                'Occupied Beds',
-                'Room Occupancy Rate (%)',
-                'Bed Occupancy Rate (%)',
-            ]);
+            fputcsv($handle, $reportData['columns']);
 
-            foreach ($occupancy as $prop) {
-                // Formula injection protection
-                $sanitize = fn ($str) => preg_match('/^[=\+\-\@]/', (string) $str) ? "'" . $str : (string) $str;
+            $sanitize = fn ($str) => preg_match('/^[=\+\-\@]/', (string) $str) ? "'" . $str : (string) $str;
 
-                fputcsv($handle, [
-                    $sanitize($prop->name),
-                    $sanitize($prop->address),
-                    $sanitize($prop->landlord_name),
-                    $sanitize($prop->landlord_email),
-                    $prop->total_rooms,
-                    $prop->occupied_rooms,
-                    $prop->available_rooms,
-                    $prop->total_capacity,
-                    $prop->occupied_beds,
-                    $prop->room_occupancy_rate . '%',
-                    $prop->bed_occupancy_rate . '%',
-                ]);
+            foreach ($reportData['rows'] as $row) {
+                $rowArray = is_array($row) ? $row : (array) $row;
+                $sanitizedRow = array_map($sanitize, array_values($rowArray));
+                fputcsv($handle, $sanitizedRow);
             }
 
             fclose($handle);

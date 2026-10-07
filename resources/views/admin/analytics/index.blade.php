@@ -18,7 +18,7 @@
             <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-door-open me-1"></i>Boarding Monitoring
             </a>
-            <a href="{{ route('admin.analytics.export', ['property_id' => $propertyId]) }}" class="btn btn-sm btn-outline-secondary">
+            <a href="{{ route('admin.analytics.export', ['report_preset' => $selectedPreset, 'property_id' => $propertyId, 'college' => $college]) }}" class="btn btn-sm btn-brand">
                 <i class="bi bi-download me-1"></i>Export CSV
             </a>
             <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary">
@@ -26,6 +26,22 @@
             </button>
         </x-slot>
     </x-admin.page-header>
+
+    {{-- Institutional Report Presets Bar --}}
+    <div class="admin-toolbar mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <span class="small fw-bold text-uppercase text-secondary tracking-wider"><i class="bi bi-journal-bookmark me-1 text-primary"></i>Institutional Report Presets</span>
+            <span class="badge bg-light text-dark border">{{ $presetData['rows']->count() }} Records in Preview</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach($reportPresets as $key => $preset)
+                <a href="{{ route('admin.analytics.index', array_merge(request()->query(), ['report_preset' => $key])) }}"
+                   class="btn btn-sm rounded-pill {{ $selectedPreset === $key ? 'btn-brand px-3' : 'btn-outline-secondary px-3' }}">
+                    <i class="bi {{ $preset['icon'] }} me-1"></i>{{ $preset['title'] }}
+                </a>
+            @endforeach
+        </div>
+    </div>
 
     {{-- Filter Toolbar --}}
     <div class="admin-toolbar mb-4">
@@ -261,68 +277,48 @@
         </div>
     </div>
 
-    {{-- Property & Room Occupancy Analytics Table --}}
+    {{-- Dynamic Preset Data Table --}}
     <div class="admin-table-card mb-4">
-        <div class="admin-card-header d-flex align-items-center justify-content-between">
+        <div class="admin-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
-                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-house-door me-2 text-primary"></i>Boarding House &amp; Room Occupancy Breakdown</h6>
-                <span class="small text-secondary">Detailed room utilization and capacity metrics by property</span>
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi {{ $reportPresets[$selectedPreset]['icon'] ?? 'bi-file-earmark-text' }} me-2 text-primary"></i>
+                    {{ $reportPresets[$selectedPreset]['title'] ?? 'Institutional Report Data' }}
+                </h6>
+                <span class="small text-secondary">{{ $reportPresets[$selectedPreset]['description'] ?? '' }}</span>
             </div>
-            <span class="badge bg-light text-secondary border fw-normal">{{ $occupancy->count() }} Properties</span>
+            <div class="d-flex align-items-center gap-2">
+                @foreach(($presetData['summary'] ?? []) as $sLabel => $sVal)
+                    <span class="badge bg-light text-dark border fw-normal">{{ $sLabel }}: <strong>{{ $sVal }}</strong></span>
+                @endforeach
+                <a href="{{ route('admin.analytics.export', ['report_preset' => $selectedPreset, 'property_id' => $propertyId, 'college' => $college]) }}" class="btn btn-sm btn-outline-brand">
+                    <i class="bi bi-download me-1"></i>Download CSV
+                </a>
+            </div>
         </div>
         <div class="table-responsive">
             <table class="table admin-table mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-4">Property</th>
-                        <th>Landlord</th>
-                        <th class="text-center">Total Rooms</th>
-                        <th class="text-center">Occupied</th>
-                        <th class="text-center">Available</th>
-                        <th class="text-center">Bed Capacity</th>
-                        <th class="text-center" style="min-width: 140px;">Occupancy %</th>
+                        @foreach($presetData['columns'] as $colIndex => $colName)
+                            <th class="{{ $colIndex === 0 ? 'ps-4' : '' }}">{{ $colName }}</th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($occupancy as $prop)
+                    @forelse($presetData['rows'] as $pRow)
                         <tr>
-                            <td class="ps-4">
-                                <div class="fw-semibold text-dark">{{ $prop->name }}</div>
-                                <div class="small text-secondary">{{ $prop->address }}</div>
-                            </td>
-                            <td>
-                                <div class="small fw-semibold text-dark">{{ $prop->landlord_name }}</div>
-                                @if($prop->landlord_email)
-                                    <div class="small text-secondary">{{ $prop->landlord_email }}</div>
-                                @endif
-                            </td>
-                            <td class="text-center fw-semibold">{{ $prop->total_rooms }}</td>
-                            <td class="text-center text-success fw-bold">{{ $prop->occupied_rooms }}</td>
-                            <td class="text-center text-primary fw-semibold">{{ $prop->available_rooms }}</td>
-                            <td class="text-center small">
-                                <span class="fw-bold">{{ $prop->occupied_beds }}</span> / {{ $prop->total_capacity }} beds
-                            </td>
-                            <td class="text-center pe-4">
-                                <div class="d-flex align-items-center gap-2 justify-content-center">
-                                    <div class="progress flex-grow-1" style="height: 6px; border-radius: 999px;">
-                                        <div class="progress-bar {{ $prop->occupancy_rate >= 80 ? 'bg-danger' : ($prop->occupancy_rate >= 50 ? 'bg-success' : 'bg-warning') }}"
-                                             role="progressbar"
-                                             style="width: {{ $prop->occupancy_rate }}%"
-                                             aria-valuenow="{{ $prop->occupancy_rate }}"
-                                             aria-valuemin="0"
-                                             aria-valuemax="100"></div>
-                                    </div>
-                                    <span class="small fw-bold">{{ $prop->occupancy_rate }}%</span>
-                                </div>
-                            </td>
+                            @foreach((is_array($pRow) ? $pRow : (array) $pRow) as $valIndex => $val)
+                                <td class="{{ $loop->first ? 'ps-4 fw-semibold text-dark' : '' }}">{{ $val }}</td>
+                            @endforeach
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">
+                            <td colspan="{{ count($presetData['columns']) }}">
                                 <x-admin.empty-state
-                                    title="No boarding houses found"
-                                    description="No approved boarding houses match the current filter criteria."
-                                    icon="bi-buildings"
+                                    title="No report records found"
+                                    description="No data matches the selected preset and filtering criteria."
+                                    icon="bi-journal-x"
                                 />
                             </td>
                         </tr>
@@ -331,7 +327,6 @@
             </table>
         </div>
     </div>
-
     {{-- Landlord Document Compliance Summary --}}
     <div class="admin-table-card mb-4">
         <div class="admin-card-header d-flex align-items-center justify-content-between">
