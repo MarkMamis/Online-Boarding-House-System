@@ -38,18 +38,31 @@
             </div>
             <div class="notifications-summary-item">
                 <div class="notifications-summary-top">
+                    <span class="notifications-summary-label">Needs Action</span>
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <div class="notifications-summary-value">{{ (int) ($actionCount ?? 0) }}</div>
+            </div>
+            <div class="notifications-summary-item">
+                <div class="notifications-summary-top">
                     <span class="notifications-summary-label">Total</span>
                     <i class="bi bi-collection"></i>
                 </div>
                 <div class="notifications-summary-value">{{ (int) ($notifications->total() ?? $notifications->count()) }}</div>
             </div>
-            <div class="notifications-summary-item">
-                <div class="notifications-summary-top">
-                    <span class="notifications-summary-label">Page Items</span>
-                    <i class="bi bi-list-task"></i>
-                </div>
-                <div class="notifications-summary-value">{{ (int) $notifications->count() }}</div>
-            </div>
+        </div>
+
+        {{-- Filter Tabs --}}
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a href="{{ route('notifications.index', ['tab' => 'all']) }}" class="btn btn-sm rounded-pill {{ ($tab ?? 'all') === 'all' ? 'btn-brand px-3' : 'btn-outline-secondary px-3' }}">
+                All
+            </a>
+            <a href="{{ route('notifications.index', ['tab' => 'unread']) }}" class="btn btn-sm rounded-pill {{ ($tab ?? '') === 'unread' ? 'btn-brand px-3' : 'btn-outline-secondary px-3' }}">
+                Unread ({{ (int) $unreadCount }})
+            </a>
+            <a href="{{ route('notifications.index', ['tab' => 'action']) }}" class="btn btn-sm rounded-pill {{ ($tab ?? '') === 'action' ? 'btn-brand px-3' : 'btn-outline-secondary px-3' }}">
+                Needs Action ({{ (int) ($actionCount ?? 0) }})
+            </a>
         </div>
 
         @if(session('success'))

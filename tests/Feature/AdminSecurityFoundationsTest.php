@@ -161,4 +161,58 @@ class AdminSecurityFoundationsTest extends TestCase
         $this->assertNotNull($freshReport->resolved_at);
         $this->assertFalse($freshReport->response_read);
     }
+
+    public function test_notification_tabs_filter_by_read_status_and_actionable_criteria(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'landlord',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        // Unread with actionable URL
+        DatabaseNotification::create([
+            'id' => (string) Str::uuid(),
+            'type' => 'App\Notifications\SystemNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => [
+                'title' => 'Permit Needs Resubmission',
+                'message' => 'Please upload clear permit',
+                'url' => '/landlord/setup',
+            ],
+            'read_at' => null,
+        ]);
+
+        // Read notification without action
+        DatabaseNotification::create([
+            'id' => (string) Str::uuid(),
+            'type' => 'App\Notifications\SystemNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => [
+                'title' => 'Welcome to OBHS',
+                'message' => 'Your account is ready',
+            ],
+            'read_at' => now(),
+        ]);
+
+        // 1. All tab
+        $responseAll = $this->actingAs($user)->get('/notifications?tab=all');
+        $responseAll->assertOk();
+        $responseAll->assertSee('Permit Needs Resubmission');
+        $responseAll->assertSee('Welcome to OBHS');
+
+        // 2. Unread tab
+        $responseUnread = $this->actingAs($user)->get('/notifications?tab=unread');
+        $responseUnread->assertOk();
+        $responseUnread->assertSee('Permit Needs Resubmission');
+        $responseUnread->assertDontSee('Welcome to OBHS');
+
+        // 3. Action tab
+        $responseAction = $this->actingAs($user)->get('/notifications?tab=action');
+        $responseAction->assertOk();
+        $responseAction->assertSee('Permit Needs Resubmission');
+        $responseAction->assertDontSee('Welcome to OBHS');
+    }
 }

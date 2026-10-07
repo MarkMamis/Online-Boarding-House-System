@@ -19,21 +19,43 @@ class NotificationController extends Controller
 
         $user = Auth::user();
 
+        $tab = strtolower((string) request()->query('tab', 'all'));
+        if (!in_array($tab, ['all', 'unread', 'action'], true)) {
+            $tab = 'all';
+        }
+
         $notifications = collect();
         $unreadCount = 0;
+        $actionCount = 0;
 
         if (Schema::hasTable('notifications')) {
-            $notifications = DatabaseNotification::query()
+            $baseQuery = DatabaseNotification::query()
                 ->where('notifiable_type', get_class($user))
-                ->where('notifiable_id', $user->id)
-                ->orderByDesc('created_at')
-                ->paginate(20);
+                ->where('notifiable_id', $user->id);
 
-            $unreadCount = DatabaseNotification::query()
-                ->where('notifiable_type', get_class($user))
-                ->where('notifiable_id', $user->id)
-                ->whereNull('read_at')
-                ->count();
+            $unreadCount = (clone $baseQuery)->whereNull('read_at')->count();
+
+            // Needs action count: unread or containing actionable meta/url
+            $actionCount = (clone $baseQuery)->where(function ($q) {
+                $q->whereNull('read_at')
+                  ->where(function ($inner) {
+                      $inner->whereNotNull('data->url')
+                            ->orWhereNotNull('data->meta');
+                  });
+            })->count();
+
+            $query = (clone $baseQuery)->orderByDesc('created_at');
+
+            if ($tab === 'unread') {
+                $query->whereNull('read_at');
+            } elseif ($tab === 'action') {
+                $query->where(function ($q) {
+                    $q->whereNotNull('data->url')
+                      ->orWhereNotNull('data->meta');
+                });
+            }
+
+            $notifications = $query->paginate(20)->withQueryString();
         }
 
         $layout = 'layouts.student_dashboard';
@@ -43,7 +65,7 @@ class NotificationController extends Controller
             $layout = 'layouts.landlord';
         }
 
-        return view('notifications.index', compact('notifications', 'unreadCount', 'layout'));
+        return view('notifications.index', compact('notifications', 'unreadCount', 'actionCount', 'tab', 'layout'));
     }
 
     public function markRead(Request $request, string $id): RedirectResponse
