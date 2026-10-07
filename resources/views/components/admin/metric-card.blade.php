@@ -2,32 +2,38 @@
     'label',
     'value',
     'sub' => null,
-    'variant' => 'neutral', // neutral, primary, success, warning, danger, info
+    'subtext' => null,
+    'variant' => 'neutral', // neutral, brand, primary, success, warning, danger, info
     'icon' => null,
     'href' => null,
+    'url' => null,
 ])
 
 @php
-    $valClass = match($variant) {
-        'primary', 'success' => 'text-success',
-        'warning' => 'text-warning',
+    $finalSub = $subtext ?? $sub;
+    $finalHref = $url ?? $href;
+    $normVariant = strtolower(trim((string)$variant));
+
+    $valClass = match($normVariant) {
+        'brand', 'primary', 'success' => 'text-success',
+        'warning' => 'text-warning-emphasis',
         'danger' => 'text-danger',
-        'info' => 'text-info',
+        'info' => 'text-info-emphasis',
         default => 'text-dark'
     };
 
-    $iconBg = match($variant) {
-        'primary', 'success' => 'bg-success-subtle text-success border-success-subtle',
-        'warning' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
-        'danger' => 'bg-danger-subtle text-danger border-danger-subtle',
-        'info' => 'bg-info-subtle text-info-emphasis border-info-subtle',
-        default => 'bg-light text-secondary border-secondary-subtle'
+    $iconBg = match($normVariant) {
+        'brand', 'primary', 'success' => 'bg-success-subtle text-success border border-success-subtle',
+        'warning' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+        'danger' => 'bg-danger-subtle text-danger border border-danger-subtle',
+        'info' => 'bg-info-subtle text-info-emphasis border border-info-subtle',
+        default => 'bg-light text-secondary border border-secondary-subtle'
     };
 @endphp
 
-<div class="admin-metric-card h-100 {{ $href ? 'is-link' : '' }}">
-    @if($href)
-        <a href="{{ $href }}" class="text-decoration-none text-reset d-block h-100">
+<div class="admin-metric-card h-100 {{ $finalHref ? 'is-link' : '' }}">
+    @if($finalHref)
+        <a href="{{ $finalHref }}" class="text-decoration-none text-reset d-block h-100">
     @endif
 
     <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
@@ -41,11 +47,11 @@
 
     <div class="admin-metric-value {{ $valClass }}">{{ $value }}</div>
 
-    @if($sub)
-        <div class="admin-metric-sub">{{ $sub }}</div>
+    @if($finalSub)
+        <div class="admin-metric-sub">{{ $finalSub }}</div>
     @endif
 
-    @if($href)
+    @if($finalHref)
         </a>
     @endif
 </div>

@@ -1,121 +1,116 @@
 @extends('layouts.admin')
 
+@section('title', 'Completed Tenant Onboardings')
+
 @section('content')
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Completed Tenant Onboardings</h5>
-                        <div>
-                            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
-                                <i class="fas fa-home me-1"></i>Dashboard
-                            </a>
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('admin.onboardings.index') }}" class="btn btn-outline-primary btn-sm">All</a>
-                                <a href="{{ route('admin.onboardings.active') }}" class="btn btn-outline-primary btn-sm">Active</a>
-                                <a href="{{ route('admin.onboardings.pending') }}" class="btn btn-outline-primary btn-sm">Pending</a>
-                                <a href="{{ route('admin.onboardings.completed') }}" class="btn btn-outline-primary btn-sm active">Completed</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i>
-                        These students have successfully completed their onboarding process.
-                    </div>
+<div class="admin-page-shell">
+    <x-admin.page-header
+        title="Completed Tenant Onboardings"
+        subtitle="Students who have fully completed document verification, contract signing, and deposit payment."
+        icon="bi-check2-all"
+        :breadcrumbs="[
+            ['label' => 'Monitoring', 'url' => route('admin.dashboard')],
+            ['label' => 'Onboarding Pipeline', 'url' => route('admin.onboardings.index')],
+            ['label' => 'Completed']
+        ]"
+    >
+        <x-slot name="actions">
+            <a href="{{ route('admin.onboardings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i>All Pipeline
+            </a>
+        </x-slot>
+    </x-admin.page-header>
 
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Property</th>
-                                    <th>Landlord</th>
-                                    <th>Room</th>
-                                    <th>Digital ID</th>
-                                    <th>Completed</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($onboardings as $onboarding)
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar avatar-sm rounded-circle me-3">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold">{{ $onboarding->booking->student->full_name }}</div>
-                                                <small class="text-muted">{{ $onboarding->booking->student->student_id }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <div class="fw-bold">{{ $onboarding->booking->room->property->name }}</div>
-                                            <small class="text-muted">{{ $onboarding->booking->room->property->address }}</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar avatar-sm rounded-circle me-3">
-                                                <i class="fas fa-building"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold">{{ $onboarding->booking->room->property->landlord->full_name }}</div>
-                                                <small class="text-muted">{{ $onboarding->booking->room->property->landlord->email }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info">{{ $onboarding->booking->room->room_number }}</span>
-                                        <br>
-                                        <small class="text-muted">₱{{ number_format($onboarding->booking->room->price, 2) }}/month</small>
-                                    </td>
-                                    <td>
-                                        @if($onboarding->digital_id)
-                                            <code class="small">{{ $onboarding->digital_id }}</code>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <small>{{ $onboarding->updated_at->format('M d, Y') }}</small>
-                                        <br>
-                                        <small class="text-muted">{{ $onboarding->updated_at->diffForHumans() }}</small>
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('admin.onboardings.show', $onboarding) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i> View
-                                        </a>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="7" class="text-center py-4">
-                                        <div class="text-muted">
-                                            <i class="fas fa-inbox fa-2x mb-2"></i>
-                                            <p>No completed onboardings yet</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    @if($onboardings->hasPages())
-                    <div class="d-flex justify-content-center mt-4">
-                        {{ $onboardings->links() }}
-                    </div>
-                    @endif
-                </div>
-            </div>
+    <div class="admin-toolbar mb-4">
+        <div class="d-flex flex-wrap gap-1">
+            <a href="{{ route('admin.onboardings.index') }}" class="filter-chip">All</a>
+            <a href="{{ route('admin.onboardings.active') }}" class="filter-chip">Active</a>
+            <a href="{{ route('admin.onboardings.pending') }}" class="filter-chip">Pending</a>
+            <a href="{{ route('admin.onboardings.completed') }}" class="filter-chip active">Completed</a>
         </div>
     </div>
+
+    <div class="admin-table-card">
+        <div class="admin-card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold text-dark"><i class="bi bi-list-ul me-1 text-primary"></i> Completed Onboardings</span>
+            <span class="badge bg-light text-secondary border fw-normal">{{ $onboardings->total() }} records</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table admin-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Student</th>
+                        <th>Property</th>
+                        <th>Landlord</th>
+                        <th>Room</th>
+                        <th>Digital ID</th>
+                        <th>Completed</th>
+                        <th class="pe-3 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($onboardings as $onboarding)
+                        <tr>
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success-subtle text-success fw-bold" style="width: 34px; height: 34px; font-size: 0.82rem;">
+                                        <i class="bi bi-person-check"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ $onboarding->booking->student->full_name }}</div>
+                                        <div class="text-secondary small">{{ $onboarding->booking->student->student_id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ $onboarding->booking->room->property->name }}</div>
+                                <div class="text-secondary small">{{ Str::limit($onboarding->booking->room->property->address, 30) }}</div>
+                            </td>
+                            <td>
+                                <div>{{ $onboarding->booking->room->property->landlord->full_name }}</div>
+                                <div class="text-secondary small">{{ $onboarding->booking->room->property->landlord->email }}</div>
+                            </td>
+                            <td>
+                                <div><span class="badge bg-light text-dark border">{{ $onboarding->booking->room->room_number }}</span></div>
+                                <div class="text-secondary small mt-1">PHP {{ number_format($onboarding->booking->room->price, 2) }}/mo</div>
+                            </td>
+                            <td>
+                                @if($onboarding->digital_id)
+                                    <code class="small">{{ $onboarding->digital_id }}</code>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="small fw-medium text-dark">{{ $onboarding->updated_at->format('M d, Y') }}</div>
+                                <div class="text-secondary small">{{ $onboarding->updated_at->diffForHumans() }}</div>
+                            </td>
+                            <td class="pe-3 text-end">
+                                <a href="{{ route('admin.onboardings.show', $onboarding) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7">
+                                <x-admin.empty-state
+                                    title="No completed onboardings yet"
+                                    description="No student has completed all onboarding stages yet."
+                                    icon="bi-inbox"
+                                />
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if($onboardings->hasPages())
+        <div class="d-flex justify-content-center mt-4">
+            {{ $onboardings->links() }}
+        </div>
+    @endif
 </div>
 @endsection

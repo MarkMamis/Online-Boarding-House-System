@@ -483,7 +483,8 @@
         }
 
         /* ── Unified Status Badges ── */
-        .admin-status-badge {
+        .admin-status-badge,
+        .sbadge {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
@@ -495,20 +496,27 @@
             white-space: nowrap;
             line-height: 1.25;
         }
-        .admin-status-badge .status-icon {
+        .admin-status-badge .status-icon,
+        .sbadge .status-icon {
             font-size: 0.72rem;
         }
-        .status-success {
+        .status-success,
+        .sb-approved,
+        .sb-valid {
             background: var(--admin-success-soft);
             color: var(--admin-primary);
             border: 1px solid var(--admin-success-border);
         }
-        .status-warning {
+        .status-warning,
+        .sb-pending,
+        .sb-soon {
             background: var(--admin-warning-soft);
             color: #92400e;
             border: 1px solid var(--admin-warning-border);
         }
-        .status-danger {
+        .status-danger,
+        .sb-rejected,
+        .sb-expired {
             background: var(--admin-danger-soft);
             color: #991b1b;
             border: 1px solid var(--admin-danger-border);
@@ -518,18 +526,12 @@
             color: #075985;
             border: 1px solid var(--admin-info-border);
         }
-        .status-neutral {
+        .status-neutral,
+        .sb-missing {
             background: #f1f5f9;
             color: var(--admin-text-secondary);
             border: 1px solid #e2e8f0;
         }
-
-        /* Legacy status class bridges */
-        .sbadge { @extend .admin-status-badge; }
-        .sb-approved, .sb-valid { background: var(--admin-success-soft); color: var(--admin-primary); border: 1px solid var(--admin-success-border); }
-        .sb-pending, .sb-soon { background: var(--admin-warning-soft); color: #92400e; border: 1px solid var(--admin-warning-border); }
-        .sb-rejected, .sb-expired { background: var(--admin-danger-soft); color: #991b1b; border: 1px solid var(--admin-danger-border); }
-        .sb-missing { background: #f1f5f9; color: var(--admin-text-secondary); border: 1px solid #e2e8f0; }
 
         /* ── Unified Table System ── */
         .admin-table-card {

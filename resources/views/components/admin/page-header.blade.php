@@ -1,16 +1,21 @@
 @props([
     'breadcrumb' => [],
+    'breadcrumbs' => [],
     'title',
     'subtitle' => null,
     'icon' => null,
 ])
 
+@php
+    $breadcrumbList = !empty($breadcrumbs) ? $breadcrumbs : $breadcrumb;
+@endphp
+
 <div class="admin-page-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div class="admin-page-header-main">
-        @if(!empty($breadcrumb))
+        @if(!empty($breadcrumbList))
             <nav class="admin-breadcrumb mb-1" aria-label="Breadcrumb">
                 <ol class="list-inline mb-0 d-flex flex-wrap align-items-center gap-1">
-                    @foreach($breadcrumb as $index => $crumb)
+                    @foreach($breadcrumbList as $index => $crumb)
                         <li class="list-inline-item d-inline-flex align-items-center gap-1 {{ $loop->last ? 'active text-dark fw-semibold' : 'text-muted' }}">
                             @if(!empty($crumb['url']) && !$loop->last)
                                 <a href="{{ $crumb['url'] }}" class="text-decoration-none text-muted">{{ $crumb['label'] }}</a>
@@ -42,7 +47,7 @@
         <div class="admin-page-actions d-flex flex-wrap align-items-center gap-2">
             {{ $actions }}
         </div>
-    @elseif(!empty($slot) && trim($slot) !== '')
+    @elseif(!empty($slot) && trim((string)$slot) !== '')
         <div class="admin-page-actions d-flex flex-wrap align-items-center gap-2">
             {{ $slot }}
         </div>
