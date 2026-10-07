@@ -76,11 +76,11 @@ class AdminActionCenterController extends Controller
             ->limit(5)
             ->get();
 
-        // 5. Expiring/Expired Compliance Documents
+        // 5. Expiring Compliance Documents (approved active documents within warning threshold)
         $expiringComplianceCount = 0;
         if (Schema::hasTable('landlord_documents')) {
             $expiringComplianceCount = LandlordDocument::current()
-                ->valid()
+                ->where('verification_status', LandlordDocument::STATUS_APPROVED)
                 ->expiringSoon()
                 ->count();
         }

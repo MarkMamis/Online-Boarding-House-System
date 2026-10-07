@@ -93,7 +93,7 @@ class LandlordDocumentController extends Controller
             $newPath = $this->files->upload($request->file('file'), $directory);
             $submittedAt = Carbon::now();
 
-            DB::transaction(function () use ($existing, $data, $newPath, $submittedAt) {
+            DB::transaction(function () use ($user, $existing, $data, $newPath, $submittedAt) {
                 $existing->update([
                     'is_current' => false,
                     'superseded_at' => $submittedAt,
@@ -110,6 +110,8 @@ class LandlordDocumentController extends Controller
                     'submitted_at' => $submittedAt,
                     'is_current' => true,
                 ]);
+
+                $this->syncProfileColumns($user, $existing->document_type, $newPath);
             });
 
             return back()->with('success', 'Your ' . strtolower(LandlordDocument::typeLabel($data['document_type'])) . ' was replaced and submitted for review again. The previous version was retained in document history.');
@@ -118,17 +120,21 @@ class LandlordDocumentController extends Controller
         $directory = $this->documentDirectory($user->id, $data['document_type']);
         $path = $this->files->upload($request->file('file'), $directory);
 
-        LandlordDocument::create([
-            'landlord_id' => $user->id,
-            'document_type' => $data['document_type'],
-            'document_number' => $data['document_number'],
-            'file_path' => $path,
-            'date_issued' => $data['date_issued'],
-            'expiration_date' => $data['expiration_date'],
-            'verification_status' => LandlordDocument::STATUS_PENDING,
-            'submitted_at' => Carbon::now(),
-            'is_current' => true,
-        ]);
+        DB::transaction(function () use ($user, $data, $path) {
+            LandlordDocument::create([
+                'landlord_id' => $user->id,
+                'document_type' => $data['document_type'],
+                'document_number' => $data['document_number'],
+                'file_path' => $path,
+                'date_issued' => $data['date_issued'],
+                'expiration_date' => $data['expiration_date'],
+                'verification_status' => LandlordDocument::STATUS_PENDING,
+                'submitted_at' => Carbon::now(),
+                'is_current' => true,
+            ]);
+
+            $this->syncProfileColumns($user, $data['document_type'], $path);
+        });
 
         return back()->with('success', 'Document submitted for verification.');
     }
@@ -155,7 +161,7 @@ class LandlordDocumentController extends Controller
         $newPath = $this->files->upload($request->file('file'), $directory);
         $submittedAt = Carbon::now();
 
-        DB::transaction(function () use ($document, $data, $newPath, $submittedAt) {
+        DB::transaction(function () use ($user, $document, $data, $newPath, $submittedAt) {
             $document->update([
                 'is_current' => false,
                 'superseded_at' => $submittedAt,
@@ -172,9 +178,34 @@ class LandlordDocumentController extends Controller
                 'submitted_at' => $submittedAt,
                 'is_current' => true,
             ]);
+
+            $this->syncProfileColumns($user, $document->document_type, $newPath);
         });
 
         return back()->with('success', 'Document resubmitted for review. The previous version was retained in document history.');
+    }
+
+    protected function syncProfileColumns(User $user, string $documentType, string $path): void
+    {
+        $user->loadMissing('landlordProfile');
+        $profile = $user->landlordProfile;
+        if (!$profile) {
+            return;
+        }
+
+        if ($documentType === LandlordDocument::TYPE_BUSINESS_PERMIT) {
+            $profile->update([
+                'business_permit_path' => $path,
+                'business_permit_status' => 'pending',
+                'business_permit_rejection_reason' => null,
+            ]);
+        } elseif ($documentType === LandlordDocument::TYPE_SAFETY_CERTIFICATE) {
+            $profile->update([
+                'safety_certificate_path' => $path,
+                'safety_certificate_status' => 'pending',
+                'safety_certificate_rejection_reason' => null,
+            ]);
+        }
     }
 
     protected function validateSubmission(Request $request, bool $requireFile): array

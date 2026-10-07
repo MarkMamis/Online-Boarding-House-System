@@ -75,16 +75,10 @@
         @php
             $profile = $landlord->landlordProfile;
 
-            // Compute document statuses (used on both tabs)
-            $businessStatus = !filled(optional($profile)->business_permit_path)
-                ? 'missing'
-                : (optional($profile)->business_permit_status ?: 'pending');
-
-            $safetyStatus = !filled(optional($profile)->safety_certificate_path)
-                ? 'missing'
-                : ((property_exists($profile ?? new stdClass(), 'safety_certificate_status') && filled(optional($profile)->safety_certificate_status))
-                    ? $profile->safety_certificate_status
-                    : 'pending');
+            // Authoritatively resolve document statuses via centralized service
+            $docStatusService = app(\App\Services\LandlordDocumentStatusService::class);
+            $businessStatus = $docStatusService->resolveDocumentStatus($landlord, \App\Services\LandlordDocumentStatusService::DOC_BUSINESS_PERMIT);
+            $safetyStatus = $docStatusService->resolveDocumentStatus($landlord, \App\Services\LandlordDocumentStatusService::DOC_SAFETY_CERTIFICATE);
 
             $boardingHouseName = $landlord->boarding_house_name
                 ?: optional($profile)->boarding_house_name

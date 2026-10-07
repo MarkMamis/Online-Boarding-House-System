@@ -27,17 +27,56 @@ class LandlordDocumentStatusService
     }
 
     /**
-     * Resolve the status of a specific document for a landlord profile.
-     * Matches the exact logic from Admin > Landlord Approval > Permit Approval.
+     * Resolve the status of a specific document for a landlord profile or user.
+     * Checks the authoritative current LandlordDocument record first, falling back to LandlordProfile columns.
      */
-    public function resolveDocumentStatus(?LandlordProfile $profile, string $documentType): string
+    public function resolveDocumentStatus(User|LandlordProfile|null $subject, string $documentType): string
     {
+        if (!$subject) {
+            return self::STATUS_MISSING;
+        }
+
+        $user = $subject instanceof User ? $subject : $subject->user;
+        $profile = $subject instanceof LandlordProfile ? $subject : $subject->landlordProfile;
+
+        $type = strtolower(trim($documentType));
+        $canonicalType = match ($type) {
+            self::DOC_BUSINESS_PERMIT, 'business', 'permit' => self::DOC_BUSINESS_PERMIT,
+            self::DOC_SAFETY_CERTIFICATE, 'safety', 'certificate' => self::DOC_SAFETY_CERTIFICATE,
+            default => null,
+        };
+
+        if (!$canonicalType) {
+            return self::STATUS_MISSING;
+        }
+
+        // 1. Authoritative check on current LandlordDocument record if available
+        if ($user && Schema::hasTable('landlord_documents')) {
+            $currentDoc = \App\Models\LandlordDocument::query()
+                ->where('landlord_id', $user->id)
+                ->where('document_type', $canonicalType)
+                ->where('is_current', true)
+                ->latest('id')
+                ->first();
+
+            if ($currentDoc) {
+                if (!filled($currentDoc->file_path)) {
+                    return self::STATUS_MISSING;
+                }
+
+                $status = (string) $currentDoc->verification_status;
+                return in_array($status, [self::STATUS_APPROVED, self::STATUS_REJECTED], true)
+                    ? $status
+                    : self::STATUS_PENDING;
+            }
+        }
+
+        // 2. Fallback to LandlordProfile columns
         if (!$profile) {
             return self::STATUS_MISSING;
         }
 
-        $type = strtolower(trim($documentType));
-        if ($type === self::DOC_BUSINESS_PERMIT || $type === 'business' || $type === 'permit') {
+        if ($canonicalType === self::DOC_BUSINESS_PERMIT) {
             if (!filled($profile->business_permit_path)) {
                 return self::STATUS_MISSING;
             }
@@ -48,7 +87,7 @@ class LandlordDocumentStatusService
                 : self::STATUS_PENDING;
         }
 
-        if ($type === self::DOC_SAFETY_CERTIFICATE || $type === 'safety' || $type === 'certificate') {
+        if ($canonicalType === self::DOC_SAFETY_CERTIFICATE) {
             if (!filled($profile->safety_certificate_path)) {
                 return self::STATUS_MISSING;
             }

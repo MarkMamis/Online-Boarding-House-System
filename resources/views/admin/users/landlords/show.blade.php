@@ -326,9 +326,10 @@
     $currentLandlordDocuments = $currentLandlordDocuments ?? collect();
     $documentHistory = $documentHistory ?? collect();
 
+    $docStatusService = app(\App\Services\LandlordDocumentStatusService::class);
     $businessPermitRecord = $currentLandlordDocuments->get(\App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT);
-    $permitStatus = $compliance['business_permit'] ?? ($businessPermitRecord?->verification_status ?: ($permitProfile->business_permit_status ?? 'not_submitted'));
-    $safetyStatus = $compliance['safety_certificate'] ?? 'not_submitted';
+    $permitStatus = $compliance['business_permit'] ?? $docStatusService->resolveDocumentStatus($user, \App\Services\LandlordDocumentStatusService::DOC_BUSINESS_PERMIT);
+    $safetyStatus = $compliance['safety_certificate'] ?? $docStatusService->resolveDocumentStatus($user, \App\Services\LandlordDocumentStatusService::DOC_SAFETY_CERTIFICATE);
     $isAccountActive = (bool) ($user->is_active ?? true);
 
     $completionPct = $totalOnboarding > 0
@@ -818,13 +819,10 @@
                                     $legacyPath = $documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
                                         ? $permitProfile->business_permit_path
                                         : $permitProfile->safety_certificate_path;
-                                    $legacyStatus = $documentType === \App\Models\LandlordDocument::TYPE_BUSINESS_PERMIT
-                                        ? ($permitProfile->business_permit_status ?? null)
-                                        : ($permitProfile->safety_certificate_status ?? null);
                                     $filePath = $record?->file_path ?: $legacyPath;
                                     $documentNumber = $record?->document_number;
                                     $expirationDate = $record?->expiration_date;
-                                    $status = $record?->verification_status ?: ($legacyStatus ?: 'not_submitted');
+                                    $status = $docStatusService->resolveDocumentStatus($user, $documentType);
                                     $statusLabel = match($status) {
                                         'approved' => 'Approved',
                                         'rejected' => 'Rejected',
@@ -837,9 +835,14 @@
                                         'pending' => 'text-bg-warning',
                                         default => 'text-bg-secondary',
                                     };
-                                    $expirationLabel = $expirationDate
-                                        ? ($expirationDate->lte(\Illuminate\Support\Carbon::today()) ? 'Expired' : 'Valid')
-                                        : null;
+                                    $expirationInfo = $expirationDate ? app(\App\Services\DocumentExpirationService::class)->expirationInfo($expirationDate) : null;
+                                    $expirationLabel = $expirationInfo ? $expirationInfo['label'] : null;
+                                    $expirationClass = match($expirationInfo['status'] ?? null) {
+                                        'expired' => 'text-danger',
+                                        'expiring_soon' => 'text-warning-emphasis',
+                                        'valid' => 'text-success',
+                                        default => 'text-muted',
+                                    };
                                     $historyRows = $documentHistory->get($documentType, collect());
                                     $approveRoute = $record
                                         ? route('admin.documents.approve', $record)
@@ -868,7 +871,7 @@
                                     <td>
                                         <div>{{ $expirationDate?->format('M d, Y') ?: '—' }}</div>
                                         @if($expirationLabel)
-                                            <div class="small {{ $expirationLabel === 'Expired' ? 'text-danger' : 'text-success' }}">{{ $expirationLabel }}</div>
+                                            <div class="small fw-semibold {{ $expirationClass }}">{{ $expirationLabel }}</div>
                                         @endif
                                     </td>
                                     <td>
@@ -887,24 +890,27 @@
                                                     <i class="bi bi-download me-1"></i>Download
                                                 </a>
                                             @endif
-                                            @if(filled($filePath) && $status !== 'approved')
+                                            @if(filled($filePath) && $status === 'pending')
                                                 <form method="POST" action="{{ $approveRoute }}" class="d-inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-success rounded-pill" onclick="return confirm('Approve this document?')">Approve</button>
                                                 </form>
-                                            @endif
-                                            @if(filled($filePath) && $status !== 'rejected')
                                                 <details class="d-inline-block position-relative text-start">
                                                     <summary class="btn btn-sm btn-outline-danger rounded-pill">Reject</summary>
                                                     <div class="bg-white border rounded-3 shadow-sm p-3 mt-1 position-absolute end-0" style="z-index: 20; min-width: 280px;">
                                                         <form method="POST" action="{{ $rejectRoute }}">
-                                                            @csrf
+                                                             @csrf
                                                             <label for="{{ $rejectModalId }}Reason" class="form-label small fw-semibold">Rejection reason <span class="text-danger">*</span></label>
                                                             <textarea id="{{ $rejectModalId }}Reason" name="rejection_reason" class="form-control form-control-sm mb-2" rows="3" maxlength="500" required></textarea>
                                                             <button type="submit" class="btn btn-sm btn-danger rounded-pill">Confirm Rejection</button>
                                                         </form>
                                                     </div>
                                                 </details>
+                                            @elseif(filled($filePath) && $status === 'rejected')
+                                                <form method="POST" action="{{ $approveRoute }}" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill" onclick="return confirm('Re-approve this document?')">Re-approve</button>
+                                                </form>
                                             @endif
                                             @if(!$filePath)
                                                 <span class="small text-muted align-self-center">Awaiting upload</span>
