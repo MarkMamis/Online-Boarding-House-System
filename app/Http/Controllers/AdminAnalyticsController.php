@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AdminReportingService;
 use App\Services\AnalyticsService;
 use App\Services\BoardingMonitoringService;
 use Illuminate\Http\Request;
@@ -12,8 +11,7 @@ class AdminAnalyticsController extends Controller
 {
     public function __construct(
         protected AnalyticsService $analyticsService,
-        protected BoardingMonitoringService $monitoringService,
-        protected AdminReportingService $reportingService
+        protected BoardingMonitoringService $monitoringService
     ) {
     }
 
@@ -21,6 +19,12 @@ class AdminAnalyticsController extends Controller
     {
         if (!Auth::check() || Auth::user()->role !== 'admin') {
             abort(403, 'Unauthorized. Admin access required.');
+        }
+
+        // Backward compatibility: If an institutional report preset was requested on the analytics route,
+        // redirect gracefully to the dedicated Institutional Reports workspace preserving all parameters.
+        if ($request->has('report_preset')) {
+            return redirect()->route('admin.institutional_reports.index', $request->query());
         }
 
         // 1. Resolve reporting period boundaries and preset
@@ -69,10 +73,6 @@ class AdminAnalyticsController extends Controller
         $compliance = $this->analyticsService->getDocumentComplianceBreakdown();
         $filterOptions = $this->monitoringService->getFilterOptions();
 
-        $reportPresets = $this->reportingService->getPresetDefinitions();
-        $selectedPreset = $request->query('report_preset', AdminReportingService::PRESET_OCCUPANCY_AVAILABILITY);
-        $presetData = $this->reportingService->getReportData($selectedPreset, $filters);
-
         return view('admin.analytics.index', compact(
             'kpis',
             'trend',
@@ -85,59 +85,12 @@ class AdminAnalyticsController extends Controller
             'propertyId',
             'college',
             'program',
-            'trendYear',
-            'reportPresets',
-            'selectedPreset',
-            'presetData'
+            'trendYear'
         ));
     }
 
     public function exportCsv(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
-            abort(403, 'Unauthorized. Admin access required.');
-        }
-
-        $propertyId = $request->filled('property_id') ? (int) $request->query('property_id') : null;
-        $college = $request->query('college');
-        $selectedPreset = $request->query('report_preset', AdminReportingService::PRESET_OCCUPANCY_AVAILABILITY);
-
-        $filters = [
-            'property_id' => $propertyId,
-            'college' => $college,
-        ];
-
-        $reportData = $this->reportingService->getReportData($selectedPreset, $filters);
-
-        $filename = 'minsu_obhs_' . $selectedPreset . '_' . now()->format('Y-m-d_His') . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
-        ];
-
-        $callback = function () use ($reportData) {
-            $handle = fopen('php://output', 'w');
-            // Add UTF-8 BOM
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            // Header row
-            fputcsv($handle, $reportData['columns']);
-
-            $sanitize = fn ($str) => preg_match('/^[=\+\-\@]/', (string) $str) ? "'" . $str : (string) $str;
-
-            foreach ($reportData['rows'] as $row) {
-                $rowArray = is_array($row) ? $row : (array) $row;
-                $sanitizedRow = array_map($sanitize, array_values($rowArray));
-                fputcsv($handle, $sanitizedRow);
-            }
-
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return redirect()->route('admin.institutional_reports.export', $request->query());
     }
 }

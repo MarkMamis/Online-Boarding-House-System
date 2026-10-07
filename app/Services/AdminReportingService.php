@@ -87,21 +87,31 @@ class AdminReportingService
 
     protected function getActiveBoardersData(array $filters): array
     {
-        $today = now()->toDateString();
         $propertyId = $filters['property_id'] ?? null;
         $college = $filters['college'] ?? null;
+        $program = $filters['program'] ?? null;
+        $periodStart = $filters['periodStart'] ?? null;
+        $periodEnd = $filters['periodEnd'] ?? null;
+        $dateBasis = $filters['dateBasis'] ?? 'stay';
 
         $query = Booking::query()
             ->where('bookings.status', 'approved')
-            ->whereDate('bookings.check_in', '<=', $today)
-            ->where(function ($q) use ($today) {
-                $q->whereNull('bookings.check_out')
-                  ->orWhereDate('bookings.check_out', '>', $today);
-            })
             ->with(['student', 'room.property.landlord'])
             ->when($propertyId > 0, fn ($q) => $q->whereHas('room.property', fn ($pq) => $pq->whereKey($propertyId)))
             ->when(!empty($college), fn ($q) => $q->whereHas('student', fn ($sq) => $sq->where('college', $college)))
+            ->when(!empty($program), fn ($q) => $q->whereHas('student', fn ($sq) => $sq->where('program', $program)))
             ->orderBy('bookings.check_in', 'desc');
+
+        if ($periodStart instanceof Carbon && $periodEnd instanceof Carbon) {
+            $this->monitoringService->applyPeriodFilter($query, $periodStart, $periodEnd, (string) $dateBasis);
+        } else {
+            $today = now()->toDateString();
+            $query->whereDate('bookings.check_in', '<=', $today)
+                ->where(function ($q) use ($today) {
+                    $q->whereNull('bookings.check_out')
+                      ->orWhereDate('bookings.check_out', '>', $today);
+                });
+        }
 
         $records = $query->get()->map(function ($b) {
             return [

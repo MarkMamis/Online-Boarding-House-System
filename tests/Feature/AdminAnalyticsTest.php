@@ -56,6 +56,30 @@ class AdminAnalyticsTest extends TestCase
         $response->assertSee('Analytics');
     }
 
+    public function test_legacy_analytics_report_preset_redirects_to_institutional_reports(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/analytics?report_preset=active_boarders&property_id=5');
+
+        $response->assertRedirect('/admin/institutional-reports?report_preset=active_boarders&property_id=5');
+    }
+
+    public function test_legacy_monitoring_analytics_tab_redirects_to_analytics_dashboard(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/boarding-monitoring/students?tab=analytics&college=CCS');
+
+        $response->assertRedirect(route('admin.analytics.index', ['college' => 'CCS']));
+    }
+
     public function test_non_admin_cannot_access_analytics_page(): void
     {
         $student = User::factory()->create(['role' => 'student', 'email_verified_at' => now()]);

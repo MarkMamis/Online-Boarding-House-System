@@ -1109,6 +1109,10 @@
                             <i class="bi bi-graph-up-arrow"></i>
                             <span>Analytics</span>
                         </a>
+                        <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.institutional_reports.')]) href="{{ route('admin.institutional_reports.index') }}">
+                            <i class="bi bi-journal-text"></i>
+                            <span>Institutional Reports</span>
+                        </a>
 
                         <div class="nav-section">System</div>
                         <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navUsers" aria-expanded="{{ $usersOpen ? 'true' : 'false' }}" aria-controls="navUsers">
@@ -1265,15 +1269,16 @@
                     @endif
                 </a>
 
-                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Insights &amp; System</div>
-                <a @class(['list-group-item', 'active' => $isReportsRoute]) href="{{ route('admin.reports.index') }}">
-                    <i class="bi bi-flag"></i>
-                    <span>Reports</span>
-                </a>
+                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Insights</div>
                 <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                     <i class="bi bi-graph-up-arrow"></i>
                     <span>Analytics</span>
                 </a>
+                <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.institutional_reports.')]) href="{{ route('admin.institutional_reports.index') }}">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Institutional Reports</span>
+                </a>
+                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">System</div>
                 <a @class(['list-group-item', 'active' => $isUsersRoute]) href="{{ route('admin.users.index') }}">
                     <i class="bi bi-people"></i>
                     <span>User Accounts</span>

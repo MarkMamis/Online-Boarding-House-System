@@ -31,6 +31,7 @@ use App\Http\Controllers\OnboardingRoleController;
 use App\Http\Controllers\LandlordDocumentController;
 use App\Http\Controllers\AdminLandlordDocumentController;
 use App\Http\Controllers\AdminAnalyticsController;
+use App\Http\Controllers\AdminInstitutionalReportController;
 use App\Models\Room;
 use App\Models\Property;
 use App\Models\User;
@@ -350,7 +351,12 @@ Route::middleware(['role:admin'])->group(function () {
 
     // Admin analytics & operational insights
     Route::get('/admin/analytics', [AdminAnalyticsController::class, 'index'])->name('admin.analytics.index');
-    Route::get('/admin/analytics/export', [AdminAnalyticsController::class, 'exportCsv'])->name('admin.analytics.export');
+    Route::get('/admin/analytics/export', [AdminInstitutionalReportController::class, 'exportCsv'])->name('admin.analytics.export');
+
+    // Admin institutional reporting workspace & dedicated print
+    Route::get('/admin/institutional-reports', [AdminInstitutionalReportController::class, 'index'])->name('admin.institutional_reports.index');
+    Route::get('/admin/institutional-reports/export', [AdminInstitutionalReportController::class, 'exportCsv'])->name('admin.institutional_reports.export');
+    Route::get('/admin/institutional-reports/print', [AdminInstitutionalReportController::class, 'printReport'])->name('admin.institutional_reports.print');
 
     // Admin onboarding management
     Route::get('/admin/onboardings', [TenantOnboardingController::class, 'adminIndex'])->name('admin.onboardings.index');
