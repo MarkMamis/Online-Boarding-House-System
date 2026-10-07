@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Document Monitoring')
+@section('title', 'Compliance Monitor - Admin Panel')
 
 @section('content')
 <style>
@@ -24,13 +24,17 @@
 
 <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div>
-        <div class="text-uppercase small text-secondary fw-semibold mb-1">Compliance</div>
-        <h1 class="h4 mb-0 fw-bold"><i class="bi bi-activity me-1" style="color:#166534;"></i> Document Monitoring</h1>
-        <p class="text-secondary small mb-0 mt-1">Monitor landlord document verification and expiration across all boarding houses.</p>
+        <div class="text-uppercase small text-secondary fw-semibold mb-1">
+            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+            <span class="text-muted">Monitoring</span> /
+            <span>Compliance Monitor</span>
+        </div>
+        <h1 class="h4 mb-0 fw-bold"><i class="bi bi-activity me-1" style="color:#166534;"></i> Compliance Monitor</h1>
+        <p class="text-secondary small mb-0 mt-1">Monitor document validity and compliance status across boarding houses.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('admin.documents.verification') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
-            <i class="bi bi-file-earmark-check me-1"></i>Verification Queue
+            <i class="bi bi-file-earmark-check me-1"></i>Document Review Queue
         </a>
         @if($includeHistory)
             <a href="{{ route('admin.documents.monitoring', ['search' => $search, 'document_type' => $documentType, 'verification_status' => $statusFilter, 'expiration_status' => $expirationFilter]) }}" class="btn btn-sm btn-outline-success rounded-pill">

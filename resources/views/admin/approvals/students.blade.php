@@ -113,9 +113,13 @@
 <div class="verification-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <div class="text-uppercase small muted fw-semibold">Approvals</div>
-            <h1 class="h4 mb-1"><i class="bi bi-person-vcard me-2"></i>Student Approval</h1>
-            <div class="muted small">Review School ID and COR/COE submissions, then approve or reject boarding request eligibility.</div>
+            <div class="text-uppercase small muted fw-semibold mb-1">
+                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+                <span class="text-muted">Management</span> /
+                <span>Student Verification</span>
+            </div>
+            <h1 class="h4 mb-1"><i class="bi bi-person-vcard me-2"></i>Student Verification</h1>
+            <div class="muted small">Verify MinSU student eligibility and submitted academic credentials.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('admin.users.students') }}" class="btn btn-outline-secondary rounded-pill px-3">Students</a>

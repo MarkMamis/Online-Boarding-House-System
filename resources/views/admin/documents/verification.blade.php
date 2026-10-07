@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Document Verification')
+@section('title', 'Document Review Queue - Admin Panel')
 
 @section('content')
 <style>
@@ -23,9 +23,13 @@
 
 <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div>
-        <div class="text-uppercase small text-secondary fw-semibold mb-1">Approvals</div>
-        <h1 class="h4 mb-0 fw-bold"><i class="bi bi-file-earmark-check me-1" style="color:#166534;"></i> Document Verification</h1>
-        <p class="text-secondary small mb-0 mt-1">Review and approve or reject current landlord documents. Historical versions remain available for auditing.</p>
+        <div class="text-uppercase small text-secondary fw-semibold mb-1">
+            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+            <span class="text-muted">Management</span> /
+            <span>Document Review Queue</span>
+        </div>
+        <h1 class="h4 mb-0 fw-bold"><i class="bi bi-file-earmark-check me-1" style="color:#166534;"></i> Document Review Queue</h1>
+        <p class="text-secondary small mb-0 mt-1">Review submitted documents awaiting administrative verification. Historical versions remain available for auditing.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         @if($landlordId > 0)
@@ -34,7 +38,7 @@
             </a>
         @endif
         <a href="{{ route('admin.documents.monitoring') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
-            <i class="bi bi-activity me-1"></i>Document Monitoring
+            <i class="bi bi-activity me-1"></i>Compliance Monitor
         </a>
         @if($includeHistory)
             <a href="{{ route('admin.documents.verification', ['landlord_id' => $landlordId, 'verification_status' => $statusFilter, 'document_type' => $documentType]) }}" class="btn btn-sm btn-outline-success rounded-pill">

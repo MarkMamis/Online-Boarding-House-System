@@ -718,14 +718,14 @@
                         @endif
 
                         <div class="d-flex flex-column">
-                            {{-- Landlord Property Approvals --}}
-                            <a href="{{ route('admin.approvals.landlords') }}" class="attention-item">
+                            {{-- Property Reviews Queue --}}
+                            <a href="{{ route('admin.property_reviews.index') }}" class="attention-item">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="user-avatar-sm" style="background: #fef3c7; color: #b45309; border-color: #fde68a;">
-                                        <i class="bi bi-buildings"></i>
+                                        <i class="bi bi-shield-check"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold text-dark text-xs">Landlord Properties</div>
+                                        <div class="fw-semibold text-dark text-xs">Property Reviews</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Pending property listing reviews</div>
                                     </div>
                                 </div>
@@ -738,14 +738,14 @@
                                 </div>
                             </a>
 
-                            {{-- Business Permit Reviews --}}
+                            {{-- Document Review Queue --}}
                             <a href="{{ route('admin.documents.verification') }}" class="attention-item">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="user-avatar-sm" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">
                                         <i class="bi bi-file-earmark-check"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold text-dark text-xs">Business Permits</div>
+                                        <div class="fw-semibold text-dark text-xs">Document Review Queue</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Landlord compliance verifications</div>
                                     </div>
                                 </div>
@@ -758,14 +758,14 @@
                                 </div>
                             </a>
 
-                            {{-- Student ID Verifications --}}
+                            {{-- Student Verification --}}
                             <a href="{{ route('admin.approvals.students') }}" class="attention-item">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="user-avatar-sm" style="background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;">
                                         <i class="bi bi-person-vcard"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold text-dark text-xs">Student ID Approvals</div>
+                                        <div class="fw-semibold text-dark text-xs">Student Verification</div>
                                         <div class="text-muted" style="font-size: 0.72rem;">Enrollment identity proof reviews</div>
                                     </div>
                                 </div>

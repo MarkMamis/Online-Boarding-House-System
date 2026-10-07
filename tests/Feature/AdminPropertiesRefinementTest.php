@@ -63,13 +63,13 @@ class AdminPropertiesRefinementTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('admin.properties.index'));
 
         $response->assertStatus(200);
-        $response->assertSee('Registered Properties');
+        $response->assertSee('Boarding Houses');
         $response->assertSee('Sunset Boarding Villa');
         $response->assertSee('Juan Dela Cruz');
         $response->assertSee('Camilmil, Calapan City');
         $response->assertSee('List View');
         $response->assertSee('Map View');
-        $response->assertSee('Review Approvals');
+        $response->assertSee('Review Queue');
         $response->assertDontSee('<!-- <a href='); // no commented dead code
     }
 
@@ -407,13 +407,13 @@ class AdminPropertiesRefinementTest extends TestCase
     public function test_property_approval_route_redirects_to_properties_workspace_pending(): void
     {
         $response = $this->actingAs($this->admin)->get('/admin/properties/approval');
-        $response->assertRedirect(route('admin.properties.index', ['status' => 'pending']));
+        $response->assertRedirect(route('admin.property_reviews.index', ['status' => 'pending']));
     }
 
     public function test_landlord_approval_properties_tab_redirects_to_properties_workspace_pending(): void
     {
         $response = $this->actingAs($this->admin)->get(route('admin.approvals.landlords', ['tab' => 'properties']));
-        $response->assertRedirect(route('admin.properties.index', ['status' => 'pending']));
+        $response->assertRedirect(route('admin.property_reviews.index', ['status' => 'pending']));
     }
 
     public function test_property_details_page_includes_compliance_and_safe_modals(): void

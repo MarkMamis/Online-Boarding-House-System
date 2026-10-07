@@ -606,7 +606,9 @@
             <div class="monitoring-breadcrumb">
                 <a href="{{ route('admin.dashboard') }}">Admin</a>
                 <span class="mx-1 text-muted">/</span>
-                <span class="text-dark">Boarding Monitoring</span>
+                <span class="text-muted">Monitoring</span>
+                <span class="mx-1 text-muted">/</span>
+                <span class="text-dark">Active Boarders</span>
             </div>
         </nav>
         <div class="d-flex align-items-center gap-2">
@@ -619,8 +621,8 @@
     {{-- Clean Page Header --}}
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 pb-3 border-bottom">
         <div>
-            <h1 class="monitoring-title mb-1">Boarding Monitoring</h1>
-            <p class="text-secondary small mb-0">Track current student occupancy, review stay history, and generate institutional reports.</p>
+            <h1 class="monitoring-title mb-1">Active Boarders</h1>
+            <p class="text-secondary small mb-0">Monitor students currently residing in registered boarding houses, review stay history, and generate institutional reports.</p>
         </div>
     </div>
 

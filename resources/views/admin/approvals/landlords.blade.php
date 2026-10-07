@@ -105,8 +105,13 @@
 
 <div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div>
-        <div class="text-uppercase small la-muted fw-semibold mb-1">Approvals</div>
-        <h1 class="h5 mb-0 fw-bold"><i class="bi bi-buildings me-1"></i> Landlord Approval</h1>
+        <div class="text-uppercase small la-muted fw-semibold mb-1">
+            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+            <span class="text-muted">Management</span> /
+            <span>Landlord Accreditation</span>
+        </div>
+        <h1 class="h5 mb-0 fw-bold"><i class="bi bi-check2-circle me-1"></i> Landlord Accreditation</h1>
+        <p class="text-secondary small mb-0 mt-1">Review landlord eligibility, business permits, and initial compliance requirements.</p>
     </div>
     <a href="{{ route('admin.users.landlords') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
         <i class="bi bi-people me-1"></i>Landlords

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Property Approvals - Admin Panel')
+@section('title', 'Property Reviews - Admin Panel')
 
 @section('content')
 <style>
@@ -121,25 +121,26 @@
 <div class="admin-properties-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <div class="text-uppercase small section-muted fw-semibold">Management</div>
-            <h1 class="h3 mb-1"><i class="bi bi-clock-history me-2"></i>Property Approval Queue</h1>
-            <p class="section-muted mb-0">Review and manage pending, approved, and rejected property submissions.</p>
+            <div class="text-uppercase small section-muted fw-semibold mb-1">
+                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+                <span class="text-muted">Management</span> /
+                <span>Property Reviews</span>
+            </div>
+            <h1 class="h3 mb-1"><i class="bi bi-shield-check me-2"></i>Property Reviews</h1>
+            <p class="section-muted mb-0">Review boarding house submissions requiring administrative approval.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('admin.properties.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-list-ul me-1"></i>All Properties
+                <i class="bi bi-buildings me-1"></i>Boarding Houses
             </a>
-            <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i>Dashboard
-            </a> -->
         </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="admin-metric">
-                <div class="admin-metric-label">Pending</div>
-                <div class="admin-metric-value">{{ number_format($counts['pending'] ?? 0) }}</div>
+                <div class="admin-metric-label">Pending Review</div>
+                <div class="admin-metric-value {{ ($counts['pending'] ?? 0) > 0 ? 'text-warning' : 'text-success' }}">{{ number_format($counts['pending'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
@@ -151,22 +152,22 @@
         <div class="col-6 col-lg-3">
             <div class="admin-metric">
                 <div class="admin-metric-label">Rejected</div>
-                <div class="admin-metric-value">{{ number_format($counts['rejected'] ?? 0) }}</div>
+                <div class="admin-metric-value text-danger">{{ number_format($counts['rejected'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="admin-metric">
-                <div class="admin-metric-label">Visible Records</div>
-                <div class="admin-metric-value">{{ number_format($properties->total()) }}</div>
+                <div class="admin-metric-label">Total Submissions</div>
+                <div class="admin-metric-value">{{ number_format($counts['all'] ?? $properties->total()) }}</div>
             </div>
         </div>
     </div>
 
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="{{ route('admin.properties.pending', ['status' => 'pending']) }}" class="btn rounded-pill {{ $statusFilter === 'pending' ? 'btn-success' : 'btn-outline-secondary' }}">Pending</a>
-        <a href="{{ route('admin.properties.pending', ['status' => 'approved']) }}" class="btn rounded-pill {{ $statusFilter === 'approved' ? 'btn-success' : 'btn-outline-secondary' }}">Approved</a>
-        <a href="{{ route('admin.properties.pending', ['status' => 'rejected']) }}" class="btn rounded-pill {{ $statusFilter === 'rejected' ? 'btn-success' : 'btn-outline-secondary' }}">Rejected</a>
-        <a href="{{ route('admin.properties.pending', ['status' => 'all']) }}" class="btn rounded-pill {{ $statusFilter === 'all' ? 'btn-success' : 'btn-outline-secondary' }}">All</a>
+        <a href="{{ route('admin.property_reviews.index', ['status' => 'pending']) }}" class="btn rounded-pill {{ $statusFilter === 'pending' ? 'btn-success' : 'btn-outline-secondary' }}">Pending Review</a>
+        <a href="{{ route('admin.property_reviews.index', ['status' => 'approved']) }}" class="btn rounded-pill {{ $statusFilter === 'approved' ? 'btn-success' : 'btn-outline-secondary' }}">Approved</a>
+        <a href="{{ route('admin.property_reviews.index', ['status' => 'rejected']) }}" class="btn rounded-pill {{ $statusFilter === 'rejected' ? 'btn-success' : 'btn-outline-secondary' }}">Rejected</a>
+        <a href="{{ route('admin.property_reviews.index', ['status' => 'all']) }}" class="btn rounded-pill {{ $statusFilter === 'all' ? 'btn-success' : 'btn-outline-secondary' }}">All</a>
     </div>
 
     @if(session('success'))

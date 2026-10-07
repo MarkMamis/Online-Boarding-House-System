@@ -658,20 +658,25 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="properties-breadcrumb">
-                <a href="{{ route('admin.dashboard') }}">Admin</a> / <span>Properties</span>
+                <a href="{{ route('admin.dashboard') }}">Admin</a> / <span class="text-muted">Monitoring</span> / <span>Boarding Houses</span>
             </div>
-            <h1 class="page-title">Registered Properties</h1>
-            <p class="page-subtitle">Monitor registered boarding houses, occupancy, availability, and approval status.</p>
+            <h1 class="page-title">Boarding Houses</h1>
+            <p class="page-subtitle">Monitor registered boarding houses, occupancy, capacity and compliance.</p>
         </div>
 
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('admin.properties.index', ['status' => 'pending']) }}" class="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2">
-                <i class="bi bi-clipboard-check"></i>
-                <span>Review Approvals</span>
-                @if(($summary['pending_properties'] ?? 0) > 0)
+            @if(($summary['pending_properties'] ?? 0) > 0)
+                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Property Reviews</span>
                     <span class="badge rounded-pill bg-danger text-white" id="headerPendingBadge">{{ $summary['pending_properties'] }}</span>
-                @endif
-            </a>
+                </a>
+            @else
+                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Review Queue</span>
+                </a>
+            @endif
         </div>
     </div>
 

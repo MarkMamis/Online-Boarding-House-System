@@ -328,10 +328,11 @@ Route::middleware(['role:admin'])->group(function () {
         return redirect()->route('admin.boarding_monitoring.students', $request->query());
     })->name('admin.boarded_students.index');
 
-    // Property approval workflow & inspection
+    // Property reviews & management
+    Route::get('/admin/property-reviews', [PropertyController::class, 'adminPending'])->name('admin.property_reviews.index');
     Route::get('/admin/properties/approval', function (Request $request) {
-        return redirect()->route('admin.properties.index', array_filter([
-            'status' => 'pending',
+        return redirect()->route('admin.property_reviews.index', array_filter([
+            'status' => $request->query('status', 'pending'),
             'search' => $request->query('search'),
             'page' => $request->query('page'),
         ], fn ($value) => $value !== null && $value !== ''));

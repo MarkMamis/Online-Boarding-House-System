@@ -434,10 +434,10 @@
         $routeName = \Illuminate\Support\Facades\Route::currentRouteName();
         $usersOpen = is_string($routeName) && str_starts_with($routeName, 'admin.users.');
 
-        $pendingApprovalsCount = 0;
+        $pendingPropertyReviewsCount = 0;
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('properties') && \Illuminate\Support\Facades\Schema::hasColumn('properties', 'approval_status')) {
-                $pendingApprovalsCount = \App\Models\Property::where('approval_status', 'pending')->count();
+                $pendingPropertyReviewsCount = \App\Models\Property::where('approval_status', 'pending')->count();
             }
         } catch (\Throwable $e) {}
 
@@ -448,7 +448,7 @@
             }
         } catch (\Throwable $e) {}
 
-        $pendingLandlordApprovalCount = $pendingApprovalsCount + $pendingPermitApprovalsCount;
+        $pendingLandlordAccreditationCount = $pendingPermitApprovalsCount;
 
         $pendingStudentVerificationCount = 0;
         try {
@@ -476,6 +476,13 @@
                             ->orWhere('school_id_verification_status', '');
                     })
                     ->count();
+            }
+        } catch (\Throwable $e) {}
+
+        $pendingDocumentCount = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('landlord_documents')) {
+                $pendingDocumentCount = \App\Models\LandlordDocument::current()->where('verification_status', 'pending')->count();
             }
         } catch (\Throwable $e) {}
 
@@ -516,7 +523,7 @@
                 </div>
                 <div class="top-meta d-none d-lg-block text-end">
                     <div class="text-xs text-uppercase tracking-wider text-muted fw-semibold">Admin Workspace</div>
-                    <div class="fw-bold text-dark small">MinSU Boarding Monitoring</div>
+                    <div class="fw-bold text-dark small">MinSU Boarding Monitoring &amp; Compliance</div>
                 </div>
                 <span class="icon-btn-wrap d-none d-md-inline-flex">
                     <a class="icon-btn" href="{{ route('notifications.index') }}" title="Notifications">
@@ -553,7 +560,7 @@
                     </div>
 
                     <div class="list-group list-group-flush rounded-3 overflow-hidden">
-                        <div class="nav-section">Main</div>
+                        <div class="nav-section">Overview</div>
                         <a @class(['list-group-item', 'active' => $routeName === 'admin.dashboard']) href="{{ route('admin.dashboard') }}">
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard</span>
@@ -565,23 +572,42 @@
                             && !str_starts_with($routeName, 'admin.properties.pending')
                             && !str_starts_with($routeName, 'admin.properties.approve')
                             && !str_starts_with($routeName, 'admin.properties.reject')
+                            && $routeName !== 'admin.property_reviews.index'
                         ]) href="{{ route('admin.properties.index') }}">
                             <i class="bi bi-buildings"></i>
                             <span>Boarding Houses</span>
                         </a>
                         <a @class(['list-group-item', 'active' => in_array($routeName, ['admin.boarding_monitoring.students', 'admin.boarded_students.index', 'admin.bookings.index'], true)]) href="{{ route('admin.boarding_monitoring.students') }}">
                             <i class="bi bi-door-open"></i>
-                            <span>Boarded Students</span>
+                            <span>Active Boarders</span>
                         </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.')]) href="{{ route('admin.onboardings.index') }}">
                             <i class="bi bi-clipboard-check"></i>
-                            <span>Onboardings</span>
+                            <span>Onboarding Pipeline</span>
+                        </a>
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.documents.monitoring']) href="{{ route('admin.documents.monitoring') }}">
+                            <i class="bi bi-activity"></i>
+                            <span>Compliance Monitor</span>
                         </a>
 
-                        <div class="nav-section">Approvals &amp; Compliance</div>
+                        <div class="nav-section">Management</div>
+                        <a @class(['list-group-item', 'active' => is_string($routeName)
+                            && (
+                                $routeName === 'admin.property_reviews.index'
+                                || str_starts_with($routeName, 'admin.properties.pending')
+                                || str_starts_with($routeName, 'admin.properties.approve')
+                                || str_starts_with($routeName, 'admin.properties.reject')
+                            )
+                        ]) href="{{ route('admin.property_reviews.index') }}">
+                            <i class="bi bi-shield-check"></i>
+                            <span>Property Reviews</span>
+                            @if($pendingPropertyReviewsCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPropertyReviewsCount }}</span>
+                            @endif
+                        </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'))]) href="{{ route('admin.approvals.students') }}">
                             <i class="bi bi-person-vcard"></i>
-                            <span>Student Approvals</span>
+                            <span>Student Verification</span>
                             @if($pendingStudentVerificationCount > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
                             @endif
@@ -589,48 +615,36 @@
                         <a @class(['list-group-item', 'active' => is_string($routeName)
                             && (
                                 $routeName === 'admin.approvals.landlords'
-                                || str_starts_with($routeName, 'admin.properties.pending')
                                 || str_starts_with($routeName, 'admin.permits.')
-                                || str_starts_with($routeName, 'admin.properties.approve')
-                                || str_starts_with($routeName, 'admin.properties.reject')
                                 || str_starts_with($routeName, 'admin.permits.approve')
                                 || str_starts_with($routeName, 'admin.permits.reject')
                             )
                         ]) href="{{ route('admin.approvals.landlords') }}">
                             <i class="bi bi-check2-circle"></i>
-                            <span>Landlord Approvals</span>
-                            @if($pendingLandlordApprovalCount > 0)
-                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordApprovalCount }}</span>
+                            <span>Landlord Accreditation</span>
+                            @if($pendingLandlordAccreditationCount > 0)
+                                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordAccreditationCount }}</span>
                             @endif
                         </a>
-                        @php
-                            $pendingDocumentCount = \Illuminate\Support\Facades\Schema::hasTable('landlord_documents')
-                                ? \App\Models\LandlordDocument::current()->where('verification_status', 'pending')->count()
-                                : 0;
-                        @endphp
                         <a @class(['list-group-item', 'active' => $routeName === 'admin.documents.verification']) href="{{ route('admin.documents.verification') }}">
                             <i class="bi bi-file-earmark-check"></i>
-                            <span>Document Verification</span>
+                            <span>Document Review Queue</span>
                             @if($pendingDocumentCount > 0)
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingDocumentCount }}</span>
                             @endif
                         </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'admin.documents.monitoring']) href="{{ route('admin.documents.monitoring') }}">
-                            <i class="bi bi-activity"></i>
-                            <span>Document Monitoring</span>
-                        </a>
 
-                        <div class="nav-section">Insights &amp; Logs</div>
+                        <div class="nav-section">Insights</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.reports.')]) href="{{ route('admin.reports.index') }}">
                             <i class="bi bi-flag"></i>
                             <span>Reports</span>
                         </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                             <i class="bi bi-graph-up-arrow"></i>
-                            <span>Reports &amp; Analytics</span>
+                            <span>Analytics</span>
                         </a>
 
-                        <div class="nav-section">System &amp; Accounts</div>
+                        <div class="nav-section">System</div>
                         <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navUsers" aria-expanded="{{ $usersOpen ? 'true' : 'false' }}" aria-controls="navUsers">
                             <i class="bi bi-people"></i>
                             <span>User Accounts</span>
@@ -679,27 +693,27 @@
             && str_starts_with($routeName, 'admin.properties.')
             && !str_starts_with($routeName, 'admin.properties.pending')
             && !str_starts_with($routeName, 'admin.properties.approve')
-            && !str_starts_with($routeName, 'admin.properties.reject');
-        $isApprovalsRoute = is_string($routeName)
+            && !str_starts_with($routeName, 'admin.properties.reject')
+            && $routeName !== 'admin.property_reviews.index';
+        $isManagementRoute = is_string($routeName)
             && (
-                $routeName === 'admin.approvals.landlords'
+                $routeName === 'admin.property_reviews.index'
+                || $routeName === 'admin.approvals.landlords'
                 || $routeName === 'admin.approvals.students'
+                || $routeName === 'admin.documents.verification'
                 || str_starts_with($routeName, 'admin.properties.pending')
                 || str_starts_with($routeName, 'admin.permits.')
                 || str_starts_with($routeName, 'admin.properties.approve')
                 || str_starts_with($routeName, 'admin.properties.reject')
                 || str_starts_with($routeName, 'admin.permits.approve')
                 || str_starts_with($routeName, 'admin.permits.reject')
+                || str_starts_with($routeName, 'admin.student_verifications.')
             );
-        $isPermitApprovalsRoute = is_string($routeName)
-            && (
-                $routeName === 'admin.approvals.landlords'
-                || str_starts_with($routeName, 'admin.permits.')
-                || str_starts_with($routeName, 'admin.permits.approve')
-                || str_starts_with($routeName, 'admin.permits.reject')
-            );
+        $isPropertyReviewsRoute = is_string($routeName) && ($routeName === 'admin.property_reviews.index' || str_starts_with($routeName, 'admin.properties.pending'));
+        $isLandlordAccreditationRoute = is_string($routeName) && ($routeName === 'admin.approvals.landlords' || str_starts_with($routeName, 'admin.permits.'));
         $isStudentVerificationsRoute = is_string($routeName) && ($routeName === 'admin.approvals.students' || str_starts_with($routeName, 'admin.student_verifications.'));
-        $isBookingsRoute = $routeName === 'admin.bookings.index';
+        $isDocVerificationRoute = $routeName === 'admin.documents.verification';
+        $isDocMonitoringRoute = $routeName === 'admin.documents.monitoring';
         $isBoardedStudentsRoute = in_array($routeName, ['admin.boarded_students.index', 'admin.boarding_monitoring.students'], true);
         $isOnboardingsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.onboardings.');
         $isReportsRoute = is_string($routeName) && str_starts_with($routeName, 'admin.reports.');
@@ -707,23 +721,23 @@
 
     <nav class="mobile-bottom-nav d-lg-none" aria-label="Admin mobile navigation">
         <div class="nav-grid">
-            <a @class(['nav-link', 'active' => $isUsersRoute]) href="{{ route('admin.users.index') }}">
-                <i class="bi bi-people"></i>
-                <span>Users</span>
-            </a>
             <a @class(['nav-link', 'active' => $isPropertiesRoute]) href="{{ route('admin.properties.index') }}">
                 <i class="bi bi-buildings"></i>
                 <span>Properties</span>
+            </a>
+            <a @class(['nav-link', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarding_monitoring.students') }}">
+                <i class="bi bi-door-open"></i>
+                <span>Boarders</span>
             </a>
             <a @class(['nav-link', 'home-link', 'active' => $routeName === 'admin.dashboard']) href="{{ route('admin.dashboard') }}">
                 <i class="bi bi-house-door"></i>
                 <span>Home</span>
             </a>
-            <a @class(['nav-link', 'active' => $isApprovalsRoute]) href="{{ route('admin.approvals.landlords') }}">
-                <i class="bi bi-check2-circle"></i>
-                <span>Approvals</span>
+            <a @class(['nav-link', 'active' => $isManagementRoute]) href="{{ route('admin.property_reviews.index') }}">
+                <i class="bi bi-shield-check"></i>
+                <span>Reviews</span>
             </a>
-            <button type="button" @class(['nav-link', 'active' => $isPermitApprovalsRoute || $isStudentVerificationsRoute || $isBookingsRoute || $isBoardedStudentsRoute || $isOnboardingsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
+            <button type="button" @class(['nav-link', 'active' => $isUsersRoute || $isOnboardingsRoute || $isDocMonitoringRoute || $isReportsRoute]) data-bs-toggle="offcanvas" data-bs-target="#adminMoreSheet" aria-controls="adminMoreSheet">
                 <i class="bi bi-three-dots"></i>
                 <span>More</span>
             </button>
@@ -732,40 +746,71 @@
 
     <div class="offcanvas offcanvas-bottom d-lg-none" tabindex="-1" id="adminMoreSheet" aria-labelledby="adminMoreSheetLabel">
         <div class="offcanvas-header">
-            <h5 class="offcanvas-title fw-semibold" id="adminMoreSheetLabel">More</h5>
+            <h5 class="offcanvas-title fw-semibold" id="adminMoreSheetLabel">Admin Navigation</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
             <div class="list-group more-list">
-                <a @class(['list-group-item', 'active' => $isPermitApprovalsRoute]) href="{{ route('admin.approvals.landlords') }}">
-                    <i class="bi bi-file-earmark-check"></i>
-                    <span>Landlord Approval</span>
-                    @if($pendingLandlordApprovalCount > 0)
-                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordApprovalCount }}</span>
-                    @endif
-                </a>
-                    <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.approvals.students') }}">
-                        <i class="bi bi-person-vcard"></i>
-                        <span>Student Approval</span>
-                        @if($pendingStudentVerificationCount > 0)
-                            <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
-                        @endif
-                    </a>
-                <a @class(['list-group-item', 'active' => $isBookingsRoute]) href="{{ route('admin.bookings.index') }}">
-                    <i class="bi bi-journal-check"></i>
-                    <span>Boarding Monitoring</span>
+                <div class="nav-section px-2 py-1 small text-uppercase text-muted fw-bold">Monitoring</div>
+                <a @class(['list-group-item', 'active' => $isPropertiesRoute]) href="{{ route('admin.properties.index') }}">
+                    <i class="bi bi-buildings"></i>
+                    <span>Boarding Houses</span>
                 </a>
                 <a @class(['list-group-item', 'active' => $isBoardedStudentsRoute]) href="{{ route('admin.boarding_monitoring.students') }}">
                     <i class="bi bi-door-open"></i>
-                    <span>Students</span>
+                    <span>Active Boarders</span>
                 </a>
                 <a @class(['list-group-item', 'active' => $isOnboardingsRoute]) href="{{ route('admin.onboardings.index') }}">
                     <i class="bi bi-clipboard-check"></i>
-                    <span>Onboardings</span>
+                    <span>Onboarding Pipeline</span>
+                </a>
+                <a @class(['list-group-item', 'active' => $isDocMonitoringRoute]) href="{{ route('admin.documents.monitoring') }}">
+                    <i class="bi bi-activity"></i>
+                    <span>Compliance Monitor</span>
+                </a>
+
+                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Management</div>
+                <a @class(['list-group-item', 'active' => $isPropertyReviewsRoute]) href="{{ route('admin.property_reviews.index') }}">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Property Reviews</span>
+                    @if($pendingPropertyReviewsCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingPropertyReviewsCount }}</span>
+                    @endif
+                </a>
+                <a @class(['list-group-item', 'active' => $isStudentVerificationsRoute]) href="{{ route('admin.approvals.students') }}">
+                    <i class="bi bi-person-vcard"></i>
+                    <span>Student Verification</span>
+                    @if($pendingStudentVerificationCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingStudentVerificationCount }}</span>
+                    @endif
+                </a>
+                <a @class(['list-group-item', 'active' => $isLandlordAccreditationRoute]) href="{{ route('admin.approvals.landlords') }}">
+                    <i class="bi bi-check2-circle"></i>
+                    <span>Landlord Accreditation</span>
+                    @if($pendingLandlordAccreditationCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingLandlordAccreditationCount }}</span>
+                    @endif
+                </a>
+                <a @class(['list-group-item', 'active' => $isDocVerificationRoute]) href="{{ route('admin.documents.verification') }}">
+                    <i class="bi bi-file-earmark-check"></i>
+                    <span>Document Review Queue</span>
+                    @if($pendingDocumentCount > 0)
+                        <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingDocumentCount }}</span>
+                    @endif
+                </a>
+
+                <div class="nav-section px-2 py-1 mt-2 small text-uppercase text-muted fw-bold">Insights &amp; System</div>
+                <a @class(['list-group-item', 'active' => $isReportsRoute]) href="{{ route('admin.reports.index') }}">
+                    <i class="bi bi-flag"></i>
+                    <span>Reports</span>
                 </a>
                 <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                     <i class="bi bi-graph-up-arrow"></i>
                     <span>Analytics</span>
+                </a>
+                <a @class(['list-group-item', 'active' => $isUsersRoute]) href="{{ route('admin.users.index') }}">
+                    <i class="bi bi-people"></i>
+                    <span>User Accounts</span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

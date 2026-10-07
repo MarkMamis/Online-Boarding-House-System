@@ -1172,11 +1172,10 @@ class AuthController extends Controller
             abort(403);
         }
 
-        $activeTab = strtolower((string) $request->query('tab', ''));
-        // If tab is properties (or default when not explicitly asking for permits), redirect to unified properties workspace!
-        if ($activeTab === 'properties' || ($activeTab === '' && !$request->has('tab'))) {
-            return redirect()->route('admin.properties.index', array_filter([
-                'status' => 'pending',
+        $activeTab = strtolower((string) $request->query('tab', 'permits'));
+        if ($activeTab === 'properties') {
+            return redirect()->route('admin.property_reviews.index', array_filter([
+                'status' => $request->query('status', 'pending'),
                 'page' => $request->query('page'),
             ], fn ($v) => $v !== null && $v !== ''));
         }

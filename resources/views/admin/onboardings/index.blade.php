@@ -213,13 +213,14 @@
 <div class="admin-onboarding-shell container-fluid py-2">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
-            <div class="text-uppercase small section-muted fw-semibold">Management</div>
-            <h1 class="h3 mb-1">Tenant Onboardings</h1>
-            <p class="section-muted mb-0">Review and track all onboarding progress from request to completion.</p>
+            <div class="text-uppercase small section-muted fw-semibold mb-1">
+                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-muted">Admin</a> /
+                <span class="text-muted">Monitoring</span> /
+                <span>Onboarding Pipeline</span>
+            </div>
+            <h1 class="h3 mb-1"><i class="bi bi-clipboard-check me-2"></i>Onboarding Pipeline</h1>
+            <p class="section-muted mb-0">Track students progressing from approved booking to completed move-in.</p>
         </div>
-        <!-- <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i>Dashboard
-        </a> -->
     </div>
 
     <div class="row g-3 mb-4">

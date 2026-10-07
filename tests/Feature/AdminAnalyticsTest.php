@@ -53,7 +53,7 @@ class AdminAnalyticsTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(route('admin.analytics.index'), false);
-        $response->assertSee('Reports &amp; Analytics', false);
+        $response->assertSee('Analytics');
     }
 
     public function test_non_admin_cannot_access_analytics_page(): void
