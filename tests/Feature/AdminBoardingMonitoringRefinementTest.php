@@ -245,6 +245,7 @@ class AdminBoardingMonitoringRefinementTest extends TestCase
         ]);
 
         $student = $this->createStudent('Analytics Scholar', 'CCS', 'BSCS');
+        $student->forceFill(['gender' => 'Female'])->save();
         $today = Carbon::today();
 
         Booking::create([
@@ -262,11 +263,29 @@ class AdminBoardingMonitoringRefinementTest extends TestCase
 
         $response->assertOk()
             ->assertViewHas('activeTab', 'analytics')
-            ->assertSee('Students by College')
-            ->assertSee('Students by Program')
+            ->assertViewHas('trendSeries')
+            ->assertViewHas('genderDistribution')
+            ->assertSee('Student Boarding Trend')
             ->assertSee('Students by Boarding House')
+            ->assertSee('Students by College')
+            ->assertSee('Top Academic Programs')
+            ->assertSee('Gender Distribution')
+            ->assertSee('Detailed Breakdown')
             ->assertSee('Metro Living')
-            ->assertSee('CCS');
+            ->assertSee('CCS')
+            ->assertSee('chartBoardingTrend')
+            ->assertSee('chartBhDistribution')
+            ->assertSee('chartCollegeDistribution')
+            ->assertSee('chartProgramDistribution')
+            ->assertSee('chartGenderDonut');
+
+        $genderDist = $response->viewData('genderDistribution');
+        $this->assertEquals(1, $genderDist['female']);
+        $this->assertEquals(0, $genderDist['male']);
+
+        $trend = $response->viewData('trendSeries');
+        $this->assertIsArray($trend['labels']);
+        $this->assertNotEmpty($trend['labels']);
     }
 
     public function test_print_route_works_with_history_parameters(): void

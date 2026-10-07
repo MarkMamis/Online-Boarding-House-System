@@ -810,40 +810,188 @@
         </div>
 
         {{-- Analytics KPI Summary --}}
-        <div class="row g-2 mb-3">
+        <div class="row g-2 mb-4">
             <div class="col-6 col-md-3">
                 <div class="metric-chip">
                     <div class="metric-chip-label">Unique Students</div>
-                    <div class="metric-chip-value">{{ number_format($uniqueStudents) }}</div>
-                    <div class="metric-chip-sub">Total represented</div>
+                    <div class="metric-chip-value text-success">{{ number_format($uniqueStudents) }}</div>
+                    <div class="metric-chip-sub">De-duplicated student headcount</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-chip">
                     <div class="metric-chip-label">Total Stays</div>
                     <div class="metric-chip-value">{{ number_format($totalRecords) }}</div>
-                    <div class="metric-chip-sub">Booking records</div>
+                    <div class="metric-chip-sub">Recorded stays in filter</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-chip">
                     <div class="metric-chip-label">Colleges</div>
                     <div class="metric-chip-value fs-5">{{ $collegeDistribution->count() }} represented</div>
-                    <div class="metric-chip-sub">Academic units</div>
+                    <div class="metric-chip-sub">Academic units represented</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="metric-chip">
                     <div class="metric-chip-label">Properties</div>
                     <div class="metric-chip-value fs-5">{{ $propertyDistribution->count() }} boarding houses</div>
-                    <div class="metric-chip-sub">Housing providers</div>
+                    <div class="metric-chip-sub">Active housing providers</div>
                 </div>
             </div>
         </div>
 
+        {{-- PRIMARY ANALYTICS ROW: Student Boarding Trend (Line) & Students by Boarding House (Bar) --}}
+        <div class="row g-3 mb-4">
+            {{-- Chart 1: Student Boarding Trend --}}
+            <div class="col-12 col-xl-7">
+                <div class="surface-card h-100">
+                    <div class="surface-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-dark"><i class="bi bi-graph-up text-success me-1.5"></i>Student Boarding Trend</span>
+                            <div class="text-xs text-muted" style="font-size: 0.75rem;">New stays vs ended stays across reporting period</div>
+                        </div>
+                        <span class="badge text-bg-light border" style="font-size: 0.72rem;">{{ $periodLabel ?: 'All Time' }}</span>
+                    </div>
+                    <div class="surface-body d-flex flex-column justify-content-between">
+                        <div style="position: relative; height: 230px; width: 100%;">
+                            <canvas id="chartBoardingTrend"></canvas>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 mt-2 border-top text-xs text-muted" style="font-size: 0.74rem;">
+                            <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #166534;"></span> New Stays</span>
+                            <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #94a3b8;"></span> Ended / Move-outs</span>
+                            <span><span class="d-inline-block rounded-circle me-1" style="width: 8px; height: 8px; background: #0284c7;"></span> Active Headcount</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Chart 2: Students by Boarding House --}}
+            <div class="col-12 col-xl-5">
+                <div class="surface-card h-100">
+                    <div class="surface-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-dark"><i class="bi bi-buildings-fill text-success me-1.5"></i>Students by Boarding House</span>
+                            <div class="text-xs text-muted" style="font-size: 0.75rem;">Resident student headcounts (Top properties)</div>
+                        </div>
+                        <span class="badge text-bg-light border" style="font-size: 0.72rem;">{{ $propertyDistribution->count() }} Properties</span>
+                    </div>
+                    <div class="surface-body d-flex flex-column justify-content-between">
+                        @if($propertyDistribution->count() > 0)
+                            <div style="position: relative; height: {{ max(200, min(240, $propertyDistribution->take(8)->count() * 32 + 40)) }}px; width: 100%;">
+                                <canvas id="chartBhDistribution"></canvas>
+                            </div>
+                        @else
+                            <div class="text-center py-4 text-muted small">No property records in selected filter.</div>
+                        @endif
+                        <div class="pt-2 border-top text-xs text-muted text-end" style="font-size: 0.74rem;">
+                            Top {{ min(8, $propertyDistribution->count()) }} properties shown
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- SECONDARY ANALYTICS ROW: Students by College (Left) & Top Programs (Right) & Gender (Right side) --}}
+        <div class="row g-3 mb-4">
+            {{-- Chart 3: Students by College --}}
+            <div class="col-12 col-lg-5">
+                <div class="surface-card h-100">
+                    <div class="surface-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-dark"><i class="bi bi-mortarboard-fill text-success me-1.5"></i>Students by College</span>
+                            <div class="text-xs text-muted" style="font-size: 0.75rem;">Academic affiliation of resident students</div>
+                        </div>
+                        <span class="badge text-bg-light border" style="font-size: 0.72rem;">{{ $collegeDistribution->count() }} Colleges</span>
+                    </div>
+                    <div class="surface-body d-flex flex-column justify-content-between">
+                        @if($collegeDistribution->count() > 0)
+                            <div style="position: relative; height: {{ max(180, min(240, $collegeDistribution->take(8)->count() * 30 + 40)) }}px; width: 100%;">
+                                <canvas id="chartCollegeDistribution"></canvas>
+                            </div>
+                        @else
+                            <div class="text-center py-4 text-muted small">No college records match filters.</div>
+                        @endif
+                        <div class="pt-2 border-top text-xs text-muted text-end" style="font-size: 0.74rem;">
+                            De-duplicated by student
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Chart 4: Top Programs of Boarded Students --}}
+            <div class="col-12 col-lg-4">
+                <div class="surface-card h-100">
+                    <div class="surface-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-dark"><i class="bi bi-journal-text text-primary me-1.5"></i>Top Academic Programs</span>
+                            <div class="text-xs text-muted" style="font-size: 0.75rem;">Leading majors by resident students</div>
+                        </div>
+                        <span class="badge text-bg-light border" style="font-size: 0.72rem;">Top {{ min(8, $programDistribution->count()) }}</span>
+                    </div>
+                    <div class="surface-body d-flex flex-column justify-content-between">
+                        @if($programDistribution->count() > 0)
+                            <div style="position: relative; height: {{ max(180, min(240, $programDistribution->take(8)->count() * 28 + 40)) }}px; width: 100%;">
+                                <canvas id="chartProgramDistribution"></canvas>
+                            </div>
+                        @else
+                            <div class="text-center py-4 text-muted small">No program records match filters.</div>
+                        @endif
+                        <div class="pt-2 border-top text-xs text-muted text-end" style="font-size: 0.74rem;">
+                            Ranked descending
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Chart 5: Student Gender Distribution --}}
+            <div class="col-12 col-lg-3">
+                <div class="surface-card h-100">
+                    <div class="surface-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold text-dark"><i class="bi bi-gender-ambiguous text-info me-1.5"></i>Gender Distribution</span>
+                            <div class="text-xs text-muted" style="font-size: 0.75rem;">Resident demographics</div>
+                        </div>
+                        <span class="badge text-bg-light border" style="font-size: 0.72rem;">Total: {{ array_sum($genderDistribution ?? []) }}</span>
+                    </div>
+                    <div class="surface-body d-flex flex-column justify-content-between">
+                        <div style="position: relative; height: 160px; width: 100%;">
+                            <canvas id="chartGenderDonut"></canvas>
+                        </div>
+                        <div class="row g-1 pt-2 border-top text-center" style="font-size: 0.72rem;">
+                            <div class="col-4">
+                                <div class="p-1 rounded bg-light border">
+                                    <div class="text-muted">Male</div>
+                                    <div class="fw-bold text-dark">{{ $genderDistribution['male'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-1 rounded bg-light border">
+                                    <div class="text-muted">Female</div>
+                                    <div class="fw-bold text-dark">{{ $genderDistribution['female'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-1 rounded bg-light border">
+                                    <div class="text-muted">Other</div>
+                                    <div class="fw-bold text-dark">{{ $genderDistribution['unspecified'] ?? 0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- SECTION 3: DETAILED BREAKDOWN DRILL-DOWN TABLES --}}
+        <div class="mb-3">
+            <h5 class="fw-bold text-dark mb-1"><i class="bi bi-table text-success me-2"></i>Detailed Breakdown</h5>
+            <p class="text-muted small mb-0">Tabular records corresponding directly to the filtered charts above.</p>
+        </div>
+
         {{-- Distribution Tables --}}
-        <div class="row g-3 mb-3">
-            {{-- College Distribution --}}
+        <div class="row g-3 mb-4">
+            {{-- College Distribution Table --}}
             <div class="col-12 col-xl-5">
                 <div class="surface-card h-100">
                     <div class="surface-header d-flex justify-content-between align-items-center">
@@ -886,7 +1034,7 @@
                 </div>
             </div>
 
-            {{-- Program Distribution --}}
+            {{-- Program Distribution Table --}}
             <div class="col-12 col-xl-7">
                 <div class="surface-card h-100">
                     <div class="surface-header d-flex justify-content-between align-items-center">
@@ -931,7 +1079,7 @@
             </div>
         </div>
 
-        {{-- Boarding House Distribution --}}
+        {{-- Boarding House Distribution Table --}}
         <div class="surface-card">
             <div class="surface-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-buildings-fill text-success me-1.5"></i>Students by Boarding House</span>
@@ -981,6 +1129,7 @@
     @endif
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Dynamic period preset selector in history tab
@@ -1044,6 +1193,301 @@ document.addEventListener('DOMContentLoaded', function () {
             updatePrograms();
         }
     }
+
+    // Initialize Analytics Visualizations if on Analytics Tab
+    @if($isAnalyticsTab)
+        @php
+            $safeTrendData = $trendSeries ?? ['labels' => [], 'new_stays' => [], 'ended_stays' => [], 'active_boarders' => []];
+            $safeBhData = $propertyDistribution ?? [];
+            $safeCollegeData = $collegeDistribution ?? [];
+            $safeProgramData = $programDistribution ?? [];
+            $safeGenderData = $genderDistribution ?? ['male' => 0, 'female' => 0, 'unspecified' => 0];
+        @endphp
+        const trendData = {!! json_encode($safeTrendData) !!};
+        const bhData = {!! json_encode($safeBhData) !!};
+        const collegeData = {!! json_encode($safeCollegeData) !!};
+        const programData = {!! json_encode($safeProgramData) !!};
+        const genderData = {!! json_encode($safeGenderData) !!};
+
+        const colors = {
+            brand: '#166534',
+            brandLight: 'rgba(22, 101, 52, 0.12)',
+            blue: '#0284c7',
+            blueLight: 'rgba(2, 132, 199, 0.12)',
+            gray: '#64748b',
+            slate: '#94a3b8',
+        };
+
+        // 1. Boarding Trend Line Chart
+        const trendCanvas = document.getElementById('chartBoardingTrend');
+        if (trendCanvas && Array.isArray(trendData.labels) && trendData.labels.length > 0) {
+            new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: trendData.labels,
+                    datasets: [
+                        {
+                            label: 'New Stays',
+                            data: trendData.new_stays || [],
+                            borderColor: colors.brand,
+                            backgroundColor: colors.brandLight,
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                        },
+                        {
+                            label: 'Ended Stays',
+                            data: trendData.ended_stays || [],
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'transparent',
+                            borderDash: [4, 4],
+                            tension: 0.35,
+                            borderWidth: 1.5,
+                            pointRadius: 2,
+                        },
+                        {
+                            label: 'Active Boarders',
+                            data: trendData.active_boarders || [],
+                            borderColor: colors.blue,
+                            backgroundColor: 'transparent',
+                            tension: 0.35,
+                            borderWidth: 2,
+                            pointRadius: 3,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#f8fafc',
+                            padding: 8,
+                            cornerRadius: 8,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 8, color: colors.gray, font: { size: 10 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, font: { size: 10 } },
+                            grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Students by Boarding House (Horizontal Bar Chart)
+        const bhCanvas = document.getElementById('chartBhDistribution');
+        if (bhCanvas && Array.isArray(bhData) && bhData.length > 0) {
+            const topBh = bhData.slice(0, 8);
+            new Chart(bhCanvas, {
+                type: 'bar',
+                data: {
+                    labels: topBh.map(item => item.property_name),
+                    datasets: [{
+                        label: 'Unique Students',
+                        data: topBh.map(item => Number(item.total_students || 0)),
+                        backgroundColor: colors.brand,
+                        borderRadius: 4,
+                        barThickness: Math.min(22, Math.max(14, Math.floor(160 / topBh.length))),
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#f8fafc',
+                            padding: 8,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.raw} unique resident student${ctx.raw === 1 ? '' : 's'}`,
+                                afterLabel: (ctx) => {
+                                    const item = topBh[ctx.dataIndex];
+                                    return item ? `Total Stays: ${item.total_records} | Rooms: ${item.total_rooms}` : '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, font: { size: 10 } },
+                            grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#0f172a',
+                                font: { size: 11, weight: '600' },
+                                callback: function(val) {
+                                    const label = this.getLabelForValue(val);
+                                    return label.length > 20 ? label.substr(0, 18) + '…' : label;
+                                }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Students by College (Horizontal Bar Chart)
+        const collegeCanvas = document.getElementById('chartCollegeDistribution');
+        if (collegeCanvas && Array.isArray(collegeData) && collegeData.length > 0) {
+            const topColleges = collegeData.slice(0, 8);
+            new Chart(collegeCanvas, {
+                type: 'bar',
+                data: {
+                    labels: topColleges.map(item => item.college_code),
+                    datasets: [{
+                        label: 'Unique Students',
+                        data: topColleges.map(item => Number(item.total_students || 0)),
+                        backgroundColor: colors.blue,
+                        borderRadius: 4,
+                        barThickness: Math.min(22, Math.max(14, Math.floor(160 / topColleges.length))),
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#f8fafc',
+                            padding: 8,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: (items) => topColleges[items[0].dataIndex]?.college_name || items[0].label,
+                                label: (ctx) => ` ${ctx.raw} resident student${ctx.raw === 1 ? '' : 's'}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, font: { size: 10 } },
+                            grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                        },
+                        y: {
+                            ticks: { color: '#0f172a', font: { size: 11, weight: '600' } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Students by Program (Horizontal Bar Chart)
+        const programCanvas = document.getElementById('chartProgramDistribution');
+        if (programCanvas && Array.isArray(programData) && programData.length > 0) {
+            const topPrograms = programData.slice(0, 8);
+            new Chart(programCanvas, {
+                type: 'bar',
+                data: {
+                    labels: topPrograms.map(item => item.program_name),
+                    datasets: [{
+                        label: 'Unique Students',
+                        data: topPrograms.map(item => Number(item.total_students || 0)),
+                        backgroundColor: 'rgba(14, 165, 233, 0.8)',
+                        borderRadius: 4,
+                        barThickness: Math.min(20, Math.max(12, Math.floor(160 / topPrograms.length))),
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#f8fafc',
+                            padding: 8,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.raw} resident student${ctx.raw === 1 ? '' : 's'}`,
+                                afterLabel: (ctx) => `College: ${topPrograms[ctx.dataIndex]?.college_code || 'N/A'}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: colors.gray, font: { size: 10 } },
+                            grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#0f172a',
+                                font: { size: 10, weight: '600' },
+                                callback: function(val) {
+                                    const label = this.getLabelForValue(val);
+                                    return label.length > 22 ? label.substr(0, 20) + '…' : label;
+                                }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 5. Gender Distribution Donut Chart
+        const genderCanvas = document.getElementById('chartGenderDonut');
+        if (genderCanvas) {
+            const male = Number(genderData.male || 0);
+            const female = Number(genderData.female || 0);
+            const unspecified = Number(genderData.unspecified || 0);
+            const hasData = (male + female + unspecified) > 0;
+
+            new Chart(genderCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Male', 'Female', 'Other'],
+                    datasets: [{
+                        data: hasData ? [male, female, unspecified] : [1],
+                        backgroundColor: hasData ? ['#0284c7', '#ec4899', '#94a3b8'] : ['#e2e8f0'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: hasData,
+                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#f8fafc',
+                            padding: 8,
+                            cornerRadius: 8,
+                        }
+                    }
+                }
+            });
+        }
+    @endif
 });
 </script>
 @endsection

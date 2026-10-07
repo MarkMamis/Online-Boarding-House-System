@@ -645,6 +645,141 @@ class BoardingMonitoringService
     }
 
     /**
+     * Compute trend time-series (New Stays vs Ended Stays / Active Boarders) adhering to baseQuery filters.
+     *
+     * @return array{
+     *     labels: array<int, string>,
+     *     new_stays: array<int, int>,
+     *     ended_stays: array<int, int>,
+     *     active_boarders: array<int, int>
+     * }
+     */
+    public function getBoardingTrendSeries(Builder $baseQuery, ?Carbon $periodStart = null, ?Carbon $periodEnd = null): array
+    {
+        $end = $periodEnd ? $periodEnd->copy()->endOfDay() : now()->endOfDay();
+        $start = $periodStart ? $periodStart->copy()->startOfDay() : $end->copy()->subMonths(5)->startOfMonth()->startOfDay();
+
+        $diffDays = $start->diffInDays($end);
+        $labels = [];
+        $newStays = [];
+        $endedStays = [];
+        $activeSeries = [];
+
+        // Daily granularity for ranges <= 31 days, weekly for <= 90 days, monthly otherwise
+        if ($diffDays <= 31) {
+            for ($cur = $start->copy(); $cur->lte($end); $cur->addDay()) {
+                $dayStr = $cur->format('Y-m-d');
+                $labels[] = $cur->format('M d');
+
+                $newCount = (clone $baseQuery)
+                    ->whereDate('bookings.check_in', $dayStr)
+                    ->count();
+
+                $endedCount = (clone $baseQuery)
+                    ->whereNotNull('bookings.check_out')
+                    ->whereDate('bookings.check_out', $dayStr)
+                    ->count();
+
+                $activeCount = (clone $baseQuery)
+                    ->where('bookings.status', 'approved')
+                    ->whereDate('bookings.check_in', '<=', $dayStr)
+                    ->where(function (Builder $q) use ($dayStr) {
+                        $q->whereNull('bookings.check_out')
+                            ->orWhereDate('bookings.check_out', '>', $dayStr);
+                    })
+                    ->distinct('bookings.student_id')
+                    ->count('bookings.student_id');
+
+                $newStays[] = $newCount;
+                $endedStays[] = $endedCount;
+                $activeSeries[] = $activeCount;
+            }
+        } else {
+            // Monthly intervals
+            $curMonth = $start->copy()->startOfMonth();
+            $endMonth = $end->copy()->endOfMonth();
+
+            while ($curMonth->lte($endMonth)) {
+                $mStart = $curMonth->copy()->startOfDay();
+                $mEnd = $curMonth->copy()->endOfMonth()->endOfDay();
+                if ($mEnd->gt($end)) {
+                    $mEnd = $end->copy();
+                }
+
+                $labels[] = $curMonth->format('M Y');
+
+                $newCount = (clone $baseQuery)
+                    ->whereDate('bookings.check_in', '>=', $mStart->toDateString())
+                    ->whereDate('bookings.check_in', '<=', $mEnd->toDateString())
+                    ->count();
+
+                $endedCount = (clone $baseQuery)
+                    ->whereNotNull('bookings.check_out')
+                    ->whereDate('bookings.check_out', '>=', $mStart->toDateString())
+                    ->whereDate('bookings.check_out', '<=', $mEnd->toDateString())
+                    ->count();
+
+                $activeCount = (clone $baseQuery)
+                    ->where('bookings.status', 'approved')
+                    ->whereDate('bookings.check_in', '<=', $mEnd->toDateString())
+                    ->where(function (Builder $q) use ($mStart) {
+                        $q->whereNull('bookings.check_out')
+                            ->orWhereDate('bookings.check_out', '>=', $mStart->toDateString());
+                    })
+                    ->distinct('bookings.student_id')
+                    ->count('bookings.student_id');
+
+                $newStays[] = $newCount;
+                $endedStays[] = $endedCount;
+                $activeSeries[] = $activeCount;
+
+                $curMonth->addMonthNoOverflow()->startOfMonth();
+            }
+        }
+
+        return [
+            'labels' => $labels,
+            'new_stays' => $newStays,
+            'ended_stays' => $endedStays,
+            'active_boarders' => $activeSeries,
+        ];
+    }
+
+    /**
+     * Compute Gender distribution for students in the filtered dataset.
+     *
+     * @return array{male: int, female: int, unspecified: int}
+     */
+    public function getGenderDistribution(Builder $baseQuery): array
+    {
+        $genderSubquery = (clone $baseQuery)
+            ->toBase()
+            ->join('users', 'users.id', '=', 'bookings.student_id')
+            ->select(
+                'bookings.student_id',
+                DB::raw("CASE
+                    WHEN LOWER(TRIM(COALESCE(users.gender, ''))) = 'male' THEN 'male'
+                    WHEN LOWER(TRIM(COALESCE(users.gender, ''))) = 'female' THEN 'female'
+                    ELSE 'unspecified'
+                END as normalized_gender")
+            )
+            ->distinct();
+
+        $genderCounts = DB::query()
+            ->fromSub($genderSubquery, 'bg')
+            ->select('normalized_gender', DB::raw('COUNT(*) as total'))
+            ->groupBy('normalized_gender')
+            ->pluck('total', 'normalized_gender')
+            ->all();
+
+        return [
+            'male' => (int) ($genderCounts['male'] ?? 0),
+            'female' => (int) ($genderCounts['female'] ?? 0),
+            'unspecified' => (int) ($genderCounts['unspecified'] ?? 0),
+        ];
+    }
+
+    /**
      * Generate dynamic year options based on stored booking spans and current year.
      */
     public function getAvailableYears(): Collection

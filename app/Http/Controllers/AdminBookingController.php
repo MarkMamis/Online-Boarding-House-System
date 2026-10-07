@@ -238,6 +238,10 @@ class AdminBookingController extends Controller
         // Total available capacity across active properties
         $totalRoomsCount = \App\Models\Room::count();
 
+        // Trend time-series and demographic distribution computed from common baseQuery
+        $trendSeries = $monitoringService->getBoardingTrendSeries($baseQuery, $periodStart, $periodEnd);
+        $genderDistribution = $monitoringService->getGenderDistribution($baseQuery);
+
         return view('admin.boarded_students.index', compact(
             'boardedStudents',
             'search',
@@ -278,7 +282,9 @@ class AdminBookingController extends Controller
             'totalRoomsCount',
             'collegeDistribution',
             'programDistribution',
-            'propertyDistribution'
+            'propertyDistribution',
+            'trendSeries',
+            'genderDistribution'
         ));
     }
 
