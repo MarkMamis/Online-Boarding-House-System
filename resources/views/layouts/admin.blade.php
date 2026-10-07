@@ -482,6 +482,52 @@
             box-shadow: var(--admin-shadow-xs);
         }
 
+        /* ── Unified Workspace Tabs (.admin-tabs) ── */
+        .admin-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            border-bottom: 1px solid var(--admin-border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.25rem;
+            list-style: none;
+            padding-left: 0;
+        }
+        .admin-tabs .nav-link,
+        .admin-tab-link {
+            border: 1px solid var(--admin-border);
+            border-radius: 999px;
+            background: var(--admin-surface);
+            color: var(--admin-text-secondary);
+            font-size: 0.84rem;
+            font-weight: 600;
+            padding: 0.42rem 1rem;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-decoration: none;
+        }
+        .admin-tabs .nav-link:hover,
+        .admin-tab-link:hover {
+            background: var(--admin-surface-hover);
+            color: var(--admin-text);
+            border-color: rgba(15, 23, 42, 0.18);
+        }
+        .admin-tabs .nav-link.active,
+        .admin-tab-link.active {
+            background: var(--admin-primary-soft);
+            border-color: var(--admin-primary-border);
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        .admin-tabs .nav-link .badge,
+        .admin-tab-link .badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            border-radius: 999px;
+        }
+
         /* ── Unified Status Badges ── */
         .admin-status-badge,
         .sbadge {

@@ -1,372 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Boarding Monitoring · Students & Academic Reporting')
+@section('title', 'Active Boarders · Student Accommodation Monitoring')
 
 @section('content')
 <style>
-    :root {
-        --obhs-bg: #f8fafc;
-        --obhs-surface: #ffffff;
-        --obhs-surface-soft: #f8fafc;
-        --obhs-surface-tint: rgba(22, 101, 52, 0.04);
-        --obhs-border: rgba(15, 23, 42, 0.08);
-        --obhs-border-subtle: rgba(15, 23, 42, 0.04);
-        --obhs-border-focus: rgba(22, 101, 52, 0.35);
-
-        --obhs-text: #0f172a;
-        --obhs-text-secondary: #475569;
-        --obhs-text-muted: #64748b;
-        --obhs-text-faint: #94a3b8;
-
-        --obhs-green: #166534;
-        --obhs-green-dark: #14532d;
-        --obhs-green-soft: rgba(22, 101, 52, 0.08);
-        --obhs-green-border: rgba(22, 101, 52, 0.18);
-
-        --obhs-blue: #0284c7;
-        --obhs-blue-soft: rgba(2, 132, 199, 0.08);
-        --obhs-amber: #d97706;
-        --obhs-red: #dc2626;
-
-        --obhs-radius-sm: 8px;
-        --obhs-radius-md: 12px;
-        --obhs-radius-lg: 16px;
-        --obhs-radius-xl: 20px;
-
-        --obhs-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-        --obhs-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
-        --obhs-shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02);
-    }
-
-    .monitoring-shell {
-        background: var(--obhs-surface);
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-lg);
-        box-shadow: var(--obhs-shadow-md);
-        padding: 1.5rem;
-    }
-
-    .monitoring-breadcrumb {
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        color: var(--obhs-text-muted);
-        margin-bottom: 0.25rem;
-    }
-
-    .monitoring-breadcrumb a {
-        color: var(--obhs-text-muted);
-        text-decoration: none;
-        transition: color 0.15s ease;
-    }
-
-    .monitoring-breadcrumb a:hover {
-        color: var(--obhs-green);
-    }
-
-    .monitoring-title {
-        font-size: 1.65rem;
-        font-weight: 800;
-        color: var(--obhs-text);
-        letter-spacing: -0.02em;
-        line-height: 1.2;
-    }
-
-    .monitoring-subtitle {
-        font-size: 0.88rem;
-        color: var(--obhs-text-secondary);
-        margin-bottom: 0;
-    }
-
-    /* ── Metric Chips & Strip ── */
-    .metric-chip {
-        background: var(--obhs-surface-soft);
-        border: 1px solid var(--obhs-border-subtle);
-        border-radius: var(--obhs-radius-md);
-        padding: 0.9rem 1.15rem;
-        height: 100%;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .metric-chip:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--obhs-shadow-sm);
-    }
-
-    .metric-chip-label {
-        font-size: 0.76rem;
-        font-weight: 600;
-        color: var(--obhs-text-muted);
-        margin-bottom: 0.35rem;
-    }
-
-    .metric-chip-value {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: var(--obhs-text);
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-    }
-
-    .metric-chip-sub {
-        font-size: 0.75rem;
-        color: var(--obhs-text-faint);
-        margin-top: 0.3rem;
-    }
-
-    /* ── Unified Stat Strip (Analytics) ── */
-    .stat-strip-container {
-        background: var(--obhs-surface-soft);
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-lg);
-        padding: 1.15rem 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .stat-strip-item {
-        padding: 0.5rem 1rem;
-        position: relative;
-    }
-
-    .stat-strip-item:not(:last-child)::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 15%;
-        height: 70%;
-        width: 1px;
-        background: var(--obhs-border);
-    }
-
-    @media (max-width: 767.98px) {
-        .stat-strip-item:not(:last-child)::after {
-            display: none;
-        }
-        .stat-strip-item {
-            padding: 0.6rem 0.5rem;
-            border-bottom: 1px solid var(--obhs-border-subtle);
-        }
-    }
-
-    .stat-strip-number {
-        font-size: 1.85rem;
-        font-weight: 800;
-        color: var(--obhs-text);
-        line-height: 1;
-        letter-spacing: -0.03em;
-        margin-bottom: 0.3rem;
-    }
-
-    .stat-strip-title {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--obhs-text);
-        margin-bottom: 0.15rem;
-    }
-
-    .stat-strip-meta {
-        font-size: 0.75rem;
-        color: var(--obhs-text-muted);
-    }
-
-    /* ── Workspace Tabs ── */
-    .workspace-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        border-bottom: 1px solid var(--obhs-border);
-        padding-bottom: 0.75rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .workspace-tabs .nav-link {
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-sm);
-        background: var(--obhs-surface);
-        color: var(--obhs-text-secondary);
-        font-size: 0.84rem;
-        font-weight: 600;
-        padding: 0.45rem 1rem;
-        transition: all 0.15s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        text-decoration: none;
-    }
-
-    .workspace-tabs .nav-link:hover {
-        background: var(--obhs-surface-soft);
-        color: var(--obhs-text);
-        border-color: rgba(15, 23, 42, 0.15);
-    }
-
-    .workspace-tabs .nav-link.active {
-        background: var(--obhs-green-soft);
-        border-color: var(--obhs-green-border);
-        color: var(--obhs-green-dark);
-        font-weight: 700;
-    }
-
-    .workspace-tabs .nav-link .badge {
-        font-size: 0.72rem;
-        font-weight: 700;
-        border-radius: 999px;
-    }
-
-    /* ── Content Surfaces ── */
-    .surface-card {
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-lg);
-        background: var(--obhs-surface);
-        box-shadow: var(--obhs-shadow-sm);
-        overflow: hidden;
-        transition: box-shadow 0.15s ease;
-    }
-
-    .surface-card:hover {
-        box-shadow: var(--obhs-shadow-md);
-    }
-
-    .surface-card-hero {
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-xl);
-        background: linear-gradient(180deg, #ffffff 0%, #fcfdfd 100%);
-        box-shadow: var(--obhs-shadow-md);
-        padding: 1.5rem;
-    }
-
-    .surface-header-clean {
-        padding: 0 0 1rem 0;
-        border-bottom: 1px solid var(--obhs-border-subtle);
-        margin-bottom: 1.15rem;
-    }
-
-    .surface-header {
-        border-bottom: 1px solid var(--obhs-border-subtle);
-        background: var(--obhs-surface-soft);
-        padding: 0.85rem 1.15rem;
-        font-weight: 700;
-        font-size: 0.88rem;
-        color: var(--obhs-text);
-    }
-
-    .surface-body {
-        padding: 1.15rem;
-    }
-
-    /* ── Filter Toolbar ── */
-    .analytics-toolbar {
-        background: var(--obhs-surface-soft);
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-lg);
-        padding: 0.9rem 1.15rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .toolbar-field-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--obhs-text-muted);
-        margin-bottom: 0.3rem;
-        display: block;
-    }
-
-    .toolbar-select {
-        height: 44px;
-        background-color: #ffffff;
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-sm);
-        font-size: 0.86rem;
-        font-weight: 500;
-        color: var(--obhs-text);
-        padding: 0 0.85rem;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .toolbar-select:focus {
-        border-color: var(--obhs-green);
-        box-shadow: 0 0 0 3px var(--obhs-green-soft);
-        outline: none;
-    }
-
-    .btn-obhs-primary {
-        height: 44px;
-        background-color: var(--obhs-green);
-        border: 1px solid var(--obhs-green);
-        border-radius: var(--obhs-radius-sm);
-        color: #ffffff;
-        font-size: 0.86rem;
-        font-weight: 700;
-        padding: 0 1.25rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        transition: background-color 0.15s ease, border-color 0.15s ease;
-    }
-
-    .btn-obhs-primary:hover {
-        background-color: var(--obhs-green-dark);
-        border-color: var(--obhs-green-dark);
-        color: #ffffff;
-    }
-
-    .btn-obhs-subtle {
-        height: 44px;
-        background-color: #ffffff;
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-sm);
-        color: var(--obhs-text-secondary);
-        font-size: 0.86rem;
-        font-weight: 600;
-        padding: 0 1rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.15s ease;
-        text-decoration: none;
-    }
-
-    .btn-obhs-subtle:hover {
-        background-color: var(--obhs-surface-soft);
-        color: var(--obhs-text);
-        border-color: rgba(15, 23, 42, 0.15);
-    }
-
-    .filter-toolbar-box {
-        background: var(--obhs-surface-soft);
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-md);
-        padding: 0.85rem 1rem;
-        margin-bottom: 1.25rem;
-    }
-
-    .active-filters-strip {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.78rem;
-        margin-top: 0.65rem;
-        padding-top: 0.65rem;
-        border-top: 1px dashed var(--obhs-border);
-    }
-
-    .filter-pill {
-        background: #ffffff;
-        border: 1px solid var(--obhs-green-border);
-        color: var(--obhs-green-dark);
-        font-weight: 600;
-        border-radius: 999px;
-        padding: 0.18rem 0.55rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    /* ── Ranked Monitoring Items (Custom Visualizations) ── */
+    /* ── Ranked Monitoring Items (Analytics Visualizations) ── */
     .ranked-list {
         display: flex;
         flex-direction: column;
@@ -383,7 +21,7 @@
         font-size: 0.8rem;
         font-weight: 800;
         font-family: monospace;
-        color: var(--obhs-text-faint);
+        color: var(--admin-text-faint, #94a3b8);
         min-width: 24px;
     }
 
@@ -402,7 +40,7 @@
     .ranked-title {
         font-size: 0.86rem;
         font-weight: 700;
-        color: var(--obhs-text);
+        color: var(--admin-text, #0f172a);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -410,40 +48,40 @@
 
     .ranked-subtitle {
         font-size: 0.74rem;
-        color: var(--obhs-text-muted);
+        color: var(--admin-text-muted, #64748b);
     }
 
     .ranked-value {
         font-size: 0.82rem;
         font-weight: 700;
-        color: var(--obhs-text);
+        color: var(--admin-text, #0f172a);
     }
 
     .ranked-track {
         height: 6px;
-        background: var(--obhs-surface-soft);
+        background: #f1f5f9;
         border-radius: 999px;
         overflow: hidden;
-        border: 1px solid var(--obhs-border-subtle);
+        border: 1px solid rgba(15, 23, 42, 0.04);
     }
 
     .ranked-bar {
         height: 100%;
-        background: var(--obhs-green);
+        background: #166534;
         border-radius: 999px;
         transition: width 0.4s ease;
     }
 
     .ranked-bar.blue {
-        background: var(--obhs-blue);
+        background: #0284c7;
     }
 
     /* ── Segmented Tab Switcher (Detailed Breakdown) ── */
     .segmented-control {
         display: inline-flex;
-        background: var(--obhs-surface-soft);
-        border: 1px solid var(--obhs-border);
-        border-radius: var(--obhs-radius-sm);
+        background: #f1f5f9;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 8px;
         padding: 3px;
         gap: 2px;
     }
@@ -455,131 +93,62 @@
         padding: 0.35rem 0.85rem;
         font-size: 0.8rem;
         font-weight: 600;
-        color: var(--obhs-text-secondary);
+        color: #475569;
         cursor: pointer;
         transition: all 0.15s ease;
     }
 
     .segmented-btn:hover {
-        color: var(--obhs-text);
+        color: #0f172a;
     }
 
     .segmented-btn.active {
         background: #ffffff;
-        color: var(--obhs-green-dark);
+        color: #166534;
         font-weight: 700;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
 
-    /* ── Modern Table Styles ── */
-    .data-table-clean {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
+    /* ── Stat Strip Item ── */
+    .stat-strip-item {
+        padding: 0.75rem 1rem;
+        position: relative;
     }
 
-    .data-table-clean thead th {
-        font-size: 0.74rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--obhs-text-muted);
-        background: var(--obhs-surface-soft);
-        border-bottom: 1px solid var(--obhs-border);
-        padding: 0.85rem 1rem;
-        white-space: nowrap;
+    .stat-strip-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 15%;
+        height: 70%;
+        width: 1px;
+        background: rgba(15, 23, 42, 0.08);
     }
 
-    .data-table-clean tbody tr {
-        transition: background-color 0.12s ease;
-    }
-
-    .data-table-clean tbody tr:hover {
-        background-color: var(--obhs-surface-soft);
-    }
-
-    .data-table-clean tbody td {
-        padding: 0.85rem 1rem;
-        font-size: 0.86rem;
-        vertical-align: middle;
-        border-bottom: 1px solid var(--obhs-border-subtle);
-        color: var(--obhs-text);
-    }
-
-    .data-table-clean tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .table thead th {
-        font-size: 0.74rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--obhs-text-muted);
-        background: var(--obhs-surface-soft);
-        border-bottom: 1px solid var(--obhs-border);
-        padding: 0.75rem 0.95rem;
-        white-space: nowrap;
-    }
-
-    .table tbody td {
-        padding: 0.75rem 0.95rem;
-        font-size: 0.86rem;
-        vertical-align: middle;
-    }
-
-    .avatar-circle {
-        width: 34px;
-        height: 34px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--obhs-green-soft);
-        border: 1px solid var(--obhs-green-border);
-        color: var(--obhs-green-dark);
-        font-weight: 700;
-        font-size: 0.82rem;
-        flex-shrink: 0;
-    }
-
-    .monitoring-status {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 0.22rem 0.6rem;
-        font-size: 0.74rem;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .status-active { background: #dcfce7; color: #166534; border: 1px solid rgba(22, 101, 52, 0.22); }
-    .status-checked_out { background: #f1f5f9; color: #475569; border: 1px solid rgba(71, 85, 105, 0.22); }
-    .status-pending { background: #fef3c7; color: #92400e; border: 1px solid rgba(146, 64, 14, 0.22); }
-    .status-cancelled { background: #fee2e2; color: #991b1b; border: 1px solid rgba(153, 27, 27, 0.22); }
-
-    .empty-state-compact {
-        padding: 2.5rem 1rem;
-        text-align: center;
-        color: var(--obhs-text-muted);
-    }
-
-    .insight-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        background: var(--obhs-green-soft);
-        color: var(--obhs-green-dark);
-        font-size: 0.76rem;
-        font-weight: 600;
-        padding: 0.25rem 0.65rem;
-        border-radius: var(--obhs-radius-sm);
-        border: 1px solid var(--obhs-green-border);
-    }
-
-    @media (max-width: 575.98px) {
-        .monitoring-shell {
-            padding: 1rem;
+    @media (max-width: 767.98px) {
+        .stat-strip-item:not(:last-child)::after {
+            display: none;
         }
+    }
+
+    .stat-strip-number {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-strip-title {
+        font-size: 0.84rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.1rem;
+    }
+
+    .stat-strip-meta {
+        font-size: 0.74rem;
+        color: #64748b;
     }
 </style>
 
@@ -611,7 +180,7 @@
         ]"
     >
         <x-slot name="actions">
-            <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-secondary" title="View raw transactional bookings">
+            <a href="{{ route('admin.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="View raw transactional bookings">
                 <i class="bi bi-journal-check me-1"></i>All Bookings
             </a>
         </x-slot>
@@ -622,7 +191,7 @@
         <li class="nav-item" role="presentation">
             <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'current']) }}" class="nav-link {{ $isCurrentTab ? 'active' : '' }}" id="tab-current-link">
                 <i class="bi bi-person-check me-1"></i>Current Boarders
-                <span class="badge {{ $isCurrentTab ? 'bg-white text-dark' : 'bg-success-subtle text-success' }} ms-1">{{ $currentBoardersCount }}</span>
+                <span class="badge {{ $isCurrentTab ? 'bg-success text-white' : 'bg-light text-dark border' }} ms-1">{{ $currentBoardersCount }}</span>
             </a>
         </li>
         <li class="nav-item" role="presentation">
@@ -641,54 +210,60 @@
     {{-- PART A: CURRENT BOARDERS TAB --}}
     {{-- ========================================================================= --}}
     @if($isCurrentTab)
-        {{-- Compact Metrics Bar --}}
-        <div class="row g-2 mb-3">
+        {{-- KPI Metrics Row (Aligned with Boarding Houses design) --}}
+        <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Active Students</div>
-                    <div class="metric-chip-value">{{ number_format($activeTenants) }}</div>
-                    <div class="metric-chip-sub">Currently occupying</div>
-                </div>
+                <x-admin.metric-card
+                    label="Active Students"
+                    :value="number_format($activeTenants)"
+                    icon="bi-people-fill"
+                    variant="brand"
+                    subtext="Currently occupying"
+                />
             </div>
             <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Active Properties</div>
-                    <div class="metric-chip-value">{{ number_format($activeProperties) }}</div>
-                    <div class="metric-chip-sub">Houses with tenants</div>
-                </div>
+                <x-admin.metric-card
+                    label="Active Properties"
+                    :value="number_format($activeProperties)"
+                    icon="bi-buildings"
+                    variant="neutral"
+                    subtext="Houses with tenants"
+                />
             </div>
             <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Occupied Rooms</div>
-                    <div class="metric-chip-value">{{ number_format($activeRooms) }}</div>
-                    <div class="metric-chip-sub">Rooms in active use</div>
-                </div>
+                <x-admin.metric-card
+                    label="Occupied Rooms"
+                    :value="number_format($activeRooms)"
+                    icon="bi-door-closed-fill"
+                    variant="neutral"
+                    subtext="Rooms in active use"
+                />
             </div>
             <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Available Capacity</div>
-                    <div class="metric-chip-value fs-5 text-success">{{ max(0, $totalRoomsCount - $activeRooms) }} rooms</div>
-                    <div class="metric-chip-sub">Open for student placement</div>
-                </div>
+                <x-admin.metric-card
+                    label="Available Capacity"
+                    :value="number_format(max(0, $totalRoomsCount - $activeRooms)) . ' rooms'"
+                    icon="bi-door-open"
+                    variant="neutral"
+                    subtext="Open for student placement"
+                />
             </div>
         </div>
 
         {{-- Primary Filter Toolbar --}}
-        <div class="filter-toolbar-box">
-            <form method="GET" action="{{ route('admin.boarding_monitoring.students') }}" class="row g-2 align-items-end">
+        <div class="admin-toolbar mb-4">
+            <form method="GET" action="{{ route('admin.boarding_monitoring.students') }}" class="row g-2 align-items-center">
                 <input type="hidden" name="tab" value="current">
 
-                <div class="col-12 col-md-5 col-xl-5">
-                    <label class="form-label small fw-bold text-muted mb-1">Search Boarder</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                        <input type="text" class="form-control" name="search" value="{{ $search }}" placeholder="Student name, student ID, room...">
+                <div class="col-12 col-md-5 col-lg-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" name="search" value="{{ $search }}" placeholder="Search by student name, ID, room...">
                     </div>
                 </div>
 
-                <div class="col-12 col-md-4 col-xl-3">
-                    <label class="form-label small fw-bold text-muted mb-1">Boarding House</label>
-                    <select name="boarding_house" class="form-select form-select-sm">
+                <div class="col-12 col-md-4 col-lg-3">
+                    <select name="boarding_house" class="form-select" onchange="this.form.submit()">
                         <option value="">All Boarding Houses</option>
                         @foreach($boardingHouses as $bh)
                             <option value="{{ $bh->id }}" @selected((string) $boardingHouse === (string) $bh->id)>{{ $bh->name }}</option>
@@ -696,9 +271,8 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-3 col-xl-2">
-                    <label class="form-label small fw-bold text-muted mb-1">College</label>
-                    <select name="college" class="form-select form-select-sm">
+                <div class="col-12 col-md-3 col-lg-2">
+                    <select name="college" class="form-select" onchange="this.form.submit()">
                         <option value="">All Colleges</option>
                         @foreach($colleges as $c)
                             <option value="{{ $c['code'] }}" @selected($college === $c['code'])>{{ $c['code'] }}</option>
@@ -706,27 +280,32 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-12 col-xl-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 flex-fill">
+                <div class="col-12 col-md-12 col-lg-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-brand flex-fill">
                         <i class="bi bi-funnel me-1"></i>Filter
                     </button>
                     @if(filled($search) || filled($boardingHouse) || filled($college))
-                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'current']) }}" class="btn btn-sm btn-outline-secondary rounded-pill">Reset</a>
+                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'current']) }}" class="btn btn-action-icon" title="Reset Filters">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
                     @endif
                 </div>
             </form>
         </div>
 
         {{-- Current Boarders Table --}}
-        <div class="surface-card">
-            <div class="surface-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-person-check me-1.5 text-success"></i>Current Active Boarders</span>
-                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">{{ $boardedStudents->total() }} active</span>
+        <div class="admin-table-card">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+                <div class="fw-semibold text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-person-check text-success fs-5"></i>
+                    <span>Current Active Boarders</span>
+                </div>
+                <span class="badge bg-secondary rounded-pill px-3">{{ $boardedStudents->total() }} active</span>
             </div>
 
             @if($boardedStudents->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table admin-table mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-3">Student</th>
@@ -742,47 +321,46 @@
                                 <tr>
                                     <td class="ps-3">
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="avatar-circle">{{ strtoupper(substr($boarding->student?->full_name ?? $boarding->student?->name ?? 'U', 0, 1)) }}</span>
-                                            <div class="min-w-0">
-                                                <a href="{{ $boarding->student ? route('admin.users.students.show', $boarding->student->id) : '#' }}" class="fw-bold text-dark text-decoration-none hover-success">
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-bold" style="width: 36px; height: 36px; font-size: 0.84rem;">
+                                                {{ strtoupper(substr($boarding->student?->full_name ?? $boarding->student?->name ?? 'U', 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <a href="{{ $boarding->student ? route('admin.users.students.show', $boarding->student->id) : '#' }}" class="fw-semibold text-dark text-decoration-none">
                                                     {{ $boarding->student?->full_name ?? $boarding->student?->name ?? 'Unknown Student' }}
                                                 </a>
                                                 <div class="small text-muted">
-                                                    @if(!empty($boarding->student?->student_id))
-                                                        <span class="font-monospace">{{ $boarding->student->student_id }}</span> •
-                                                    @endif
-                                                    {{ $boarding->student?->email ?? 'No email' }}
+                                                    {{ $boarding->student?->student_id ?: 'No Student ID' }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
                                         @if($boarding->room?->property)
-                                            <a href="{{ route('admin.properties.show', $boarding->room->property->id) }}" class="fw-semibold text-dark text-decoration-none hover-success">
+                                            <a href="{{ route('admin.properties.show', $boarding->room->property->id) }}" class="fw-semibold text-dark text-decoration-none">
                                                 {{ $boarding->room->property->name }}
                                             </a>
                                         @else
                                             <span class="fw-semibold text-dark">N/A</span>
                                         @endif
-                                        <div class="small text-muted">
+                                        <div class="small text-muted mt-0.5">
                                             <span class="badge bg-light text-dark border">Room {{ $boarding->room?->room_number ?? $boarding->room_id }}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-dark border">{{ $boarding->student?->college ?: 'Unspecified College' }}</span>
-                                        <div class="small text-muted text-truncate" style="max-width: 200px;">{{ $boarding->student?->program ?: 'Unspecified Program' }}</div>
+                                        <div><span class="badge bg-light text-dark border">{{ $boarding->student?->college ?: 'Unspecified College' }}</span></div>
+                                        <div class="small text-muted mt-0.5" title="{{ $boarding->student?->program }}">{{ $boarding->student?->program ?: 'Unspecified Program' }}</div>
                                     </td>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ $boarding->check_in ? $boarding->check_in->format('M d, Y') : 'N/A' }}</div>
-                                        <div class="small text-muted">Check-out: {{ $boarding->check_out ? $boarding->check_out->format('M d, Y') : 'Open' }}</div>
+                                        <div class="fw-medium text-dark">{{ $boarding->check_in ? $boarding->check_in->format('M d, Y') : 'N/A' }}</div>
+                                        <div class="small text-muted">{{ $boarding->check_out ? 'Exp: ' . $boarding->check_out->format('M d, Y') : 'Open stay' }}</div>
                                     </td>
                                     <td>
-                                        <span class="monitoring-status status-active">Active</span>
+                                        <x-admin.status-badge status="active" label="Active" />
                                     </td>
                                     <td class="pe-3 text-end">
                                         @if($boarding->student)
-                                            <a href="{{ route('admin.users.students.show', $boarding->student->id) }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                                                <i class="bi bi-person me-1"></i>View
+                                            <a href="{{ route('admin.users.students.show', $boarding->student->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                                <i class="bi bi-eye me-1"></i>View
                                             </a>
                                         @endif
                                     </td>
@@ -793,19 +371,21 @@
                 </div>
 
                 @if($boardedStudents->hasPages())
-                    <div class="p-3 border-top d-flex justify-content-between align-items-center">
-                        <span class="small text-muted">Showing {{ $boardedStudents->firstItem() }} to {{ $boardedStudents->lastItem() }} of {{ $boardedStudents->total() }} results</span>
+                    <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span class="small text-muted">Showing {{ $boardedStudents->firstItem() }} to {{ $boardedStudents->lastItem() }} of {{ $boardedStudents->total() }} records</span>
                         <div>{{ $boardedStudents->links() }}</div>
                     </div>
                 @endif
             @else
-                <div class="empty-state-compact">
-                    <i class="bi bi-person-x fs-2 text-secondary mb-2 d-block"></i>
-                    <h6 class="fw-bold text-dark mb-1">No students are currently boarding.</h6>
-                    <p class="small text-muted mb-3">There are {{ number_format($totalRecords) }} historical stay records available in the system archive.</p>
-                    <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'history']) }}" class="btn btn-sm btn-success rounded-pill px-3">
-                        <i class="bi bi-clock-history me-1"></i>View Stay History &amp; Reports
-                    </a>
+                <div class="p-0">
+                    <x-admin.empty-state
+                        title="No students are currently boarding."
+                        description="There are {{ number_format($totalRecords) }} historical stay records available in the system archive."
+                        icon="bi-person-x"
+                        action-text="View Stay History"
+                        :action-url="route('admin.boarding_monitoring.students', ['tab' => 'history'])"
+                        action-icon="bi-clock-history"
+                    />
                 </div>
             @endif
         </div>
@@ -814,23 +394,61 @@
     {{-- PART B: STAY HISTORY & REPORTS TAB --}}
     {{-- ========================================================================= --}}
     @elseif($isHistoryTab)
+        {{-- KPI Metrics Row --}}
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <x-admin.metric-card
+                    label="Unique Students"
+                    :value="number_format($uniqueStudents)"
+                    icon="bi-people"
+                    variant="brand"
+                    subtext="De-duplicated headcounts"
+                />
+            </div>
+            <div class="col-6 col-md-3">
+                <x-admin.metric-card
+                    label="Stay Records"
+                    :value="number_format($totalRecords)"
+                    icon="bi-collection"
+                    variant="neutral"
+                    subtext="Total matching stays"
+                />
+            </div>
+            <div class="col-6 col-md-3">
+                <x-admin.metric-card
+                    label="Active / Checked Out"
+                    :value="number_format($activeTenants) . ' / ' . number_format($checkedOutTenants)"
+                    icon="bi-arrow-left-right"
+                    variant="neutral"
+                    subtext="Active vs checked out"
+                />
+            </div>
+            <div class="col-6 col-md-3">
+                <x-admin.metric-card
+                    label="Houses &amp; Rooms"
+                    :value="number_format($representedProperties) . ' / ' . number_format($representedRooms)"
+                    icon="bi-building"
+                    variant="neutral"
+                    subtext="Represented in filter"
+                />
+            </div>
+        </div>
+
         {{-- Primary Filter Toolbar --}}
-        <div class="filter-toolbar-box">
+        <div class="admin-toolbar mb-4">
             <form method="GET" action="{{ route('admin.boarding_monitoring.students') }}" id="historyFilterForm">
                 <input type="hidden" name="tab" value="history">
 
-                <div class="row g-2 align-items-end">
+                <div class="row g-2 align-items-center">
                     <div class="col-12 col-md-4 col-xl-3">
-                        <label class="form-label small fw-bold text-muted mb-1">Search</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" class="form-control" name="search" value="{{ $search }}" placeholder="Student, ID, room...">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" name="search" value="{{ $search }}" placeholder="Student, ID, room...">
                         </div>
                     </div>
 
                     <div class="col-12 col-md-4 col-xl-3">
-                        <label class="form-label small fw-bold text-muted mb-1">Boarding House</label>
-                        <select name="boarding_house" class="form-select form-select-sm">
+                        <select name="boarding_house" class="form-select" onchange="this.form.submit()">
                             <option value="">All Boarding Houses</option>
                             @foreach($boardingHouses as $bh)
                                 <option value="{{ $bh->id }}" @selected((string) $boardingHouse === (string) $bh->id)>{{ $bh->name }}</option>
@@ -838,9 +456,8 @@
                         </select>
                     </div>
 
-                    <div class="col-6 col-md-4 col-xl-2">
-                        <label class="form-label small fw-bold text-muted mb-1">Status</label>
-                        <select name="status" class="form-select form-select-sm">
+                    <div class="col-6 col-md-2 col-xl-2">
+                        <select name="status" class="form-select" onchange="this.form.submit()">
                             <option value="all" @selected($statusFilter === 'all')>All Statuses</option>
                             <option value="active" @selected($statusFilter === 'active')>Active / Present</option>
                             <option value="checked_out" @selected($statusFilter === 'checked_out')>Checked Out</option>
@@ -849,9 +466,8 @@
                         </select>
                     </div>
 
-                    <div class="col-6 col-md-4 col-xl-2">
-                        <label class="form-label small fw-bold text-muted mb-1">Reporting Period</label>
-                        <select name="period_preset" id="periodPresetSelect" class="form-select form-select-sm">
+                    <div class="col-6 col-md-2 col-xl-2">
+                        <select name="period_preset" id="periodPresetSelect" class="form-select">
                             <option value="all" @selected($periodPreset === 'all')>All Time</option>
                             <option value="this_month" @selected($periodPreset === 'this_month')>This Month</option>
                             <option value="last_month" @selected($periodPreset === 'last_month')>Last Month</option>
@@ -860,13 +476,18 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-8 col-xl-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 flex-fill">
+                    <div class="col-12 col-md-12 col-xl-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-brand flex-fill">
                             <i class="bi bi-funnel me-1"></i>Apply
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-toggle="collapse" data-bs-target="#advancedFiltersCollapse" aria-expanded="false" title="Toggle advanced academic and date basis filters">
+                        <button type="button" class="btn btn-action-icon" data-bs-toggle="collapse" data-bs-target="#advancedFiltersCollapse" aria-expanded="false" title="Toggle advanced academic and date basis filters">
                             <i class="bi bi-sliders"></i>
                         </button>
+                        @if($activeFilterCount > 0)
+                            <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'history']) }}" class="btn btn-action-icon" title="Reset Filters">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        @endif
                     </div>
                 </div>
 
@@ -874,7 +495,7 @@
                 <div id="specificMonthControls" class="row g-2 mt-2 pt-2 border-top {{ $periodPreset === 'specific_month' ? '' : 'd-none' }}">
                     <div class="col-6 col-md-3 col-xl-2">
                         <label class="form-label small text-muted fw-bold mb-1">Month</label>
-                        <select name="month" class="form-select form-select-sm">
+                        <select name="month" class="form-select">
                             <option value="">Select Month</option>
                             @foreach(range(1, 12) as $m)
                                 <option value="{{ $m }}" @selected((int) $month === $m)>{{ date('F', mktime(0, 0, 0, $m, 1)) }}</option>
@@ -883,7 +504,7 @@
                     </div>
                     <div class="col-6 col-md-3 col-xl-2">
                         <label class="form-label small text-muted fw-bold mb-1">Year</label>
-                        <select name="year" class="form-select form-select-sm">
+                        <select name="year" class="form-select">
                             @foreach($years as $y)
                                 <option value="{{ $y }}" @selected((int) $year === (int) $y)>{{ $y }}</option>
                             @endforeach
@@ -894,11 +515,11 @@
                 <div id="customDateControls" class="row g-2 mt-2 pt-2 border-top {{ $periodPreset === 'custom' ? '' : 'd-none' }}">
                     <div class="col-6 col-md-3">
                         <label class="form-label small text-muted fw-bold mb-1">Date From</label>
-                        <input type="date" class="form-control form-control-sm" name="date_from" value="{{ $dateFrom }}">
+                        <input type="date" class="form-control" name="date_from" value="{{ $dateFrom }}">
                     </div>
                     <div class="col-6 col-md-3">
                         <label class="form-label small text-muted fw-bold mb-1">Date To</label>
-                        <input type="date" class="form-control form-control-sm" name="date_to" value="{{ $dateTo }}">
+                        <input type="date" class="form-control" name="date_to" value="{{ $dateTo }}">
                     </div>
                 </div>
 
@@ -907,7 +528,7 @@
                     <div class="row g-2">
                         <div class="col-12 col-md-4">
                             <label class="form-label small fw-bold text-muted mb-1">College</label>
-                            <select name="college" id="collegeSelect" class="form-select form-select-sm">
+                            <select name="college" id="collegeSelect" class="form-select">
                                 <option value="">All Colleges</option>
                                 @foreach($colleges as $c)
                                     <option value="{{ $c['code'] }}" @selected($college === $c['code'])>{{ $c['code'] }} — {{ $c['name'] }}</option>
@@ -916,7 +537,7 @@
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label small fw-bold text-muted mb-1">Academic Program</label>
-                            <select name="program" id="programSelect" class="form-select form-select-sm">
+                            <select name="program" id="programSelect" class="form-select">
                                 <option value="">All Programs</option>
                                 @foreach($programs as $prog)
                                     <option value="{{ $prog }}" @selected($program === $prog)>{{ $prog }}</option>
@@ -925,96 +546,32 @@
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label small fw-bold text-muted mb-1">Date Basis</label>
-                            <select name="date_basis" class="form-select form-select-sm">
+                            <select name="date_basis" class="form-select">
                                 <option value="stay" @selected($dateBasis === 'stay')>Stay Overlap (Physical Occupancy)</option>
                                 <option value="check_in" @selected($dateBasis === 'check_in')>Started Boarding (Check-in Date)</option>
                             </select>
-                            <div class="form-text" style="font-size: 0.72rem;">
-                                {{ $dateBasis === 'check_in' ? 'Counts stays that began during the period.' : 'Counts any student occupying during the period.' }}
-                            </div>
                         </div>
                     </div>
                 </div>
-
-                {{-- Active Filter Tags --}}
-                @if($activeFilterCount > 0)
-                    <div class="active-filters-strip">
-                        <span class="text-muted fw-bold me-1">Active filters:</span>
-                        @if(filled($search))
-                            <span class="filter-pill"><i class="bi bi-search"></i>"{{ $search }}"</span>
-                        @endif
-                        @if($selectedProperty)
-                            <span class="filter-pill"><i class="bi bi-building"></i>{{ $selectedProperty->name }}</span>
-                        @endif
-                        @if($statusFilter !== 'all')
-                            <span class="filter-pill"><i class="bi bi-tag"></i>{{ ucfirst(str_replace('_', ' ', $statusFilter)) }}</span>
-                        @endif
-                        @if($periodLabel)
-                            <span class="filter-pill"><i class="bi bi-calendar"></i>{{ $periodLabel }}</span>
-                        @endif
-                        @if(filled($college))
-                            <span class="filter-pill"><i class="bi bi-mortarboard"></i>{{ $college }}</span>
-                        @endif
-                        @if(filled($program))
-                            <span class="filter-pill">{{ $program }}</span>
-                        @endif
-                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'history']) }}" class="text-danger small ms-auto text-decoration-none fw-bold">
-                            <i class="bi bi-x-circle me-1"></i>Clear All
-                        </a>
-                    </div>
-                @endif
             </form>
         </div>
 
-        {{-- Compact Metrics Bar (History & Reporting Context) --}}
-        <div class="row g-2 mb-3">
-            <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Unique Students</div>
-                    <div class="metric-chip-value">{{ number_format($uniqueStudents) }}</div>
-                    <div class="metric-chip-sub">De-duplicated headcounts</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Stay Records</div>
-                    <div class="metric-chip-value">{{ number_format($totalRecords) }}</div>
-                    <div class="metric-chip-sub">Total matching stays</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Active / Checked Out</div>
-                    <div class="metric-chip-value fs-5">{{ number_format($activeTenants) }} / {{ number_format($checkedOutTenants) }}</div>
-                    <div class="metric-chip-sub">Active vs checked out</div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="metric-chip">
-                    <div class="metric-chip-label">Houses &amp; Rooms</div>
-                    <div class="metric-chip-value fs-5">{{ number_format($representedProperties) }} / {{ number_format($representedRooms) }}</div>
-                    <div class="metric-chip-sub">Represented in filter</div>
-                </div>
-            </div>
-        </div>
-
         {{-- Stay Records Table --}}
-        <div class="surface-card">
-            <div class="surface-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <div>
-                    <span><i class="bi bi-table me-1.5 text-success"></i>Stay Records</span>
-                    <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">{{ $boardedStudents->total() }} records</span>
+        <div class="admin-table-card">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 border-bottom bg-light gap-2">
+                <div class="fw-semibold text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history text-success fs-5"></i>
+                    <span>Stay Records</span>
+                    <span class="badge bg-secondary rounded-pill px-3">{{ $boardedStudents->total() }} records</span>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('admin.boarding_monitoring.students.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
-                        <i class="bi bi-printer me-1"></i>Print Report
-                    </a>
-                </div>
+                <a href="{{ route('admin.boarding_monitoring.students.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-brand rounded-pill px-3">
+                    <i class="bi bi-printer me-1"></i>Print Report
+                </a>
             </div>
 
             @if($boardedStudents->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table admin-table mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-3">Student</th>
@@ -1039,45 +596,44 @@
                                 <tr>
                                     <td class="ps-3">
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="avatar-circle">{{ strtoupper(substr($boarding->student?->full_name ?? $boarding->student?->name ?? 'U', 0, 1)) }}</span>
-                                            <div class="min-w-0">
-                                                <a href="{{ $boarding->student ? route('admin.users.students.show', $boarding->student->id) : '#' }}" class="fw-bold text-dark text-decoration-none hover-success">
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary fw-bold" style="width: 36px; height: 36px; font-size: 0.84rem;">
+                                                {{ strtoupper(substr($boarding->student?->full_name ?? $boarding->student?->name ?? 'U', 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <a href="{{ $boarding->student ? route('admin.users.students.show', $boarding->student->id) : '#' }}" class="fw-semibold text-dark text-decoration-none">
                                                     {{ $boarding->student?->full_name ?? $boarding->student?->name ?? 'Unknown Student' }}
                                                 </a>
                                                 <div class="small text-muted">
-                                                    @if(!empty($boarding->student?->student_id))
-                                                        <span class="font-monospace">{{ $boarding->student->student_id }}</span> •
-                                                    @endif
-                                                    {{ $boarding->student?->email ?? 'No email' }}
+                                                    {{ $boarding->student?->student_id ?: 'No Student ID' }}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
                                         @if($boarding->room?->property)
-                                            <a href="{{ route('admin.properties.show', $boarding->room->property->id) }}" class="fw-semibold text-dark text-decoration-none hover-success">
+                                            <a href="{{ route('admin.properties.show', $boarding->room->property->id) }}" class="fw-semibold text-dark text-decoration-none">
                                                 {{ $boarding->room->property->name }}
                                             </a>
                                         @else
                                             <span class="fw-semibold text-dark">N/A</span>
                                         @endif
-                                        <div class="small text-muted">
+                                        <div class="small text-muted mt-0.5">
                                             <span class="badge bg-light text-dark border">Room {{ $boarding->room?->room_number ?? $boarding->room_id }}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-dark border">{{ $boarding->student?->college ?: 'Unspecified' }}</span>
-                                        <div class="small text-muted text-truncate" style="max-width: 180px;">{{ $boarding->student?->program ?: 'Unspecified' }}</div>
+                                        <div><span class="badge bg-light text-dark border">{{ $boarding->student?->college ?: 'Unspecified' }}</span></div>
+                                        <div class="small text-muted mt-0.5" title="{{ $boarding->student?->program }}">{{ $boarding->student?->program ?: 'Unspecified' }}</div>
                                     </td>
-                                    <td>{{ $boarding->check_in ? $boarding->check_in->format('M d, Y') : 'N/A' }}</td>
-                                    <td>{{ $boarding->check_out ? $boarding->check_out->format('M d, Y') : 'Open-ended' }}</td>
+                                    <td><div class="fw-medium text-dark">{{ $boarding->check_in ? $boarding->check_in->format('M d, Y') : 'N/A' }}</div></td>
+                                    <td><div class="small text-muted">{{ $boarding->check_out ? $boarding->check_out->format('M d, Y') : 'Open-ended' }}</div></td>
                                     <td>
-                                        <span class="monitoring-status status-{{ $monitoringStatus }}">{{ $monitoringStatusLabel }}</span>
+                                        <x-admin.status-badge :status="$monitoringStatus" :label="$monitoringStatusLabel" />
                                     </td>
                                     <td class="pe-3 text-end">
                                         @if($boarding->student)
-                                            <a href="{{ route('admin.users.students.show', $boarding->student->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-0.5">
-                                                <i class="bi bi-person me-1"></i>Profile
+                                            <a href="{{ route('admin.users.students.show', $boarding->student->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                                <i class="bi bi-eye me-1"></i>View
                                             </a>
                                         @endif
                                     </td>
@@ -1088,19 +644,18 @@
                 </div>
 
                 @if($boardedStudents->hasPages())
-                    <div class="p-3 border-top d-flex justify-content-between align-items-center">
-                        <span class="small text-muted">Showing {{ $boardedStudents->firstItem() }} to {{ $boardedStudents->lastItem() }} of {{ $boardedStudents->total() }} results</span>
+                    <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span class="small text-muted">Showing {{ $boardedStudents->firstItem() }} to {{ $boardedStudents->lastItem() }} of {{ $boardedStudents->total() }} records</span>
                         <div>{{ $boardedStudents->links() }}</div>
                     </div>
                 @endif
             @else
-                <div class="empty-state-compact">
-                    <i class="bi bi-inbox fs-2 text-secondary mb-2 d-block"></i>
-                    <h6 class="fw-bold text-dark mb-1">No stay records match the selected filters.</h6>
-                    <p class="small text-muted mb-3">Try adjusting your reporting period, boarding house, or status filters.</p>
-                    <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'history']) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-                        <i class="bi bi-x-circle me-1"></i>Reset All Filters
-                    </a>
+                <div class="p-0">
+                    <x-admin.empty-state
+                        title="No stay records found"
+                        description="No stay records match the selected reporting filters. Try adjusting your filter settings."
+                        icon="bi-inbox"
+                    />
                 </div>
             @endif
         </div>
@@ -1109,14 +664,13 @@
     {{-- PART C: ANALYTICS TAB --}}
     {{-- ========================================================================= --}}
     @elseif($isAnalyticsTab)
-        {{-- 1. Analytics Filter Toolbar (Unified Surface) --}}
-        <div class="analytics-toolbar">
-            <form method="GET" action="{{ route('admin.boarding_monitoring.students') }}" class="row g-2 align-items-end">
+        {{-- Analytics Filter Toolbar --}}
+        <div class="admin-toolbar mb-4">
+            <form method="GET" action="{{ route('admin.boarding_monitoring.students') }}" class="row g-2 align-items-center">
                 <input type="hidden" name="tab" value="analytics">
 
                 <div class="col-12 col-md-4 col-xl-4">
-                    <span class="toolbar-field-label">Boarding House</span>
-                    <select name="boarding_house" class="form-select toolbar-select w-100">
+                    <select name="boarding_house" class="form-select" onchange="this.form.submit()">
                         <option value="">All Boarding Houses</option>
                         @foreach($boardingHouses as $bh)
                             <option value="{{ $bh->id }}" @selected((string) $boardingHouse === (string) $bh->id)>{{ $bh->name }}</option>
@@ -1125,8 +679,7 @@
                 </div>
 
                 <div class="col-12 col-md-4 col-xl-3">
-                    <span class="toolbar-field-label">College</span>
-                    <select name="college" class="form-select toolbar-select w-100">
+                    <select name="college" class="form-select" onchange="this.form.submit()">
                         <option value="">All Colleges</option>
                         @foreach($colleges as $c)
                             <option value="{{ $c['code'] }}" @selected($college === $c['code'])>{{ $c['code'] }} — {{ $c['name'] }}</option>
@@ -1135,8 +688,7 @@
                 </div>
 
                 <div class="col-12 col-md-4 col-xl-3">
-                    <span class="toolbar-field-label">Period Preset</span>
-                    <select name="period_preset" class="form-select toolbar-select w-100">
+                    <select name="period_preset" class="form-select" onchange="this.form.submit()">
                         <option value="all" @selected($periodPreset === 'all')>All Time</option>
                         <option value="this_month" @selected($periodPreset === 'this_month')>This Month</option>
                         <option value="last_month" @selected($periodPreset === 'last_month')>Last Month</option>
@@ -1144,20 +696,20 @@
                 </div>
 
                 <div class="col-12 col-md-12 col-xl-2 d-flex gap-2">
-                    <button type="submit" class="btn-obhs-primary flex-fill">
-                        <i class="bi bi-funnel"></i>Apply
+                    <button type="submit" class="btn btn-brand flex-fill">
+                        <i class="bi bi-funnel me-1"></i>Apply
                     </button>
                     @if(filled($boardingHouse) || filled($college) || $periodPreset !== 'all')
-                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics']) }}" class="btn-obhs-subtle" title="Reset Filters">
-                            <i class="bi bi-x-lg"></i>
+                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics']) }}" class="btn btn-action-icon" title="Reset Filters">
+                            <i class="bi bi-arrow-counterclockwise"></i>
                         </a>
                     @endif
                 </div>
             </form>
         </div>
 
-        {{-- 2. Unified Statistic Strip (KPIs) --}}
-        <div class="stat-strip-container">
+        {{-- KPI Stat Strip --}}
+        <div class="admin-table-card p-3 mb-4">
             <div class="row g-0 align-items-center">
                 <div class="col-6 col-md-3 stat-strip-item">
                     <div class="stat-strip-number text-success">{{ number_format($uniqueStudents) }}</div>
@@ -1182,18 +734,16 @@
             </div>
         </div>
 
-        {{-- 3. PRIMARY ANALYTICS HERO: Student Boarding Trend (Large Area/Line Visualization) --}}
-        <div class="surface-card-hero mb-4">
+        {{-- Primary Analytics Trend Card --}}
+        <div class="admin-table-card p-4 mb-4">
             <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-3">
                 <div>
                     <h5 class="fw-bold text-dark mb-0" style="font-size: 1.15rem; letter-spacing: -0.01em;">Student Boarding Trend</h5>
                     <p class="text-secondary small mb-0 mt-0.5">Track new stay registrations, move-outs, and active resident population across reporting periods.</p>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="insight-badge">
-                        <i class="bi bi-clock-history"></i>{{ $periodLabel ?: 'All Time' }}
-                    </span>
-                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold">
+                    <i class="bi bi-clock-history me-1"></i>{{ $periodLabel ?: 'All Time' }}
+                </span>
             </div>
 
             <div style="position: relative; height: 260px; width: 100%;">
@@ -1223,17 +773,16 @@
             </div>
         </div>
 
-        {{-- 4. SECONDARY DATA GRID: Distribution by Boarding House (Left) & Resident Demographics (Right) --}}
+        {{-- Distribution by Boarding House & Gender --}}
         <div class="row g-3 mb-4">
-            {{-- Distribution by Boarding House --}}
             <div class="col-12 col-xl-7">
-                <div class="surface-card h-100 p-3 p-md-4">
+                <div class="admin-table-card h-100 p-4">
                     <div class="d-flex justify-content-between align-items-baseline mb-3">
                         <div>
                             <h6 class="fw-bold text-dark mb-0" style="font-size: 1rem;">Students by Boarding House</h6>
                             <div class="text-muted small">Where active MinSU boarders currently reside</div>
                         </div>
-                        <span class="text-muted small fw-semibold">{{ $propertyDistribution->count() }} {{ \Illuminate\Support\Str::plural('property', $propertyDistribution->count()) }}</span>
+                        <span class="badge bg-secondary rounded-pill px-3">{{ $propertyDistribution->count() }} {{ \Illuminate\Support\Str::plural('property', $propertyDistribution->count()) }}</span>
                     </div>
 
                     @php
@@ -1253,7 +802,7 @@
                                     <div class="ranked-info">
                                         <div class="ranked-header">
                                             <div class="ranked-title">
-                                                <a href="{{ route('admin.properties.show', $prop->property_id) }}" class="text-dark text-decoration-none hover-success">
+                                                <a href="{{ route('admin.properties.show', $prop->property_id) }}" class="text-dark text-decoration-none">
                                                     {{ $prop->property_name }}
                                                 </a>
                                                 @if($prop->property_address)
@@ -1276,31 +825,23 @@
                         <div class="d-none">
                             <canvas id="chartBhDistribution"></canvas>
                         </div>
-
-                        @if($propertyDistribution->count() > 6)
-                            <div class="text-end pt-3 mt-2 border-top">
-                                <span class="text-muted small">Showing top 6 of {{ $propertyDistribution->count() }} properties (full data in breakdown table below)</span>
-                            </div>
-                        @endif
                     @else
-                        <div class="empty-state-compact">
-                            <i class="bi bi-buildings fs-3 text-muted mb-2 d-block"></i>
-                            <div class="fw-bold text-dark mb-1">No property records in selected filter</div>
-                            <p class="small text-muted mb-0">Analytics will appear as students register stays.</p>
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-buildings fs-3 d-block mb-1"></i>
+                            <div>No property records in selected filter</div>
                         </div>
                     @endif
                 </div>
             </div>
 
-            {{-- Resident Demographics (Donut + Clean Legend) --}}
             <div class="col-12 col-xl-5">
-                <div class="surface-card h-100 p-3 p-md-4">
+                <div class="admin-table-card h-100 p-4">
                     <div class="d-flex justify-content-between align-items-baseline mb-3">
                         <div>
                             <h6 class="fw-bold text-dark mb-0" style="font-size: 1rem;">Gender Distribution</h6>
                             <div class="text-muted small">Demographics of resident students</div>
                         </div>
-                        <span class="text-muted small fw-semibold">{{ array_sum($genderDistribution ?? []) }} {{ \Illuminate\Support\Str::plural('student', array_sum($genderDistribution ?? [])) }}</span>
+                        <span class="badge bg-secondary rounded-pill px-3">{{ array_sum($genderDistribution ?? []) }} {{ \Illuminate\Support\Str::plural('student', array_sum($genderDistribution ?? [])) }}</span>
                     </div>
 
                     @php
@@ -1320,8 +861,8 @@
                             </div>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <div class="d-flex flex-column gap-2.5">
-                                <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: var(--obhs-surface-soft);">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light border">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: #0284c7;"></span>
                                         <span class="small fw-semibold text-dark">Male</span>
@@ -1329,7 +870,7 @@
                                     <div class="small fw-bold text-dark">{{ $maleCount }} <span class="text-muted fw-normal">({{ $malePct }}%)</span></div>
                                 </div>
 
-                                <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: var(--obhs-surface-soft);">
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light border">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: #ec4899;"></span>
                                         <span class="small fw-semibold text-dark">Female</span>
@@ -1337,7 +878,7 @@
                                     <div class="small fw-bold text-dark">{{ $femaleCount }} <span class="text-muted fw-normal">({{ $femalePct }}%)</span></div>
                                 </div>
 
-                                <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: var(--obhs-surface-soft);">
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light border">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background: #94a3b8;"></span>
                                         <span class="small fw-semibold text-dark">Other / Unspec</span>
@@ -1351,17 +892,16 @@
             </div>
         </div>
 
-        {{-- 5. ACADEMIC DISTRIBUTION: Students by College (Left) & Top Programs (Right) --}}
+        {{-- Academic Distribution --}}
         <div class="row g-3 mb-4">
-            {{-- Students by College --}}
             <div class="col-12 col-lg-6">
-                <div class="surface-card h-100 p-3 p-md-4">
+                <div class="admin-table-card h-100 p-4">
                     <div class="d-flex justify-content-between align-items-baseline mb-3">
                         <div>
                             <h6 class="fw-bold text-dark mb-0" style="font-size: 1rem;">Students by College</h6>
                             <div class="text-muted small">Academic divisions of resident students</div>
                         </div>
-                        <span class="text-muted small fw-semibold">{{ $collegeDistribution->count() }} {{ \Illuminate\Support\Str::plural('college', $collegeDistribution->count()) }}</span>
+                        <span class="badge bg-secondary rounded-pill px-3">{{ $collegeDistribution->count() }} {{ \Illuminate\Support\Str::plural('college', $collegeDistribution->count()) }}</span>
                     </div>
 
                     @php
@@ -1401,24 +941,22 @@
                             <canvas id="chartCollegeDistribution"></canvas>
                         </div>
                     @else
-                        <div class="empty-state-compact">
-                            <i class="bi bi-mortarboard fs-3 text-muted mb-2 d-block"></i>
-                            <div class="fw-bold text-dark mb-1">No college records match filters</div>
-                            <p class="small text-muted mb-0">Academic data will populate as student profiles sync.</p>
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-mortarboard fs-3 d-block mb-1"></i>
+                            <div>No college records match filters</div>
                         </div>
                     @endif
                 </div>
             </div>
 
-            {{-- Top Academic Programs --}}
             <div class="col-12 col-lg-6">
-                <div class="surface-card h-100 p-3 p-md-4">
+                <div class="admin-table-card h-100 p-4">
                     <div class="d-flex justify-content-between align-items-baseline mb-3">
                         <div>
                             <h6 class="fw-bold text-dark mb-0" style="font-size: 1rem;">Top Academic Programs</h6>
                             <div class="text-muted small">Leading degree programs among resident students</div>
                         </div>
-                        <span class="text-muted small fw-semibold">{{ $programDistribution->count() }} {{ \Illuminate\Support\Str::plural('program', $programDistribution->count()) }}</span>
+                        <span class="badge bg-secondary rounded-pill px-3">{{ $programDistribution->count() }} {{ \Illuminate\Support\Str::plural('program', $programDistribution->count()) }}</span>
                     </div>
 
                     @php
@@ -1458,21 +996,20 @@
                             <canvas id="chartProgramDistribution"></canvas>
                         </div>
                     @else
-                        <div class="empty-state-compact">
-                            <i class="bi bi-journal-text fs-3 text-muted mb-2 d-block"></i>
-                            <div class="fw-bold text-dark mb-1">No program records match filters</div>
-                            <p class="small text-muted mb-0">Degree program metrics will populate automatically.</p>
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-journal-text fs-3 d-block mb-1"></i>
+                            <div>No program records match filters</div>
                         </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        {{-- 6. DETAILED BREAKDOWN (Segmented Switcher + Modern Table) --}}
-        <div class="surface-card mb-2">
-            <div class="p-3 p-md-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
+        {{-- Detailed Breakdown --}}
+        <div class="admin-table-card mb-4">
+            <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 bg-light">
                 <div>
-                    <h5 class="fw-bold text-dark mb-0" style="font-size: 1.1rem;">Detailed breakdown</h5>
+                    <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;">Detailed Breakdown</h5>
                     <p class="text-secondary small mb-0">Tabular records corresponding directly to the filtered charts above.</p>
                 </div>
 
@@ -1487,13 +1024,13 @@
             {{-- Tab Panel 1: By College --}}
             <div id="breakdown-college" class="breakdown-pane">
                 <div class="table-responsive">
-                    <table class="data-table-clean">
+                    <table class="table admin-table mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-4">College</th>
                                 <th class="text-center">Unique Students</th>
                                 <th class="text-center">Total Stays</th>
-                                <th class="text-end pe-4">Drill-down</th>
+                                <th class="text-end pe-4">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1506,14 +1043,14 @@
                                     <td class="text-center fw-bold text-success">{{ number_format($cd->total_students) }}</td>
                                     <td class="text-center text-muted small">{{ number_format($cd->total_records) }}</td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'college' => $cd->college_code, 'boarding_house' => $boardingHouse]) }}" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-0.5" title="Filter by {{ $cd->college_code }}">
-                                            <i class="bi bi-arrow-right-short"></i>Filter
+                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'college' => $cd->college_code, 'boarding_house' => $boardingHouse]) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Filter by {{ $cd->college_code }}">
+                                            Filter
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="empty-state-compact">No college distribution data available.</td>
+                                    <td colspan="4" class="text-center py-4 text-muted">No college distribution data available.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -1524,13 +1061,13 @@
             {{-- Tab Panel 2: By Program --}}
             <div id="breakdown-program" class="breakdown-pane d-none">
                 <div class="table-responsive">
-                    <table class="data-table-clean">
+                    <table class="table admin-table mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-4">Program</th>
                                 <th>College</th>
                                 <th class="text-center">Unique Students</th>
-                                <th class="text-end pe-4">Drill-down</th>
+                                <th class="text-end pe-4">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1544,14 +1081,14 @@
                                     </td>
                                     <td class="text-center fw-bold text-primary">{{ number_format($pd->total_students) }}</td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'college' => $pd->college_code !== 'Not specified' ? $pd->college_code : '', 'program' => $pd->program_name, 'boarding_house' => $boardingHouse]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-2.5 py-0.5">
-                                            <i class="bi bi-arrow-right-short"></i>Filter
+                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'college' => $pd->college_code !== 'Not specified' ? $pd->college_code : '', 'program' => $pd->program_name, 'boarding_house' => $boardingHouse]) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                            Filter
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="empty-state-compact">No program distribution data available.</td>
+                                    <td colspan="4" class="text-center py-4 text-muted">No program distribution data available.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -1562,7 +1099,7 @@
             {{-- Tab Panel 3: By Boarding House --}}
             <div id="breakdown-property" class="breakdown-pane d-none">
                 <div class="table-responsive">
-                    <table class="data-table-clean">
+                    <table class="table admin-table mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-4">Boarding House</th>
@@ -1577,7 +1114,7 @@
                             @forelse($propertyDistribution as $prop)
                                 <tr>
                                     <td class="ps-4 fw-bold text-dark">
-                                        <a href="{{ route('admin.properties.show', $prop->property_id) }}" class="text-dark text-decoration-none hover-success">
+                                        <a href="{{ route('admin.properties.show', $prop->property_id) }}" class="text-dark text-decoration-none">
                                             {{ $prop->property_name }}
                                         </a>
                                     </td>
@@ -1588,14 +1125,14 @@
                                     <td class="text-center fw-bold text-success">{{ number_format($prop->total_students) }}</td>
                                     <td class="text-center text-muted small">{{ number_format($prop->total_records) }}</td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'boarding_house' => $prop->property_id]) }}" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-0.5">
-                                            <i class="bi bi-arrow-right-short"></i>Filter
+                                        <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'analytics', 'boarding_house' => $prop->property_id]) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                            Filter
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="empty-state-compact">No boarding house distribution data available.</td>
+                                    <td colspan="6" class="text-center py-4 text-muted">No boarding house distribution data available.</td>
                                 </tr>
                             @endforelse
                         </tbody>
