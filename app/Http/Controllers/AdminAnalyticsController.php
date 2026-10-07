@@ -82,4 +82,68 @@ class AdminAnalyticsController extends Controller
             'trendYear'
         ));
     }
+
+    public function exportCsv(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized. Admin access required.');
+        }
+
+        $propertyId = $request->filled('property_id') ? (int) $request->query('property_id') : null;
+        $occupancy = $this->analyticsService->getPropertyOccupancyAnalytics($propertyId);
+
+        $filename = 'minsu_obhs_occupancy_report_' . now()->format('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($occupancy) {
+            $handle = fopen('php://output', 'w');
+            // Add UTF-8 BOM
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Header row
+            fputcsv($handle, [
+                'Property Name',
+                'Address',
+                'Landlord Name',
+                'Landlord Email',
+                'Total Rooms',
+                'Occupied Rooms',
+                'Available Rooms',
+                'Total Bed Capacity',
+                'Occupied Beds',
+                'Room Occupancy Rate (%)',
+                'Bed Occupancy Rate (%)',
+            ]);
+
+            foreach ($occupancy as $prop) {
+                // Formula injection protection
+                $sanitize = fn ($str) => preg_match('/^[=\+\-\@]/', (string) $str) ? "'" . $str : (string) $str;
+
+                fputcsv($handle, [
+                    $sanitize($prop->name),
+                    $sanitize($prop->address),
+                    $sanitize($prop->landlord_name),
+                    $sanitize($prop->landlord_email),
+                    $prop->total_rooms,
+                    $prop->occupied_rooms,
+                    $prop->available_rooms,
+                    $prop->total_capacity,
+                    $prop->occupied_beds,
+                    $prop->room_occupancy_rate . '%',
+                    $prop->bed_occupancy_rate . '%',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

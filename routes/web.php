@@ -269,6 +269,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AuthController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/dashboard/stats', [AuthController::class, 'adminDashboardStats'])->name('admin.dashboard.stats');
+    Route::get('/admin/action-center', [\App\Http\Controllers\AdminActionCenterController::class, 'index'])->name('admin.action_center.index');
     Route::post('/admin/system/migrate', [AuthController::class, 'runMigrationsWeb'])->name('admin.system.migrate');
 
     // Admin settings
@@ -349,6 +350,7 @@ Route::middleware(['role:admin'])->group(function () {
 
     // Admin analytics & operational insights
     Route::get('/admin/analytics', [AdminAnalyticsController::class, 'index'])->name('admin.analytics.index');
+    Route::get('/admin/analytics/export', [AdminAnalyticsController::class, 'exportCsv'])->name('admin.analytics.export');
 
     // Admin onboarding management
     Route::get('/admin/onboardings', [TenantOnboardingController::class, 'adminIndex'])->name('admin.onboardings.index');

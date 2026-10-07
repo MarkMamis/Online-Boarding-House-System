@@ -18,6 +18,9 @@
             <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-door-open me-1"></i>Boarding Monitoring
             </a>
+            <a href="{{ route('admin.analytics.export', ['property_id' => $propertyId]) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-download me-1"></i>Export CSV
+            </a>
             <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-printer me-1"></i>Print Report
             </button>

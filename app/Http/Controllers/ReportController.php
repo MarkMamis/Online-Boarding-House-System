@@ -95,18 +95,61 @@ class ReportController extends Controller
     }
 
     // Admin: List all reports
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('update', new Report());
-        $reports = Report::with('user')->latest()->paginate(10);
-        return view('admin.reports.index', compact('reports'));
+
+        $statusFilter = strtolower((string) $request->query('status', 'all'));
+        $priorityFilter = strtolower((string) $request->query('priority', 'all'));
+        $search = trim((string) $request->query('search', ''));
+
+        $query = Report::with(['user.bookings.room.property'])->latest();
+
+        if (in_array($statusFilter, ['pending', 'in_progress', 'resolved'], true)) {
+            $query->where('status', $statusFilter);
+        }
+
+        if (in_array($priorityFilter, ['high', 'medium', 'low'], true)) {
+            $query->where('priority', $priorityFilter);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('full_name', 'like', "%{$search}%")
+                         ->orWhere('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $reports = $query->paginate(10)->withQueryString();
+
+        $counts = [
+            'all' => Report::count(),
+            'pending' => Report::where('status', 'pending')->count(),
+            'in_progress' => Report::where('status', 'in_progress')->count(),
+            'resolved' => Report::where('status', 'resolved')->count(),
+            'high_priority' => Report::where('priority', 'high')->where('status', '!=', 'resolved')->count(),
+        ];
+
+        return view('admin.reports.index', compact('reports', 'statusFilter', 'priorityFilter', 'search', 'counts'));
     }
 
     // Admin: Show single report
     public function show(Report $report)
     {
         $this->authorize('update', $report);
-        return view('admin.reports.show', compact('report'));
+        $report->loadMissing(['user.bookings.room.property']);
+        $activeBooking = $report->user?->bookings()
+            ->where('status', 'approved')
+            ->where('check_out', '>', now()->toDateString())
+            ->with(['room.property.landlord'])
+            ->first();
+
+        return view('admin.reports.show', compact('report', 'activeBooking'));
     }
 
     // Admin: Update report status and response

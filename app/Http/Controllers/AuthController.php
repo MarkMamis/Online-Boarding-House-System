@@ -1870,7 +1870,7 @@ class AuthController extends Controller
         ]);
 
         // If gender is "Other", use the custom gender_other value
-        if ($validated['gender'] === 'Other' && !empty($validated['gender_other'])) {
+        if (($validated['gender'] ?? null) === 'Other' && !empty($validated['gender_other'])) {
             $validated['gender'] = $validated['gender_other'];
         }
         

@@ -1050,6 +1050,13 @@
                         </a>
 
                         <div class="nav-section">Management</div>
+                        <a @class(['list-group-item', 'active' => $routeName === 'admin.action_center.index']) href="{{ route('admin.action_center.index') }}">
+                            <i class="bi bi-lightning-charge"></i>
+                            <span>Action Center</span>
+                            @if(isset($totalActionItemsCount) && $totalActionItemsCount > 0)
+                                <span class="badge rounded-pill text-bg-warning ms-auto">{{ $totalActionItemsCount }}</span>
+                            @endif
+                        </a>
                         <a @class(['list-group-item', 'active' => is_string($routeName)
                             && (
                                 $routeName === 'admin.property_reviews.index'
@@ -1092,12 +1099,12 @@
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $pendingDocumentCount }}</span>
                             @endif
                         </a>
-
-                        <div class="nav-section">Insights</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.reports.')]) href="{{ route('admin.reports.index') }}">
                             <i class="bi bi-flag"></i>
-                            <span>Reports</span>
+                            <span>Incident Reports</span>
                         </a>
+
+                        <div class="nav-section">Insights</div>
                         <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'admin.analytics.')]) href="{{ \Illuminate\Support\Facades\Route::has('admin.analytics.index') ? route('admin.analytics.index') : url('/admin/analytics') }}">
                             <i class="bi bi-graph-up-arrow"></i>
                             <span>Analytics</span>

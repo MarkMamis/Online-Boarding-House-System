@@ -20,6 +20,7 @@ class Report extends Model
 
     protected $casts = [
         'resolved_at' => 'datetime',
+        'response_read' => 'boolean',
     ];
 
     public function user(): BelongsTo
