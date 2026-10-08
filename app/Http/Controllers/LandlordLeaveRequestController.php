@@ -25,7 +25,7 @@ class LandlordLeaveRequestController extends Controller
         $leaveRequests = LeaveRequest::query()
             ->where('landlord_id', Auth::id())
             ->with(['student', 'booking.room.property'])
-            ->orderByRaw("FIELD(status,'pending','approved','rejected','cancelled')")
+            ->orderByRaw("CASE status WHEN 'pending' THEN 1 WHEN 'approved' THEN 2 WHEN 'rejected' THEN 3 WHEN 'cancelled' THEN 4 ELSE 5 END")
             ->orderByDesc('created_at')
             ->get();
 

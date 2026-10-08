@@ -588,22 +588,46 @@
                     </div>
 
                     <div class="list-group list-group-flush rounded-3 overflow-hidden">
-                        <div class="nav-section">Main</div>
+                        <!-- 1. OVERVIEW -->
+                        <div class="nav-section">Overview</div>
                         <a @class(['list-group-item', 'active' => $routeName === 'landlord.dashboard']) href="{{ route('landlord.dashboard') }}">
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard</span>
                         </a>
-                        <a @class(['list-group-item', 'active' => $routeName === 'landlord.documents.index']) href="{{ route('landlord.documents.index') }}">
-                            <i class="bi bi-folder-check"></i>
-                            <span>Documents &amp; Requirements</span>
-                        </a>
 
+                        <!-- 2. MONITORING -->
+                        <div class="nav-section">Monitoring</div>
                         @if($landlordOpsLocked)
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.monitoring.compliance']) href="{{ route('landlord.monitoring.compliance') }}">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Compliance Status</span>
+                            </a>
+                        @else
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.monitoring.properties']) href="{{ route('landlord.monitoring.properties') }}">
+                                <i class="bi bi-bar-chart-steps"></i>
+                                <span>Property &amp; Room Status</span>
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.tenants.index']) href="{{ route('landlord.tenants.index') }}">
+                                <i class="bi bi-people"></i>
+                                <span>Tenants &amp; Stays</span>
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.monitoring.compliance']) href="{{ route('landlord.monitoring.compliance') }}">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Compliance Status</span>
+                            </a>
+                        @endif
+
+                        <!-- 3. MANAGEMENT -->
+                        <div class="nav-section">Management</div>
+                        @if($landlordOpsLocked)
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.documents.index']) href="{{ route('landlord.documents.index') }}">
+                                <i class="bi bi-folder-check"></i>
+                                <span>Document Renewals</span>
+                            </a>
                             <div class="px-2 py-2">
-                                <div class="nav-helper">Complete your profile and business permit approval to unlock management and operations.</div>
+                                <div class="nav-helper">Complete your profile and business permit approval to unlock full management workflows.</div>
                             </div>
                         @else
-                            <div class="nav-section">Management</div>
                             <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navProperties" aria-expanded="{{ $portfolioOpen ? 'true' : 'false' }}" aria-controls="navProperties">
                                 <i class="bi bi-buildings"></i>
                                 <span>Properties</span>
@@ -658,7 +682,6 @@
                                 @endforeach
                             </div>
 
-                            <div class="nav-section">Operations</div>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.bookings.index']) href="{{ route('landlord.bookings.index') }}">
                                 <i class="bi bi-journal-check"></i>
                                 <span>Boarding Requests</span>
@@ -666,41 +689,55 @@
                                     <span class="badge rounded-pill text-bg-danger ms-auto">{{ $bookingRequestCount > 99 ? '99+' : $bookingRequestCount }}</span>
                                 @endif
                             </a>
-                            @if(!$layoutPermitPending)
-                                <a @class(['list-group-item', 'active' => $routeName === 'landlord.messages.index']) href="{{ route('landlord.messages.index') }}">
-                                    <i class="bi bi-chat-dots"></i> Messages
-                                </a>
-                            @endif
-                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.feedback.index']) href="{{ route('landlord.feedback.index') }}">
-                                <i class="bi bi-star-half"></i> Feedback
-                            </a>
-                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.tenants.index']) href="{{ route('landlord.tenants.index') }}">
-                                <i class="bi bi-people"></i> Tenants
-                            </a>
                             <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'landlord.onboarding.')]) href="{{ route('landlord.onboarding.index') }}">
                                 <i class="bi bi-clipboard-check"></i>
-                                <span>Onboarding</span>
+                                <span>Tenant Onboarding</span>
                                 @if($onboardingQueueCount > 0)
                                     <span class="badge rounded-pill text-bg-danger ms-auto">{{ $onboardingQueueCount > 99 ? '99+' : $onboardingQueueCount }}</span>
                                 @endif
                             </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.payments.index']) href="{{ route('landlord.payments.index') }}">
+                                <i class="bi bi-cash-coin"></i>
+                                <span>Rent &amp; Payments</span>
+                            </a>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.leave_requests.index']) href="{{ route('landlord.leave_requests.index') }}">
-                                <i class="bi bi-box-arrow-right"></i> Leave Requests
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Leave Requests</span>
                             </a>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.maintenance.index']) href="{{ route('landlord.maintenance.index') }}">
-                                <i class="bi bi-tools"></i> Maintenance
+                                <i class="bi bi-tools"></i>
+                                <span>Room Maintenance</span>
                             </a>
-
-                            <div class="nav-section">Finance</div>
-                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.payments.index']) href="{{ route('landlord.payments.index') }}">
-                                <i class="bi bi-cash-coin"></i> Payments
-                            </a>
-                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.analytics.index']) href="{{ route('landlord.analytics.index') }}">
-                                <i class="bi bi-graph-up"></i> Analytics
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.documents.index']) href="{{ route('landlord.documents.index') }}">
+                                <i class="bi bi-folder-check"></i>
+                                <span>Document Renewals</span>
                             </a>
                         @endif
 
-                        <div class="nav-section">Activity</div>
+                        <!-- 4. COMMUNICATION -->
+                        @if(!$landlordOpsLocked && !$layoutPermitPending)
+                            <div class="nav-section">Communication</div>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.messages.index']) href="{{ route('landlord.messages.index') }}">
+                                <i class="bi bi-chat-dots"></i>
+                                <span>Messages</span>
+                            </a>
+                        @endif
+
+                        <!-- 5. INSIGHTS -->
+                        @if(!$landlordOpsLocked)
+                            <div class="nav-section">Insights</div>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.analytics.index']) href="{{ route('landlord.analytics.index') }}">
+                                <i class="bi bi-graph-up"></i>
+                                <span>Business Analytics</span>
+                            </a>
+                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.feedback.index']) href="{{ route('landlord.feedback.index') }}">
+                                <i class="bi bi-star-half"></i>
+                                <span>Feedback &amp; Ratings</span>
+                            </a>
+                        @endif
+
+                        <!-- 6. ACCOUNT -->
+                        <div class="nav-section">Account</div>
                         <a @class(['list-group-item', 'active' => $routeName === 'notifications.index']) href="{{ route('notifications.index') }}">
                             <i class="bi bi-bell"></i>
                             <span>Notifications</span>
@@ -708,10 +745,9 @@
                                 <span class="badge rounded-pill text-bg-danger ms-auto">{{ $notificationsCount }}</span>
                             @endif
                         </a>
-
-                        <div class="nav-section">Account</div>
                         <a @class(['list-group-item', 'active' => $routeName === 'landlord.profile.edit']) href="{{ route('landlord.profile.edit') }}">
-                            <i class="bi bi-gear"></i> Profile
+                            <i class="bi bi-gear"></i>
+                            <span>Profile</span>
                         </a>
 
                         <div class="sidebar-footer">

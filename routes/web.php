@@ -29,6 +29,7 @@ use App\Http\Controllers\LandlordFeedbackController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\OnboardingRoleController;
 use App\Http\Controllers\LandlordDocumentController;
+use App\Http\Controllers\LandlordMonitoringController;
 use App\Http\Controllers\AdminLandlordDocumentController;
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminInstitutionalReportController;
@@ -376,16 +377,22 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
 
     Route::get('/landlord/dashboard', [AuthController::class, 'landlordDashboard'])->name('landlord.dashboard');
 
-    // Landlord documents & requirements
+    // Landlord documents & requirements (Compliance Management)
     Route::get('/landlord/documents', [LandlordDocumentController::class, 'index'])->name('landlord.documents.index');
     Route::post('/landlord/documents', [LandlordDocumentController::class, 'store'])->name('landlord.documents.store');
     Route::post('/landlord/documents/{document}/resubmit', [LandlordDocumentController::class, 'resubmit'])->name('landlord.documents.resubmit');
+
+    // Landlord Monitoring: Compliance Status
+    Route::get('/landlord/monitoring/compliance', [LandlordMonitoringController::class, 'compliance'])->name('landlord.monitoring.compliance');
 
     // Landlord profile management
     Route::get('/landlord/profile', [AuthController::class, 'landlordProfile'])->name('landlord.profile.edit');
     Route::put('/landlord/profile', [AuthController::class, 'updateLandlordProfile'])->name('landlord.profile.update');
 
     Route::middleware(['landlord.setup:profile_complete'])->group(function () {
+        // Landlord Monitoring: Property & Room Status
+        Route::get('/landlord/monitoring/properties', [LandlordMonitoringController::class, 'properties'])->name('landlord.monitoring.properties');
+
         // Landlord property management
         Route::get('/landlord/properties', [PropertyController::class, 'index'])->name('landlord.properties.index');
         Route::get('/landlord/properties/create', [PropertyController::class, 'create'])->name('landlord.properties.create');
