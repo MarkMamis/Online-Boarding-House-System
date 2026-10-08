@@ -96,29 +96,38 @@
                         </div>
 
                         <div>
-                            <div class="meta-label mb-2">Current Tenant</div>
-                            @if($room->current_tenant)
-                                @php
-                                    $tenantName = trim((string) ($room->current_tenant->full_name ?? $room->current_tenant->name ?? 'Unknown Tenant'));
-                                    $tenantInitial = strtoupper(substr($tenantName !== '' ? $tenantName : 'U', 0, 1));
-                                    $tenantContact = trim((string) ($room->current_tenant->contact_number ?? ''));
-                                @endphp
-                                <div class="tenant-box">
-                                    <div class="tenant-avatar">
-                                        @if(!empty($room->current_tenant->profile_image_path))
-                                            <img
-                                                src="{{ file_url($room->current_tenant->profile_image_path) }}"
-                                                alt="{{ $tenantName }}"
-                                                class="tenant-avatar-img"
-                                            >
-                                        @else
-                                            <span class="tenant-avatar-initial">{{ $tenantInitial }}</span>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold">{{ $tenantName }}</div>
-                                        <div class="text-muted small">{{ $tenantContact !== '' ? $tenantContact : 'No contact number provided' }}</div>
-                                    </div>
+                            @php
+                                $activeOccupants = isset($room->active_tenants) && $room->active_tenants->isNotEmpty()
+                                    ? $room->active_tenants
+                                    : ($room->current_tenant ? collect([$room->current_tenant]) : collect());
+                            @endphp
+                            <div class="meta-label mb-2">{{ $activeOccupants->count() > 1 ? 'Current Tenants (' . $activeOccupants->count() . ')' : 'Current Tenant' }}</div>
+                            @if($activeOccupants->isNotEmpty())
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach($activeOccupants as $occupant)
+                                        @php
+                                            $tenantName = trim((string) ($occupant->full_name ?? $occupant->name ?? 'Unknown Tenant'));
+                                            $tenantInitial = strtoupper(substr($tenantName !== '' ? $tenantName : 'U', 0, 1));
+                                            $tenantContact = trim((string) ($occupant->contact_number ?? ''));
+                                        @endphp
+                                        <div class="tenant-box">
+                                            <div class="tenant-avatar">
+                                                @if(!empty($occupant->profile_image_path))
+                                                    <img
+                                                        src="{{ file_url($occupant->profile_image_path) }}"
+                                                        alt="{{ $tenantName }}"
+                                                        class="tenant-avatar-img"
+                                                    >
+                                                @else
+                                                    <span class="tenant-avatar-initial">{{ $tenantInitial }}</span>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ $tenantName }}</div>
+                                                <div class="text-muted small">{{ $tenantContact !== '' ? $tenantContact : 'No contact number provided' }}</div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             @else
                                 <span class="text-muted small">No tenant assigned</span>

@@ -72,7 +72,7 @@ class LandlordLeaveRequestController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        DB::transaction(function () use ($leaveRequest, $validator, $leaveDate) {
+        DB::transaction(function () use ($leaveRequest, $validator, $leaveDate, $today) {
             $leaveRequest->refresh();
             $leaveRequest->update([
                 'status' => 'approved',
@@ -80,9 +80,13 @@ class LandlordLeaveRequestController extends Controller
                 'responded_at' => now(),
             ]);
 
+            // If leave date is in the future, keep status as 'approved' with the updated check_out date
+            // so active tenancy and room occupancy are preserved until scheduled departure.
+            // If leave date is today or earlier, the stay has concluded and status is marked cancelled.
+            $isImmediate = $leaveDate <= $today;
             $leaveRequest->booking->update([
                 'check_out' => $leaveDate,
-                'status' => 'cancelled',
+                'status' => $isImmediate ? 'cancelled' : 'approved',
             ]);
 
             $leaveRequest->booking->room->syncAvailabilitySnapshot();

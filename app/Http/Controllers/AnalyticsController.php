@@ -46,31 +46,34 @@ class AnalyticsController extends Controller
 
         $occupancyRate = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 1) : 0;
 
-        // Revenue Analytics (last 30 days)
+        // Revenue Analytics (last 30 days collected revenue from verified payments)
         $thirtyDaysAgo = now()->subDays(30);
 
-        $recentBookings = Booking::where('status', 'approved')
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->whereHas('room.property', function ($q) use ($landlordId) {
+        $monthlyRevenue = (float) \App\Models\TenantPayment::where('status', 'approved')
+            ->where(function ($q) use ($thirtyDaysAgo) {
+                $q->where('reviewed_at', '>=', $thirtyDaysAgo)
+                  ->orWhere(function ($sq) use ($thirtyDaysAgo) {
+                      $sq->whereNull('reviewed_at')->where('created_at', '>=', $thirtyDaysAgo);
+                  });
+            })
+            ->whereHas('booking.room.property', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
             })
-            ->with('room')
-            ->get();
+            ->sum('amount_due');
 
-        $monthlyRevenue = $recentBookings->sum(function ($booking) {
-            return $booking->room->price * $booking->getDurationInDays();
-        });
-
-        // Expected revenue from all approved bookings for this landlord
+        // Expected monthly revenue from all active approved bookings for this landlord
+        $today = now()->toDateString();
         $approvedBookings = Booking::where('status', 'approved')
+            ->where('check_in', '<=', $today)
+            ->where('check_out', '>', $today)
             ->whereHas('room.property', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
             })
             ->with('room')
             ->get();
 
-        $totalExpected = $approvedBookings->sum(function ($booking) {
-            return $booking->room->price * $booking->getDurationInDays();
+        $totalExpected = (float) $approvedBookings->sum(function ($booking) {
+            return (float) ($booking->room->price ?? 0);
         });
 
         // Booking trends (last 7 days)

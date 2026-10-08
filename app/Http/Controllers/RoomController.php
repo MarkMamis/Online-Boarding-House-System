@@ -186,10 +186,16 @@ class RoomController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Add current tenant info to each room
+        // Add current tenant info and full active tenants list to each room
         $rooms->each(function($room) {
+            $activeStudents = $room->bookings
+                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn($b) => $b->student)
+                ->values();
+
+            $room->active_tenants = $activeStudents;
             $currentBooking = $room->bookings->first();
-            $room->current_tenant = $currentBooking ? $currentBooking->student : null;
+            $room->current_tenant = $activeStudents->first() ?? ($currentBooking ? $currentBooking->student : null);
             $room->current_booking = $currentBooking;
         });
 
@@ -209,10 +215,16 @@ class RoomController extends Controller
             ->orderBy('room_number')
             ->get();
 
-        // Add current tenant info to each room
+        // Add current tenant info and full active tenants list to each room
         $rooms->each(function($room) {
+            $activeStudents = $room->bookings
+                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn($b) => $b->student)
+                ->values();
+
+            $room->active_tenants = $activeStudents;
             $currentBooking = $room->bookings->first();
-            $room->current_tenant = $currentBooking ? $currentBooking->student : null;
+            $room->current_tenant = $activeStudents->first() ?? ($currentBooking ? $currentBooking->student : null);
             $room->current_booking = $currentBooking;
         });
 
@@ -451,6 +463,21 @@ class RoomController extends Controller
             abort(404);
         }
         $this->authorize('delete', $room);
+
+        $today = now()->toDateString();
+        $hasActiveBookings = $room->bookings()
+            ->where(function ($q) use ($today) {
+                $q->where(function ($sq) use ($today) {
+                    $sq->where('status', 'approved')
+                       ->where('check_out', '>', $today);
+                })->orWhere('status', 'pending');
+            })
+            ->exists();
+
+        if ($hasActiveBookings) {
+            return back()->with('error', 'Cannot delete a room that has active tenants or pending booking requests.');
+        }
+
         $room->delete();
         $this->syncPropertyPriceRange($property);
         return redirect()->route('landlord.properties.show', $property->id)

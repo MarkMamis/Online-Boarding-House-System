@@ -752,6 +752,23 @@ class PropertyController extends Controller
     {
         $this->ensureLandlord();
         $this->authorize('delete', $property);
+
+        $today = now()->toDateString();
+        $hasActiveBookings = \App\Models\Booking::whereHas('room', function ($q) use ($property) {
+                $q->where('property_id', $property->id);
+            })
+            ->where(function ($q) use ($today) {
+                $q->where(function ($sq) use ($today) {
+                    $sq->where('status', 'approved')
+                       ->where('check_out', '>', $today);
+                })->orWhere('status', 'pending');
+            })
+            ->exists();
+
+        if ($hasActiveBookings) {
+            return back()->with('error', 'Cannot delete a property that has active tenants or pending booking requests.');
+        }
+
         $property->delete();
         return redirect()->route('landlord.properties.index')->with('success', 'Property deleted.');
     }
@@ -776,10 +793,16 @@ class PropertyController extends Controller
             ->orderBy('room_number');
         }]);
 
-        // Add current tenant info to each room
+        // Add current tenant info and full active tenants list to each room
         $property->rooms->each(function($room) {
+            $activeStudents = $room->bookings
+                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn($b) => $b->student)
+                ->values();
+
+            $room->active_tenants = $activeStudents;
             $currentBooking = $room->bookings->first();
-            $room->current_tenant = $currentBooking ? $currentBooking->student : null;
+            $room->current_tenant = $activeStudents->first() ?? ($currentBooking ? $currentBooking->student : null);
             $room->current_booking = $currentBooking;
         });
 

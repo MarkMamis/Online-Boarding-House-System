@@ -116,11 +116,15 @@
 
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
               <div class="small mb-0">
-                <span class="text-muted me-1">Tenant:</span>
-                @if($room->current_tenant)
+                @if(isset($room->active_tenants) && $room->active_tenants->count() > 1)
+                  <span class="text-muted me-1">Tenants ({{ $room->active_tenants->count() }}):</span>
+                  <span class="fw-medium">{{ $room->active_tenants->pluck('full_name')->filter()->join(', ') }}</span>
+                @elseif($room->current_tenant)
+                  <span class="text-muted me-1">Tenant:</span>
                   <span class="fw-medium">{{ $room->current_tenant->full_name }}</span>
                   <span class="text-muted">(ID hidden)</span>
                 @else
+                  <span class="text-muted me-1">Tenant:</span>
                   <span class="text-muted">No tenant</span>
                 @endif
               </div>
