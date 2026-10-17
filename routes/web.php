@@ -414,6 +414,7 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
         Route::get('/landlord/properties', [PropertyController::class, 'index'])->name('landlord.properties.index');
         Route::get('/landlord/properties/create', [PropertyController::class, 'create'])->name('landlord.properties.create');
         Route::post('/landlord/properties', [PropertyController::class, 'store'])->name('landlord.properties.store');
+        Route::post('/landlord/properties/autosave', [PropertyController::class, 'autoSave'])->name('landlord.properties.autosave');
         Route::get('/landlord/properties/{property}', [PropertyController::class, 'show'])->name('landlord.properties.show');
         Route::get('/landlord/properties/{property}/edit', [PropertyController::class, 'edit'])->name('landlord.properties.edit');
         Route::put('/landlord/properties/{property}', [PropertyController::class, 'update'])->name('landlord.properties.update');

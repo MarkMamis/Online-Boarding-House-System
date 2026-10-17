@@ -437,12 +437,164 @@ class PropertyController extends Controller
         return view('landlord.properties.index', compact('properties'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->ensureLandlord();
         $this->authorize('create', Property::class);
         Log::info('Property create route visited', ['user' => Auth::id()]);
-        return view('landlord.properties.create');
+
+        $draftProperty = null;
+        if ($request->filled('draft_id')) {
+            $draftProperty = Property::where('id', $request->input('draft_id'))
+                ->where('landlord_id', Auth::id())
+                ->where('approval_status', 'draft')
+                ->first();
+        } elseif (!$request->boolean('new')) {
+            $draftProperty = Property::where('landlord_id', Auth::id())
+                ->where('approval_status', 'draft')
+                ->latest('updated_at')
+                ->first();
+        }
+
+        return view('landlord.properties.create', compact('draftProperty'));
+    }
+
+    public function autoSave(Request $request)
+    {
+        $this->ensureLandlord();
+        $this->authorize('create', Property::class);
+
+        $validator = Validator::make($request->all(), [
+            'property_id' => 'nullable|integer',
+            'draft_version' => 'nullable|integer',
+            'name' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:5000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'building_inclusions' => 'nullable|array',
+            'building_inclusions.*' => 'string',
+            'house_rules' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $property = null;
+        if ($request->filled('property_id')) {
+            $propertyId = (int) $request->input('property_id');
+            $property = Property::where('id', $propertyId)
+                ->where('landlord_id', Auth::id())
+                ->first();
+
+            if (!$property) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Draft property not found or unauthorized.',
+                ], 404);
+            }
+
+            if ($property->approval_status !== 'draft') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot auto-save a property that has already been submitted for review.',
+                ], 422);
+            }
+        } else {
+            // Check meaningful input before creating first draft
+            $hasName = filled(trim((string) $request->input('name', '')));
+            $hasAddress = filled(trim((string) $request->input('address', '')));
+            $hasDescription = filled(trim((string) $request->input('description', '')));
+            $hasImage = $request->hasFile('image');
+
+            if (!$hasName && !$hasAddress && !$hasDescription && !$hasImage) {
+                return response()->json([
+                    'success' => true,
+                    'saved' => false,
+                    'message' => 'No meaningful changes to save yet.',
+                ]);
+            }
+        }
+
+        $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
+        $supportsHouseRules = Schema::hasColumn('properties', 'house_rules');
+        $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
+        $houseRuleCategories = (array) config('property_house_rules.categories', []);
+
+        $selectedAmenities = collect($request->input('building_inclusions', []))
+            ->map(fn ($item) => (string) $item)
+            ->filter(fn ($item) => in_array($item, $allowedAmenities, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        $houseRulesPayload = [];
+        if ($request->has('house_rules') && is_array($request->input('house_rules'))) {
+            foreach (array_keys($houseRuleCategories) as $categoryKey) {
+                $raw = $request->input('house_rules.' . $categoryKey);
+                if (is_array($raw)) {
+                    $cleaned = collect($raw)->map(fn ($l) => trim((string) $l))->filter()->values()->all();
+                } else {
+                    $rawLines = preg_split('/\r\n|\r|\n/', (string) $raw) ?: [];
+                    $cleaned = collect($rawLines)->map(fn ($l) => trim((string) $l))->filter()->values()->all();
+                }
+                if (!empty($cleaned)) {
+                    $houseRulesPayload[$categoryKey] = $cleaned;
+                }
+            }
+        }
+
+        $dataToSave = [
+            'name' => $request->filled('name') ? trim($request->input('name')) : ($property->name ?? 'Untitled Property'),
+            'address' => $request->input('address', $property->address ?? ''),
+            'description' => $request->input('description', $property->description ?? null),
+            'latitude' => $request->filled('latitude') ? $request->input('latitude') : ($property->latitude ?? null),
+            'longitude' => $request->filled('longitude') ? $request->input('longitude') : ($property->longitude ?? null),
+        ];
+
+        if ($supportsBuildingInclusions && $request->has('building_inclusions')) {
+            $dataToSave['building_inclusions'] = $selectedAmenities;
+        }
+
+        if ($supportsHouseRules && $request->has('house_rules')) {
+            $dataToSave['house_rules'] = empty($houseRulesPayload) ? null : $houseRulesPayload;
+        }
+
+        if ($property) {
+            $property->update($dataToSave);
+        } else {
+            $dataToSave['landlord_id'] = Auth::id();
+            $dataToSave['approval_status'] = 'draft';
+            $property = Property::create($dataToSave);
+        }
+
+        if ($request->hasFile('image')) {
+            try {
+                $imagePath = app(\App\Services\FileStorageService::class)->upload(
+                    $request->file('image'),
+                    'properties/' . $property->id . '/images'
+                );
+                $property->update(['image_path' => $imagePath]);
+            } catch (\Throwable $e) {
+                Log::warning('Autosave image upload failed: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'saved' => true,
+            'property_id' => $property->id,
+            'draft_version' => $property->fresh()->updated_at->timestamp,
+            'image_url' => $property->image_path ? file_url($property->image_path) : null,
+            'image_name' => basename($property->image_path ?? ''),
+            'message' => 'All changes saved',
+        ]);
     }
 
     public function store(Request $request)
@@ -550,9 +702,17 @@ class PropertyController extends Controller
             }
         }
 
+        $existingDraft = null;
+        if ($request->filled('property_id')) {
+            $existingDraft = Property::where('id', $request->input('property_id'))
+                ->where('landlord_id', Auth::id())
+                ->where('approval_status', 'draft')
+                ->first();
+        }
+
         $propertyData = [
             'landlord_id' => Auth::id(),
-            'image_path' => $imagePath,
+            'image_path' => $existingDraft && !$coverImagePending ? $existingDraft->image_path : $imagePath,
             'approval_status' => $isDraft ? 'draft' : 'pending',
             'name' => $request->name,
             'address' => $request->address,
@@ -567,7 +727,12 @@ class PropertyController extends Controller
             $propertyData['house_rules'] = empty($houseRulesPayload) ? null : $houseRulesPayload;
         }
 
-        $property = Property::create($propertyData);
+        if ($existingDraft) {
+            $existingDraft->update($propertyData);
+            $property = $existingDraft;
+        } else {
+            $property = Property::create($propertyData);
+        }
 
         if ($coverImagePending) {
             try {

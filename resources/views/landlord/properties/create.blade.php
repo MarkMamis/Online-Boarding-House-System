@@ -12,23 +12,39 @@
         }
 
         $amenityCategories = (array) config('property_amenities.categories', []);
-        $selectedAmenities = collect(old('building_inclusions', []))
+        $selectedAmenities = collect(old('building_inclusions', $draftProperty->building_inclusions ?? []))
             ->map(fn ($value) => (string) $value)
             ->all();
 
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
+        $draftHouseRules = $draftProperty->house_rules ?? [];
+
+        $hasExistingDraftImage = !empty($draftProperty?->image_path);
+        $existingDraftImageUrl = $hasExistingDraftImage ? file_url($draftProperty->image_path) : null;
+        $existingDraftImageName = $hasExistingDraftImage ? basename($draftProperty->image_path) : null;
     @endphp
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <div class="guided-setup-wrapper">
         <div class="guided-setup-card">
-            <!-- Setup Header -->
-            <div class="setup-header mb-3">
+            <!-- Setup Header with Auto-Save Badge -->
+            <div class="setup-header d-flex justify-content-between align-items-center mb-3">
                 <a href="{{ route('landlord.properties.index') }}" class="setup-back-link">
                     <i class="bi bi-arrow-left me-1"></i> Back to Properties
                 </a>
+                <div id="autoSaveIndicator" class="autosave-badge idle" aria-live="polite">
+                    <i class="bi bi-cloud-check autosave-icon me-1"></i>
+                    <span class="autosave-text">All changes saved</span>
+                </div>
             </div>
+
+            @if(isset($draftProperty) && $draftProperty)
+                <div class="alert alert-info border-0 rounded-3 py-2 px-3 small d-flex align-items-center justify-content-between mb-3 bg-light text-secondary">
+                    <span><i class="bi bi-info-circle text-primary me-1"></i> Resumed draft: <strong>{{ $draftProperty->name ?: 'Untitled Property' }}</strong></span>
+                    <a href="{{ route('landlord.properties.create', ['new' => 1]) }}" class="text-decoration-none small text-danger fw-semibold ms-2">Start Fresh</a>
+                </div>
+            @endif
 
             @if($errors->any())
                 <div class="alert alert-danger rounded-3 mb-4">
@@ -43,6 +59,8 @@
 
             <form id="createPropertyForm" method="POST" enctype="multipart/form-data" action="{{ route('landlord.properties.store') }}" novalidate>
                 @csrf
+                <input type="hidden" name="property_id" id="draftPropertyId" value="{{ old('property_id', $draftProperty->id ?? '') }}">
+                <input type="hidden" name="draft_version" id="draftVersion" value="{{ $draftProperty?->updated_at?->timestamp ?? 0 }}">
 
                 <!-- ========================================== -->
                 <!-- PANEL 0: PROPERTY BASICS                   -->
@@ -58,7 +76,7 @@
                             type="text"
                             id="propertyName"
                             name="name"
-                            value="{{ old('name') }}"
+                            value="{{ old('name', $draftProperty->name ?? '') }}"
                             class="form-control @error('name') is-invalid @enderror"
                             required
                             data-label="Boarding house name"
@@ -76,7 +94,7 @@
                                 type="text"
                                 id="propertyAddressInput"
                                 name="address"
-                                value="{{ old('address') }}"
+                                value="{{ old('address', $draftProperty->address ?? '') }}"
                                 class="form-control @error('address') is-invalid @enderror"
                                 required
                                 data-label="Property address"
@@ -98,7 +116,7 @@
                             name="description"
                             rows="3"
                             class="form-control @error('description') is-invalid @enderror"
-                            placeholder="Describe your property, walking distance to MinSU campus, nearby landmarks, or special features...">{{ old('description') }}</textarea>
+                            placeholder="Describe your property, walking distance to MinSU campus, nearby landmarks, or special features...">{{ old('description', $draftProperty->description ?? '') }}</textarea>
                         @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -114,7 +132,7 @@
                                 name="image"
                                 class="file-input-hidden"
                                 accept="image/jpeg,image/png,image/webp">
-                            <div class="upload-idle" id="uploadIdleState">
+                            <div class="upload-idle {{ $hasExistingDraftImage ? 'd-none' : '' }}" id="uploadIdleState">
                                 <div class="upload-icon-circle">
                                     <i class="bi bi-cloud-arrow-up"></i>
                                 </div>
@@ -123,11 +141,11 @@
                                 </div>
                                 <div class="upload-help-text">JPG, PNG, or WebP up to 5MB</div>
                             </div>
-                            <div class="upload-preview-card d-none" id="uploadPreviewCard">
-                                <img id="propertyImagePreview" src="" alt="Property Preview" class="upload-preview-thumb">
+                            <div class="upload-preview-card {{ $hasExistingDraftImage ? '' : 'd-none' }}" id="uploadPreviewCard">
+                                <img id="propertyImagePreview" src="{{ $existingDraftImageUrl ?: '' }}" alt="Property Preview" class="upload-preview-thumb">
                                 <div class="upload-file-info">
-                                    <div class="upload-file-name text-truncate" id="uploadFileName">photo.jpg</div>
-                                    <div class="upload-file-size" id="uploadFileSize">0 KB</div>
+                                    <div class="upload-file-name text-truncate" id="uploadFileName">{{ $existingDraftImageName ?: 'photo.jpg' }}</div>
+                                    <div class="upload-file-size" id="uploadFileSize">{{ $hasExistingDraftImage ? 'Saved in draft' : '0 KB' }}</div>
                                 </div>
                                 <button type="button" class="btn-remove-photo" id="btnRemovePhoto" title="Remove photo">
                                     <i class="bi bi-trash3"></i>
@@ -139,15 +157,12 @@
                         @enderror
                     </div>
 
-                    <!-- Actions -->
+                    <!-- Actions (No manual Save Draft) -->
                     <div class="question-actions">
                         <a href="{{ route('landlord.properties.index') }}" class="btn-prev">Cancel</a>
                         <div class="actions-right">
                             <button type="button" class="btn-save-return-review d-none" data-save-panel="0">
                                 <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
-                            </button>
-                            <button type="submit" name="action" value="draft" class="btn-save-draft">
-                                <i class="bi bi-save me-1"></i> Save Draft
                             </button>
                             <button type="button" class="btn-continue btn-primary-green" data-target="1">
                                 Continue <i class="bi bi-arrow-right ms-1"></i>
@@ -194,19 +209,28 @@
                         </div>
                     </div>
 
-                    <!-- House Rules -->
+                    <!-- House Rules with Collapsible Suggestions -->
                     <div class="mb-4">
                         <label class="form-label mb-2">House Rules</label>
                         <div class="house-rules-accordion">
                             @foreach($houseRuleCategories as $categoryKey => $categoryConfig)
                                 @php
                                     $categoryLabel = (string) ($categoryConfig['label'] ?? $categoryKey);
-                                    $ruleText = old('house_rules.' . $categoryKey, '');
+                                    $categorySavedRules = $draftHouseRules[$categoryKey] ?? null;
+                                    $defaultRuleText = is_array($categorySavedRules)
+                                        ? implode("\n", $categorySavedRules)
+                                        : (string) ($categorySavedRules ?? '');
+                                    $ruleText = old('house_rules.' . $categoryKey, $defaultRuleText);
                                     $ruleSuggestions = (array) ($categoryConfig['rules'] ?? []);
                                 @endphp
                                 <div class="rule-block mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="small fw-bold text-secondary text-uppercase" for="rules_{{ $categoryKey }}">{{ $categoryLabel }}</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-1">
+                                        <label class="small fw-bold text-secondary text-uppercase mb-0" for="rules_{{ $categoryKey }}">{{ $categoryLabel }}</label>
+                                        @if(!empty($ruleSuggestions))
+                                            <button type="button" class="btn-toggle-suggestions text-decoration-none border-0 bg-transparent text-success small fw-semibold" data-target="suggestions_{{ $categoryKey }}">
+                                                <i class="bi bi-lightbulb me-1"></i> <span class="toggle-text">Add common rules</span>
+                                            </button>
+                                        @endif
                                     </div>
                                     <textarea
                                         class="form-control"
@@ -215,7 +239,7 @@
                                         rows="2"
                                         placeholder="e.g. Observe curfew at 10 PM...">{{ $ruleText }}</textarea>
                                     @if(!empty($ruleSuggestions))
-                                        <div class="rule-suggestions mt-1 d-flex flex-wrap gap-1">
+                                        <div id="suggestions_{{ $categoryKey }}" class="rule-suggestions mt-2 d-none flex-wrap gap-1 p-2 bg-light rounded-3">
                                             @foreach($ruleSuggestions as $suggestion)
                                                 <button type="button" class="btn-suggestion-pill" data-target="rules_{{ $categoryKey }}" data-text="{{ $suggestion }}">
                                                     + {{ Str::limit($suggestion, 35) }}
@@ -228,7 +252,7 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
+                    <!-- Actions (No manual Save Draft) -->
                     <div class="question-actions">
                         <button type="button" class="btn-prev" data-target="0">
                             <i class="bi bi-arrow-left me-1"></i> Previous
@@ -236,9 +260,6 @@
                         <div class="actions-right">
                             <button type="button" class="btn-save-return-review d-none" data-save-panel="1">
                                 <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
-                            </button>
-                            <button type="submit" name="action" value="draft" class="btn-save-draft">
-                                <i class="bi bi-save me-1"></i> Save Draft
                             </button>
                             <button type="button" class="btn-continue btn-primary-green" data-target="2">
                                 Continue <i class="bi bi-arrow-right ms-1"></i>
@@ -263,7 +284,7 @@
                                 step="0.000001"
                                 id="latitude"
                                 name="latitude"
-                                value="{{ old('latitude') }}"
+                                value="{{ old('latitude', $draftProperty->latitude ?? '') }}"
                                 class="form-control"
                                 placeholder="e.g. 13.4115">
                         </div>
@@ -274,7 +295,7 @@
                                 step="0.000001"
                                 id="longitude"
                                 name="longitude"
-                                value="{{ old('longitude') }}"
+                                value="{{ old('longitude', $draftProperty->longitude ?? '') }}"
                                 class="form-control"
                                 placeholder="e.g. 121.1803">
                         </div>
@@ -290,7 +311,7 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
+                    <!-- Actions (No manual Save Draft) -->
                     <div class="question-actions">
                         <button type="button" class="btn-prev" data-target="1">
                             <i class="bi bi-arrow-left me-1"></i> Previous
@@ -298,9 +319,6 @@
                         <div class="actions-right">
                             <button type="button" class="btn-save-return-review d-none" data-save-panel="2">
                                 <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
-                            </button>
-                            <button type="submit" name="action" value="draft" class="btn-save-draft">
-                                <i class="bi bi-save me-1"></i> Save Draft
                             </button>
                             <button type="button" class="btn-continue btn-primary-green" data-target="3">
                                 Review Details <i class="bi bi-arrow-right ms-1"></i>
@@ -315,7 +333,7 @@
                 <div class="question-panel" data-panel="3">
                     <div class="question-kicker">Review &amp; Confirmation</div>
                     <h2 class="question-title">Review your boarding house.</h2>
-                    <p class="question-subtitle">Check the details below before submitting for approval or saving as draft.</p>
+                    <p class="question-subtitle">Check the details below before submitting for approval.</p>
 
                     <div class="review-sections-wrap mb-4">
                         <!-- 1. Basics -->
@@ -329,21 +347,21 @@
                             <div class="review-grid">
                                 <div class="review-item">
                                     <span class="review-label">Boarding House Name</span>
-                                    <span class="review-val" id="review_name">—</span>
+                                    <span class="review-val" id="review_name">{{ $draftProperty?->name ?? '—' }}</span>
                                 </div>
                                 <div class="review-item">
                                     <span class="review-label">Address</span>
-                                    <span class="review-val" id="review_address">—</span>
+                                    <span class="review-val" id="review_address">{{ $draftProperty?->address ?? '—' }}</span>
                                 </div>
                                 <div class="review-item col-12">
                                     <span class="review-label">Description</span>
-                                    <span class="review-val text-wrap" id="review_description">Not provided</span>
+                                    <span class="review-val text-wrap" id="review_description">{{ $draftProperty?->description ?: 'Not provided' }}</span>
                                 </div>
                                 <div class="review-item col-12">
                                     <span class="review-label">Cover Photo</span>
                                     <div class="d-flex align-items-center gap-2 mt-1">
-                                        <img id="review_photo_thumb" src="" alt="Thumbnail" class="upload-preview d-none" style="width: 50px; height: 50px; object-fit: cover; border-radius: .5rem;">
-                                        <span class="review-val" id="review_photo_name">No photo uploaded</span>
+                                        <img id="review_photo_thumb" src="{{ $existingDraftImageUrl ?: '' }}" alt="Thumbnail" class="upload-preview {{ $hasExistingDraftImage ? '' : 'd-none' }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: .5rem;">
+                                        <span class="review-val" id="review_photo_name">{{ $existingDraftImageName ?: 'No photo uploaded' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -380,11 +398,11 @@
                             <div class="review-grid">
                                 <div class="review-item">
                                     <span class="review-label">Latitude</span>
-                                    <span class="review-val" id="review_latitude">Not set</span>
+                                    <span class="review-val" id="review_latitude">{{ $draftProperty?->latitude ?? 'Not set' }}</span>
                                 </div>
                                 <div class="review-item">
                                     <span class="review-label">Longitude</span>
-                                    <span class="review-val" id="review_longitude">Not set</span>
+                                    <span class="review-val" id="review_longitude">{{ $draftProperty?->longitude ?? 'Not set' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -393,19 +411,16 @@
                     <div class="alert alert-info border-0 rounded-3 bg-light d-flex align-items-center gap-2 mb-4 p-3 text-secondary">
                         <i class="bi bi-info-circle text-primary fs-5 flex-shrink-0"></i>
                         <div class="small">
-                            <strong>Next Step:</strong> After saving your property, you will be guided directly to add individual rooms, set capacities, and configure monthly pricing.
+                            <strong>Next Step:</strong> After submitting your property for review, you can add individual rooms, configure bed capacities, and set rental pricing.
                         </div>
                     </div>
 
-                    <!-- Actions -->
+                    <!-- Actions (Previous and Submit for Review only) -->
                     <div class="question-actions">
                         <button type="button" class="btn-prev" data-target="2">
                             <i class="bi bi-arrow-left me-1"></i> Previous
                         </button>
                         <div class="actions-right">
-                            <button type="submit" name="action" value="draft" class="btn-save-draft">
-                                <i class="bi bi-save me-1"></i> Save Draft
-                            </button>
                             <button type="submit" name="action" value="submit" class="btn-submit btn-primary-green" id="submitPropertyBtn">
                                 Submit for Review <i class="bi bi-send-check ms-1"></i>
                             </button>
@@ -448,103 +463,108 @@
 
     @media (max-width: 576px) {
         .guided-setup-card {
-            padding: 1.35rem 1.1rem;
             border-radius: 1.15rem;
+            padding: 1.35rem 1rem;
         }
     }
 
     .setup-back-link {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 500;
         display: inline-flex;
         align-items: center;
-        color: var(--muted);
-        font-size: 0.88rem;
-        font-weight: 600;
-        text-decoration: none;
         transition: color 0.15s ease;
     }
 
     .setup-back-link:hover {
-        color: var(--brand);
-        text-decoration: underline;
+        color: var(--ink);
     }
 
-    /* Question Panels */
+    /* Auto-save Status Badge */
+    .autosave-badge {
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        transition: all 0.2s ease;
+    }
+
+    .autosave-badge.idle {
+        color: var(--muted);
+        background: #f1f5f9;
+    }
+
+    .autosave-badge.saving {
+        color: #0284c7;
+        background: #e0f2fe;
+    }
+
+    .autosave-badge.saved {
+        color: var(--premium-emerald-deep);
+        background: #ecfdf5;
+    }
+
+    .autosave-badge.error {
+        color: #dc2626;
+        background: #fee2e2;
+    }
+
+    .spin {
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+
     .question-panel {
         display: none;
     }
 
     .question-panel.active {
         display: block;
-        animation: questionFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        animation: fadeIn 0.2s ease-in-out;
     }
 
-    @keyframes questionFadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(6px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .question-kicker {
-        font-size: 0.75rem;
-        font-weight: 800;
-        letter-spacing: 0.12em;
+        font-size: 0.72rem;
         text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
         color: var(--premium-emerald-deep);
-        margin-bottom: 0.45rem;
-    }
-
-    .question-title {
-        font-size: clamp(1.4rem, 2.8vw, 1.75rem);
-        font-weight: 800;
-        letter-spacing: -0.025em;
-        line-height: 1.25;
-        color: var(--ink);
         margin-bottom: 0.35rem;
     }
 
-    .question-subtitle {
-        font-size: 0.92rem;
-        color: var(--muted);
-        margin-bottom: 1.75rem;
-        line-height: 1.5;
-    }
-
-    /* Form Inputs */
-    .form-label {
-        font-size: 0.86rem;
+    .question-title {
+        font-size: 1.45rem;
         font-weight: 700;
-        color: #334155;
-        margin-bottom: 0.4rem;
-    }
-
-    .form-control, .form-select {
-        border: 1.5px solid var(--line);
-        border-radius: 0.75rem;
-        padding: 0.65rem 0.95rem;
-        font-size: 0.95rem;
         color: var(--ink);
-        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.3rem;
     }
 
-    .form-control:focus, .form-select:focus {
-        border-color: var(--premium-emerald);
-        box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.15);
-        outline: 0;
+    .question-subtitle {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-bottom: 1.5rem;
     }
 
     .field-hint {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: var(--muted);
         margin-top: 0.35rem;
-        line-height: 1.4;
     }
 
-    /* Photo Upload Zone */
     .photo-upload-zone {
         border: 2px dashed #cbd5e1;
         border-radius: 1rem;
@@ -558,7 +578,7 @@
 
     .photo-upload-zone:hover {
         border-color: var(--premium-emerald);
-        background: rgba(16, 185, 129, 0.03);
+        background: #f0fdf4;
     }
 
     .file-input-hidden {
@@ -576,51 +596,44 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: rgba(16, 185, 129, 0.12);
-        color: var(--premium-emerald-deep);
+        background: #e2e8f0;
+        color: #475569;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.4rem;
-        margin-bottom: 0.6rem;
-    }
-
-    .upload-prompt {
-        font-size: 0.92rem;
-        font-weight: 600;
-        color: #334155;
+        font-size: 1.35rem;
+        margin-bottom: 0.5rem;
     }
 
     .upload-action-text {
         color: var(--premium-emerald-deep);
-        text-decoration: underline;
+        font-weight: 600;
     }
 
     .upload-help-text {
-        font-size: 0.78rem;
-        color: var(--muted);
-        margin-top: 0.25rem;
+        font-size: 0.74rem;
+        color: #94a3b8;
+        margin-top: 0.2rem;
     }
 
     .upload-preview-card {
         display: flex;
         align-items: center;
-        gap: 0.85rem;
+        gap: 0.75rem;
         background: #ffffff;
         border: 1px solid var(--line);
         border-radius: 0.75rem;
-        padding: 0.65rem 0.85rem;
+        padding: 0.5rem 0.75rem;
         position: relative;
         z-index: 3;
     }
 
     .upload-preview-thumb {
-        width: 56px;
-        height: 56px;
+        width: 52px;
+        height: 52px;
         object-fit: cover;
         border-radius: 0.5rem;
-        border: 1px solid #e2e8f0;
-        flex-shrink: 0;
+        border: 1px solid var(--line);
     }
 
     .upload-file-info {
@@ -630,45 +643,50 @@
     }
 
     .upload-file-name {
-        font-size: 0.88rem;
-        font-weight: 700;
-        color: #1e293b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--ink);
     }
 
     .upload-file-size {
-        font-size: 0.76rem;
+        font-size: 0.72rem;
         color: var(--muted);
     }
 
     .btn-remove-photo {
-        background: transparent;
+        background: none;
         border: none;
         color: #ef4444;
-        font-size: 1.1rem;
+        font-size: 1rem;
         padding: 0.35rem;
         border-radius: 0.4rem;
         cursor: pointer;
-        transition: background-color 0.15s ease;
+        transition: background 0.15s ease;
     }
 
     .btn-remove-photo:hover {
-        background-color: rgba(239, 68, 68, 0.1);
+        background: #fee2e2;
     }
 
-    /* Amenities Chips */
+    /* Amenities & Chips */
+    .amenity-category-block {
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 0.75rem;
+    }
+
     .amenity-category-label {
         font-size: 0.75rem;
+        font-weight: 700;
         text-transform: uppercase;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-        margin-bottom: 0.4rem;
+        color: #64748b;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
     }
 
     .amenities-chips-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.45rem;
     }
 
     .amenity-chip-label {
@@ -677,74 +695,76 @@
     }
 
     .amenity-chip-input {
-        display: none;
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .amenity-chip-box {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        padding: 0.45rem 0.85rem;
-        border: 1.5px solid var(--line);
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
         border-radius: 999px;
-        background: #ffffff;
-        font-size: 0.86rem;
-        font-weight: 600;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
         color: #334155;
         transition: all 0.15s ease;
     }
 
     .amenity-chip-box .check-icon {
         display: none;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
 
     .amenity-chip-input:checked + .amenity-chip-box {
+        background: #ecfdf5;
         border-color: var(--premium-emerald);
-        background: rgba(16, 185, 129, 0.1);
         color: var(--premium-emerald-deep);
-        font-weight: 700;
+        font-weight: 600;
     }
 
     .amenity-chip-input:checked + .amenity-chip-box .check-icon {
         display: inline-block;
     }
 
-    /* House Rules & Suggestions */
+    /* Suggestion Pills */
     .btn-suggestion-pill {
         border: 1px solid #cbd5e1;
-        background: #f8fafc;
-        border-radius: 999px;
-        padding: 0.15rem 0.55rem;
-        font-size: 0.75rem;
-        font-weight: 600;
+        background: #ffffff;
         color: #475569;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        padding: 0.2rem 0.55rem;
         cursor: pointer;
         transition: all 0.15s ease;
+        text-align: left;
     }
 
     .btn-suggestion-pill:hover {
+        background: #ecfdf5;
         border-color: var(--premium-emerald);
-        background: rgba(16, 185, 129, 0.08);
         color: var(--premium-emerald-deep);
     }
 
-    /* Actions Footer */
+    /* Question Actions */
     .question-actions {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 0.75rem;
         margin-top: 2rem;
         padding-top: 1.25rem;
         border-top: 1px solid var(--line);
         flex-wrap: wrap;
+        gap: 0.75rem;
     }
 
     .actions-right {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.5rem;
         flex-wrap: wrap;
     }
 
@@ -767,25 +787,6 @@
         transform: translateY(-1px);
         box-shadow: 0 6px 18px rgba(4, 120, 87, 0.28);
         color: #ffffff;
-    }
-
-    .btn-save-draft {
-        background: #ffffff;
-        color: var(--premium-emerald-deep);
-        border: 1.5px solid var(--premium-emerald-deep);
-        border-radius: 999px;
-        padding: 0.68rem 1.25rem;
-        font-weight: 700;
-        font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-        transition: all 0.18s ease;
-        cursor: pointer;
-    }
-
-    .btn-save-draft:hover {
-        background: rgba(16, 185, 129, 0.08);
-        color: var(--premium-emerald-deep);
     }
 
     .btn-prev {
@@ -849,72 +850,71 @@
 
     .review-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding-bottom: 0.55rem;
-        margin-bottom: 0.75rem;
+        align-items: center;
+        margin-bottom: 0.85rem;
+        padding-bottom: 0.5rem;
         border-bottom: 1px solid #f1f5f9;
     }
 
     .review-section-title {
-        font-size: 0.8rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--premium-emerald-deep);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ink);
         margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
     }
 
     .btn-review-edit {
-        font-size: 0.82rem;
-        font-weight: 700;
-        color: var(--brand-dark);
-        border-radius: 0.5rem;
-        padding: 0.25rem 0.6rem;
-        background: rgba(20, 83, 45, 0.06);
+        background: none;
         border: none;
+        color: var(--premium-emerald-deep);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 0.3rem;
-        cursor: pointer;
-        transition: all 0.15s ease;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.4rem;
+        transition: background 0.15s ease;
     }
 
     .btn-review-edit:hover {
-        background: rgba(20, 83, 45, 0.14);
-        color: var(--brand);
+        background: #ecfdf5;
     }
 
     .review-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem 1rem;
+    }
+
+    @media (max-width: 576px) {
+        .review-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .review-item {
         display: flex;
         flex-direction: column;
-        gap: 0.15rem;
     }
 
     .review-label {
         font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
         text-transform: uppercase;
         color: var(--muted);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.15rem;
     }
 
     .review-val {
-        font-size: 0.92rem;
-        font-weight: 600;
+        font-size: 0.88rem;
         color: var(--ink);
+        font-weight: 500;
     }
 
-    /* PSGC Address Suggestions */
+    /* PSGC Autocomplete Menu */
     .address-suggestion-menu {
         position: absolute;
         top: 100%;
@@ -922,13 +922,12 @@
         right: 0;
         background: #ffffff;
         border: 1px solid #cbd5e1;
-        border-radius: 0.65rem;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         max-height: 220px;
         overflow-y: auto;
         z-index: 1050;
         display: none;
-        margin-top: 0.25rem;
     }
 
     .address-suggestion-menu.is-open {
@@ -937,15 +936,15 @@
 
     .address-suggestion-item {
         width: 100%;
+        padding: 0.6rem 0.85rem;
         text-align: left;
-        background: none;
         border: none;
-        padding: 0.55rem 0.85rem;
-        font-size: 0.86rem;
-        color: #334155;
-        border-bottom: 1px solid #f1f5f9;
+        background: none;
+        font-size: 0.84rem;
+        color: var(--ink);
         cursor: pointer;
-        transition: background-color 0.12s ease;
+        border-bottom: 1px solid #f1f5f9;
+        display: block;
     }
 
     .address-suggestion-item:hover {
@@ -965,8 +964,147 @@
         const panels = Array.from(document.querySelectorAll('.question-panel'));
         const reviewEditButtons = document.querySelectorAll('.btn-review-edit');
         const saveReturnButtons = document.querySelectorAll('.btn-save-return-review');
+        const autoSaveIndicator = document.getElementById('autoSaveIndicator');
+        const draftPropertyIdInput = document.getElementById('draftPropertyId');
+        const draftVersionInput = document.getElementById('draftVersion');
+        const autoSaveUrl = "{{ route('landlord.properties.autosave') }}";
+        const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
+
         let currentPanel = {{ $initialPanel }};
         let editingFromReview = false;
+        let autoSaveTimer = null;
+        let isSaving = false;
+        let hasPendingSave = false;
+
+        // --- Save-State Indicator Updates ---
+        function setSaveStatus(state, message) {
+            if (!autoSaveIndicator) return;
+            autoSaveIndicator.className = 'autosave-badge ' + state;
+            const textEl = autoSaveIndicator.querySelector('.autosave-text');
+            const iconEl = autoSaveIndicator.querySelector('.autosave-icon');
+
+            if (state === 'saving') {
+                if (iconEl) iconEl.className = 'bi bi-arrow-repeat spin autosave-icon me-1';
+                if (textEl) textEl.textContent = message || 'Saving...';
+            } else if (state === 'saved') {
+                if (iconEl) iconEl.className = 'bi bi-cloud-check autosave-icon me-1';
+                if (textEl) textEl.textContent = message || 'All changes saved';
+            } else if (state === 'error') {
+                if (iconEl) iconEl.className = 'bi bi-exclamation-circle text-danger autosave-icon me-1';
+                if (textEl) {
+                    textEl.innerHTML = 'Couldn\'t save. <button type="button" class="btn-retry-save text-primary border-0 bg-transparent p-0 small fw-bold">Retry</button>';
+                    const retryBtn = autoSaveIndicator.querySelector('.btn-retry-save');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            triggerAutoSaveNow();
+                        });
+                    }
+                }
+            } else {
+                if (iconEl) iconEl.className = 'bi bi-cloud-check autosave-icon me-1';
+                if (textEl) textEl.textContent = message || 'All changes saved';
+            }
+        }
+
+        // --- Auto-Save Dispatcher ---
+        function triggerAutoSaveNow() {
+            clearTimeout(autoSaveTimer);
+            if (isSaving) {
+                hasPendingSave = true;
+                return Promise.resolve();
+            }
+
+            const nameVal = document.getElementById('propertyName')?.value.trim() || '';
+            const addressVal = document.getElementById('propertyAddressInput')?.value.trim() || '';
+            const currentPropId = draftPropertyIdInput?.value;
+
+            // Don't auto-create initial draft if there is no name or address yet
+            if (!currentPropId && nameVal.length < 2 && addressVal.length < 2) {
+                return Promise.resolve();
+            }
+
+            isSaving = true;
+            setSaveStatus('saving', 'Saving...');
+
+            const formData = new FormData(form);
+            // Append explicit draft version
+            if (draftVersionInput?.value) {
+                formData.set('draft_version', draftVersionInput.value);
+            }
+
+            return fetch(autoSaveUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    throw new Error('Save failed with status ' + res.status);
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                isSaving = false;
+                if (data.success) {
+                    if (data.property_id && draftPropertyIdInput) {
+                        draftPropertyIdInput.value = data.property_id;
+                    }
+                    if (data.draft_version && draftVersionInput) {
+                        draftVersionInput.value = data.draft_version;
+                    }
+                    if (data.image_url) {
+                        const reviewThumb = document.getElementById('review_photo_thumb');
+                        const reviewName = document.getElementById('review_photo_name');
+                        if (reviewThumb) {
+                            reviewThumb.src = data.image_url;
+                            reviewThumb.classList.remove('d-none');
+                        }
+                        if (reviewName) {
+                            reviewName.textContent = data.image_name || 'Cover photo';
+                        }
+                    }
+                    setSaveStatus('saved', 'All changes saved');
+                } else {
+                    setSaveStatus('error', data.message || 'Couldn\'t save. Retry');
+                }
+
+                if (hasPendingSave) {
+                    hasPendingSave = false;
+                    triggerAutoSaveNow();
+                }
+            })
+            .catch(function (err) {
+                isSaving = false;
+                console.warn('Auto-save encountered error:', err);
+                setSaveStatus('error', 'Couldn\'t save. Retry');
+            });
+        }
+
+        function scheduleAutoSave(delayMs = 1200) {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(triggerAutoSaveNow, delayMs);
+        }
+
+        // Attach auto-save triggers to text inputs (debounced 1000ms)
+        const autoSaveInputs = form.querySelectorAll('input[type="text"], input[type="number"], textarea');
+        autoSaveInputs.forEach((el) => {
+            el.addEventListener('input', function () {
+                scheduleAutoSave(1000);
+            });
+        });
+
+        // Attach immediate auto-save to checkboxes
+        const autoSaveCheckboxes = form.querySelectorAll('input[type="checkbox"]');
+        autoSaveCheckboxes.forEach((cb) => {
+            cb.addEventListener('change', function () {
+                scheduleAutoSave(300);
+            });
+        });
 
         // --- Panel Navigation ---
         function showPanel(index) {
@@ -976,19 +1114,16 @@
             });
             currentPanel = index;
 
-            // Handle Save & Return visibility
             saveReturnButtons.forEach((btn) => {
                 btn.classList.toggle('d-none', !editingFromReview);
             });
 
-            // If entering review panel (panel 3), sync review data
             if (index === 3) {
                 syncReviewData();
                 editingFromReview = false;
                 saveReturnButtons.forEach((btn) => btn.classList.add('d-none'));
             }
 
-            // Invalidate Leaflet map size when location panel is displayed
             if (index === 2 && map) {
                 setTimeout(function () {
                     map.invalidateSize();
@@ -1036,6 +1171,7 @@
             btn.addEventListener('click', function () {
                 const target = Number(btn.getAttribute('data-target'));
                 if (validatePanel(currentPanel)) {
+                    triggerAutoSaveNow();
                     showPanel(target);
                 }
             });
@@ -1046,6 +1182,7 @@
             btn.addEventListener('click', function () {
                 const target = btn.getAttribute('data-target');
                 if (target !== null) {
+                    triggerAutoSaveNow();
                     showPanel(Number(target));
                 }
             });
@@ -1064,7 +1201,43 @@
         saveReturnButtons.forEach((btn) => {
             btn.addEventListener('click', function () {
                 if (validatePanel(currentPanel)) {
-                    showPanel(3); // Jump back to Review panel
+                    triggerAutoSaveNow();
+                    showPanel(3);
+                }
+            });
+        });
+
+        // --- Toggle House Rules Suggestions ---
+        document.querySelectorAll('.btn-toggle-suggestions').forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const targetId = btn.getAttribute('data-target');
+                const container = document.getElementById(targetId);
+                const textSpan = btn.querySelector('.toggle-text');
+                if (container) {
+                    const isHidden = container.classList.contains('d-none');
+                    container.classList.toggle('d-none', !isHidden);
+                    container.classList.toggle('d-flex', isHidden);
+                    if (textSpan) {
+                        textSpan.textContent = isHidden ? 'Hide common rules' : 'Add common rules';
+                    }
+                }
+            });
+        });
+
+        // --- House Rule Suggestion Pills ---
+        document.querySelectorAll('.btn-suggestion-pill').forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const targetId = btn.getAttribute('data-target');
+                const text = btn.getAttribute('data-text');
+                const textarea = document.getElementById(targetId);
+                if (textarea) {
+                    const currentVal = textarea.value.trim();
+                    // Avoid duplicate rule insertion
+                    if (currentVal.indexOf(text) === -1) {
+                        textarea.value = currentVal ? currentVal + '\n' + text : text;
+                    }
+                    textarea.focus();
+                    scheduleAutoSave(400);
                 }
             });
         });
@@ -1105,7 +1278,7 @@
                 reviewPhotoName.textContent = imageInput.files[0].name;
                 reviewPhotoThumb.src = URL.createObjectURL(imageInput.files[0]);
                 reviewPhotoThumb.classList.remove('d-none');
-            } else {
+            } else if (!reviewPhotoThumb.getAttribute('src')) {
                 reviewPhotoName.textContent = 'No photo uploaded';
                 reviewPhotoThumb.classList.add('d-none');
             }
@@ -1131,6 +1304,9 @@
 
                 uploadIdleState.classList.add('d-none');
                 uploadPreviewCard.classList.remove('d-none');
+
+                // Auto-upload image to draft immediately
+                triggerAutoSaveNow();
             });
         }
 
@@ -1141,22 +1317,9 @@
                 imagePreview.src = '';
                 uploadPreviewCard.classList.add('d-none');
                 uploadIdleState.classList.remove('d-none');
+                triggerAutoSaveNow();
             });
         }
-
-        // --- House Rule Suggestion Pills ---
-        document.querySelectorAll('.btn-suggestion-pill').forEach((btn) => {
-            btn.addEventListener('click', function () {
-                const targetId = btn.getAttribute('data-target');
-                const text = btn.getAttribute('data-text');
-                const textarea = document.getElementById(targetId);
-                if (textarea) {
-                    const currentVal = textarea.value.trim();
-                    textarea.value = currentVal ? currentVal + '\n' + text : text;
-                    textarea.focus();
-                }
-            });
-        });
 
         // --- Leaflet Map Setup ---
         let map = null;
@@ -1194,6 +1357,7 @@
                     marker = L.marker(e.latlng).addTo(map);
                 }
                 locationStatus.textContent = `Pinned: ${lat}, ${lng}`;
+                scheduleAutoSave(400);
             });
 
             if (useLocationBtn && navigator.geolocation) {
@@ -1214,6 +1378,7 @@
                                 marker = L.marker([lat, lng]).addTo(map);
                             }
                             locationStatus.textContent = `Location applied: ${lat}, ${lng}`;
+                            scheduleAutoSave(400);
                         },
                         function () {
                             locationStatus.textContent = 'Geolocation unavailable. Please click on the map.';
@@ -1248,6 +1413,7 @@
                 ]).then(([barangays, cities, provinces]) => {
                     const cityMap = new Map();
                     cities.forEach((c) => cityMap.set(c.code, { name: c.name, prov: c.provinceCode }));
+
                     const provMap = new Map();
                     provinces.forEach((p) => provMap.set(p.code, p.name));
 
@@ -1292,6 +1458,7 @@
                                 addressInput.value = m.full;
                                 addressInput.classList.remove('is-invalid');
                                 suggestMenu.classList.remove('is-open');
+                                scheduleAutoSave(300);
                             });
                             suggestMenu.appendChild(btn);
                         });
@@ -1306,6 +1473,14 @@
                 }
             });
         }
+
+        // Beforeunload safety warning if save is pending
+        window.addEventListener('beforeunload', function (e) {
+            if (isSaving || hasPendingSave) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
 
         // Initialize active panel
         showPanel(currentPanel);
