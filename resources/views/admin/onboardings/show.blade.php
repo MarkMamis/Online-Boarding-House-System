@@ -21,13 +21,13 @@
         subtitle="Monitor tenant completion milestones, verification documents, and lease contract status."
         icon="bi bi-person-check"
         :breadcrumbs="[
-            ['label' => 'Monitoring', 'url' => route('admin.onboardings')],
-            ['label' => 'Onboarding Pipeline', 'url' => route('admin.onboardings')],
+            ['label' => 'Monitoring', 'url' => route('admin.onboardings.index')],
+            ['label' => 'Onboarding Pipeline', 'url' => route('admin.onboardings.index')],
             ['label' => '#' . $onboarding->id]
         ]"
     >
         <x-slot:actions>
-            <a href="{{ route('admin.onboardings') }}" class="btn btn-outline-secondary rounded-pill px-3">
+            <a href="{{ route('admin.onboardings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
                 <i class="bi bi-arrow-left me-1"></i>Back to Pipeline
             </a>
         </x-slot:actions>
@@ -189,21 +189,36 @@
     </div>
 
     <div class="admin-table-card p-4">
-        <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-file-earmark-check me-2 text-success"></i>Contract Information</h6>
+        <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-file-earmark-check me-2 text-success"></i>Contract &amp; Payment Information</h6>
         @if($onboarding->contract_signed)
             <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-4">
                     <span class="text-muted small d-block mb-1">Contract Signed</span>
                     <span class="fw-semibold text-dark">{{ $onboarding->contract_signed_at ? $onboarding->contract_signed_at->format('M d, Y h:i A') : 'N/A' }}</span>
                 </div>
-                <div class="col-12 col-md-6">
-                    <span class="text-muted small d-block mb-1">Deposit Paid</span>
+                <div class="col-12 col-md-4">
+                    <span class="text-muted small d-block mb-1">Payment Status</span>
                     <div>
                         @if($onboarding->deposit_paid)
-                            <span class="badge bg-success-subtle text-success rounded-pill px-3 fw-bold">Paid</span>
-                            <span class="text-muted small ms-1">({{ $onboarding->deposit_paid_at ? $onboarding->deposit_paid_at->format('M d, Y h:i A') : 'N/A' }})</span>
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3 fw-bold">Confirmed</span>
+                            <span class="text-muted small ms-1">({{ $onboarding->deposit_paid_at ? $onboarding->deposit_paid_at->format('M d, Y') : 'N/A' }})</span>
+                        @elseif($onboarding->status === 'deposit_paid')
+                            <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-3 fw-bold">Under Review</span>
                         @else
-                            <span class="badge bg-danger-subtle text-danger rounded-pill px-3 fw-bold">Unpaid</span>
+                            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 fw-bold">Pending Payment</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <span class="text-muted small d-block mb-1">Payment Details</span>
+                    <div class="small">
+                        @if($onboarding->payment_method)
+                            <span class="fw-medium text-dark">{{ ucfirst($onboarding->payment_method) }}</span>
+                            @if($onboarding->payment_reference)
+                                · <code class="text-primary">{{ $onboarding->payment_reference }}</code>
+                            @endif
+                        @else
+                            <span class="text-muted">No payment recorded</span>
                         @endif
                     </div>
                 </div>
@@ -214,13 +229,18 @@
             </div>
         @endif
 
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
             <a href="{{ route('admin.onboardings.contract', $onboarding) }}" target="_blank" class="btn btn-brand rounded-pill px-3">
                 <i class="bi bi-eye me-1"></i>View Contract
             </a>
             <a href="{{ route('admin.onboardings.contract_pdf', ['onboarding' => $onboarding, 'download' => 1]) }}" class="btn btn-outline-secondary rounded-pill px-3">
                 <i class="bi bi-filetype-pdf me-1"></i>Download PDF
             </a>
+            @if(!empty($onboarding->payment_proof_path) && file_exists_any($onboarding->payment_proof_path))
+                <a href="{{ file_download_url($onboarding->payment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-receipt me-1"></i>View Payment Proof
+                </a>
+            @endif
         </div>
     </div>
 </div>
