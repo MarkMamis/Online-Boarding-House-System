@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Message;
 use App\Models\Property;
 use App\Models\Room;
-use App\Models\Message;
 use App\Models\TenantOnboarding;
 use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
 {
@@ -27,19 +27,19 @@ class BookingController extends Controller
         $previous = (string) url()->previous();
         $previous = preg_replace('/#.*/', '', $previous) ?: $previous;
 
-        return redirect()->to($previous . '#' . $panel);
+        return redirect()->to($previous.'#'.$panel);
     }
 
     protected function ensureStudent()
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403, 'Unauthorized');
         }
     }
 
     protected function ensureLandlord()
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403, 'Unauthorized');
         }
     }
@@ -116,6 +116,7 @@ class BookingController extends Controller
             })
             ->orderBy('price')
             ->get();
+
         return view('student.rooms.index', compact('rooms'));
     }
 
@@ -123,10 +124,11 @@ class BookingController extends Controller
     public function studentIndex()
     {
         $this->ensureStudent();
-        $bookings = Booking::with(['room.property'])
+        $bookings = Booking::with(['room.property.landlord', 'room.roomImages', 'tenantOnboarding'])
             ->where('student_id', Auth::id())
             ->orderByDesc('created_at')
             ->get();
+
         return view('student.bookings.index', compact('bookings'));
     }
 
@@ -140,19 +142,19 @@ class BookingController extends Controller
         $room->loadAvg('feedbacks', 'rating');
 
         [$canBook, $bookingBlockMessage] = $this->studentBookingEligibility();
-        if (!$canBook) {
+        if (! $canBook) {
             return redirect()->route('student.rooms.show', $room->id)->with('error', $bookingBlockMessage);
         }
 
         $today = now()->toDateString();
-        
+
         // Check for any active booking (pending or approved)
         $existingBooking = Booking::query()
             ->where('student_id', Auth::id())
             ->whereIn('status', ['pending', 'approved'])
             ->where('check_out', '>', $today)
             ->first();
-        
+
         if ($existingBooking) {
             // Allow if it's the same room
             if ($existingBooking->room_id !== $room->id) {
@@ -164,19 +166,19 @@ class BookingController extends Controller
         if (($room->property->approval_status ?? 'pending') !== 'approved') {
             return redirect()->route('student.rooms.index')->with('error', 'This property is not available yet.');
         }
-        
+
         // Check if room is in maintenance
         if ($room->status === 'maintenance') {
             return redirect()->route('student.rooms.index')->with('error', 'Room is currently under maintenance.');
         }
-        
+
         // Check if room has available slots (based on actual occupancy, not manual status)
-        if (!$room->hasAvailableSlots()) {
+        if (! $room->hasAvailableSlots()) {
             return redirect()->route('student.rooms.index')->with('error', 'Room is at full capacity.');
         }
 
-        $student    = Auth::user();
-        $landlord   = $room->property->landlord ?? null;
+        $student = Auth::user();
+        $landlord = $room->property->landlord ?? null;
         $coverImage = $room->roomImages->firstWhere('is_cover', true) ?? $room->roomImages->first();
 
         return view('student.bookings.create', compact('room', 'student', 'landlord', 'coverImage'));
@@ -192,7 +194,7 @@ class BookingController extends Controller
         $stayOnPage = $request->boolean('stay');
 
         [$canBook, $bookingBlockMessage] = $this->studentBookingEligibility();
-        if (!$canBook) {
+        if (! $canBook) {
             if ($stayOnPage) {
                 return back()->with('error', $bookingBlockMessage);
             }
@@ -210,6 +212,7 @@ class BookingController extends Controller
             if ($stayOnPage) {
                 return back()->with('error', 'You already have an approved boarding request. Requesting is disabled while your stay is active.');
             }
+
             return redirect()->route('student.dashboard')
                 ->with('error', 'You already have an approved boarding request. Requesting is disabled while your stay is active.');
         }
@@ -218,22 +221,25 @@ class BookingController extends Controller
             if ($stayOnPage) {
                 return back()->with('error', 'This property is not available yet.');
             }
+
             return redirect()->route('student.rooms.index')->with('error', 'This property is not available yet.');
         }
-        
+
         // Check if room is in maintenance
         if ($room->status === 'maintenance') {
             if ($stayOnPage) {
                 return back()->with('error', 'Room is currently under maintenance.');
             }
+
             return redirect()->route('student.rooms.index')->with('error', 'Room is currently under maintenance.');
         }
-        
+
         // Check if room has available slots (based on actual occupancy, not manual status)
-        if (!$room->hasAvailableSlots()) {
+        if (! $room->hasAvailableSlots()) {
             if ($stayOnPage) {
                 return back()->with('error', 'Room is at full capacity.');
             }
+
             return redirect()->route('student.rooms.index')->with('error', 'Room is at full capacity.');
         }
 
@@ -242,7 +248,7 @@ class BookingController extends Controller
             'check_out' => 'required|date|after:check_in',
             'notes' => 'nullable|string|max:1000',
             'include_advance_payment' => 'nullable|boolean',
-            'occupancy_mode' => 'required|in:' . implode(',', $room->allowedOccupancyModes()),
+            'occupancy_mode' => 'required|in:'.implode(',', $room->allowedOccupancyModes()),
         ]);
 
         if ($validator->fails()) {
@@ -314,7 +320,7 @@ class BookingController extends Controller
         try {
             Mail::raw(
                 sprintf(
-                    "New booking request for Room %s at %s (%s) from %s, %s to %s.",
+                    'New booking request for Room %s at %s (%s) from %s, %s to %s.',
                     $room->room_number,
                     $room->property->name,
                     $room->property->address,
@@ -354,6 +360,7 @@ class BookingController extends Controller
         $booking->update(['status' => 'cancelled', 'cancel_reason' => $cancelReason]);
 
         $redirect = $this->redirectBackToPanel($request);
+
         return $stayOnPage
             ? $redirect->with('booking_success', 'Boarding request cancelled.')
             : $redirect->with('success', 'Boarding request cancelled.');
@@ -364,7 +371,7 @@ class BookingController extends Controller
     {
         $this->ensureLandlord();
         // If landlord has no properties yet, redirect to create property
-        if (!Auth::user()->properties()->exists()) {
+        if (! Auth::user()->properties()->exists()) {
             return redirect()->route('landlord.properties.create')
                 ->with('info', 'Add a property first to receive booking requests.');
         }
@@ -374,6 +381,7 @@ class BookingController extends Controller
             })
             ->orderByDesc('created_at')
             ->get();
+
         return view('landlord.bookings.index', compact('bookings'));
     }
 
@@ -410,7 +418,7 @@ class BookingController extends Controller
 
             $allowedModes = $room->allowedOccupancyModes();
             $occupancyMode = (string) ($booking->occupancy_mode ?: ($allowedModes[0] ?? 'solo'));
-            if (!in_array($occupancyMode, $allowedModes, true)) {
+            if (! in_array($occupancyMode, $allowedModes, true)) {
                 $occupancyMode = $allowedModes[0] ?? 'solo';
             }
 
@@ -426,7 +434,7 @@ class BookingController extends Controller
                 abort(422, 'Room is already occupied for the selected stay period.');
             }
 
-            if (!$isExclusiveOccupancy && !$room->hasAvailableSlots()) {
+            if (! $isExclusiveOccupancy && ! $room->hasAvailableSlots()) {
                 abort(422, 'No available slots left for this room.');
             }
 
@@ -452,7 +460,7 @@ class BookingController extends Controller
                 ->where('status', 'pending')
                 ->where(function ($q) use ($booking) {
                     $q->where('check_in', '<', $booking->check_out)
-                      ->where('check_out', '>', $booking->check_in);
+                        ->where('check_out', '>', $booking->check_in);
                 })
                 ->update(['status' => 'rejected']);
         }
@@ -478,7 +486,7 @@ class BookingController extends Controller
         try {
             Mail::raw(
                 sprintf(
-                    "Your booking was approved for Room %s at %s, %s to %s. Please complete your tenant onboarding process.",
+                    'Your booking was approved for Room %s at %s, %s to %s. Please complete your tenant onboarding process.',
                     $booking->room->room_number,
                     $booking->room->property->name,
                     $booking->check_in->format('M d, Y'),
@@ -495,7 +503,7 @@ class BookingController extends Controller
         // Create tenant onboarding record
         $booking->loadMissing('room');
         $baseMonthlyRent = (float) ($booking->monthly_rent_amount ?: $booking->room->resolveMonthlyRentForOccupancyMode((string) ($booking->occupancy_mode ?: 'solo')));
-        $onboardingTotal = $baseMonthlyRent + (!empty($booking->include_advance_payment) ? $baseMonthlyRent : 0.0);
+        $onboardingTotal = $baseMonthlyRent + (! empty($booking->include_advance_payment) ? $baseMonthlyRent : 0.0);
         TenantOnboarding::create([
             'booking_id' => $booking->id,
             'required_documents' => ['student_id', 'proof_of_income', 'emergency_contact'],
@@ -532,7 +540,7 @@ class BookingController extends Controller
         try {
             Mail::raw(
                 sprintf(
-                    "Your booking was rejected for Room %s at %s, %s to %s.",
+                    'Your booking was rejected for Room %s at %s, %s to %s.',
                     $booking->room->room_number,
                     $booking->room->property->name,
                     $booking->check_in->format('M d, Y'),
@@ -545,6 +553,7 @@ class BookingController extends Controller
         } catch (\Throwable $e) {
             // ignore email transport errors
         }
+
         return back()->with('success', 'Boarding request rejected.');
     }
 }
