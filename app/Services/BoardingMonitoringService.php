@@ -92,7 +92,7 @@ class BoardingMonitoringService
 
                         $periodStart = $startCandidate;
                         $periodEnd = $endCandidate;
-                        $periodLabel = $periodStart->format('M d, Y') . ' – ' . $periodEnd->format('M d, Y');
+                        $periodLabel = $periodStart->format('M d, Y').' – '.$periodEnd->format('M d, Y');
                         $isHistorical = true;
                     } elseif ($cleanDateFrom !== '') {
                         $periodStart = Carbon::parse($cleanDateFrom)->startOfDay();
@@ -102,7 +102,7 @@ class BoardingMonitoringService
                     } else {
                         $periodEnd = Carbon::parse($cleanDateTo)->endOfDay();
                         $periodStart = Carbon::create(2000, 1, 1)->startOfDay();
-                        $periodLabel = 'Up to ' . $periodEnd->format('M d, Y');
+                        $periodLabel = 'Up to '.$periodEnd->format('M d, Y');
                         $isHistorical = true;
                     }
                 } catch (\Throwable $e) {
@@ -122,7 +122,7 @@ class BoardingMonitoringService
                 ? (int) $year
                 : null;
 
-            if (!$isHistorical && ($validMonth !== null || $validYear !== null)) {
+            if (! $isHistorical && ($validMonth !== null || $validYear !== null)) {
                 $isHistorical = true;
                 $periodYear = $validYear ?: now()->year;
 
@@ -158,7 +158,7 @@ class BoardingMonitoringService
     /**
      * Build the single canonical base query for student monitoring and distribution reports.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     public function buildBaseQuery(array $filters = []): Builder
     {
@@ -187,8 +187,14 @@ class BoardingMonitoringService
         $periodEnd = $filters['periodEnd'] ?? null;
         $dateBasis = $filters['dateBasis'] ?? $filters['date_basis'] ?? 'stay';
 
-        if ($periodStart instanceof Carbon && $periodEnd instanceof Carbon) {
-            $this->applyPeriodFilter($query, $periodStart, $periodEnd, (string) $dateBasis);
+        if ($periodStart && $periodEnd) {
+            try {
+                $start = $periodStart instanceof Carbon ? $periodStart : Carbon::parse($periodStart);
+                $end = $periodEnd instanceof Carbon ? $periodEnd : Carbon::parse($periodEnd);
+                $this->applyPeriodFilter($query, $start, $end, (string) $dateBasis);
+            } catch (\Throwable $e) {
+                // Ignore unparseable period dates
+            }
         }
 
         // 4. Search Filter
@@ -301,28 +307,28 @@ class BoardingMonitoringService
                     });
             })
             // Case 2: Early-leave cancelled stays that had physical occupancy (check_out > check_in)
-            ->orWhere(function (Builder $earlyLeave) use ($startStr, $endStr, $table) {
-                $earlyLeave->where("{$table}.status", 'cancelled')
-                    ->whereNotNull("{$table}.check_in")
-                    ->whereNotNull("{$table}.check_out")
-                    ->whereColumn("{$table}.check_out", '>', "{$table}.check_in")
-                    ->whereDate("{$table}.check_in", '<=', $endStr)
-                    ->whereDate("{$table}.check_out", '>=', $startStr);
-            })
+                ->orWhere(function (Builder $earlyLeave) use ($startStr, $endStr, $table) {
+                    $earlyLeave->where("{$table}.status", 'cancelled')
+                        ->whereNotNull("{$table}.check_in")
+                        ->whereNotNull("{$table}.check_out")
+                        ->whereColumn("{$table}.check_out", '>', "{$table}.check_in")
+                        ->whereDate("{$table}.check_in", '<=', $endStr)
+                        ->whereDate("{$table}.check_out", '>=', $startStr);
+                })
             // Case 3: Pending stays with requested date overlap
-            ->orWhere(function (Builder $pending) use ($startStr, $endStr, $table) {
-                $pending->where("{$table}.status", 'pending')
-                    ->where(function (Builder $pDates) use ($startStr, $endStr, $table) {
-                        $pDates->whereNull("{$table}.check_in")
-                            ->orWhere(function (Builder $overlap) use ($startStr, $endStr, $table) {
-                                $overlap->whereDate("{$table}.check_in", '<=', $endStr)
-                                    ->where(function (Builder $out) use ($startStr, $table) {
-                                        $out->whereNull("{$table}.check_out")
-                                            ->orWhereDate("{$table}.check_out", '>=', $startStr);
-                                    });
-                            });
-                    });
-            });
+                ->orWhere(function (Builder $pending) use ($startStr, $endStr, $table) {
+                    $pending->where("{$table}.status", 'pending')
+                        ->where(function (Builder $pDates) use ($startStr, $endStr, $table) {
+                            $pDates->whereNull("{$table}.check_in")
+                                ->orWhere(function (Builder $overlap) use ($startStr, $endStr, $table) {
+                                    $overlap->whereDate("{$table}.check_in", '<=', $endStr)
+                                        ->where(function (Builder $out) use ($startStr, $table) {
+                                            $out->whereNull("{$table}.check_out")
+                                                ->orWhereDate("{$table}.check_out", '>=', $startStr);
+                                        });
+                                });
+                        });
+                });
         });
     }
 
@@ -337,7 +343,7 @@ class BoardingMonitoringService
             return $query;
         }
 
-        $like = '%' . $search . '%';
+        $like = '%'.$search.'%';
 
         return $query->where(function (Builder $searchQuery) use ($search, $like) {
             if (ctype_digit($search)) {
@@ -541,20 +547,31 @@ class BoardingMonitoringService
 
         $collegeExpr = "COALESCE(NULLIF(TRIM(users.college), ''), 'Not specified')";
 
-        $rows = (clone $baseQuery)
+        $subquery = (clone $baseQuery)
             ->toBase()
             ->join('users', 'users.id', '=', 'bookings.student_id')
             ->select(
-                DB::raw("{$collegeExpr} as college_code"),
-                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students'),
-                DB::raw('COUNT(bookings.id) as total_records')
+                'bookings.id as booking_id',
+                'bookings.student_id as student_id',
+                DB::raw("{$collegeExpr} as college_code")
+            );
+
+        $rows = DB::query()
+            ->fromSub($subquery, 'normalized_college')
+            ->select(
+                'college_code',
+                DB::raw('COUNT(DISTINCT student_id) as total_students'),
+                DB::raw('COUNT(booking_id) as total_records')
             )
-            ->groupByRaw($collegeExpr)
+            ->groupBy('college_code')
             ->orderByDesc('total_students')
             ->get();
 
         return $rows->map(function ($row) use ($collegeCatalog) {
             $code = trim((string) $row->college_code);
+            if ($code === '') {
+                $code = 'Not specified';
+            }
             $fullName = $collegeCatalog[$code] ?? ($code === 'Not specified' ? 'Not specified' : $code);
 
             return (object) [
@@ -562,6 +579,13 @@ class BoardingMonitoringService
                 'college_name' => $fullName,
                 'total_students' => (int) $row->total_students,
                 'total_records' => (int) $row->total_records,
+            ];
+        })->groupBy('college_code')->map(function ($group, $code) {
+            return (object) [
+                'college_code' => $code,
+                'college_name' => $group->first()->college_name,
+                'total_students' => (int) $group->sum('total_students'),
+                'total_records' => (int) $group->sum('total_records'),
             ];
         })->sortByDesc('total_students')->values();
     }
@@ -577,23 +601,37 @@ class BoardingMonitoringService
         $collegeExpr = "COALESCE(NULLIF(TRIM(users.college), ''), 'Not specified')";
         $programExpr = "COALESCE(NULLIF(TRIM(users.program), ''), 'Not specified')";
 
-        $rows = (clone $baseQuery)
+        $subquery = (clone $baseQuery)
             ->toBase()
             ->join('users', 'users.id', '=', 'bookings.student_id')
             ->select(
+                'bookings.id as booking_id',
+                'bookings.student_id as student_id',
                 DB::raw("{$collegeExpr} as college_code"),
-                DB::raw("{$programExpr} as program_name"),
-                DB::raw('COUNT(DISTINCT bookings.student_id) as total_students'),
-                DB::raw('COUNT(bookings.id) as total_records')
+                DB::raw("{$programExpr} as program_name")
+            );
+
+        $rows = DB::query()
+            ->fromSub($subquery, 'normalized_program')
+            ->select(
+                'college_code',
+                'program_name',
+                DB::raw('COUNT(DISTINCT student_id) as total_students'),
+                DB::raw('COUNT(booking_id) as total_records')
             )
-            ->groupByRaw($collegeExpr)
-            ->groupByRaw($programExpr)
+            ->groupBy('college_code', 'program_name')
             ->orderByDesc('total_students')
             ->get();
 
         return $rows->map(function ($row) use ($collegeCatalog) {
             $collegeCode = trim((string) $row->college_code);
+            if ($collegeCode === '') {
+                $collegeCode = 'Not specified';
+            }
             $programName = trim((string) $row->program_name);
+            if ($programName === '') {
+                $programName = 'Not specified';
+            }
 
             if ($collegeCode === 'Not specified' && $programName !== 'Not specified') {
                 $inferred = AcademicCatalogService::inferCollegeByProgram($programName);
@@ -608,6 +646,16 @@ class BoardingMonitoringService
                 'program_name' => $programName,
                 'total_students' => (int) $row->total_students,
                 'total_records' => (int) $row->total_records,
+            ];
+        })->groupBy(fn ($item) => $item->college_code.'|'.$item->program_name)->map(function ($group) {
+            $first = $group->first();
+
+            return (object) [
+                'college_code' => $first->college_code,
+                'college_name' => $first->college_name,
+                'program_name' => $first->program_name,
+                'total_students' => (int) $group->sum('total_students'),
+                'total_records' => (int) $group->sum('total_records'),
             ];
         })->sortByDesc('total_students')->values();
     }
@@ -804,7 +852,7 @@ class BoardingMonitoringService
             // fallback
         }
 
-        return $years->filter(fn ($y) => is_numeric($y) && (int)$y >= 2000 && (int)$y <= 2100)
+        return $years->filter(fn ($y) => is_numeric($y) && (int) $y >= 2000 && (int) $y <= 2100)
             ->map(fn ($y) => (int) $y)
             ->unique()
             ->sortDesc()
