@@ -1,335 +1,275 @@
 @extends('layouts.landlord')
 
-@section('title', 'Leave Requests')
+@section('title', 'Departure & Leave Notices')
 
 @section('content')
-    <div class="leave-shell">
-        @php
-            $items = collect($leaveRequests ?? collect());
-            $pendingCount = $items->where('status', 'pending')->count();
-            $approvedCount = $items->where('status', 'approved')->count();
-            $rejectedCount = $items->where('status', 'rejected')->count();
-            $cancelledCount = $items->where('status', 'cancelled')->count();
-        @endphp
+<div class="landlord-page-shell">
+    @php
+        $items = collect($leaveRequests ?? collect());
+        $pendingCount = $items->where('status', 'pending')->count();
+        $approvedCount = $items->where('status', 'approved')->count();
+        $rejectedCount = $items->where('status', 'rejected')->count();
+        $cancelledCount = $items->where('status', 'cancelled')->count();
+    @endphp
 
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-            <div>
-                <div class="text-uppercase small text-muted fw-semibold">Operations</div>
-                <h1 class="h3 mb-1">Departure & Leave Notices</h1>
-                <div class="text-muted small">Review tenant early departure notices and schedule move-out dates.</div>
-            </div>
-            <a href="{{ route('landlord.tenants.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Active Tenants</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <div class="landlord-header-eyebrow">Operations</div>
+            <h1 class="landlord-header-title mb-1">Departure &amp; Leave Notices</h1>
+            <div class="landlord-header-subtitle">Review tenant early departure notices and schedule move-out dates.</div>
         </div>
-
-        <div class="alert alert-info border-0 rounded-4 bg-light d-flex align-items-center gap-2 mb-4 p-3 text-secondary">
-            <i class="bi bi-info-circle text-primary fs-5 flex-shrink-0"></i>
-            <div class="small">
-                <strong>Scheduled Departures Policy:</strong> Approving a future departure date adjusts the student's booking end-date so they remain an active resident until that day. Their bed slot is automatically made available for new student bookings once the departure date passes.
-            </div>
-        </div>
-
-        <div class="leave-summary mb-4">
-            <div class="leave-summary-item">
-                <div class="leave-summary-label">Pending</div>
-                <div class="leave-summary-value text-warning-emphasis">{{ $pendingCount }}</div>
-            </div>
-            <div class="leave-summary-item">
-                <div class="leave-summary-label">Approved</div>
-                <div class="leave-summary-value text-success-emphasis">{{ $approvedCount }}</div>
-            </div>
-            <div class="leave-summary-item">
-                <div class="leave-summary-label">Rejected</div>
-                <div class="leave-summary-value text-danger-emphasis">{{ $rejectedCount }}</div>
-            </div>
-            <div class="leave-summary-item">
-                <div class="leave-summary-label">Cancelled</div>
-                <div class="leave-summary-value text-secondary-emphasis">{{ $cancelledCount }}</div>
-            </div>
-        </div>
-
-        @if(session('success'))
-            <div class="alert alert-success rounded-4">{{ session('success') }}</div>
-        @endif
-        @if(session('error'))
-            <div class="alert alert-danger rounded-4">{{ session('error') }}</div>
-        @endif
-
-        <div class="leave-list-card">
-            @forelse($items as $lr)
-                @php
-                    $status = strtolower((string) ($lr->status ?? ''));
-                    $statusClass = match($status) {
-                        'pending' => 'status-pending',
-                        'approved' => 'status-approved',
-                        'rejected' => 'status-rejected',
-                        'cancelled' => 'status-cancelled',
-                        default => 'status-default',
-                    };
-                    $statusIcon = match($status) {
-                        'pending' => 'bi-hourglass-split',
-                        'approved' => 'bi-check-circle',
-                        'rejected' => 'bi-x-circle',
-                        'cancelled' => 'bi-slash-circle',
-                        default => 'bi-info-circle',
-                    };
-                    $statusLabel = $status !== '' ? ucfirst($status) : 'Unknown';
-                    $statusNote = match($status) {
-                        'pending' => 'Waiting for your decision',
-                        'approved' => 'Request has been approved',
-                        'rejected' => 'Request has been rejected',
-                        'cancelled' => 'Request was cancelled',
-                        default => 'Status unavailable',
-                    };
-                @endphp
-
-                <article class="leave-item">
-                    <div class="leave-main">
-                        <div class="leave-title-row">
-                            <div class="d-flex align-items-center gap-2 min-w-0">
-                                <div class="student-avatar">
-                                    {{ strtoupper(substr($lr->student?->full_name ?? 'S', 0, 1)) }}
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="student-name text-truncate">{{ $lr->student?->full_name ?? 'Student' }}</div>
-                                    <div class="student-email text-truncate">{{ $lr->student?->email ?? 'No email available' }}</div>
-                                </div>
-                            </div>
-                            <span class="updated-chip"><i class="bi bi-clock-history"></i>{{ optional($lr->updated_at)->diffForHumans() }}</span>
-                        </div>
-
-                        <div class="leave-meta-row">
-                            <span class="meta-chip"><i class="bi bi-building"></i>{{ $lr->booking?->room?->property?->name ?? 'Property' }}</span>
-                            <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $lr->booking?->room?->room_number ?? '—' }}</span>
-                            <span class="meta-chip"><i class="bi bi-calendar-event"></i>Leave {{ optional($lr->leave_date)->format('M d, Y') ?? '—' }}</span>
-                        </div>
-
-                        <div class="reason-box">
-                            <div class="reason-label">Reason</div>
-                            <div class="reason-text">{{ $lr->reason ?: 'No reason provided.' }}</div>
-                        </div>
-
-                        @if(!empty($lr->landlord_response))
-                            <div class="response-box">
-                                <div class="response-label">Your Response</div>
-                                <div class="response-text">{{ $lr->landlord_response }}</div>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="leave-side">
-                        <div class="status-panel">
-                            <span class="status-pill {{ $statusClass }}"><i class="bi {{ $statusIcon }}"></i>{{ $statusLabel }}</span>
-                            <div class="status-note">{{ $statusNote }}</div>
-                        </div>
-
-                        <div class="leave-actions {{ $status !== 'pending' ? 'leave-actions-disabled' : '' }}">
-                            @if($status === 'pending')
-                                <form method="POST" action="{{ route('landlord.leave_requests.approve', $lr->id) }}" class="action-form">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" onclick="return confirm('Approve this departure notice? If the departure date is in the future, the tenant remains active until that date.')"><i class="bi bi-check2 me-1"></i>Approve</button>
-                                </form>
-                                <form method="POST" action="{{ route('landlord.leave_requests.reject', $lr->id) }}" class="action-form">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Reject this departure notice? The student will remain on their current check-out schedule.')"><i class="bi bi-x me-1"></i>Reject</button>
-                                </form>
-                            @else
-                                <span class="action-muted"><i class="bi bi-lock me-1"></i>No actions available</span>
-                            @endif
-                        </div>
-                    </div>
-                </article>
-            @empty
-                <div class="empty-state">
-                    <i class="bi bi-box-arrow-right fs-1 mb-2"></i>
-                    <div class="empty-title">No Leave Requests Yet</div>
-                    <div class="empty-copy">When students submit leave requests, they will appear here for review.</div>
-                </div>
-            @endforelse
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            @if($items->isNotEmpty())
+                <span class="landlord-summary-strip">
+                    <span class="landlord-summary-dot"></span>
+                    <span><strong>{{ $items->count() }}</strong> {{ Str::plural('Notice', $items->count()) }}</span>
+                    @if($pendingCount > 0)
+                        <span class="text-muted">·</span>
+                        <span class="text-warning-emphasis fw-bold">{{ $pendingCount }} Action Required</span>
+                    @endif
+                    <span class="text-muted">·</span>
+                    <span class="text-success fw-bold">{{ $approvedCount }}</span> Approved
+                </span>
+            @endif
         </div>
     </div>
+
+    <!-- Collapsible Policy Helper -->
+    <div class="mb-3">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" type="button" data-bs-toggle="collapse" data-bs-target="#leavePolicyCollapse" aria-expanded="false" aria-controls="leavePolicyCollapse">
+            <i class="bi bi-info-circle me-1"></i> How scheduled departures work
+        </button>
+        <div class="collapse mt-2" id="leavePolicyCollapse">
+            <div class="card card-body bg-light border-0 rounded-4 p-3 small text-secondary">
+                <strong>Scheduled Departures Policy:</strong> Approving a future departure date adjusts the student's booking end-date so they remain an active resident until that date. Their bed slot is automatically made available for new student bookings once the departure date passes. Immediate departures free the room slot right away.
+            </div>
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success rounded-4 mb-3">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger rounded-4 mb-3">{{ session('error') }}</div>
+    @endif
+
+    @if($items->isNotEmpty())
+        <div class="landlord-filter-bar mb-3">
+            <div class="landlord-filter-search">
+                <i class="bi bi-search"></i>
+                <input id="leaveSearchInput" type="text" class="form-control" placeholder="Search student name, room, property, or reason...">
+            </div>
+            <div class="landlord-filter-select">
+                <select id="leaveStatusFilter" class="form-select">
+                    <option value="all">All Notices</option>
+                    <option value="pending" @selected($pendingCount > 0)>Pending ({{ $pendingCount }})</option>
+                    <option value="approved">Approved ({{ $approvedCount }})</option>
+                    <option value="rejected">Rejected ({{ $rejectedCount }})</option>
+                    <option value="cancelled">Cancelled ({{ $cancelledCount }})</option>
+                </select>
+            </div>
+        </div>
+    @endif
+
+    <div class="landlord-card">
+        @forelse($items as $lr)
+            @php
+                $status = strtolower((string) ($lr->status ?? ''));
+                $statusBadgeClass = match($status) {
+                    'pending' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                    'approved' => 'bg-success-subtle text-success border border-success-subtle',
+                    'rejected' => 'bg-danger-subtle text-danger border border-danger-subtle',
+                    'cancelled' => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+                    default => 'bg-light text-dark',
+                };
+                $statusLabel = $status !== '' ? ucfirst($status) : 'Unknown';
+                $statusNote = match($status) {
+                    'pending' => 'Waiting for your decision',
+                    'approved' => 'Request approved · Move-out scheduled',
+                    'rejected' => 'Departure notice was declined',
+                    'cancelled' => 'Cancelled by student',
+                    default => 'Status unavailable',
+                };
+
+                $searchBlob = strtolower(trim(implode(' ', [
+                    $lr->student?->full_name ?? '',
+                    $lr->booking?->room?->property?->name ?? '',
+                    $lr->booking?->room?->room_number ?? '',
+                    $lr->reason ?? '',
+                ])));
+            @endphp
+
+            <article class="leave-item" data-search="{{ $searchBlob }}" data-status="{{ $status }}">
+                <div class="leave-main">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <div class="student-avatar-sm">
+                            {{ strtoupper(substr($lr->student?->full_name ?? 'S', 0, 1)) }}
+                        </div>
+                        <span class="fw-bold text-dark fs-6">{{ $lr->student?->full_name ?? 'Student' }}</span>
+                        <span class="text-muted small">({{ $lr->student?->email ?? 'No email' }})</span>
+                        <span class="badge rounded-pill {{ $statusBadgeClass }} small ms-auto d-md-none">
+                            {{ $statusLabel }}
+                        </span>
+                    </div>
+
+                    <div class="leave-meta-row mb-2">
+                        <span class="meta-chip"><i class="bi bi-building"></i>{{ $lr->booking?->room?->property?->name ?? 'Property' }}</span>
+                        <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $lr->booking?->room?->room_number ?? '—' }}</span>
+                        <span class="meta-chip"><i class="bi bi-calendar-event"></i>Departure: {{ optional($lr->leave_date)->format('M d, Y') ?? '—' }}</span>
+                        <span class="text-muted small ms-1"><i class="bi bi-clock-history me-1"></i>{{ optional($lr->updated_at)->diffForHumans() }}</span>
+                    </div>
+
+                    <div class="reason-box mb-2">
+                        <div class="reason-label">Reason for Departure</div>
+                        <div class="reason-text">{{ $lr->reason ?: 'No reason provided.' }}</div>
+                    </div>
+
+                    @if(!empty($lr->landlord_response))
+                        <div class="response-box">
+                            <div class="response-label">Your Response</div>
+                            <div class="response-text">{{ $lr->landlord_response }}</div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="leave-side">
+                    <div class="status-panel d-none d-md-block">
+                        <span class="badge rounded-pill {{ $statusBadgeClass }} px-2 py-1">
+                            {{ $statusLabel }}
+                        </span>
+                        <div class="status-note">{{ $statusNote }}</div>
+                    </div>
+
+                    <div class="leave-actions">
+                        @if($status === 'pending')
+                            <form method="POST" action="{{ route('landlord.leave_requests.approve', $lr->id) }}" class="action-form">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" onclick="return confirm('Approve this departure notice? If the departure date is in the future, the tenant remains active until that date.')">
+                                    <i class="bi bi-check2 me-1"></i>Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('landlord.leave_requests.reject', $lr->id) }}" class="action-form">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Reject this departure notice? The student will remain on their current check-out schedule.')">
+                                    <i class="bi bi-x me-1"></i>Decline
+                                </button>
+                            </form>
+                        @else
+                            <span class="text-muted small"><i class="bi bi-lock me-1"></i>Completed</span>
+                        @endif
+                    </div>
+                </div>
+            </article>
+        @empty
+            <div class="landlord-empty-state border-0">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-box-arrow-right"></i>
+                </div>
+                <div class="landlord-empty-title">No Leave Requests Yet</div>
+                <div class="landlord-empty-text">When students submit departure or leave notices, they will appear here for your review and scheduling.</div>
+            </div>
+        @endforelse
+
+        @if($items->isNotEmpty())
+            <div id="leaveNoMatch" class="landlord-empty-state border-0 d-none">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="landlord-empty-title">No matching departure notices</div>
+                <div class="landlord-empty-text">Try adjusting your search query or selected status filter.</div>
+            </div>
+        @endif
+    </div>
+</div>
 @endsection
 
 @push('styles')
 <style>
-    .leave-shell {
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-        border: 1px solid rgba(2,8,20,.08);
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 26px rgba(2,8,20,.06);
-        padding: 1.25rem;
-    }
-    .leave-summary {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: .75rem;
-    }
-    .leave-summary-item {
-        border: 1px solid rgba(20,83,45,.16);
-        background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
-        border-radius: .9rem;
-        padding: .7rem .8rem;
-    }
-    .leave-summary-label {
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: rgba(2,8,20,.55);
-        font-weight: 700;
-        margin-bottom: .2rem;
-    }
-    .leave-summary-value {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-    .leave-list-card {
-        border: 1px solid rgba(2,8,20,.09);
-        border-radius: 1rem;
-        background: #fff;
-        overflow: hidden;
-    }
     .leave-item {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: .9rem;
+        gap: 1rem;
         align-items: start;
-        padding: 1rem;
+        padding: 1.1rem 1.25rem;
         border-bottom: 1px solid rgba(2,8,20,.08);
+        transition: background .2s ease;
+    }
+    .leave-item:hover {
+        background: #fbfcfd;
     }
     .leave-item:last-child {
         border-bottom: none;
     }
-    .leave-title-row {
-        display: flex;
-        justify-content: space-between;
-        gap: .6rem;
-        align-items: start;
-        margin-bottom: .45rem;
-    }
-    .student-avatar {
-        width: 40px;
-        height: 40px;
+    .student-avatar-sm {
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
+        background: rgba(20,83,45,.15);
+        color: #14532d;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-weight: 800;
-        color: #14532d;
-        background: rgba(167,243,208,.35);
-        border: 1px solid rgba(20,83,45,.2);
-        flex: 0 0 auto;
-    }
-    .student-name {
-        font-weight: 700;
-        color: #14532d;
-        line-height: 1.2;
-    }
-    .student-email {
-        font-size: .78rem;
-        color: #64748b;
-    }
-    .updated-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: .3rem;
-        border: 1px solid rgba(2,8,20,.12);
-        border-radius: 999px;
-        background: #f8fafc;
-        color: #334155;
-        padding: .16rem .5rem;
         font-size: .72rem;
-        font-weight: 600;
-        white-space: nowrap;
+        font-weight: 700;
+        flex-shrink: 0;
     }
     .leave-meta-row {
         display: flex;
         flex-wrap: wrap;
         gap: .45rem;
         align-items: center;
-        margin-bottom: .65rem;
     }
     .meta-chip {
         display: inline-flex;
         align-items: center;
         gap: .35rem;
-        border: 1px solid rgba(2,8,20,.12);
+        border: 1px solid rgba(2,8,20,.1);
         border-radius: 999px;
         background: #f8fafc;
-        color: #0f172a;
-        padding: .18rem .55rem;
-        font-size: .78rem;
+        color: #334155;
+        padding: .15rem .55rem;
+        font-size: .76rem;
         font-weight: 600;
     }
-    .reason-box,
-    .response-box {
-        border: 1px solid rgba(2,8,20,.08);
+    .reason-box {
+        background: #f8fafc;
+        border: 1px solid rgba(2,8,20,.06);
         border-radius: .75rem;
-        padding: .6rem .7rem;
-        background: #fcfefe;
-        margin-bottom: .5rem;
+        padding: .65rem .85rem;
+        max-width: 600px;
     }
-    .reason-label,
-    .response-label {
-        font-size: .69rem;
+    .reason-label, .response-label {
+        font-size: .68rem;
+        letter-spacing: .04em;
         text-transform: uppercase;
-        letter-spacing: .05em;
         color: #64748b;
         font-weight: 700;
-        margin-bottom: .15rem;
+        margin-bottom: .2rem;
     }
-    .reason-text,
-    .response-text {
-        font-size: .84rem;
-        color: #0f172a;
+    .reason-text, .response-text {
+        font-size: .83rem;
+        color: #1e293b;
+    }
+    .response-box {
+        background: rgba(22,101,52,.04);
+        border: 1px solid rgba(22,101,52,.12);
+        border-radius: .75rem;
+        padding: .65rem .85rem;
+        max-width: 600px;
     }
     .leave-side {
         display: grid;
-        gap: .45rem;
-        min-width: 230px;
+        gap: .6rem;
+        min-width: 200px;
         justify-items: end;
     }
     .status-panel {
         text-align: right;
     }
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        border-radius: 999px;
-        padding: .22rem .62rem;
-        font-size: .76rem;
-        font-weight: 700;
-        border: 1px solid transparent;
-    }
     .status-note {
-        margin-top: .24rem;
-        font-size: .74rem;
-        color: rgba(2,8,20,.56);
-    }
-    .status-pending {
-        color: #7c2d12;
-        background: #ffedd5;
-        border-color: #fdba74;
-    }
-    .status-approved {
-        color: #14532d;
-        background: #dcfce7;
-        border-color: #86efac;
-    }
-    .status-rejected {
-        color: #7f1d1d;
-        background: #fee2e2;
-        border-color: #fca5a5;
-    }
-    .status-cancelled {
-        color: #334155;
-        background: #e2e8f0;
-        border-color: #cbd5e1;
-    }
-    .status-default {
-        color: #1f2937;
-        background: #f3f4f6;
-        border-color: #d1d5db;
+        margin-top: .25rem;
+        font-size: .73rem;
+        color: #64748b;
     }
     .leave-actions {
         display: inline-flex;
@@ -338,65 +278,68 @@
         flex-wrap: wrap;
         justify-content: flex-end;
     }
-    .leave-actions .btn {
-        min-width: 98px;
-    }
-    .leave-actions-disabled {
-        border: 1px dashed rgba(100,116,139,.35);
-        border-radius: .7rem;
-        padding: .25rem .55rem;
-        background: rgba(248,250,252,.9);
-    }
-    .action-muted {
-        font-size: .78rem;
-        color: #64748b;
-    }
-    .empty-state {
-        text-align: center;
-        color: #64748b;
-        padding: 2.4rem 1rem;
-    }
-    .empty-state i {
-        color: rgba(2,8,20,.2);
-    }
-    .empty-title {
-        color: #0f172a;
-        font-weight: 700;
-        margin-bottom: .35rem;
-    }
-    .empty-copy {
-        max-width: 520px;
-        margin: 0 auto;
-        font-size: .9rem;
+    .action-form {
+        margin: 0;
     }
 
-    @media (max-width: 991.98px) {
-        .leave-shell {
-            padding: .95rem;
-        }
-        .leave-summary {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+    @media (max-width: 767.98px) {
         .leave-item {
             grid-template-columns: 1fr;
         }
         .leave-side {
             justify-items: start;
             min-width: 0;
-        }
-        .status-panel {
-            text-align: left;
+            width: 100%;
+            border-top: 1px dashed rgba(2,8,20,.08);
+            padding-top: .75rem;
         }
         .leave-actions {
+            width: 100%;
             justify-content: flex-start;
         }
-    }
-
-    @media (max-width: 575.98px) {
-        .leave-summary {
-            grid-template-columns: 1fr;
+        .leave-actions .btn {
+            flex: 1 1 auto;
         }
     }
 </style>
 @endpush
 
+@push('scripts')
+<script>
+(function() {
+    const searchInput = document.getElementById('leaveSearchInput');
+    const statusFilter = document.getElementById('leaveStatusFilter');
+    const items = Array.from(document.querySelectorAll('.leave-item'));
+    const noMatch = document.getElementById('leaveNoMatch');
+
+    if (!items.length) return;
+
+    const applyFilters = () => {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const status = statusFilter?.value || 'all';
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const itemSearch = item.dataset.search || '';
+            const itemStatus = item.dataset.status || '';
+
+            const matchQuery = !query || itemSearch.includes(query);
+            const matchStatus = status === 'all' || itemStatus === status;
+
+            const visible = matchQuery && matchStatus;
+            item.classList.toggle('d-none', !visible);
+            if (visible) visibleCount++;
+        });
+
+        if (noMatch) {
+            noMatch.classList.toggle('d-none', visibleCount > 0);
+        }
+    };
+
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+
+    applyFilters();
+})();
+</script>
+@endpush

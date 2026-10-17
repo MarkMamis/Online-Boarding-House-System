@@ -1,294 +1,316 @@
 @extends('layouts.landlord')
 
+@section('title', 'Boarding Requests')
+
 @section('content')
-<div class="bookings-shell">
-  @php
-      $pendingCount = $bookings->where('status', 'pending')->count();
-      $approvedCount = $bookings->where('status', 'approved')->count();
-      $rejectedCount = $bookings->where('status', 'rejected')->count();
-      $cancelledCount = $bookings->where('status', 'cancelled')->count();
-  @endphp
+<div class="landlord-page-shell">
+    @php
+        $pendingCount = $bookings->where('status', 'pending')->count();
+        $approvedCount = $bookings->where('status', 'approved')->count();
+        $rejectedCount = $bookings->where('status', 'rejected')->count();
+        $cancelledCount = $bookings->where('status', 'cancelled')->count();
+    @endphp
 
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-      <div>
-          <div class="text-uppercase small text-muted fw-semibold">Boarding Request Pipeline</div>
-          <h1 class="h3 mb-1">Boarding Requests</h1>
-          <div class="text-muted small">Review incoming boarding requests and approve qualified requests quickly.</div>
-      </div>
-      <!-- <a href="{{ route('landlord.dashboard') }}" class="btn btn-outline-secondary rounded-pill px-3">Back</a> -->
-  </div>
-
-  <div class="booking-summary mb-4">
-      <div class="booking-summary-item">
-          <div class="booking-summary-label">Pending</div>
-        <div class="booking-summary-value text-warning-emphasis">{{ $pendingCount }}</div>
-      </div>
-      <div class="booking-summary-item">
-          <div class="booking-summary-label">Approved</div>
-        <div class="booking-summary-value text-success-emphasis">{{ $approvedCount }}</div>
-      </div>
-      <div class="booking-summary-item">
-          <div class="booking-summary-label">Rejected</div>
-        <div class="booking-summary-value text-danger-emphasis">{{ $rejectedCount }}</div>
-      </div>
-      <div class="booking-summary-item">
-        <div class="booking-summary-label">Cancelled</div>
-        <div class="booking-summary-value text-secondary-emphasis">{{ $cancelledCount }}</div>
-      </div>
-  </div>
-
-  @if(session('success'))
-    <div class="alert alert-success rounded-4">{{ session('success') }}</div>
-  @endif
-
-  <div class="booking-list-card">
-    @forelse($bookings as $b)
-      @php
-          $status = strtolower((string) $b->status);
-      @endphp
-      <article class="booking-item">
-        <div class="booking-main">
-          <div class="mb-2">
-            <div class="booking-title">{{ $b->room->property->name }}</div>
-            <div class="text-muted small">{{ $b->room->room_number }} · {{ $b->student->full_name }}</div>
-          </div>
-
-          <div class="booking-meta-row">
-            <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ $b->check_in->format('M d, Y') }} - {{ $b->check_out->format('M d, Y') }}</span>
-            @if($b->notes)
-              <span class="meta-note">{{ $b->notes }}</span>
-            @endif
-          </div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <div class="landlord-header-eyebrow">Boarding Request Pipeline</div>
+            <h1 class="landlord-header-title mb-1">Boarding Requests</h1>
+            <div class="landlord-header-subtitle">Review incoming boarding requests and process student booking applications.</div>
         </div>
+        @if($bookings->isNotEmpty())
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="landlord-summary-strip">
+                    <span class="landlord-summary-dot"></span>
+                    <span><strong>{{ $bookings->count() }}</strong> {{ Str::plural('Request', $bookings->count()) }}</span>
+                    @if($pendingCount > 0)
+                        <span class="text-muted">·</span>
+                        <span class="text-warning-emphasis fw-bold">{{ $pendingCount }} Action Required</span>
+                    @endif
+                    <span class="text-muted">·</span>
+                    <span class="text-success fw-bold">{{ $approvedCount }}</span> Approved
+                </span>
+            </div>
+        @endif
+    </div>
 
-        <div class="booking-side">
-          <div class="status-panel">
-            @switch($status)
-              @case('pending')
-                <span class="status-pill status-pending"><i class="bi bi-hourglass-split"></i>Pending</span>
-                <div class="status-note">Waiting for your decision</div>
-                @break
-              @case('approved')
-                <span class="status-pill status-approved"><i class="bi bi-check-circle"></i>Approved</span>
-                <div class="status-note">Tenant can proceed to onboarding</div>
-                @break
-              @case('rejected')
-                <span class="status-pill status-rejected"><i class="bi bi-x-circle"></i>Rejected</span>
-                <div class="status-note">Request is closed</div>
-                @break
-              @case('cancelled')
-                <span class="status-pill status-cancelled"><i class="bi bi-slash-circle"></i>Cancelled</span>
-                <div class="status-note">Cancelled by student</div>
-                @break
-              @default
-                <span class="status-pill status-default"><i class="bi bi-info-circle"></i>{{ ucfirst($status ?: 'Unknown') }}</span>
-                <div class="status-note">No additional actions available</div>
-            @endswitch
-          </div>
+    @if(session('success'))
+        <div class="alert alert-success rounded-4 mb-3">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger rounded-4 mb-3">{{ session('error') }}</div>
+    @endif
 
-          <div class="booking-actions {{ $status !== 'pending' ? 'booking-actions-disabled' : '' }}">
-            @if($status === 'pending')
-              <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Approve this request? Approving this request will allow the student to continue the move-in requirements (documents, contract, deposit).');">
-                @csrf
-                <button class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check2 me-1"></i>Approve</button>
-              </form>
-              <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Decline this boarding request?');">
-                @csrf
-                <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x me-1"></i>Decline</button>
-              </form>
-            @elseif($status === 'approved' && $b->tenantOnboarding)
-              <a href="{{ route('landlord.onboarding.review', $b->tenantOnboarding->id) }}" class="btn btn-sm btn-outline-brand rounded-pill px-3">
-                <i class="bi bi-clipboard-check me-1"></i>View Move-In Step
-              </a>
-            @else
-              <span class="action-muted"><i class="bi bi-lock me-1"></i>No actions available</span>
-            @endif
-          </div>
+    @if($bookings->isNotEmpty())
+        <div class="landlord-filter-bar mb-3">
+            <div class="landlord-filter-search">
+                <i class="bi bi-search"></i>
+                <input id="bookingSearchInput" type="text" class="form-control" placeholder="Search student name, property, or room...">
+            </div>
+            <div class="landlord-filter-select">
+                <select id="bookingStatusFilter" class="form-select">
+                    <option value="all">All Requests</option>
+                    <option value="pending" @selected($pendingCount > 0)>Pending ({{ $pendingCount }})</option>
+                    <option value="approved">Approved ({{ $approvedCount }})</option>
+                    <option value="rejected">Rejected ({{ $rejectedCount }})</option>
+                    <option value="cancelled">Cancelled ({{ $cancelledCount }})</option>
+                </select>
+            </div>
         </div>
-      </article>
-    @empty
-      <div class="text-center text-muted py-5">No boarding requests yet.</div>
-    @endforelse
-  </div>
+    @endif
+
+    <div class="landlord-card">
+        @forelse($bookings as $b)
+            @php
+                $status = strtolower((string) $b->status);
+                $statusBadgeClass = match($status) {
+                    'pending' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                    'approved' => 'bg-success-subtle text-success border border-success-subtle',
+                    'rejected' => 'bg-danger-subtle text-danger border border-danger-subtle',
+                    'cancelled' => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+                    default => 'bg-light text-dark'
+                };
+                $statusNote = match($status) {
+                    'pending' => 'Waiting for your review decision',
+                    'approved' => 'Approved · Tenant proceeding with onboarding',
+                    'rejected' => 'Request was declined',
+                    'cancelled' => 'Cancelled by student',
+                    default => 'Status updated'
+                };
+
+                $searchBlob = strtolower(trim(implode(' ', [
+                    $b->student->full_name ?? '',
+                    $b->room->property->name ?? '',
+                    $b->room->room_number ?? '',
+                    $b->notes ?? '',
+                ])));
+            @endphp
+
+            <article class="booking-item" data-search="{{ $searchBlob }}" data-status="{{ $status }}">
+                <div class="booking-main">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <span class="fw-bold text-dark fs-6">{{ $b->room->property->name }}</span>
+                        <span class="text-muted">·</span>
+                        <span class="text-muted small">Room {{ $b->room->room_number }}</span>
+                        <span class="badge rounded-pill {{ $statusBadgeClass }} small ms-auto d-md-none">
+                            {{ ucfirst($status) }}
+                        </span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="student-avatar-sm">
+                            {{ strtoupper(substr($b->student->full_name ?? 'S', 0, 1)) }}
+                        </div>
+                        <div class="fw-semibold text-dark">{{ $b->student->full_name }}</div>
+                        @if($b->student->year_level)
+                            <span class="text-muted small">({{ $b->student->year_level }})</span>
+                        @endif
+                    </div>
+
+                    <div class="booking-meta-row mb-2">
+                        <span class="meta-chip">
+                            <i class="bi bi-calendar-range"></i>
+                            {{ $b->check_in->format('M d, Y') }} - {{ $b->check_out->format('M d, Y') }}
+                        </span>
+                        @if($b->notes)
+                            <span class="meta-note"><i class="bi bi-chat-left-text me-1"></i>{{ $b->notes }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="booking-side">
+                    <div class="status-panel d-none d-md-block">
+                        <span class="badge rounded-pill {{ $statusBadgeClass }} px-2 py-1">
+                            {{ ucfirst($status) }}
+                        </span>
+                        <div class="status-note">{{ $statusNote }}</div>
+                    </div>
+
+                    <div class="booking-actions">
+                        @if($status === 'pending')
+                            <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Approve this request? Approving will allow the student to continue to move-in requirements (documents, contract, deposit).');">
+                                @csrf
+                                <button class="btn btn-sm btn-success rounded-pill px-3">
+                                    <i class="bi bi-check2 me-1"></i>Approve
+                                </button>
+                            </form>
+                            <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Decline this boarding request?');">
+                                @csrf
+                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                    <i class="bi bi-x me-1"></i>Decline
+                                </button>
+                            </form>
+                        @elseif($status === 'approved' && $b->tenantOnboarding)
+                            <a href="{{ route('landlord.onboarding.review', $b->tenantOnboarding->id) }}" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                                <i class="bi bi-clipboard-check me-1"></i>View Move-In Step
+                            </a>
+                        @else
+                            <span class="text-muted small"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                        @endif
+                    </div>
+                </div>
+            </article>
+        @empty
+            <div class="landlord-empty-state border-0">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <div class="landlord-empty-title">No Boarding Requests Yet</div>
+                <div class="landlord-empty-text">When students submit boarding requests for your rooms, they will appear here for your review and approval.</div>
+            </div>
+        @endforelse
+
+        @if($bookings->isNotEmpty())
+            <div id="bookingNoMatch" class="landlord-empty-state border-0 d-none">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="landlord-empty-title">No matching requests</div>
+                <div class="landlord-empty-text">Try adjusting your search query or selected status filter.</div>
+            </div>
+        @endif
+    </div>
 </div>
 @endsection
 
 @push('styles')
 <style>
-  .bookings-shell {
-    background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-    border: 1px solid rgba(2,8,20,.08);
-    border-radius: 1.25rem;
-    box-shadow: 0 10px 26px rgba(2,8,20,.06);
-    padding: 1.25rem;
-  }
-  .booking-summary {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .75rem;
-  }
-  .booking-summary-item {
-    border: 1px solid rgba(20,83,45,.16);
-    background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
-    border-radius: .9rem;
-    padding: .7rem .8rem;
-  }
-  .booking-summary-label {
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    color: rgba(2,8,20,.55);
-    font-weight: 700;
-    margin-bottom: .2rem;
-  }
-  .booking-summary-value {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #0f172a;
-  }
-  .booking-list-card {
-    border: 1px solid rgba(2,8,20,.09);
-    border-radius: 1rem;
-    background: #fff;
-    overflow: hidden;
-  }
-  .booking-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: .9rem;
-    align-items: start;
-    padding: .95rem 1rem;
-    border-bottom: 1px solid rgba(2,8,20,.08);
-  }
-  .booking-item:last-child {
-    border-bottom: none;
-  }
-  .booking-title {
-    font-weight: 700;
-    color: #14532d;
-    line-height: 1.2;
-  }
-  .booking-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .45rem;
-    align-items: center;
-  }
-  .meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    border: 1px solid rgba(2,8,20,.12);
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #0f172a;
-    padding: .18rem .55rem;
-    font-size: .78rem;
-    font-weight: 600;
-  }
-  .meta-note {
-    font-size: .79rem;
-    color: rgba(2,8,20,.64);
-  }
-  .booking-side {
-    display: grid;
-    gap: .45rem;
-    min-width: 230px;
-    justify-items: end;
-  }
-  .status-panel {
-    text-align: right;
-  }
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    border-radius: 999px;
-    padding: .22rem .62rem;
-    font-size: .76rem;
-    font-weight: 700;
-    border: 1px solid transparent;
-  }
-  .status-note {
-    margin-top: .24rem;
-    font-size: .74rem;
-    color: rgba(2,8,20,.56);
-  }
-  .status-pending {
-    color: #7c2d12;
-    background: #ffedd5;
-    border-color: #fdba74;
-  }
-  .status-approved {
-    color: #14532d;
-    background: #dcfce7;
-    border-color: #86efac;
-  }
-  .status-rejected {
-    color: #7f1d1d;
-    background: #fee2e2;
-    border-color: #fca5a5;
-  }
-  .status-cancelled {
-    color: #334155;
-    background: #e2e8f0;
-    border-color: #cbd5e1;
-  }
-  .status-default {
-    color: #1f2937;
-    background: #f3f4f6;
-    border-color: #d1d5db;
-  }
-  .booking-actions {
-    display: inline-flex;
-    gap: .45rem;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .action-form {
-    display: inline-flex;
-  }
-  .booking-actions .btn {
-    min-width: 98px;
-  }
-  .booking-actions-disabled {
-    border: 1px dashed rgba(100,116,139,.35);
-    border-radius: .7rem;
-    padding: .25rem .55rem;
-    background: rgba(248,250,252,.9);
-  }
-  .action-muted {
-    font-size: .78rem;
-    color: #64748b;
-  }
-  @media (max-width: 991.98px) {
-    .booking-summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .bookings-shell {
-      padding: .95rem;
-    }
     .booking-item {
-      grid-template-columns: 1fr;
-      align-items: start;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        padding: 1.1rem 1.25rem;
+        border-bottom: 1px solid rgba(2,8,20,.08);
+        transition: background .2s ease;
+    }
+    .booking-item:hover {
+        background: #fbfcfd;
+    }
+    .booking-item:last-child {
+        border-bottom: none;
+    }
+    .booking-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+        align-items: center;
+    }
+    .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        border: 1px solid rgba(2,8,20,.1);
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #334155;
+        padding: .15rem .55rem;
+        font-size: .76rem;
+        font-weight: 600;
+    }
+    .meta-note {
+        font-size: .78rem;
+        color: #64748b;
+        background: #f1f5f9;
+        border-radius: .5rem;
+        padding: .15rem .5rem;
+    }
+    .student-avatar-sm {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(20,83,45,.15);
+        color: #14532d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .7rem;
+        font-weight: 700;
+        flex-shrink: 0;
     }
     .booking-side {
-      justify-items: start;
-      min-width: 0;
+        display: grid;
+        gap: .6rem;
+        min-width: 200px;
+        justify-items: end;
     }
     .status-panel {
-      text-align: left;
+        text-align: right;
+    }
+    .status-note {
+        margin-top: .25rem;
+        font-size: .73rem;
+        color: #64748b;
     }
     .booking-actions {
-      justify-content: flex-start;
+        display: inline-flex;
+        gap: .45rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
-  }
-  @media (max-width: 575.98px) {
-    .booking-summary {
-      grid-template-columns: 1fr;
+    .action-form {
+        margin: 0;
     }
-  }
+
+    @media (max-width: 767.98px) {
+        .booking-item {
+            grid-template-columns: 1fr;
+        }
+        .booking-side {
+            justify-items: start;
+            min-width: 0;
+            width: 100%;
+            border-top: 1px dashed rgba(2,8,20,.08);
+            padding-top: .75rem;
+        }
+        .booking-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .booking-actions .btn {
+            flex: 1 1 auto;
+        }
+    }
 </style>
 @endpush
 
+@push('scripts')
+<script>
+(function() {
+    const searchInput = document.getElementById('bookingSearchInput');
+    const statusFilter = document.getElementById('bookingStatusFilter');
+    const items = Array.from(document.querySelectorAll('.booking-item'));
+    const noMatch = document.getElementById('bookingNoMatch');
+
+    if (!items.length) return;
+
+    const applyFilters = () => {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const status = statusFilter?.value || 'all';
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const itemSearch = item.dataset.search || '';
+            const itemStatus = item.dataset.status || '';
+
+            const matchQuery = !query || itemSearch.includes(query);
+            const matchStatus = status === 'all' || itemStatus === status;
+
+            const visible = matchQuery && matchStatus;
+            item.classList.toggle('d-none', !visible);
+            if (visible) visibleCount++;
+        });
+
+        if (noMatch) {
+            noMatch.classList.toggle('d-none', visibleCount > 0);
+        }
+    };
+
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+
+    // Initial run if default filter is selected
+    applyFilters();
+})();
+</script>
+@endpush

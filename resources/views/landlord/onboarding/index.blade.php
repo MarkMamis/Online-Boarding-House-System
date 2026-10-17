@@ -1,406 +1,233 @@
 @extends('layouts.landlord')
 
-@section('title', 'Onboarding')
+@section('title', 'Tenant Move-in Management')
 
 @section('content')
-  <div class="onboarding-shell">
+<div class="landlord-page-shell">
     @php
-      $pendingCount = $onboardings->where('status', 'pending')->count();
-      $docsUploadedCount = $onboardings->where('status', 'documents_uploaded')->count();
-      $inProgressCount = $onboardings->whereIn('status', ['contract_signed', 'deposit_paid'])->count();
-      $completedCount = $onboardings->where('status', 'completed')->count();
+        $pendingCount = $onboardings->where('status', 'pending')->count();
+        $docsUploadedCount = $onboardings->where('status', 'documents_uploaded')->count();
+        $inProgressCount = $onboardings->whereIn('status', ['contract_signed', 'deposit_paid'])->count();
+        $completedCount = $onboardings->where('status', 'completed')->count();
+        $actionRequiredCount = $docsUploadedCount + $onboardings->where('status', 'deposit_paid')->count();
     @endphp
 
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-      <div>
-        <div class="text-uppercase small text-muted fw-semibold">Tenant Pipeline</div>
-        <h1 class="h3 mb-1">Onboarding Management</h1>
-        <div class="text-muted small">Track onboarding progress from document submission to completed move-in setup.</div>
-      </div>
-      <a href="{{ route('landlord.tenants.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Tenants</a>
-    </div>
-
-    <div class="onboarding-summary mb-4">
-      <div class="onboarding-summary-item">
-        <div class="onboarding-summary-label">Pending</div>
-        <div class="onboarding-summary-value text-warning-emphasis">{{ $pendingCount }}</div>
-      </div>
-      <div class="onboarding-summary-item">
-        <div class="onboarding-summary-label">Documents Uploaded</div>
-        <div class="onboarding-summary-value text-info-emphasis">{{ $docsUploadedCount }}</div>
-      </div>
-      <div class="onboarding-summary-item">
-        <div class="onboarding-summary-label">In Progress</div>
-        <div class="onboarding-summary-value text-primary-emphasis">{{ $inProgressCount }}</div>
-      </div>
-      <div class="onboarding-summary-item">
-        <div class="onboarding-summary-label">Completed</div>
-        <div class="onboarding-summary-value text-success-emphasis">{{ $completedCount }}</div>
-      </div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <div class="landlord-header-eyebrow">Tenant Pipeline</div>
+            <h1 class="landlord-header-title mb-1">Tenant Move-in Management</h1>
+            <div class="landlord-header-subtitle">Track incoming resident onboarding progress from document upload to completed move-in.</div>
+        </div>
+        @if($onboardings->isNotEmpty())
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="landlord-summary-strip">
+                    <span class="landlord-summary-dot"></span>
+                    <span><strong>{{ $onboardings->count() }}</strong> {{ Str::plural('Move-in', $onboardings->count()) }}</span>
+                    @if($actionRequiredCount > 0)
+                        <span class="text-muted">·</span>
+                        <span class="text-warning-emphasis fw-bold">{{ $actionRequiredCount }} Action Required</span>
+                    @endif
+                    <span class="text-muted">·</span>
+                    <span class="text-success fw-bold">{{ $completedCount }}</span> Completed
+                </span>
+            </div>
+        @endif
     </div>
 
     @if($onboardings->isEmpty())
-      <div class="onboarding-list-card">
-        <div class="empty-state">
-          <i class="bi bi-clipboard-check fs-1 mb-2"></i>
-          <div class="empty-title">No Onboarding Processes</div>
-          <div class="empty-copy">No tenants are currently going through onboarding.</div>
+        <div class="landlord-empty-state">
+            <div class="landlord-empty-icon">
+                <i class="bi bi-clipboard-check"></i>
+            </div>
+            <div class="landlord-empty-title">No Move-ins in Progress</div>
+            <div class="landlord-empty-text">When student boarding requests are approved, their onboarding move-in requirements will appear here for review.</div>
         </div>
-      </div>
     @else
-      <div class="onboarding-list-card">
-        @foreach($onboardings as $onboarding)
-          @php
-            $status = strtolower((string) $onboarding->status);
-            $progress = match($status) {
-              'pending' => 25,
-              'documents_uploaded' => 50,
-              'contract_signed' => 75,
-              'deposit_paid' => 90,
-              'completed' => 100,
-              default => 0,
-            };
+        <div class="landlord-card">
+            @foreach($onboardings as $onboarding)
+                @php
+                    $status = strtolower((string) $onboarding->status);
+                    $progress = match($status) {
+                        'pending' => 25,
+                        'documents_uploaded' => 50,
+                        'contract_signed' => 75,
+                        'deposit_paid' => 90,
+                        'completed' => 100,
+                        default => 0,
+                    };
 
-            $statusClass = match($status) {
-              'pending' => 'status-pending',
-              'documents_uploaded' => 'status-info',
-              'contract_signed' => 'status-primary',
-              'deposit_paid' => 'status-primary',
-              'completed' => 'status-approved',
-              default => 'status-default',
-            };
+                    $statusBadgeClass = match($status) {
+                        'pending' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                        'documents_uploaded' => 'bg-info-subtle text-info-emphasis border border-info-subtle',
+                        'contract_signed' => 'bg-primary-subtle text-primary border border-primary-subtle',
+                        'deposit_paid' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                        'completed' => 'bg-success-subtle text-success border border-success-subtle',
+                        default => 'bg-light text-dark',
+                    };
 
-            $statusIcon = match($status) {
-              'pending' => 'bi-hourglass-split',
-              'documents_uploaded' => 'bi-file-earmark-check',
-              'contract_signed' => 'bi-pencil-square',
-              'deposit_paid' => 'bi-cash-stack',
-              'completed' => 'bi-check-circle',
-              default => 'bi-info-circle',
-            };
+                    $statusLabel = match($status) {
+                        'pending' => 'Waiting for Student Upload',
+                        'documents_uploaded' => 'Review Documents',
+                        'contract_signed' => 'Contract Signed',
+                        'deposit_paid' => 'Payment Under Review',
+                        'completed' => 'Move-in Complete',
+                        default => ucfirst(str_replace('_', ' ', $status)),
+                    };
 
-            $statusLabel = ucfirst(str_replace('_', ' ', $status));
-            $statusNote = match($status) {
-              'pending' => 'Waiting for student upload',
-              'documents_uploaded' => 'Ready for document review',
-              'contract_signed' => 'Contract has been signed',
-              'deposit_paid' => 'Payment submitted, awaiting your approval',
-              'completed' => 'Onboarding is complete',
-              default => 'Progress status unavailable',
-            };
+                    $statusNote = match($status) {
+                        'pending' => 'Student has not submitted required documents yet',
+                        'documents_uploaded' => 'Documents submitted · Ready for your review',
+                        'contract_signed' => 'Contract signed · Awaiting deposit payment',
+                        'deposit_paid' => 'Deposit payment submitted · Confirm payment to finalize',
+                        'completed' => 'All requirements verified · Stay is active',
+                        default => 'Progress status unavailable',
+                    };
 
-            if ($status === 'deposit_paid') {
-              $statusLabel = 'Payment Under Review';
-            }
+                    $hasDocuments = is_array($onboarding->uploaded_documents ?? null) && count($onboarding->uploaded_documents) > 0;
+                    $needsPaymentReview = $status === 'deposit_paid' && empty($onboarding->deposit_paid_at);
+                    $isActionPrimary = (in_array($status, ['pending', 'documents_uploaded'], true) && $hasDocuments) || $needsPaymentReview;
+                    $actionLabel = $needsPaymentReview ? 'Review Payment' : ($isActionPrimary ? 'Review Documents' : 'View Details');
+                    $actionClass = $isActionPrimary ? 'btn-brand' : 'btn-outline-secondary';
+                @endphp
 
-            $hasDocuments = is_array($onboarding->uploaded_documents ?? null) && count($onboarding->uploaded_documents) > 0;
-            $needsPaymentReview = $status === 'deposit_paid' && empty($onboarding->deposit_paid_at);
-            $isActionPrimary = (in_array($status, ['pending', 'documents_uploaded'], true) && $hasDocuments) || $needsPaymentReview;
-            $actionLabel = $needsPaymentReview ? 'Review Payment' : ($isActionPrimary ? 'Review Documents' : 'View Details');
-            $actionClass = $isActionPrimary ? 'btn-brand' : 'btn-outline-secondary';
-          @endphp
+                <article class="onboarding-item">
+                    <div class="onboarding-main">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <div class="student-avatar-sm">
+                                {{ strtoupper(substr($onboarding->booking->student->full_name ?? 'S', 0, 1)) }}
+                            </div>
+                            <span class="fw-bold text-dark fs-6">{{ $onboarding->booking->student->full_name }}</span>
+                            <span class="text-muted small">({{ $onboarding->booking->student->email }})</span>
+                            <span class="badge rounded-pill {{ $statusBadgeClass }} small ms-auto d-md-none">
+                                {{ $statusLabel }}
+                            </span>
+                        </div>
 
-          <article class="onboarding-item">
-            <div class="onboarding-main">
-              <div class="onboarding-title-row">
-                <div class="d-flex align-items-center gap-2 min-w-0">
-                  <div class="student-avatar">
-                    {{ strtoupper(substr($onboarding->booking->student->full_name ?? 'S', 0, 1)) }}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="student-name text-truncate">{{ $onboarding->booking->student->full_name }}</div>
-                    <div class="student-email text-truncate">{{ $onboarding->booking->student->email }}</div>
-                  </div>
-                </div>
-                <span class="updated-chip"><i class="bi bi-clock-history"></i>{{ $onboarding->updated_at->diffForHumans() }}</span>
-              </div>
+                        <div class="onboarding-meta-row mb-2">
+                            <span class="meta-chip"><i class="bi bi-building"></i>{{ $onboarding->booking->room->property->name }}</span>
+                            <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $onboarding->booking->room->room_number }}</span>
+                            <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ optional($onboarding->booking->check_in)->format('M d, Y') }} - {{ optional($onboarding->booking->check_out)->format('M d, Y') }}</span>
+                            <span class="text-muted small ms-1"><i class="bi bi-clock-history me-1"></i>Updated {{ $onboarding->updated_at->diffForHumans() }}</span>
+                        </div>
 
-              <div class="onboarding-meta-row">
-                <span class="meta-chip"><i class="bi bi-building"></i>{{ $onboarding->booking->room->property->name }}</span>
-                <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $onboarding->booking->room->room_number }}</span>
-                <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ optional($onboarding->booking->check_in)->format('M d, Y') }} - {{ optional($onboarding->booking->check_out)->format('M d, Y') }}</span>
-              </div>
+                        <div class="progress-wrap" style="max-width: 380px;">
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>Onboarding Progress</span>
+                                <span class="fw-bold text-dark">{{ $progress }}%</span>
+                            </div>
+                            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $progress }}" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: {{ $progress }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
 
-              <div class="progress-wrap">
-                <div class="progress-label-row">
-                  <span class="progress-label">Progress</span>
-                  <span class="progress-value">{{ $progress }}%</span>
-                </div>
-                <div class="progress progress-modern" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $progress }}">
-                  <div class="progress-bar" style="width: {{ $progress }}%;"></div>
-                </div>
-              </div>
-            </div>
+                    <div class="onboarding-side">
+                        <div class="status-panel d-none d-md-block">
+                            <span class="badge rounded-pill {{ $statusBadgeClass }} px-2 py-1">
+                                {{ $statusLabel }}
+                            </span>
+                            <div class="status-note">{{ $statusNote }}</div>
+                        </div>
 
-            <div class="onboarding-side">
-              <div class="status-panel">
-                <span class="status-pill {{ $statusClass }}"><i class="bi {{ $statusIcon }}"></i>{{ $statusLabel }}</span>
-                <div class="status-note">{{ $statusNote }}</div>
-              </div>
-
-              <div class="onboarding-actions">
-                <a href="{{ route('landlord.onboarding.review', $onboarding) }}" class="btn btn-sm {{ $actionClass }} rounded-pill action-btn">{{ $actionLabel }}</a>
-              </div>
-            </div>
-          </article>
-        @endforeach
-      </div>
+                        <div class="onboarding-actions">
+                            <a href="{{ route('landlord.onboarding.review', $onboarding) }}" class="btn btn-sm {{ $actionClass }} rounded-pill px-3">
+                                {{ $actionLabel }} <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            @endforeach
+        </div>
     @endif
-  </div>
+</div>
 @endsection
 
 @push('styles')
 <style>
-  .onboarding-shell {
-    background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-    border: 1px solid rgba(2,8,20,.08);
-    border-radius: 1.25rem;
-    box-shadow: 0 10px 26px rgba(2,8,20,.06);
-    padding: 1.25rem;
-  }
-  .onboarding-summary {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .75rem;
-  }
-  .onboarding-summary-item {
-    border: 1px solid rgba(20,83,45,.16);
-    background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
-    border-radius: .9rem;
-    padding: .7rem .8rem;
-  }
-  .onboarding-summary-label {
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    color: rgba(2,8,20,.55);
-    font-weight: 700;
-    margin-bottom: .2rem;
-  }
-  .onboarding-summary-value {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #0f172a;
-  }
-  .onboarding-list-card {
-    border: 1px solid rgba(2,8,20,.09);
-    border-radius: 1rem;
-    background: #fff;
-    overflow: hidden;
-  }
-  .onboarding-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: .9rem;
-    align-items: start;
-    padding: 1rem;
-    border-bottom: 1px solid rgba(2,8,20,.08);
-  }
-  .onboarding-item:last-child {
-    border-bottom: none;
-  }
-  .onboarding-title-row {
-    display: flex;
-    justify-content: space-between;
-    gap: .6rem;
-    align-items: start;
-    margin-bottom: .45rem;
-  }
-  .student-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    color: #14532d;
-    background: rgba(167,243,208,.35);
-    border: 1px solid rgba(20,83,45,.2);
-    flex: 0 0 auto;
-  }
-  .student-name {
-    font-weight: 700;
-    color: #14532d;
-    line-height: 1.2;
-  }
-  .student-email {
-    font-size: .78rem;
-    color: #64748b;
-  }
-  .updated-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    border: 1px solid rgba(2,8,20,.12);
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #334155;
-    padding: .16rem .5rem;
-    font-size: .72rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .onboarding-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .45rem;
-    align-items: center;
-    margin-bottom: .7rem;
-  }
-  .meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    border: 1px solid rgba(2,8,20,.12);
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #0f172a;
-    padding: .18rem .55rem;
-    font-size: .78rem;
-    font-weight: 600;
-  }
-  .progress-wrap {
-    max-width: 430px;
-  }
-  .progress-label-row {
-    display: flex;
-    justify-content: space-between;
-    gap: .6rem;
-    align-items: center;
-    margin-bottom: .25rem;
-  }
-  .progress-label {
-    font-size: .73rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    font-weight: 700;
-  }
-  .progress-value {
-    font-size: .78rem;
-    color: #14532d;
-    font-weight: 700;
-  }
-  .progress-modern {
-    height: .52rem;
-    border-radius: 999px;
-    background: #e2e8f0;
-    overflow: hidden;
-  }
-  .progress-modern .progress-bar {
-    background: linear-gradient(90deg, #14532d, #16a34a);
-  }
-  .onboarding-side {
-    display: grid;
-    gap: .45rem;
-    min-width: 230px;
-    justify-items: end;
-  }
-  .status-panel {
-    text-align: right;
-  }
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    border-radius: 999px;
-    padding: .22rem .62rem;
-    font-size: .76rem;
-    font-weight: 700;
-    border: 1px solid transparent;
-  }
-  .status-note {
-    margin-top: .24rem;
-    font-size: .74rem;
-    color: rgba(2,8,20,.56);
-  }
-  .status-pending {
-    color: #7c2d12;
-    background: #ffedd5;
-    border-color: #fdba74;
-  }
-  .status-info {
-    color: #1e3a8a;
-    background: #dbeafe;
-    border-color: #93c5fd;
-  }
-  .status-primary {
-    color: #0f766e;
-    background: #ccfbf1;
-    border-color: #5eead4;
-  }
-  .status-approved {
-    color: #14532d;
-    background: #dcfce7;
-    border-color: #86efac;
-  }
-  .status-default {
-    color: #1f2937;
-    background: #f3f4f6;
-    border-color: #d1d5db;
-  }
-  .onboarding-actions {
-    border: 1px dashed rgba(100,116,139,.35);
-    border-radius: .7rem;
-    padding: .35rem .5rem;
-    background: rgba(248,250,252,.9);
-  }
-  .onboarding-actions .btn {
-    min-width: 148px;
-  }
-  .empty-state {
-    text-align: center;
-    color: #64748b;
-    padding: 2.4rem 1rem;
-  }
-  .empty-state i {
-    color: rgba(2,8,20,.2);
-  }
-  .empty-title {
-    color: #0f172a;
-    font-weight: 700;
-    margin-bottom: .35rem;
-  }
-  .empty-copy {
-    max-width: 520px;
-    margin: 0 auto;
-    font-size: .9rem;
-  }
-
-  @media (max-width: 991.98px) {
-    .onboarding-shell {
-      padding: .95rem;
-    }
-    .onboarding-summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
     .onboarding-item {
-      grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        padding: 1.1rem 1.25rem;
+        border-bottom: 1px solid rgba(2,8,20,.08);
+        transition: background .2s ease;
+    }
+    .onboarding-item:hover {
+        background: #fbfcfd;
+    }
+    .onboarding-item:last-child {
+        border-bottom: none;
+    }
+    .student-avatar-sm {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(20,83,45,.15);
+        color: #14532d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .72rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .onboarding-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+        align-items: center;
+    }
+    .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        border: 1px solid rgba(2,8,20,.1);
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #334155;
+        padding: .15rem .55rem;
+        font-size: .76rem;
+        font-weight: 600;
     }
     .onboarding-side {
-      justify-items: start;
-      min-width: 0;
+        display: grid;
+        gap: .6rem;
+        min-width: 200px;
+        justify-items: end;
     }
     .status-panel {
-      text-align: left;
+        text-align: right;
     }
-  }
+    .status-note {
+        margin-top: .25rem;
+        font-size: .73rem;
+        color: #64748b;
+    }
+    .onboarding-actions {
+        display: inline-flex;
+        gap: .45rem;
+        align-items: center;
+        justify-content: flex-end;
+    }
 
-  @media (max-width: 575.98px) {
-    .onboarding-summary {
-      grid-template-columns: 1fr;
+    @media (max-width: 767.98px) {
+        .onboarding-item {
+            grid-template-columns: 1fr;
+        }
+        .onboarding-side {
+            justify-items: start;
+            min-width: 0;
+            width: 100%;
+            border-top: 1px dashed rgba(2,8,20,.08);
+            padding-top: .75rem;
+        }
+        .onboarding-actions {
+            width: 100%;
+        }
+        .onboarding-actions .btn {
+            width: 100%;
+        }
     }
-    .onboarding-title-row {
-      flex-direction: column;
-    }
-    .updated-chip {
-      align-self: flex-start;
-    }
-    .onboarding-actions,
-    .onboarding-actions .btn {
-      width: 100%;
-    }
-  }
 </style>
 @endpush

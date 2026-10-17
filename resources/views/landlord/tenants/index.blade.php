@@ -1,73 +1,66 @@
 @extends('layouts.landlord')
 
+@section('title', 'Current Tenants')
+
 @section('content')
-<div class="tenants-shell">
+<div class="landlord-page-shell">
     @php
         $totalTenants = $tenants->count();
         $paidTenants = $tenants->filter(fn ($t) => $t->derivedPaymentStatus() === 'paid')->count();
         $pendingPayments = $tenants->filter(fn ($t) => $t->derivedPaymentStatus() === 'pending')->count();
         $overduePayments = $tenants->filter(fn ($t) => $t->derivedPaymentStatus() === 'overdue')->count();
-        $activeLeases = $tenants->filter(fn ($t) => !empty($t->check_out) && $t->check_out->isFuture())->count();
     @endphp
 
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
-            <div class="text-uppercase small text-muted fw-semibold">Tenant Management</div>
-            <h1 class="h3 mb-1">Current Tenants</h1>
-            <div class="text-muted small">Track active residents, lease dates, and payment follow-ups.</div>
+            <div class="landlord-header-eyebrow">Tenant Management</div>
+            <h1 class="landlord-header-title mb-1">Current Tenants</h1>
+            <div class="landlord-header-subtitle">Track active residents, stay dates, and payment follow-ups.</div>
         </div>
-        <a href="{{ route('landlord.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Boarding Requests</a>
+        @if($totalTenants > 0)
+            <div class="d-flex align-items-center gap-2">
+                <span class="landlord-summary-strip">
+                    <span class="landlord-summary-dot"></span>
+                    <span>{{ $totalTenants }} {{ Str::plural('Resident', $totalTenants) }}</span>
+                    @if($pendingPayments > 0)
+                        <span class="text-muted">·</span>
+                        <span class="text-warning-emphasis fw-bold">{{ $pendingPayments }} pending payment</span>
+                    @endif
+                    @if($overduePayments > 0)
+                        <span class="text-muted">·</span>
+                        <span class="text-danger fw-bold">{{ $overduePayments }} overdue</span>
+                    @endif
+                </span>
+            </div>
+        @endif
     </div>
 
-    <div class="tenant-summary mb-4">
-        <div class="tenant-summary-item">
-            <div class="tenant-summary-label">Total Tenants</div>
-            <div class="tenant-summary-value">{{ $totalTenants }}</div>
+    @if($tenants->isNotEmpty())
+        <div class="landlord-filter-bar">
+            <div class="landlord-filter-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="tenantSearchInput" class="form-control" placeholder="Search tenant, room, property, or contact...">
+            </div>
+            <div class="landlord-filter-select">
+                <select id="tenantResidencyFilter" class="form-select">
+                    <option value="all" selected>All residents</option>
+                    <option value="active">Active residents</option>
+                    <option value="movein">Move-in in progress</option>
+                    <option value="past">Past stays</option>
+                </select>
+            </div>
+            <div class="landlord-filter-select">
+                <select id="tenantPaymentFilter" class="form-select">
+                    <option value="all">All payments</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
         </div>
-        <div class="tenant-summary-item">
-            <div class="tenant-summary-label">Paid</div>
-            <div class="tenant-summary-value text-success-emphasis">{{ $paidTenants }}</div>
-        </div>
-        <div class="tenant-summary-item">
-            <div class="tenant-summary-label">Pending Payments</div>
-            <div class="tenant-summary-value text-warning-emphasis">{{ $pendingPayments }}</div>
-        </div>
-        <div class="tenant-summary-item">
-            <div class="tenant-summary-label">Overdue</div>
-            <div class="tenant-summary-value text-danger-emphasis">{{ $overduePayments }}</div>
-        </div>
-        <div class="tenant-summary-item">
-            <div class="tenant-summary-label">Active Leases</div>
-            <div class="tenant-summary-value text-primary-emphasis">{{ $activeLeases }}</div>
-        </div>
-    </div>
+    @endif
 
-    <div class="tenant-toolbar mb-3">
-        <div class="toolbar-search-wrap">
-            <i class="bi bi-search"></i>
-            <input type="text" id="tenantSearchInput" class="form-control" placeholder="Search tenant, room, property, or contact...">
-        </div>
-        <div class="toolbar-filter-wrap">
-            <i class="bi bi-people"></i>
-            <select id="tenantResidencyFilter" class="form-select">
-                <option value="all" selected>All residents</option>
-                <option value="active">Active residents</option>
-                <option value="movein">Move-in in progress</option>
-                <option value="past">Past stays</option>
-            </select>
-        </div>
-        <div class="toolbar-filter-wrap">
-            <i class="bi bi-funnel"></i>
-            <select id="tenantPaymentFilter" class="form-select">
-                <option value="all">All payments</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="overdue">Overdue</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="tenant-list-card">
+    <div class="landlord-card">
         @forelse($tenants as $tenant)
             @php
                 $student = $tenant->student;
@@ -87,11 +80,11 @@
                     default => 'Pending',
                 };
 
-                $statusClass = match ($paymentStatus) {
-                    'paid' => 'status-approved',
-                    'pending' => 'status-pending',
-                    'overdue' => 'status-overdue',
-                    default => 'status-pending',
+                $statusBadgeClass = match ($paymentStatus) {
+                    'paid' => 'bg-success-subtle text-success border border-success-subtle',
+                    'pending' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                    'overdue' => 'bg-danger-subtle text-danger border border-danger-subtle',
+                    default => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
                 };
                 $statusIcon = match ($paymentStatus) {
                     'paid' => 'bi-check-circle',
@@ -147,11 +140,10 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
 
                     <div class="tenant-meta-row">
-                        <span class="meta-chip"><i class="bi bi-door-open"></i>{{ $room->room_number ?? 'N/A' }}</span>
+                        <span class="meta-chip"><i class="bi bi-door-open"></i>Room {{ $room->room_number ?? 'N/A' }}</span>
                         <span class="meta-chip"><i class="bi bi-building"></i>{{ $property->name ?? 'Property' }}</span>
                         <span class="meta-chip"><i class="bi bi-calendar-range"></i>{{ optional($tenant->check_in)->format('M d, Y') }} - {{ optional($tenant->check_out)->format('M d, Y') }}</span>
                     </div>
@@ -161,24 +153,18 @@
                             <span class="tenant-contact-label">Emergency Contact</span>
                             <span class="tenant-contact-value">
                                 {{ $student->emergency_contact_name ?: 'Not provided' }}
+                                @if($student->emergency_contact_number)
+                                    <span class="text-muted fw-normal">({{ $student->emergency_contact_number }})</span>
+                                @endif
                             </span>
                         </div>
                         <div class="tenant-contact-item">
-                            <span class="tenant-contact-label">Emergency Contact Number</span>
-                            <span class="tenant-contact-value">
-                                {{ $student->emergency_contact_number ?: 'Not provided' }}
-                            </span>
-                        </div>
-                        <div class="tenant-contact-item">
-                            <span class="tenant-contact-label">Parent/Guardian Name</span>
+                            <span class="tenant-contact-label">Parent / Guardian</span>
                             <span class="tenant-contact-value">
                                 {{ $student->parent_contact_name ?: 'Not provided' }}
-                            </span>
-                        </div>
-                        <div class="tenant-contact-item">
-                            <span class="tenant-contact-label">Parent Address</span>
-                            <span class="tenant-contact-value">
-                                {{ $student->parent_contact_address ?: 'Not provided' }}
+                                @if($student->parent_contact_address)
+                                    <span class="text-muted fw-normal">· {{ $student->parent_contact_address }}</span>
+                                @endif
                             </span>
                         </div>
                     </div>
@@ -186,7 +172,7 @@
 
                 <div class="tenant-side">
                     <div class="status-panel">
-                        <span class="status-pill {{ $statusClass }}"><i class="bi {{ $statusIcon }}"></i>{{ $paymentLabel }}</span>
+                        <span class="badge rounded-pill {{ $statusBadgeClass }} px-2 py-1"><i class="bi {{ $statusIcon }} me-1"></i>{{ $paymentLabel }}</span>
                         <div class="status-note">{{ $statusNote }}</div>
                         @if($paymentStatus === 'overdue')
                             <div class="status-danger-note">Follow up immediately to avoid extended arrears.</div>
@@ -194,34 +180,37 @@
                     </div>
 
                     <div class="tenant-actions">
-                    @if($isOnboarding)
-                        <a href="{{ route('landlord.onboarding.review', $onboarding->id) }}" class="btn btn-sm btn-outline-warning rounded-pill action-btn" title="View Move-In Step">
-                            <i class="bi bi-clipboard-check"></i><span>Move-In</span>
+                        @if($isOnboarding)
+                            <a href="{{ route('landlord.onboarding.review', $onboarding->id) }}" class="btn btn-sm btn-outline-warning rounded-pill action-btn" title="View Move-In Step">
+                                <i class="bi bi-clipboard-check"></i><span>Move-In</span>
+                            </a>
+                        @endif
+                        <a href="{{ route('landlord.messages.index') }}?to={{ $student->id }}" class="btn btn-sm btn-brand rounded-pill action-btn" title="Send message">
+                            <i class="bi bi-chat-dots"></i><span>Message</span>
                         </a>
-                    @endif
-                    <a href="{{ route('landlord.messages.index') }}?to={{ $student->id }}" class="btn btn-sm btn-brand rounded-pill action-btn" title="Send message">
-                        <i class="bi bi-chat-dots"></i><span>Message</span>
-                    </a>
-                    <a href="{{ route('landlord.properties.show', $room->property_id) }}" class="btn btn-sm btn-outline-secondary rounded-pill action-btn" title="View property">
-                        <i class="bi bi-house-door"></i><span>Property</span>
-                    </a>
+                        <a href="{{ route('landlord.properties.show', $room->property_id) }}" class="btn btn-sm btn-outline-secondary rounded-pill action-btn" title="View property">
+                            <i class="bi bi-house-door"></i><span>Property</span>
+                        </a>
                     </div>
                 </div>
             </article>
         @empty
-            <div class="empty-state">
-                <i class="bi bi-people fs-1 mb-2"></i>
-                <div class="empty-title">No Current Tenants</div>
-                <div class="empty-copy">You do not have approved stays yet. Once boarding requests are approved, tenants will appear here.</div>
-                <a href="{{ route('landlord.bookings.index') }}" class="btn btn-brand rounded-pill px-3 mt-2">Check Boarding Requests</a>
+            <div class="landlord-empty-state border-0">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="landlord-empty-title">No Current Tenants</div>
+                <div class="landlord-empty-text">You do not have active resident stays yet. Once incoming student boarding requests are approved and onboarded, tenants will appear here.</div>
             </div>
         @endforelse
 
         @if($tenants->isNotEmpty())
-            <div id="tenantFilterEmpty" class="empty-state d-none">
-                <i class="bi bi-search fs-1 mb-2"></i>
-                <div class="empty-title">No matching tenants</div>
-                <div class="empty-copy">Try a different search term or payment filter.</div>
+            <div id="tenantFilterEmpty" class="landlord-empty-state border-0 d-none">
+                <div class="landlord-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="landlord-empty-title">No matching tenants</div>
+                <div class="landlord-empty-text">Try adjusting your search query or residency/payment filter.</div>
             </div>
         @endif
     </div>
@@ -230,82 +219,17 @@
 
 @push('styles')
 <style>
-    .tenants-shell {
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-        border: 1px solid rgba(2,8,20,.08);
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 26px rgba(2,8,20,.06);
-        padding: 1.25rem;
-    }
-    .tenant-summary {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: .75rem;
-    }
-    .tenant-summary-item {
-        border: 1px solid rgba(20,83,45,.16);
-        background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
-        border-radius: .9rem;
-        padding: .7rem .8rem;
-    }
-    .tenant-summary-label {
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: rgba(2,8,20,.55);
-        font-weight: 700;
-        margin-bottom: .2rem;
-    }
-    .tenant-summary-value {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-    .tenant-list-card {
-        border: 1px solid rgba(2,8,20,.09);
-        border-radius: 1rem;
-        background: #fff;
-        overflow: hidden;
-    }
-    .tenant-toolbar {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 210px;
-        gap: .7rem;
-    }
-    .toolbar-search-wrap,
-    .toolbar-filter-wrap {
-        position: relative;
-    }
-    .toolbar-search-wrap i,
-    .toolbar-filter-wrap i {
-        position: absolute;
-        left: .7rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #64748b;
-        pointer-events: none;
-    }
-    .toolbar-search-wrap .form-control,
-    .toolbar-filter-wrap .form-select {
-        border-radius: .8rem;
-        border-color: rgba(2,8,20,.14);
-        padding-left: 2rem;
-        background: #fff;
-    }
-    .toolbar-filter-wrap .form-select {
-        font-size: .9rem;
-    }
     .tenant-item {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: .9rem;
+        gap: 1rem;
         align-items: start;
-        padding: 1rem;
+        padding: 1.1rem 1.25rem;
         border-bottom: 1px solid rgba(2,8,20,.08);
-        transition: background .2s ease, box-shadow .2s ease;
+        transition: background .2s ease;
     }
     .tenant-item:hover {
-        background: linear-gradient(180deg, rgba(248,250,252,.6), rgba(255,255,255,.9));
+        background: #fbfcfd;
     }
     .tenant-item:last-child {
         border-bottom: none;
@@ -318,8 +242,8 @@
         margin-bottom: .45rem;
     }
     .tenant-avatar {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
@@ -329,10 +253,12 @@
         background: rgba(167,243,208,.35);
         border: 1px solid rgba(20,83,45,.2);
         flex: 0 0 auto;
+        font-size: .95rem;
     }
     .tenant-name {
         font-weight: 700;
-        color: #14532d;
+        color: #0f172a;
+        font-size: .95rem;
         line-height: 1.2;
     }
     .tenant-email {
@@ -350,12 +276,12 @@
         display: inline-flex;
         align-items: center;
         gap: .35rem;
-        border: 1px solid rgba(2,8,20,.12);
+        border: 1px solid rgba(2,8,20,.1);
         border-radius: 999px;
         background: #f8fafc;
-        color: #0f172a;
-        padding: .18rem .55rem;
-        font-size: .78rem;
+        color: #334155;
+        padding: .15rem .55rem;
+        font-size: .76rem;
         font-weight: 600;
     }
     .tenant-contact-grid {
@@ -369,7 +295,7 @@
         gap: .1rem;
     }
     .tenant-contact-label {
-        font-size: .69rem;
+        font-size: .68rem;
         text-transform: uppercase;
         letter-spacing: .04em;
         color: #64748b;
@@ -377,55 +303,25 @@
     }
     .tenant-contact-value {
         font-size: .8rem;
-        color: #0f172a;
+        color: #1e293b;
         font-weight: 600;
     }
     .tenant-side {
         display: grid;
-        gap: .45rem;
-        min-width: 240px;
+        gap: .6rem;
+        min-width: 210px;
         justify-items: end;
     }
     .status-panel {
         text-align: right;
     }
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        border-radius: 999px;
-        padding: .22rem .62rem;
-        font-size: .76rem;
-        font-weight: 700;
-        border: 1px solid transparent;
-    }
     .status-note {
-        margin-top: .24rem;
-        font-size: .74rem;
-        color: rgba(2,8,20,.56);
-    }
-    .status-pending {
-        color: #7c2d12;
-        background: #ffedd5;
-        border-color: #fdba74;
-    }
-    .status-approved {
-        color: #14532d;
-        background: #dcfce7;
-        border-color: #86efac;
-    }
-    .status-default {
-        color: #1f2937;
-        background: #f3f4f6;
-        border-color: #d1d5db;
-    }
-    .status-overdue {
-        color: #7f1d1d;
-        background: #fee2e2;
-        border-color: #fca5a5;
+        margin-top: .25rem;
+        font-size: .73rem;
+        color: #64748b;
     }
     .status-danger-note {
-        margin-top: .28rem;
+        margin-top: .25rem;
         color: #b91c1c;
         font-size: .73rem;
         font-weight: 700;
@@ -436,16 +332,10 @@
         align-items: center;
         flex-wrap: wrap;
         justify-content: flex-end;
-        border: 1px dashed rgba(100,116,139,.35);
-        border-radius: .7rem;
-        padding: .35rem .5rem;
-        background: rgba(248,250,252,.9);
     }
     .tenant-actions .btn {
-        min-width: 98px;
-    }
-    .tenant-action-title {
-        display: none;
+        min-width: 82px;
+        font-size: .82rem;
     }
     .action-btn {
         display: inline-flex;
@@ -453,60 +343,34 @@
         justify-content: center;
         gap: .35rem;
     }
-    .empty-state {
-        text-align: center;
-        color: #64748b;
-        padding: 2.4rem 1rem;
-    }
-    .empty-state i {
-        color: rgba(2,8,20,.2);
-    }
-    .empty-title {
-        color: #0f172a;
-        font-weight: 700;
-        margin-bottom: .35rem;
-    }
-    .empty-copy {
-        max-width: 520px;
-        margin: 0 auto;
-        font-size: .9rem;
-    }
 
     @media (max-width: 991.98px) {
-        .tenants-shell {
-            padding: .95rem;
-        }
-        .tenant-toolbar {
-            grid-template-columns: 1fr;
-        }
-        .tenant-summary {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
         .tenant-item {
             grid-template-columns: 1fr;
         }
         .tenant-side {
             justify-items: start;
             min-width: 0;
+            width: 100%;
+            border-top: 1px dashed rgba(2,8,20,.08);
+            padding-top: .75rem;
         }
         .status-panel {
             text-align: left;
         }
         .tenant-actions {
             justify-content: flex-start;
+            width: 100%;
         }
     }
 
     @media (max-width: 575.98px) {
-        .tenant-summary {
-            grid-template-columns: 1fr;
-        }
         .tenant-contact-grid {
             grid-template-columns: 1fr;
         }
         .tenant-actions {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
             width: 100%;
         }
         .tenant-actions .btn {
