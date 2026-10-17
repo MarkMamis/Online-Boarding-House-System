@@ -1,6 +1,6 @@
 @extends('layouts.landlord')
 
-@section('title', 'Tenant Move-in Management')
+@section('title', 'Move-in Progress')
 
 @section('content')
 <div class="landlord-page-shell">
@@ -14,8 +14,8 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
-            <div class="landlord-header-eyebrow">Tenant Pipeline</div>
-            <h1 class="landlord-header-title mb-1">Tenant Move-in Management</h1>
+            <div class="landlord-header-eyebrow">Move-in Pipeline</div>
+            <h1 class="landlord-header-title mb-1">Move-in Progress</h1>
             <div class="landlord-header-subtitle">Track incoming resident onboarding progress from document upload to completed move-in.</div>
         </div>
         @if($onboardings->isNotEmpty())
