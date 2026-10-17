@@ -110,6 +110,17 @@ class PaymentController extends Controller
         $monthlyLedgerTotal = $monthlyPaidTotal + $monthlyPendingTotal;
         $allBookings = $bookings;
 
+        $onboardingPendingReviewCount = $allBookings->filter(function ($b) {
+            $o = $b->tenantOnboarding;
+            return $o && (string) $o->status === 'deposit_paid' && !(bool) $o->deposit_paid;
+        })->count();
+
+        $monthlyPendingReviewCount = $allBookings->filter(function ($b) {
+            return $b->tenantPayments->where('status', 'submitted')->isNotEmpty();
+        })->count();
+
+        $totalPendingReviewCount = $onboardingPendingReviewCount + $monthlyPendingReviewCount;
+
         if ($statusFilter !== 'all') {
             $bookings = $bookings->where('effective_payment_status', $statusFilter)->values();
         }
@@ -120,6 +131,9 @@ class PaymentController extends Controller
             'totalExpected',
             'totalPaid',
             'totalPending',
+            'totalPendingReviewCount',
+            'onboardingPendingReviewCount',
+            'monthlyPendingReviewCount',
             'paidBookings',
             'pendingPayments',
             'paidCount',
