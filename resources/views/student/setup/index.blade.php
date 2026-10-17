@@ -1417,6 +1417,119 @@
                 }
 
                 return isValid;
+            };
+
+            // --- Navigation Button Listeners ---
+            document.querySelectorAll('.btn-next-question').forEach((button) => {
+                button.addEventListener('click', async function (e) {
+                    e.preventDefault();
+                    if (button.disabled) return;
+
+                    // If advancing from Student ID Verification panel (Panel 0)
+                    if (currentPanel === 0 && studentIdInput) {
+                        const val = (studentIdInput.value || '').trim();
+                        if (val !== '') {
+                            // Validate COMPLETE input format first
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+
+                            // If checking is currently in flight, wait for it
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+
+                            if (confirmedStudentIdDisplay) {
+                                confirmedStudentIdDisplay.textContent = val;
+                            }
+                        }
+                    }
+
+                    if (!validatePanel(currentPanel)) {
+                        return;
+                    }
+                    const target = Number(button.getAttribute('data-target'));
+                    moveToPanel(target);
+                });
+            });
+
+            document.querySelectorAll('.btn-prev-question').forEach((button) => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = Number(button.getAttribute('data-target'));
+                    moveToPanel(target);
+                });
+            });
+
+            // Automatically clear client validation on user edit
+            if (form) {
+                ['input', 'change'].forEach((eventName) => {
+                    form.addEventListener(eventName, function (e) {
+                        if (e.target && e.target.matches('input, select, textarea')) {
+                            if (e.target !== studentIdInput) {
+                                clearFieldError(e.target);
+                            }
+                        }
+                    });
+                });
+
+                form.addEventListener('submit', async function (event) {
+                    if (studentIdInput) {
+                        const val = (studentIdInput.value || '').trim();
+                        if (val !== '') {
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                moveToPanel(0);
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                event.preventDefault();
+                                return;
+                            }
+
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
+                                moveToPanel(0);
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                event.preventDefault();
+                                return;
+                            }
+                        }
+                    }
+
+                    for (let i = 0; i < questionPanels.length; i++) {
+                        if (!validatePanel(i)) {
+                            moveToPanel(i);
+                            event.preventDefault();
+                            return;
+                        }
+                    }
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span>Submitting verification...</span><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                    }
+                });
+            }
+
             // --- Image Preview Handlers ---
             if (profileInput && profilePreview) {
                 profileInput.addEventListener('change', function () {
