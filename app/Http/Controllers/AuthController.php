@@ -2,32 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Property;
-use App\Models\Room;
 use App\Models\Booking;
-use App\Models\Message;
-use App\Models\LeaveRequest;
-use App\Models\Report;
-use App\Models\RoomFeedback;
-use Illuminate\Support\Facades\Schema;
-use App\Models\LandlordProfile;
 use App\Models\LandlordDocument;
+use App\Models\LandlordProfile;
+use App\Models\LeaveRequest;
+use App\Models\Message;
+use App\Models\Property;
+use App\Models\Report;
+use App\Models\Room;
+use App\Models\RoomFeedback;
+use App\Models\StudentVerificationRequest;
 use App\Models\TenantOnboarding;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Notifications\SystemNotification;
+use App\Services\AcademicCatalogService;
+use App\Traits\HandlesSignatureDataUrl;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
-use App\Notifications\SystemNotification;
-use App\Services\AcademicCatalogService;
-use App\Models\StudentVerificationRequest;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    use HandlesSignatureDataUrl;
+
     public function showLoginForm()
     {
         return view('auth.login');
@@ -49,7 +52,7 @@ class AuthController extends Controller
             'password' => $request->password,
         ];
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors(['email' => 'Invalid credentials'])->withInput($request->only('email'));
         }
 
@@ -58,17 +61,18 @@ class AuthController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (Schema::hasColumn('users', 'is_active') && !$user->is_active) {
+        if (Schema::hasColumn('users', 'is_active') && ! $user->is_active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
             return back()->withErrors(['email' => 'Your account is deactivated. Please contact the administrator.'])->withInput($request->only('email'));
         }
 
         if (
             $user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail
             && $user->role !== 'admin'
-            && !$user->hasVerifiedEmail()
+            && ! $user->hasVerifiedEmail()
         ) {
             return redirect()->route('verification.notice');
         }
@@ -93,7 +97,7 @@ class AuthController extends Controller
 
     public function showRegisterAdminForm()
     {
-        if (!config('auth.public_admin_registration', false) && (!Auth::check() || Auth::user()->role !== 'admin')) {
+        if (! config('auth.public_admin_registration', false) && (! Auth::check() || Auth::user()->role !== 'admin')) {
             abort(403);
         }
 
@@ -133,7 +137,7 @@ class AuthController extends Controller
 
     public function registerAdmin(Request $request)
     {
-        if (!config('auth.public_admin_registration', false) && (!Auth::check() || Auth::user()->role !== 'admin')) {
+        if (! config('auth.public_admin_registration', false) && (! Auth::check() || Auth::user()->role !== 'admin')) {
             abort(403);
         }
 
@@ -171,6 +175,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/login');
     }
 
@@ -193,11 +198,11 @@ class AuthController extends Controller
                 $totalUsers = User::count();
                 $todayNew = User::whereDate('created_at', Carbon::today())->count();
                 $last7DaysNew = User::where('created_at', '>=', Carbon::now()->subDays(7))->count();
-                $recentUsers = User::orderBy('created_at', 'desc')->limit(8)->get(['full_name','email','role','created_at']);
+                $recentUsers = User::orderBy('created_at', 'desc')->limit(8)->get(['full_name', 'email', 'role', 'created_at']);
                 $growthPct = $totalUsers > 0 ? round(($last7DaysNew / $totalUsers) * 100, 1) : 0;
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard user stats error: ' . $e->getMessage());
+            Log::warning('Dashboard user stats error: '.$e->getMessage());
         }
 
         // Basic system status (from configuration)
@@ -217,7 +222,7 @@ class AuthController extends Controller
                 $pendingReports = \App\Models\Report::where('status', 'pending')->count();
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard reports error: ' . $e->getMessage());
+            Log::warning('Dashboard reports error: '.$e->getMessage());
         }
 
         // Onboarding statistics
@@ -233,7 +238,7 @@ class AuthController extends Controller
                 $activeOnboardings = \App\Models\TenantOnboarding::whereNotIn('status', ['completed', 'cancelled'])->count();
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard onboardings error: ' . $e->getMessage());
+            Log::warning('Dashboard onboardings error: '.$e->getMessage());
         }
 
         // Properties statistics
@@ -251,7 +256,7 @@ class AuthController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard properties error: ' . $e->getMessage());
+            Log::warning('Dashboard properties error: '.$e->getMessage());
         }
 
         // Permit approval statistics (schema-safe for environments not yet migrated)
@@ -265,7 +270,7 @@ class AuthController extends Controller
                 $rejectedPermitApprovals = LandlordProfile::where('business_permit_status', 'rejected')->count();
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard permits error: ' . $e->getMessage());
+            Log::warning('Dashboard permits error: '.$e->getMessage());
         }
 
         // Booking statistics
@@ -279,7 +284,7 @@ class AuthController extends Controller
                 $approvedBookings = Booking::where('status', 'approved')->count();
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard bookings error: ' . $e->getMessage());
+            Log::warning('Dashboard bookings error: '.$e->getMessage());
         }
 
         $today = Carbon::today()->toDateString();
@@ -319,7 +324,7 @@ class AuthController extends Controller
                     ->count('bookings.student_id');
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard active boardings error: ' . $e->getMessage());
+            Log::warning('Dashboard active boardings error: '.$e->getMessage());
         }
 
         // Gender analytics with schema-safe fallback if column does not exist.
@@ -341,7 +346,7 @@ class AuthController extends Controller
                 $regSubQuery = User::where('role', 'student')
                     ->select([
                         'id',
-                        DB::raw($regExpression . ' as gender_key'),
+                        DB::raw($regExpression.' as gender_key'),
                     ]);
 
                 $registeredBreakdown = DB::query()
@@ -355,7 +360,7 @@ class AuthController extends Controller
                 $registeredGenderCounts['unspecified'] = (int) ($registeredBreakdown['unspecified'] ?? 0);
 
                 foreach ($registeredBreakdown as $key => $count) {
-                    if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
+                    if (! in_array($key, ['male', 'female', 'unspecified'], true)) {
                         $registeredGenderCounts['unspecified'] += (int) $count;
                     }
                 }
@@ -366,7 +371,7 @@ class AuthController extends Controller
                     $boarderSubQuery = (clone $activeBoardingsBase)
                         ->select([
                             'bookings.student_id',
-                            DB::raw($boarderExpression . ' as gender_key'),
+                            DB::raw($boarderExpression.' as gender_key'),
                         ]);
 
                     $boarderBreakdown = DB::query()
@@ -380,14 +385,14 @@ class AuthController extends Controller
                     $boarderGenderCounts['unspecified'] = (int) ($boarderBreakdown['unspecified'] ?? 0);
 
                     foreach ($boarderBreakdown as $key => $count) {
-                        if (!in_array($key, ['male', 'female', 'unspecified'], true)) {
+                        if (! in_array($key, ['male', 'female', 'unspecified'], true)) {
                             $boarderGenderCounts['unspecified'] += (int) $count;
                         }
                     }
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard gender aggregation error: ' . $e->getMessage());
+            Log::warning('Dashboard gender aggregation error: '.$e->getMessage());
         }
 
         // Gender counts displayed on dashboard:
@@ -423,7 +428,7 @@ class AuthController extends Controller
                     ->values();
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard map points error: ' . $e->getMessage());
+            Log::warning('Dashboard map points error: '.$e->getMessage());
         }
 
         // Occupancy & Capacity calculations (canonical sum from rooms table)
@@ -436,10 +441,10 @@ class AuthController extends Controller
         try {
             if (Schema::hasTable('rooms')) {
                 $roomCounts = Room::query()
-                    ->selectRaw("
+                    ->selectRaw('
                         COALESCE(SUM(capacity), 0) as capacity,
                         COALESCE(SUM(slots_available), 0) as slots_available
-                    ")
+                    ')
                     ->first();
 
                 $totalCapacity = (int) ($roomCounts->capacity ?? 0);
@@ -462,6 +467,7 @@ class AuthController extends Controller
                             $avail = (int) ($prop->slots_available ?? 0);
                             $occ = max(0, $cap - $avail);
                             $rate = $cap > 0 ? round(($occ / $cap) * 100, 1) : 0;
+
                             return [
                                 'id' => $prop->id,
                                 'name' => $prop->name,
@@ -474,7 +480,7 @@ class AuthController extends Controller
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('Dashboard occupancy aggregation error: ' . $e->getMessage());
+            Log::warning('Dashboard occupancy aggregation error: '.$e->getMessage());
         }
 
         // Check for pending migrations
@@ -491,7 +497,7 @@ class AuthController extends Controller
 
         // Self-heal stale route cache on Hostinger shared hosting if missing admin.analytics.index
         $cachedRoutes = base_path('bootstrap/cache/routes-v7.php');
-        if (file_exists($cachedRoutes) && !\Illuminate\Support\Facades\Route::has('admin.analytics.index')) {
+        if (file_exists($cachedRoutes) && ! \Illuminate\Support\Facades\Route::has('admin.analytics.index')) {
             @unlink($cachedRoutes);
         }
 
@@ -523,7 +529,7 @@ class AuthController extends Controller
 
         if ($user->role === 'landlord') {
             $setupSnapshot = $this->getLandlordSetupSnapshot($user);
-            if (!($user->onboarding_complete ?? false) || !($setupSnapshot['setup_submitted'] ?? false)) {
+            if (! ($user->onboarding_complete ?? false) || ! ($setupSnapshot['setup_submitted'] ?? false)) {
                 return redirect()->route('landlord.setup.show');
             }
 
@@ -531,7 +537,7 @@ class AuthController extends Controller
         }
 
         if ($user->role === 'student') {
-            if (!($user->onboarding_complete ?? false) || !$user->isStudentSetupComplete()) {
+            if (! ($user->onboarding_complete ?? false) || ! $user->isStudentSetupComplete()) {
                 return redirect()->route('student.setup.show');
             }
 
@@ -564,8 +570,8 @@ class AuthController extends Controller
             $subQuery = (clone $activeBoardingsBase)
                 ->select([
                     'bookings.student_id',
-                    DB::raw($collegeExpression . ' as college_code'),
-                    DB::raw($programExpression . ' as program_name'),
+                    DB::raw($collegeExpression.' as college_code'),
+                    DB::raw($programExpression.' as program_name'),
                 ]);
 
             $academicRows = DB::query()
@@ -621,14 +627,15 @@ class AuthController extends Controller
                 ->sortByDesc('total_students')
                 ->values();
         } catch (\Throwable $e) {
-            Log::warning('buildBoardedByAcademic error: ' . $e->getMessage());
+            Log::warning('buildBoardedByAcademic error: '.$e->getMessage());
+
             return collect();
         }
     }
 
     public function runMigrationsWeb(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403, 'Unauthorized action.');
         }
 
@@ -642,15 +649,16 @@ class AuthController extends Controller
             \Illuminate\Support\Facades\Artisan::call('view:clear');
             \Illuminate\Support\Facades\Artisan::call('config:clear');
             $output = \Illuminate\Support\Facades\Artisan::output();
-            return back()->with('success', 'Database migrations and cache clearance completed successfully! Output: ' . $output);
+
+            return back()->with('success', 'Database migrations and cache clearance completed successfully! Output: '.$output);
         } catch (\Throwable $e) {
-            return back()->with('error', 'Migration failed: ' . $e->getMessage());
+            return back()->with('error', 'Migration failed: '.$e->getMessage());
         }
     }
 
     public function adminDashboardStats(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -776,7 +784,7 @@ class AuthController extends Controller
 
     public function adminUsers(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -790,8 +798,8 @@ class AuthController extends Controller
                 $query->where('role', $roleFilter);
             })
             ->when($search !== '', function ($query) use ($search) {
-                $like = '%' . $search . '%';
-                $query->where(function ($inner) use ($like, $search) {
+                $like = '%'.$search.'%';
+                $query->where(function ($inner) use ($like) {
                     $inner->orWhere('full_name', 'like', $like)
                         ->orWhere('name', 'like', $like);
                 });
@@ -804,14 +812,14 @@ class AuthController extends Controller
 
     public function adminUsersByRole(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
         $role = $request->route()->getName() === 'admin.users.students' ? 'student' :
                ($request->route()->getName() === 'admin.users.landlords' ? 'landlord' : 'admin');
 
-         $selectedNameSearch = trim((string) $request->query('search', ''));
+        $selectedNameSearch = trim((string) $request->query('search', ''));
         $selectedCollege = trim((string) $request->query('college', ''));
         $selectedProgram = trim((string) $request->query('program', ''));
         $selectedMajor = trim((string) $request->query('major', ''));
@@ -851,7 +859,7 @@ class AuthController extends Controller
 
         if ($role === 'student') {
             if ($selectedNameSearch !== '') {
-                $like = '%' . $selectedNameSearch . '%';
+                $like = '%'.$selectedNameSearch.'%';
                 $usersQuery->where(function ($query) use ($like) {
                     $query->where('full_name', 'like', $like)
                         ->orWhere('name', 'like', $like);
@@ -903,24 +911,24 @@ class AuthController extends Controller
                 $user->occupied_rooms = \App\Models\Room::whereHas('property', function ($q) use ($user) {
                     $q->where('landlord_id', $user->id);
                 })
-                ->whereHas('bookings', function ($q) {
-                    $q->where('status', 'approved')
-                      ->where('check_in', '<=', now()->toDateString())
-                      ->where('check_out', '>', now()->toDateString());
-                })->count();
+                    ->whereHas('bookings', function ($q) {
+                        $q->where('status', 'approved')
+                            ->where('check_in', '<=', now()->toDateString())
+                            ->where('check_out', '>', now()->toDateString());
+                    })->count();
 
                 // Count tenants in onboarding process
                 $user->onboarding_tenants = \App\Models\TenantOnboarding::whereHas('booking.room.property', function ($q) use ($user) {
                     $q->where('landlord_id', $user->id);
                 })
-                ->where('status', '!=', 'completed')
-                ->count();
+                    ->where('status', '!=', 'completed')
+                    ->count();
 
                 return $user;
             });
         }
 
-        $roleTitle = ucfirst($role) . 's';
+        $roleTitle = ucfirst($role).'s';
 
         return view('admin.users.by_role', compact(
             'users',
@@ -940,7 +948,7 @@ class AuthController extends Controller
 
     public function adminLandlordDetails(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -964,33 +972,33 @@ class AuthController extends Controller
 
         // Get landlord's properties with room and tenant counts
         $properties = \App\Models\Property::where('landlord_id', $user->id)
-            ->with(['rooms' => function($q) {
-                $q->with(['bookings' => function($bq) {
+            ->with(['rooms' => function ($q) {
+                $q->with(['bookings' => function ($bq) {
                     $bq->where('status', 'approved')
-                       ->where('check_in', '<=', now()->toDateString())
-                       ->where('check_out', '>', now()->toDateString())
-                       ->with('student');
+                        ->where('check_in', '<=', now()->toDateString())
+                        ->where('check_out', '>', now()->toDateString())
+                        ->with('student');
                 }]);
             }])
             ->withCount([
                 'rooms as total_rooms',
-                'rooms as available_rooms' => function($q) {
+                'rooms as available_rooms' => function ($q) {
                     $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
-                'rooms as occupied_rooms' => function($q) {
-                    $q->whereHas('bookings', function($bq) {
+                'rooms as occupied_rooms' => function ($q) {
+                    $q->whereHas('bookings', function ($bq) {
                         $bq->where('status', 'approved')
-                           ->where('check_in', '<=', now()->toDateString())
-                           ->where('check_out', '>', now()->toDateString());
+                            ->where('check_in', '<=', now()->toDateString())
+                            ->where('check_out', '>', now()->toDateString());
                     });
-                }
+                },
             ])
             ->get();
 
         // Calculate tenant statistics
         $totalTenants = 0;
-        $properties->each(function($property) use (&$totalTenants) {
-            $property->current_tenants = $property->rooms->sum(function($room) {
+        $properties->each(function ($property) use (&$totalTenants) {
+            $property->current_tenants = $property->rooms->sum(function ($room) {
                 return $room->bookings->count();
             });
             $totalTenants += $property->current_tenants;
@@ -1005,8 +1013,8 @@ class AuthController extends Controller
         $onboardingStats = TenantOnboarding::whereHas('booking.room.property', function ($q) use ($user) {
             $q->where('landlord_id', $user->id);
         })->selectRaw('status, COUNT(*) as count')
-          ->groupBy('status')
-          ->pluck('count', 'status');
+            ->groupBy('status')
+            ->pluck('count', 'status');
 
         $pendingOnboarding = $onboardingStats->get('pending', 0);
         $documentsUploaded = $onboardingStats->get('documents_uploaded', 0);
@@ -1019,25 +1027,25 @@ class AuthController extends Controller
         $currentTenants = Booking::whereHas('room.property', function ($q) use ($user) {
             $q->where('landlord_id', $user->id);
         })
-        ->where('status', 'approved')
-        ->where('check_in', '<=', now()->toDateString())
-        ->where('check_out', '>', now()->toDateString())
-        ->with(['student', 'room.property'])
-        ->get()
-        ->map(function ($booking) {
-            return [
-                'id' => $booking->student->id,
-                'name' => $booking->student->full_name,
-                'email' => $booking->student->email,
-                'contact' => $booking->student->contact_number,
-                'property_name' => $booking->room->property->name,
-                'room_number' => $booking->room->room_number,
-                'check_in' => $booking->check_in->format('M d, Y'),
-                'check_out' => $booking->check_out->format('M d, Y'),
-                'program' => $booking->student->program,
-                'year_level' => $booking->student->year_level,
-            ];
-        });
+            ->where('status', 'approved')
+            ->where('check_in', '<=', now()->toDateString())
+            ->where('check_out', '>', now()->toDateString())
+            ->with(['student', 'room.property'])
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'id' => $booking->student->id,
+                    'name' => $booking->student->full_name,
+                    'email' => $booking->student->email,
+                    'contact' => $booking->student->contact_number,
+                    'property_name' => $booking->room->property->name,
+                    'room_number' => $booking->room->room_number,
+                    'check_in' => $booking->check_in->format('M d, Y'),
+                    'check_out' => $booking->check_out->format('M d, Y'),
+                    'program' => $booking->student->program,
+                    'year_level' => $booking->student->year_level,
+                ];
+            });
 
         // Resolve landlord compliance summary
         $complianceService = app(\App\Services\LandlordDocumentStatusService::class);
@@ -1061,7 +1069,7 @@ class AuthController extends Controller
 
     public function adminUpdateLandlord(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1071,7 +1079,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'contact_number' => 'nullable|string|max:20',
             'boarding_house_name' => 'nullable|string|max:255',
         ]);
@@ -1083,7 +1091,7 @@ class AuthController extends Controller
 
     public function adminToggleLandlordStatus(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1091,14 +1099,14 @@ class AuthController extends Controller
             abort(404);
         }
 
-        if (!Schema::hasColumn('users', 'is_active')) {
+        if (! Schema::hasColumn('users', 'is_active')) {
             return back()->with('error', 'Unable to update status: users.is_active column not found.');
         }
 
-        $user->is_active = !$user->is_active;
+        $user->is_active = ! $user->is_active;
         $user->save();
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             // Revoke current remember token so next auth checks force re-login.
             $user->setRememberToken(null);
             $user->save();
@@ -1113,18 +1121,18 @@ class AuthController extends Controller
 
     public function adminPermitApprovals(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+        if (! Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Permit approval columns are not available yet. Run migrations first.');
         }
 
         $statusFilter = strtolower((string) $request->query('status', 'pending'));
         $allowedStatuses = ['pending', 'approved', 'rejected', 'all'];
-        if (!in_array($statusFilter, $allowedStatuses, true)) {
+        if (! in_array($statusFilter, $allowedStatuses, true)) {
             $statusFilter = 'pending';
         }
 
@@ -1153,11 +1161,11 @@ class AuthController extends Controller
 
     public function adminStudentApprovals(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('users', 'school_id_verification_status')) {
+        if (! Schema::hasColumn('users', 'school_id_verification_status')) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Student verification columns are not available yet. Run migrations first.');
         }
@@ -1170,7 +1178,7 @@ class AuthController extends Controller
 
     public function adminLandlordApprovals(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1185,7 +1193,7 @@ class AuthController extends Controller
         $activeTab = 'permits';
         $statusFilter = $this->normalizeLandlordPermitFilter((string) $request->query('status', 'all'));
 
-        if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+        if (! Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Permit approval columns are not available yet. Run migrations first.');
         }
@@ -1202,11 +1210,11 @@ class AuthController extends Controller
 
     public function adminApproveLandlordPermit(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+        if (! Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
             return back()->with('error', 'Permit approval columns are not available yet. Run migrations first.');
         }
 
@@ -1257,11 +1265,11 @@ class AuthController extends Controller
 
     public function adminRejectLandlordPermit(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
+        if (! Schema::hasColumn('landlord_profiles', 'business_permit_status')) {
             return back()->with('error', 'Permit approval columns are not available yet. Run migrations first.');
         }
 
@@ -1319,11 +1327,11 @@ class AuthController extends Controller
 
     public function adminApproveLandlordSafetyCertificate(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!$this->supportsSafetyCertificateApproval()) {
+        if (! $this->supportsSafetyCertificateApproval()) {
             return back()->with('error', 'Safety certificate approval columns are not available yet. Run migrations first.');
         }
 
@@ -1374,11 +1382,11 @@ class AuthController extends Controller
 
     public function adminRejectLandlordSafetyCertificate(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!$this->supportsSafetyCertificateApproval()) {
+        if (! $this->supportsSafetyCertificateApproval()) {
             return back()->with('error', 'Safety certificate approval columns are not available yet. Run migrations first.');
         }
 
@@ -1436,18 +1444,18 @@ class AuthController extends Controller
 
     public function adminStudentVerifications(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('users', 'school_id_verification_status')) {
+        if (! Schema::hasColumn('users', 'school_id_verification_status')) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Student verification columns are not available yet. Run migrations first.');
         }
 
         $statusFilter = strtolower((string) $request->query('status', 'pending'));
         $allowedStatuses = ['pending', 'approved', 'rejected', 'all'];
-        if (!in_array($statusFilter, $allowedStatuses, true)) {
+        if (! in_array($statusFilter, $allowedStatuses, true)) {
             $statusFilter = 'pending';
         }
 
@@ -1702,11 +1710,11 @@ class AuthController extends Controller
 
     public function adminApproveStudentVerification(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('users', 'school_id_verification_status')) {
+        if (! Schema::hasColumn('users', 'school_id_verification_status')) {
             return back()->with('error', 'Student verification columns are not available yet. Run migrations first.');
         }
 
@@ -1717,17 +1725,17 @@ class AuthController extends Controller
         $hasVerificationDocument = filled($user->school_id_path)
             || (Schema::hasColumn('users', 'enrollment_proof_path') && filled($user->enrollment_proof_path));
 
-        if (!$hasVerificationDocument) {
+        if (! $hasVerificationDocument) {
             return back()->with('error', 'No verification document was uploaded for this student yet.');
         }
 
         // Check if there are active unresolved information requests
         $activeRequest = $user->activeStudentVerificationRequest;
         if ($activeRequest) {
-            if ($activeRequest->request_student_id && !filled($user->student_id)) {
+            if ($activeRequest->request_student_id && ! filled($user->student_id)) {
                 return back()->with('error', 'Cannot approve verification: the requested Student ID number has not been provided.');
             }
-            if ($activeRequest->request_school_id_photo && !filled($user->school_id_path)) {
+            if ($activeRequest->request_school_id_photo && ! filled($user->school_id_path)) {
                 return back()->with('error', 'Cannot approve verification: the requested School ID photo has not been uploaded.');
             }
 
@@ -1757,11 +1765,11 @@ class AuthController extends Controller
 
     public function adminRejectStudentVerification(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
-        if (!Schema::hasColumn('users', 'school_id_verification_status')) {
+        if (! Schema::hasColumn('users', 'school_id_verification_status')) {
             return back()->with('error', 'Student verification columns are not available yet. Run migrations first.');
         }
 
@@ -1772,7 +1780,7 @@ class AuthController extends Controller
         $hasVerificationDocument = filled($user->school_id_path)
             || (Schema::hasColumn('users', 'enrollment_proof_path') && filled($user->enrollment_proof_path));
 
-        if (!$hasVerificationDocument) {
+        if (! $hasVerificationDocument) {
             return back()->with('error', 'No verification document was uploaded for this student yet.');
         }
 
@@ -1786,7 +1794,7 @@ class AuthController extends Controller
                 'status' => 'resolved',
                 'resolved_at' => now(),
                 'resolved_by' => Auth::id(),
-                'admin_notes' => 'Rejected verification: ' . $validated['rejection_reason'],
+                'admin_notes' => 'Rejected verification: '.$validated['rejection_reason'],
             ]);
         }
 
@@ -1812,7 +1820,7 @@ class AuthController extends Controller
 
     public function adminRequestStudentVerificationInfo(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1829,7 +1837,7 @@ class AuthController extends Controller
         $reqStudentId = $request->boolean('request_student_id');
         $reqSchoolIdPhoto = $request->boolean('request_school_id_photo');
 
-        if (!$reqStudentId && !$reqSchoolIdPhoto) {
+        if (! $reqStudentId && ! $reqSchoolIdPhoto) {
             return back()->withErrors([
                 'requested_items' => 'Please select at least one item to request (Student ID number or School ID photo).',
                 'instructions' => 'Please select at least one item to request (Student ID number or School ID photo).',
@@ -1862,7 +1870,7 @@ class AuthController extends Controller
 
         $user->notify(new SystemNotification(
             'Additional verification information required',
-            'The administrator has requested additional verification information: ' . Str::limit(trim($validated['instructions']), 100),
+            'The administrator has requested additional verification information: '.Str::limit(trim($validated['instructions']), 100),
             route('student.dashboard'),
             [
                 'type' => 'student_verification_info_requested',
@@ -1876,7 +1884,7 @@ class AuthController extends Controller
 
     public function adminStudentDetails(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1913,7 +1921,7 @@ class AuthController extends Controller
 
     public function adminEditStudent(User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1926,7 +1934,7 @@ class AuthController extends Controller
 
     public function adminUpdateStudent(Request $request, User $user)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1934,13 +1942,13 @@ class AuthController extends Controller
             abort(404);
         }
 
-        if (!$request->filled('program') && $request->filled('course')) {
+        if (! $request->filled('program') && $request->filled('course')) {
             $request->merge(['program' => $request->input('course')]);
         }
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'gender' => 'nullable|in:Male,Female,Other',
             'gender_other' => 'nullable|string|max:100',
             'contact_number' => 'nullable|string|max:20',
@@ -1964,10 +1972,10 @@ class AuthController extends Controller
         ]);
 
         // If gender is "Other", use the custom gender_other value
-        if (($validated['gender'] ?? null) === 'Other' && !empty($validated['gender_other'])) {
+        if (($validated['gender'] ?? null) === 'Other' && ! empty($validated['gender_other'])) {
             $validated['gender'] = $validated['gender_other'];
         }
-        
+
         // Remove gender_other from the update data
         unset($validated['gender_other']);
 
@@ -1979,7 +1987,7 @@ class AuthController extends Controller
 
     public function adminProperties(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -1988,7 +1996,7 @@ class AuthController extends Controller
         $availabilityFilter = strtolower(trim((string) $request->query('availability', 'all')));
         $locationFilter = trim((string) $request->query('location', 'all'));
         $activeView = strtolower(trim((string) $request->query('view', 'list')));
-        if (!in_array($activeView, ['list', 'map'], true)) {
+        if (! in_array($activeView, ['list', 'map'], true)) {
             $activeView = 'list';
         }
 
@@ -2005,8 +2013,8 @@ class AuthController extends Controller
                 'rooms as occupied_rooms' => function ($q) use ($today) {
                     $q->whereHas('bookings', function ($bq) use ($today) {
                         $bq->where('status', 'approved')
-                           ->whereDate('check_in', '<=', $today)
-                           ->whereDate('check_out', '>', $today);
+                            ->whereDate('check_in', '<=', $today)
+                            ->whereDate('check_out', '>', $today);
                     });
                 },
             ]);
@@ -2015,12 +2023,12 @@ class AuthController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhereHas('landlord', function ($lq) use ($search) {
-                      $lq->where('name', 'like', "%{$search}%")
-                         ->orWhere('full_name', 'like', "%{$search}%")
-                         ->orWhere('email', 'like', "%{$search}%");
-                  });
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhereHas('landlord', function ($lq) use ($search) {
+                        $lq->where('name', 'like', "%{$search}%")
+                            ->orWhere('full_name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -2058,6 +2066,7 @@ class AuthController extends Controller
             $property->occupancy_rate = $property->total_rooms > 0
                 ? round(($property->occupied_rooms / $property->total_rooms) * 100, 1)
                 : 0;
+
             return $property;
         });
 
@@ -2109,6 +2118,7 @@ class AuthController extends Controller
             ->pluck('address')
             ->map(function ($addr) {
                 $parts = array_map('trim', explode(',', $addr));
+
                 return $parts[0] ?? $addr;
             })
             ->filter()
@@ -2143,7 +2153,7 @@ class AuthController extends Controller
 
     public function landlordDashboard()
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403);
         }
         $landlordId = Auth::id();
@@ -2289,7 +2299,7 @@ class AuthController extends Controller
         $setupTotalCount = count($setupChecklist);
         $setupCompletedCount = collect($setupChecklist)->where('completed', true)->count();
         $needsLandlordSetup = $setupCompletedCount < $setupTotalCount;
-        $needsPaymentSetup = !$setupSnapshot['billing_methods_complete'];
+        $needsPaymentSetup = ! $setupSnapshot['billing_methods_complete'];
 
         // Documents & requirements summary (centralized landlord_documents records).
         $documentsSummary = \App\Models\LandlordDocument::where('landlord_id', $landlordId)
@@ -2304,7 +2314,7 @@ class AuthController extends Controller
             ->keyBy('type');
 
         return view('landlord.dashboard', compact(
-            'properties','propertiesCount','totalRooms','vacantRooms','pendingRequests','recommendedRooms','unreadMessages','unreadMessagesList','recentReceivedMessages',
+            'properties', 'propertiesCount', 'totalRooms', 'vacantRooms', 'pendingRequests', 'recommendedRooms', 'unreadMessages', 'unreadMessagesList', 'recentReceivedMessages',
             'needsPaymentSetup',
             'setupChecklist', 'setupCompletedCount', 'setupTotalCount', 'needsLandlordSetup', 'setupSnapshot',
             'activeTenantsCount', 'recentCheckInsCount', 'tenantTrend', 'propertyOccupancyBreakdown',
@@ -2315,7 +2325,7 @@ class AuthController extends Controller
 
     public function landlordProfile()
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403);
         }
 
@@ -2337,7 +2347,7 @@ class AuthController extends Controller
 
     public function updateLandlordProfile(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403);
         }
 
@@ -2345,7 +2355,7 @@ class AuthController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contact_number' => 'required|string|max:20',
             'boarding_house_name' => 'required|string|max:255',
@@ -2380,24 +2390,24 @@ class AuthController extends Controller
 
         $validationErrors = [];
         if ($preferredPaymentMethods->contains('bank')) {
-            if (!filled($request->input('payment_bank_name'))) {
+            if (! filled($request->input('payment_bank_name'))) {
                 $validationErrors['payment_bank_name'] = 'Bank name is required when Bank is selected as a payment method.';
             }
-            if (!filled($request->input('payment_account_name'))) {
+            if (! filled($request->input('payment_account_name'))) {
                 $validationErrors['payment_account_name'] = 'Account name is required when Bank is selected as a payment method.';
             }
         }
 
         if ($preferredPaymentMethods->contains('gcash')) {
-            if (!filled($request->input('payment_gcash_name'))) {
+            if (! filled($request->input('payment_gcash_name'))) {
                 $validationErrors['payment_gcash_name'] = 'GCash name is required when GCash is selected as a payment method.';
             }
-            if (!filled($request->input('payment_gcash_number'))) {
+            if (! filled($request->input('payment_gcash_number'))) {
                 $validationErrors['payment_gcash_number'] = 'GCash number is required when GCash is selected as a payment method.';
             }
         }
 
-        if (!empty($validationErrors)) {
+        if (! empty($validationErrors)) {
             return back()->withErrors($validationErrors)->withInput();
         }
 
@@ -2434,7 +2444,7 @@ class AuthController extends Controller
             $profileData['business_permit_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->business_permit_path,
                 $request->file('business_permit'),
-                'landlords/' . $user->id . '/business-permits'
+                'landlords/'.$user->id.'/business-permits'
             );
             $profileData['business_permit_status'] = 'pending';
             $profileData['business_permit_reviewed_at'] = null;
@@ -2446,7 +2456,7 @@ class AuthController extends Controller
             $profileData['payment_gcash_qr_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->payment_gcash_qr_path,
                 $request->file('payment_gcash_qr'),
-                'landlords/' . $user->id . '/payment-qr'
+                'landlords/'.$user->id.'/payment-qr'
             );
         }
 
@@ -2454,11 +2464,11 @@ class AuthController extends Controller
         if ($signatureData !== '') {
             $storedSignaturePath = $this->storeLandlordProfileSignatureDataUrl(
                 $signatureData,
-                'landlords/' . $user->id . '/signatures',
+                'landlords/'.$user->id.'/signatures',
                 $landlordProfile->contract_signature_path
             );
 
-            if (!$storedSignaturePath) {
+            if (! $storedSignaturePath) {
                 return back()->withErrors([
                     'contract_signature_data' => 'Invalid signature drawing. Please draw again or upload an image file.',
                 ])->withInput();
@@ -2469,7 +2479,7 @@ class AuthController extends Controller
             $profileData['contract_signature_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->contract_signature_path,
                 $request->file('contract_signature_image'),
-                'landlords/' . $user->id . '/signatures'
+                'landlords/'.$user->id.'/signatures'
             );
         }
 
@@ -2480,12 +2490,12 @@ class AuthController extends Controller
         $gcashRequired = $preferredPaymentMethods->contains('gcash');
         $cashRequired = $preferredPaymentMethods->contains('cash');
 
-        $bankReady = !$bankRequired || (filled($request->payment_bank_name) && filled($request->payment_account_name));
-        $gcashReady = !$gcashRequired || (
+        $bankReady = ! $bankRequired || (filled($request->payment_bank_name) && filled($request->payment_account_name));
+        $gcashReady = ! $gcashRequired || (
             filled($request->payment_gcash_name)
             && filled($request->payment_gcash_number)
         );
-        $cashReady = !$cashRequired || true;
+        $cashReady = ! $cashRequired || true;
 
         $billingCompleted = $preferredPaymentMethods->isNotEmpty() && $bankReady && $gcashReady && $cashReady;
 
@@ -2505,7 +2515,7 @@ class AuthController extends Controller
                 $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->profile_image_path,
                     $request->file('profile_image'),
-                    'landlords/' . $user->id . '/profile'
+                    'landlords/'.$user->id.'/profile'
                 );
                 $user->save();
             } catch (\RuntimeException $e) {
@@ -2517,7 +2527,7 @@ class AuthController extends Controller
 
         // Update password if provided
         if ($request->filled('new_password')) {
-            if (!Hash::check((string) $request->input('current_password'), (string) $user->password)) {
+            if (! Hash::check((string) $request->input('current_password'), (string) $user->password)) {
                 return back()->withErrors(['current_password' => 'Current password is incorrect.'])->withInput();
             }
             $user->update(['password' => Hash::make($request->new_password)]);
@@ -2528,55 +2538,23 @@ class AuthController extends Controller
 
     private function storeLandlordProfileSignatureDataUrl(string $signatureData, string $directory, ?string $oldPath = null): ?string
     {
-        $signatureData = trim($signatureData);
-        if ($signatureData === '') {
-            return null;
-        }
-
-        if (!preg_match('/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/i', $signatureData, $matches)) {
-            return null;
-        }
-
-        $mime = strtolower((string) $matches[1]);
-        $encoded = (string) $matches[2];
-        $binary = base64_decode($encoded, true);
-
-        if ($binary === false || $binary === '') {
-            return null;
-        }
-
-        if (strlen($binary) > (5 * 1024 * 1024)) {
-            return null;
-        }
-
-        $extension = $mime === 'jpg' ? 'jpeg' : $mime;
-
-        $path = app(\App\Services\FileStorageService::class)->put(
-            $directory,
-            $binary,
-            $extension
-        );
-
-        if (!empty($oldPath)) {
-            app(\App\Services\FileStorageService::class)->delete($oldPath);
-        }
-
-        return $path;
+        return $this->storeSignatureDataUrl($signatureData, $directory, $oldPath);
     }
 
     public function adminSettings()
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
         $user = Auth::user();
+
         return view('admin.settings.edit', compact('user'));
     }
 
     public function updateAdminSettings(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403);
         }
 
@@ -2584,7 +2562,7 @@ class AuthController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contact_number' => 'nullable|string|max:20',
             'current_password' => 'nullable|required_with:new_password',
@@ -2610,7 +2588,7 @@ class AuthController extends Controller
                 $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->profile_image_path,
                     $request->file('profile_image'),
-                    'users/' . $user->id . '/profile'
+                    'users/'.$user->id.'/profile'
                 );
                 $user->save();
             } catch (\RuntimeException $e) {
@@ -2621,7 +2599,7 @@ class AuthController extends Controller
         }
 
         if ($request->filled('new_password')) {
-            if (!Hash::check($request->current_password, $user->password)) {
+            if (! Hash::check($request->current_password, $user->password)) {
                 return back()->withErrors(['current_password' => 'Current password is incorrect.']);
             }
             $user->update(['password' => Hash::make($request->new_password)]);
@@ -2632,7 +2610,7 @@ class AuthController extends Controller
 
     public function studentDashboard(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
         $student = Auth::user();
@@ -2658,7 +2636,7 @@ class AuthController extends Controller
             ->with(['room.property.landlord', 'tenantOnboarding'])
             ->orderByDesc('check_in')
             ->first();
-        $hasCurrentApprovedBooking = !empty($currentApprovedBooking);
+        $hasCurrentApprovedBooking = ! empty($currentApprovedBooking);
         $currentApprovedOnboardingStatus = strtolower((string) ($currentApprovedBooking?->tenantOnboarding?->status ?? ''));
         $showApprovedBookingModal = $hasCurrentApprovedBooking
             && $currentApprovedOnboardingStatus !== 'completed';
@@ -2667,7 +2645,7 @@ class AuthController extends Controller
             ->where('status', 'approved')
             ->where('check_out', '>', $today)
             ->count();
-        $pendingBookingsCount = $student->bookings()->where('status','pending')->count();
+        $pendingBookingsCount = $student->bookings()->where('status', 'pending')->count();
         $messagesCount = $student->messagesReceived()->count() + $student->messagesSent()->count();
         $unreadMessagesCount = \App\Models\Message::where('receiver_id', $student->id)->whereNull('read_at')->count();
         $notificationsCount = Schema::hasTable('notifications') ? $student->unreadNotifications()->count() : 0;
@@ -2712,7 +2690,7 @@ class AuthController extends Controller
         $allMessages = \App\Models\Message::with(['sender:id,full_name', 'receiver:id,full_name', 'property:id,name'])
             ->where(function ($q) use ($student) {
                 $q->where('sender_id', $student->id)
-                  ->orWhere('receiver_id', $student->id);
+                    ->orWhere('receiver_id', $student->id);
             })
             ->latest()
             ->limit(200)
@@ -2721,20 +2699,20 @@ class AuthController extends Controller
         // Group into threads: key = "otherId_propertyId"
         $threads = [];
         foreach ($allMessages as $msg) {
-            $otherId = (int)$msg->sender_id === $student->id ? $msg->receiver_id : $msg->sender_id;
-            $propId  = $msg->property_id ?? 0;
-            $key     = $otherId . '_' . $propId;
-            if (!isset($threads[$key])) {
+            $otherId = (int) $msg->sender_id === $student->id ? $msg->receiver_id : $msg->sender_id;
+            $propId = $msg->property_id ?? 0;
+            $key = $otherId.'_'.$propId;
+            if (! isset($threads[$key])) {
                 $threads[$key] = [
-                    'other'         => (int)$msg->sender_id === $student->id ? $msg->receiver : $msg->sender,
-                    'property'      => $msg->property,
-                    'property_id'   => $msg->property_id,
-                    'latest'        => $msg,
-                    'unread'        => 0,
-                    'messages'      => [],
+                    'other' => (int) $msg->sender_id === $student->id ? $msg->receiver : $msg->sender,
+                    'property' => $msg->property,
+                    'property_id' => $msg->property_id,
+                    'latest' => $msg,
+                    'unread' => 0,
+                    'messages' => [],
                 ];
             }
-            if (empty($msg->read_at) && (int)$msg->receiver_id === $student->id) {
+            if (empty($msg->read_at) && (int) $msg->receiver_id === $student->id) {
                 $threads[$key]['unread']++;
             }
             $threads[$key]['messages'][] = $msg;
@@ -2767,7 +2745,7 @@ class AuthController extends Controller
         }
 
         $currentBookingLeaveRequests = collect();
-        if (!empty($currentApprovedBooking)) {
+        if (! empty($currentApprovedBooking)) {
             $currentBookingLeaveRequests = $leaveRequests->where('booking_id', $currentApprovedBooking->id)->values();
         }
 
@@ -2775,7 +2753,7 @@ class AuthController extends Controller
         $roommates = collect();
         $roommatesCount = 0;
         $roomCapacity = null;
-        if (!empty($currentApprovedBooking) && !empty($currentApprovedBooking->room_id)) {
+        if (! empty($currentApprovedBooking) && ! empty($currentApprovedBooking->room_id)) {
             $roomCapacity = $currentApprovedBooking->room?->capacity;
 
             $roommates = Booking::query()
@@ -2811,11 +2789,11 @@ class AuthController extends Controller
 
         // Personalize: infer preferred capacity from latest approved booking
         $latestApproved = $student->bookings()
-            ->where('status','approved')
+            ->where('status', 'approved')
             ->latest()
             ->with('room')
             ->first();
-        $preferredCapacity = $latestApproved && $latestApproved->room ? max(1, (int)$latestApproved->room->capacity) : 1;
+        $preferredCapacity = $latestApproved && $latestApproved->room ? max(1, (int) $latestApproved->room->capacity) : 1;
 
         // Filters from query string
         $minPrice = $request->query('min_price');
@@ -2842,12 +2820,12 @@ class AuthController extends Controller
             ->when($search && $search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('room_number', 'like', "%$search%")
-                       ->orWhereHas('property', fn($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
+                        ->orWhereHas('property', fn ($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
                 });
             })
             ->orderBy('price')
             ->get()
-            ->filter(fn($room) => $room->hasAvailableSlots()) // Filter by actual occupancy
+            ->filter(fn ($room) => $room->hasAvailableSlots()) // Filter by actual occupancy
             ->values()
             ->take(6);
 
@@ -2869,7 +2847,7 @@ class AuthController extends Controller
             ->when($search && $search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('room_number', 'like', "%$search%")
-                       ->orWhereHas('property', fn($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
+                        ->orWhereHas('property', fn ($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
                 });
             })
             ->orderBy('property_id')
@@ -2883,36 +2861,36 @@ class AuthController extends Controller
             ->visibleToAudience()
             ->withCount([
                 'rooms as rooms_total_live',
-                'rooms as rooms_available_live' => function($q){
-                    $q->where('status','available')->where('slots_available', '>', 0);
+                'rooms as rooms_available_live' => function ($q) {
+                    $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
-            ->when($search && $search !== '', function($q) use ($search){
-                $q->where(function($qq) use ($search){
-                    $qq->where('name','like',"%$search%")
-                       ->orWhere('address','like',"%$search%");
+            ->when($search && $search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%$search%")
+                        ->orWhere('address', 'like', "%$search%");
                 });
             })
             ->orderBy('name')
             ->get();
 
         return view('student.dashboard', compact(
-            'activeBookingsCount','pendingBookingsCount','messagesCount','unreadMessagesCount','notificationsCount',
-            'recommendedRooms','allRooms','preferredCapacity','minPrice','maxPrice','minCapacity','newThreshold','allProperties',
-            'totalReports','reportsWithResponses','unreadResponsesCount',
-            'canSubmitReport','ratingReminders',
-            'recentBookings','recentMessages','latestOnboarding','allOnboardings','recentReports',
-            'messageProperties','messageThreads',
-            'currentApprovedBooking','hasCurrentApprovedBooking',
+            'activeBookingsCount', 'pendingBookingsCount', 'messagesCount', 'unreadMessagesCount', 'notificationsCount',
+            'recommendedRooms', 'allRooms', 'preferredCapacity', 'minPrice', 'maxPrice', 'minCapacity', 'newThreshold', 'allProperties',
+            'totalReports', 'reportsWithResponses', 'unreadResponsesCount',
+            'canSubmitReport', 'ratingReminders',
+            'recentBookings', 'recentMessages', 'latestOnboarding', 'allOnboardings', 'recentReports',
+            'messageProperties', 'messageThreads',
+            'currentApprovedBooking', 'hasCurrentApprovedBooking',
             'showApprovedBookingModal',
-            'leaveRequests','currentBookingLeaveRequests',
-            'roommates','roommatesCount','roomCapacity'
+            'leaveRequests', 'currentBookingLeaveRequests',
+            'roommates', 'roommatesCount', 'roomCapacity'
         ));
     }
 
     public function studentTenantDashboard()
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
@@ -2925,7 +2903,7 @@ class AuthController extends Controller
             ->with(['room.property.landlord', 'tenantOnboarding'])
             ->orderByDesc('check_in')
             ->first();
-        $hasCurrentApprovedBooking = !empty($currentApprovedBooking);
+        $hasCurrentApprovedBooking = ! empty($currentApprovedBooking);
 
         $latestOnboarding = TenantOnboarding::query()
             ->whereHas('booking', function ($q) use ($student) {
@@ -2961,9 +2939,9 @@ class AuthController extends Controller
         $addressQuery = trim((string) ($tenantProperty->address ?? ''));
 
         if ($lat !== null && $lng !== null && $lat !== '' && $lng !== '') {
-            $mapQuery = trim($lat . ',' . $lng);
+            $mapQuery = trim($lat.','.$lng);
         } else {
-            $mapQuery = trim((string) ($tenantProperty->name ?? '') . ' ' . $addressQuery);
+            $mapQuery = trim((string) ($tenantProperty->name ?? '').' '.$addressQuery);
         }
 
         if ($mapQuery === '') {
@@ -2971,8 +2949,8 @@ class AuthController extends Controller
         }
 
         $encodedMapQuery = urlencode($mapQuery);
-        $mapEmbedUrl = 'https://maps.google.com/maps?q=' . $encodedMapQuery . '&z=15&output=embed';
-        $mapOpenUrl = 'https://www.google.com/maps/search/?api=1&query=' . $encodedMapQuery;
+        $mapEmbedUrl = 'https://maps.google.com/maps?q='.$encodedMapQuery.'&z=15&output=embed';
+        $mapOpenUrl = 'https://www.google.com/maps/search/?api=1&query='.$encodedMapQuery;
 
         $monthlyRent = (float) (($tenantBooking->monthly_rent_amount ?? 0) > 0
             ? $tenantBooking->monthly_rent_amount
@@ -3088,9 +3066,9 @@ class AuthController extends Controller
         $requiresCash = $preferredPaymentMethods->contains('cash');
         $paymentMethodChosen = $preferredPaymentMethods->isNotEmpty();
 
-        $bankRequirementMet = !$requiresBank || $bankSetupComplete;
-        $gcashRequirementMet = !$requiresGcash || $gcashSetupComplete;
-        $cashRequirementMet = !$requiresCash || true;
+        $bankRequirementMet = ! $requiresBank || $bankSetupComplete;
+        $gcashRequirementMet = ! $requiresGcash || $gcashSetupComplete;
+        $cashRequirementMet = ! $requiresCash || true;
         $billingMethodsComplete = $paymentMethodChosen && $bankRequirementMet && $gcashRequirementMet && $cashRequirementMet;
 
         $profileComplete = filled($user->contact_number)
@@ -3099,7 +3077,7 @@ class AuthController extends Controller
 
         $permitUploaded = filled(optional($landlordProfile)->business_permit_path);
         $permitStatus = (string) (optional($landlordProfile)->business_permit_status ?: ($permitUploaded ? 'pending' : 'not_submitted'));
-        if (!$permitUploaded) {
+        if (! $permitUploaded) {
             $permitStatus = 'not_submitted';
         }
         $permitApproved = $permitUploaded && $permitStatus === 'approved';

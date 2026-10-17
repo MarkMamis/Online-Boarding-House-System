@@ -204,57 +204,14 @@
                                             $existingLandlordSignatureUrl = $existingLandlordSignaturePath !== '' ? file_download_url($existingLandlordSignaturePath) : '';
                                         @endphp
                                         <div class="profile-form-section section-focus-scope" data-focus-scope="contract-signature">
-                                            <h6 class="fw-semibold mb-3 section-focus-target" id="contract-signature">
-                                                <i class="fas fa-signature me-2"></i>Contract E-signature
-                                            </h6>
-                                            <p class="text-muted small mb-3">Choose one method: upload an image or draw directly in the signature canvas.</p>
-
-                                            <div class="signature-grid mb-3">
-                                                <div>
-                                                    <div class="signature-card">
-                                                        @if($existingLandlordSignatureUrl !== '')
-                                                            <img id="landlordSignaturePreviewImage" class="signature-preview" src="{{ $existingLandlordSignatureUrl }}" alt="Saved landlord signature" />
-                                                            <div id="landlordSignaturePreviewPlaceholder" class="signature-preview-placeholder d-none">No signature selected</div>
-                                                        @else
-                                                            <img id="landlordSignaturePreviewImage" class="signature-preview d-none" alt="Landlord signature preview" />
-                                                            <div id="landlordSignaturePreviewPlaceholder" class="signature-preview-placeholder">No signature selected</div>
-                                                        @endif
-                                                    </div>
-                                                    @if($existingLandlordSignatureUrl !== '')
-                                                        <div class="mt-2">
-                                                            <a href="{{ $existingLandlordSignatureUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
-                                                                <i class="fas fa-signature me-1"></i>Open Current Signature
-                                                            </a>
-                                                        </div>
-                                                    @endif
-                                                </div>
-
-                                                <div>
-                                                    <label class="form-label">Option 1: Upload Signature Image</label>
-                                                    <input type="file" id="contractSignatureImageInput" name="contract_signature_image" class="form-control @error('contract_signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp">
-                                                    @error('contract_signature_image')
-                                                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                                                    @enderror
-                                                    <div class="form-text">Accepted: JPG, JPEG, PNG, WEBP (max 2MB).</div>
-
-                                                    <div class="signature-actions mt-3">
-                                                        <button type="button" class="btn btn-brand btn-sm rounded-pill px-3" id="openLandlordSignatureModalBtn" data-bs-toggle="modal" data-bs-target="#landlordSignatureCanvasModal">
-                                                            <i class="bi bi-pen me-1"></i>Option 2: Sign Here
-                                                        </button>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="clearLandlordSignatureBtn">
-                                                            <i class="bi bi-eraser me-1"></i>Clear Selection
-                                                        </button>
-                                                    </div>
-
-                                                    <div class="signature-hint mt-2">Draw in the canvas modal or upload an image. Saving profile will update your contract signature.</div>
-                                                    <div id="landlordSignatureStatusText" class="small text-muted mt-2">No new signature selected yet.</div>
-                                                </div>
-                                            </div>
-
-                                            <input type="hidden" name="contract_signature_data" id="contractSignatureData" value="{{ old('contract_signature_data', '') }}">
-                                            @error('contract_signature_data')
-                                                <div class="text-danger small">{{ $message }}</div>
-                                            @enderror
+                                            <x-signature-pad
+                                                name="contract_signature_data"
+                                                :existing-url="$existingLandlordSignatureUrl !== '' ? $existingLandlordSignatureUrl : null"
+                                                title="Contract E-signature"
+                                                helper="Sign below to save your signature for future rental contracts."
+                                                id-prefix="landlordProfileSignature"
+                                                :save-url="route('landlord.signature.save')"
+                                            />
                                         </div>
                                     </div>
 
@@ -404,28 +361,6 @@
                                     </button>
                                 </div>
                             </form>
-
-                            <div class="modal fade" id="landlordSignatureCanvasModal" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-fullscreen">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Draw Contract E-signature</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="signature-canvas-wrap">
-                                                <canvas id="landlordSignatureCanvas"></canvas>
-                                            </div>
-                                            <div class="small text-muted mt-2">Use mouse or finger/stylus to draw your signature.</div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-outline-secondary rounded-pill" id="clearLandlordSignatureCanvasBtn">Clear Canvas</button>
-                                            <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="button" class="btn btn-brand rounded-pill px-4" id="saveLandlordSignatureBtn">Save Signature</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -828,184 +763,6 @@
         bankToggle.addEventListener('change', syncPaymentMethodFields);
         gcashToggle.addEventListener('change', syncPaymentMethodFields);
         syncPaymentMethodFields();
-    })();
-
-    (function () {
-        const signatureDataInput = document.getElementById('contractSignatureData');
-        const signatureFileInput = document.getElementById('contractSignatureImageInput');
-        const signaturePreviewImage = document.getElementById('landlordSignaturePreviewImage');
-        const signaturePreviewPlaceholder = document.getElementById('landlordSignaturePreviewPlaceholder');
-        const statusText = document.getElementById('landlordSignatureStatusText');
-        const clearSelectionBtn = document.getElementById('clearLandlordSignatureBtn');
-        const modalEl = document.getElementById('landlordSignatureCanvasModal');
-        const canvas = document.getElementById('landlordSignatureCanvas');
-        const clearCanvasBtn = document.getElementById('clearLandlordSignatureCanvasBtn');
-        const saveSignatureBtn = document.getElementById('saveLandlordSignatureBtn');
-        const modal = (window.bootstrap && modalEl) ? window.bootstrap.Modal.getOrCreateInstance(modalEl) : null;
-
-        if (!signatureDataInput || !signatureFileInput || !signaturePreviewImage || !signaturePreviewPlaceholder || !canvas) {
-            return;
-        }
-
-        const existingSrc = signaturePreviewImage.getAttribute('src') || '';
-        const hasExisting = existingSrc !== '';
-
-        let ctx = null;
-        let isDrawing = false;
-        let hasStroke = false;
-
-        const updateStatus = function (message, isSuccess) {
-            if (!statusText) return;
-            statusText.textContent = message;
-            statusText.classList.toggle('text-success', !!isSuccess);
-        };
-
-        const showPreview = function (src) {
-            if (!src) {
-                signaturePreviewImage.classList.add('d-none');
-                signaturePreviewImage.removeAttribute('src');
-                signaturePreviewPlaceholder.classList.remove('d-none');
-                return;
-            }
-
-            signaturePreviewImage.src = src;
-            signaturePreviewImage.classList.remove('d-none');
-            signaturePreviewPlaceholder.classList.add('d-none');
-        };
-
-        const resetToExisting = function () {
-            signatureDataInput.value = '';
-            signatureFileInput.value = '';
-            showPreview(hasExisting ? existingSrc : '');
-            updateStatus('No new signature selected yet.', false);
-        };
-
-        const getPoint = function (event) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top,
-            };
-        };
-
-        const drawGuide = function (width, height) {
-            if (!ctx) return;
-            const baselineY = Math.max(40, Math.floor(height - 52));
-            const startX = Math.max(16, Math.floor(width * 0.18));
-            const endX = Math.min(width - 16, Math.floor(width * 0.82));
-
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
-            ctx.beginPath();
-            ctx.moveTo(startX, baselineY);
-            ctx.lineTo(endX, baselineY);
-            ctx.stroke();
-
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillStyle = 'rgba(100, 116, 139, 0.92)';
-            ctx.font = '12px "Segoe UI", sans-serif';
-            ctx.fillText('Signature over printed name', Math.floor(width / 2), baselineY + 6);
-        };
-
-        const resizeCanvas = function () {
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = Math.floor(rect.width * ratio);
-            canvas.height = Math.floor(rect.height * ratio);
-            ctx = canvas.getContext('2d');
-            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, rect.width, rect.height);
-            drawGuide(rect.width, rect.height);
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = '#0f172a';
-            hasStroke = false;
-        };
-
-        signatureFileInput.addEventListener('change', function () {
-            const file = signatureFileInput.files && signatureFileInput.files[0] ? signatureFileInput.files[0] : null;
-            if (!file) {
-                resetToExisting();
-                return;
-            }
-
-            if (!/^image\//.test(file.type || '')) {
-                alert('Please select an image file for your signature.');
-                signatureFileInput.value = '';
-                return;
-            }
-
-            signatureDataInput.value = '';
-            showPreview(URL.createObjectURL(file));
-            updateStatus('Upload selected. Save profile to apply this signature.', true);
-        });
-
-        if (clearSelectionBtn) {
-            clearSelectionBtn.addEventListener('click', function () {
-                resetToExisting();
-            });
-        }
-
-        if (modalEl) {
-            modalEl.addEventListener('shown.bs.modal', function () {
-                resizeCanvas();
-            });
-        }
-
-        canvas.addEventListener('pointerdown', function (event) {
-            if (!ctx) return;
-            isDrawing = true;
-            hasStroke = true;
-            const point = getPoint(event);
-            ctx.beginPath();
-            ctx.moveTo(point.x, point.y);
-        });
-
-        canvas.addEventListener('pointermove', function (event) {
-            if (!isDrawing || !ctx) return;
-            const point = getPoint(event);
-            ctx.lineTo(point.x, point.y);
-            ctx.stroke();
-        });
-
-        const stopDrawing = function () {
-            isDrawing = false;
-        };
-
-        canvas.addEventListener('pointerup', stopDrawing);
-        canvas.addEventListener('pointerleave', stopDrawing);
-
-        if (clearCanvasBtn) {
-            clearCanvasBtn.addEventListener('click', function () {
-                resizeCanvas();
-            });
-        }
-
-        if (saveSignatureBtn) {
-            saveSignatureBtn.addEventListener('click', function () {
-                if (!hasStroke) {
-                    alert('Please draw your signature first.');
-                    return;
-                }
-
-                const dataUrl = canvas.toDataURL('image/png');
-                signatureDataInput.value = dataUrl;
-                signatureFileInput.value = '';
-                showPreview(dataUrl);
-                updateStatus('Canvas signature saved. Save profile to apply this signature.', true);
-                if (modal) {
-                    modal.hide();
-                }
-            });
-        }
-
-        if (signatureDataInput.value) {
-            showPreview(signatureDataInput.value);
-            updateStatus('Canvas signature ready. Save profile to apply this signature.', true);
-        }
     })();
 </script>
 @endpush

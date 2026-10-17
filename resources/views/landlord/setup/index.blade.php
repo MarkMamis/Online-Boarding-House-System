@@ -614,15 +614,14 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Contract E-signature</label>
-                            <input type="file" name="contract_signature_image" class="form-control @error('contract_signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp">
-                            <div class="field-hint">Optional. Upload an image of your signature for digital rental contracts (JPG, PNG up to 2MB).</div>
-                            @error('contract_signature_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            @if($hasContractSignature)
-                                <a href="{{ file_download_url(optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                    <i class="bi bi-pen me-1"></i>View current e-signature
-                                </a>
-                            @endif
+                            <x-signature-pad
+                                name="contract_signature_data"
+                                :existing-url="$hasContractSignature ? file_download_url(optional($landlordProfile)->contract_signature_path) : null"
+                                title="Contract E-signature"
+                                helper="Sign below to save your signature for future rental contracts."
+                                id-prefix="landlordSetupSignature"
+                                :save-url="route('landlord.signature.save')"
+                            />
                         </div>
                     </div>
 

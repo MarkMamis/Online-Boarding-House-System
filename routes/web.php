@@ -390,6 +390,7 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
     // Dedicated landlord setup flow (accessible before full operations unlock)
     Route::get('/landlord/setup', [LandlordSetupController::class, 'show'])->name('landlord.setup.show');
     Route::put('/landlord/setup', [LandlordSetupController::class, 'update'])->name('landlord.setup.update');
+    Route::post('/landlord/signature', [LandlordSetupController::class, 'saveSignature'])->name('landlord.signature.save');
 
     Route::get('/landlord/dashboard', [AuthController::class, 'landlordDashboard'])->name('landlord.dashboard');
 

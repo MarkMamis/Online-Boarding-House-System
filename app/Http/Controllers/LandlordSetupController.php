@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\LandlordDocument;
+use App\Models\User;
+use App\Traits\HandlesSignatureDataUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 
 class LandlordSetupController extends Controller
 {
+    use HandlesSignatureDataUrl;
+
     public function show(Request $request)
     {
         /** @var User $user */
@@ -18,10 +21,10 @@ class LandlordSetupController extends Controller
 
         $setupSnapshot = $this->getSetupSnapshot($user);
 
-        if ($setupSnapshot['setup_submitted'] && !$request->has('step')) {
+        if ($setupSnapshot['setup_submitted'] && ! $request->has('step')) {
             return redirect()
                 ->route('landlord.dashboard')
-            ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
+                ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
         }
 
         $stepMap = [
@@ -51,13 +54,14 @@ class LandlordSetupController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'contact_number' => 'required|regex:/^09\d{9}$/',
             'address' => 'required|string|max:500',
             'boarding_house_name' => 'required|string|max:255',
             'about' => 'required|string|max:1000',
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contract_signature_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'contract_signature_data' => 'nullable|string',
             'business_permit' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:2048',
             'safety_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:2048',
             'preferred_payment_methods' => 'required|array|min:1',
@@ -79,21 +83,21 @@ class LandlordSetupController extends Controller
             $preferredPaymentMethods = collect($request->input('preferred_payment_methods', []));
 
             if ($preferredPaymentMethods->contains('bank')) {
-                if (!filled($request->input('payment_bank_name'))) {
+                if (! filled($request->input('payment_bank_name'))) {
                     $validator->errors()->add('payment_bank_name', 'Bank name is required when Bank is selected.');
                 }
 
-                if (!filled($request->input('payment_account_name'))) {
+                if (! filled($request->input('payment_account_name'))) {
                     $validator->errors()->add('payment_account_name', 'Account name is required when Bank is selected.');
                 }
             }
 
             if ($preferredPaymentMethods->contains('gcash')) {
-                if (!filled($request->input('payment_gcash_name'))) {
+                if (! filled($request->input('payment_gcash_name'))) {
                     $validator->errors()->add('payment_gcash_name', 'GCash name is required when GCash is selected.');
                 }
 
-                if (!filled($request->input('payment_gcash_number'))) {
+                if (! filled($request->input('payment_gcash_number'))) {
                     $validator->errors()->add('payment_gcash_number', 'GCash number is required when GCash is selected.');
                 }
             }
@@ -120,7 +124,7 @@ class LandlordSetupController extends Controller
             $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
                 $user->profile_image_path,
                 $request->file('profile_image'),
-                'landlords/' . $user->id . '/profile'
+                'landlords/'.$user->id.'/profile'
             );
         }
 
@@ -141,17 +145,20 @@ class LandlordSetupController extends Controller
             'payment_bank_name' => $request->input('payment_bank_name'),
             'payment_account_name' => $request->input('payment_account_name'),
             'payment_account_number' => $request->input('payment_account_number'),
-            'payment_gcash_number' => $request->input('payment_gcash_number'),
             'payment_gcash_name' => $request->input('payment_gcash_name'),
             'payment_instructions' => $request->input('payment_instructions'),
             'preferred_payment_methods' => $preferredPaymentMethods->all(),
         ];
 
+        if (Schema::hasColumn('landlord_profiles', 'payment_gcash_number')) {
+            $profileData['payment_gcash_number'] = $request->input('payment_gcash_number');
+        }
+
         if ($request->hasFile('business_permit')) {
             $profileData['business_permit_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->business_permit_path,
                 $request->file('business_permit'),
-                'landlords/' . $user->id . '/business-permits'
+                'landlords/'.$user->id.'/business-permits'
             );
             $profileData['business_permit_status'] = 'pending';
             $profileData['business_permit_reviewed_at'] = null;
@@ -163,7 +170,7 @@ class LandlordSetupController extends Controller
             $profileData['safety_certificate_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->safety_certificate_path,
                 $request->file('safety_certificate'),
-                'landlords/' . $user->id . '/safety-certificates'
+                'landlords/'.$user->id.'/safety-certificates'
             );
             $profileData['safety_certificate_status'] = 'pending';
             $profileData['safety_certificate_reviewed_at'] = null;
@@ -175,15 +182,30 @@ class LandlordSetupController extends Controller
             $profileData['payment_gcash_qr_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->payment_gcash_qr_path,
                 $request->file('payment_gcash_qr'),
-                'landlords/' . $user->id . '/payment-qr'
+                'landlords/'.$user->id.'/payment-qr'
             );
         }
 
-        if ($request->hasFile('contract_signature_image')) {
+        $signatureData = trim((string) $request->input('contract_signature_data', ''));
+        if ($signatureData !== '') {
+            $storedSignaturePath = $this->storeSignatureDataUrl(
+                $signatureData,
+                'landlords/'.$user->id.'/signatures',
+                $landlordProfile->contract_signature_path
+            );
+
+            if (! $storedSignaturePath) {
+                return back()->withErrors([
+                    'contract_signature_data' => 'Unable to save your signature. Please draw again.',
+                ])->withInput();
+            }
+
+            $profileData['contract_signature_path'] = $storedSignaturePath;
+        } elseif ($request->hasFile('contract_signature_image')) {
             $profileData['contract_signature_path'] = app(\App\Services\FileStorageService::class)->replace(
                 $landlordProfile->contract_signature_path,
                 $request->file('contract_signature_image'),
-                'landlords/' . $user->id . '/signatures'
+                'landlords/'.$user->id.'/signatures'
             );
         }
 
@@ -198,17 +220,17 @@ class LandlordSetupController extends Controller
         $requiresGcash = $preferredPaymentMethods->contains('gcash');
         $requiresCash = $preferredPaymentMethods->contains('cash');
 
-        $bankReady = !$requiresBank || (
+        $bankReady = ! $requiresBank || (
             filled($request->input('payment_bank_name'))
             && filled($request->input('payment_account_name'))
         );
 
-        $gcashReady = !$requiresGcash || (
+        $gcashReady = ! $requiresGcash || (
             filled($request->input('payment_gcash_name'))
             && filled($request->input('payment_gcash_number'))
         );
 
-        $cashReady = !$requiresCash || true;
+        $cashReady = ! $requiresCash || true;
         $billingComplete = $preferredPaymentMethods->isNotEmpty() && $bankReady && $gcashReady && $cashReady;
 
         $profileData['profile_completed'] = $profileComplete;
@@ -232,7 +254,7 @@ class LandlordSetupController extends Controller
             $effectivePermitPath = $profileData['business_permit_path'] ?? $landlordProfile->business_permit_path;
             if (filled($effectivePermitPath)) {
                 $permitStatus = $profileData['business_permit_status'] ?? $landlordProfile->business_permit_status;
-                if (!in_array($permitStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
+                if (! in_array($permitStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
                     $permitStatus = LandlordDocument::STATUS_PENDING;
                 }
 
@@ -253,7 +275,7 @@ class LandlordSetupController extends Controller
             $effectiveSafetyPath = $profileData['safety_certificate_path'] ?? $landlordProfile->safety_certificate_path;
             if (filled($effectiveSafetyPath)) {
                 $safetyStatus = $profileData['safety_certificate_status'] ?? $landlordProfile->safety_certificate_status;
-                if (!in_array($safetyStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
+                if (! in_array($safetyStatus, [LandlordDocument::STATUS_APPROVED, LandlordDocument::STATUS_REJECTED], true)) {
                     $safetyStatus = LandlordDocument::STATUS_PENDING;
                 }
 
@@ -288,11 +310,11 @@ class LandlordSetupController extends Controller
 
     private function firstIncompleteStep(array $setupSnapshot): int
     {
-        if (!$setupSnapshot['profile_complete']) {
+        if (! $setupSnapshot['profile_complete']) {
             return 0;
         }
 
-        if (!$setupSnapshot['billing_methods_complete']) {
+        if (! $setupSnapshot['billing_methods_complete']) {
             return 2;
         }
 
@@ -318,9 +340,9 @@ class LandlordSetupController extends Controller
         $requiresGcash = $preferredPaymentMethods->contains('gcash');
         $requiresCash = $preferredPaymentMethods->contains('cash');
 
-        $bankRequirementMet = !$requiresBank || $bankSetupComplete;
-        $gcashRequirementMet = !$requiresGcash || $gcashSetupComplete;
-        $cashRequirementMet = !$requiresCash || true;
+        $bankRequirementMet = ! $requiresBank || $bankSetupComplete;
+        $gcashRequirementMet = ! $requiresGcash || $gcashSetupComplete;
+        $cashRequirementMet = ! $requiresCash || true;
 
         $billingMethodsComplete = $preferredPaymentMethods->isNotEmpty() && $bankRequirementMet && $gcashRequirementMet && $cashRequirementMet;
 
@@ -334,7 +356,7 @@ class LandlordSetupController extends Controller
         $permitUploaded = filled(optional($landlordProfile)->business_permit_path);
         $safetyCertificateUploaded = filled(optional($landlordProfile)->safety_certificate_path);
         $permitStatus = (string) (optional($landlordProfile)->business_permit_status ?: ($permitUploaded ? 'pending' : 'not_submitted'));
-        if (!$permitUploaded) {
+        if (! $permitUploaded) {
             $permitStatus = 'not_submitted';
         }
 
@@ -350,5 +372,52 @@ class LandlordSetupController extends Controller
             'billing_methods_complete' => $billingMethodsComplete,
             'setup_submitted' => $profileComplete && $billingMethodsComplete,
         ];
+    }
+
+    public function saveSignature(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user || $user->role !== 'landlord') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $signatureData = trim((string) $request->input('signature_data', ''));
+        if ($signatureData === '') {
+            return response()->json(['success' => false, 'message' => 'Please draw your signature before saving.'], 422);
+        }
+
+        $user->loadMissing('landlordProfile');
+        $landlordProfile = $user->landlordProfile()->firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'contact_number' => $user->contact_number,
+                'boarding_house_name' => $user->boarding_house_name,
+            ]
+        );
+
+        $storedSignaturePath = $this->storeSignatureDataUrl(
+            $signatureData,
+            'landlords/'.$user->id.'/signatures',
+            $landlordProfile->contract_signature_path
+        );
+
+        if (! $storedSignaturePath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to save your signature. Please try again.',
+            ], 422);
+        }
+
+        $landlordProfile->update([
+            'contract_signature_path' => $storedSignaturePath,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signature saved.',
+            'url' => file_download_url($storedSignaturePath),
+            'path' => $storedSignaturePath,
+        ]);
     }
 }
