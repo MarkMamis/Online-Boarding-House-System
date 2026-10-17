@@ -133,23 +133,19 @@
         <div class="chip-scroll-row">
             <a href="{{ route('student.rooms.index') }}" class="market-category-chip active">
                 <i class="bi bi-grid"></i>
-                <span>All Stays</span>
+                <span>All Accommodations</span>
+            </a>
+            <a href="{{ route('student.rooms.index', ['occupancy' => 'per_room']) }}" class="market-category-chip">
+                <i class="bi bi-person"></i>
+                <span>Solo Rooms</span>
+            </a>
+            <a href="{{ route('student.rooms.index', ['occupancy' => 'per_bed']) }}" class="market-category-chip">
+                <i class="bi bi-people"></i>
+                <span>Bed-Spacer (Shared)</span>
             </a>
             <a href="{{ route('student.rooms.index', ['max_price' => 2000]) }}" class="market-category-chip">
                 <i class="bi bi-tag"></i>
                 <span>Under ₱2,000</span>
-            </a>
-            <a href="{{ route('student.rooms.index', ['capacity' => 1]) }}" class="market-category-chip">
-                <i class="bi bi-person"></i>
-                <span>Solo Rooms</span>
-            </a>
-            <a href="{{ route('student.rooms.index', ['capacity' => 2]) }}" class="market-category-chip">
-                <i class="bi bi-people"></i>
-                <span>Bed-Spacer (Shared)</span>
-            </a>
-            <a href="{{ route('student.properties.map_view') }}" class="market-category-chip">
-                <i class="bi bi-geo-alt"></i>
-                <span>Near MinSU Gates</span>
             </a>
         </div>
     </div>
@@ -157,7 +153,7 @@
     {{-- ── 4. Featured Accommodations Catalog ── --}}
     <div class="d-flex align-items-baseline justify-content-between mb-3">
         <div>
-            <h2 class="h4 fw-bold text-dark mb-1">Available Accommodations</h2>
+            <h2 class="h5 fw-bold text-dark mb-1">Available Accommodations</h2>
             <p class="text-muted small mb-0">Accredited student rooms ready for move-in near Mindoro State University.</p>
         </div>
         <a href="{{ route('student.rooms.index') }}" class="text-success fw-semibold small text-decoration-none d-inline-flex align-items-center gap-1">
@@ -167,13 +163,13 @@
     </div>
 
     @if(!empty($featuredRooms) && $featuredRooms->isNotEmpty())
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 row-cols-xxl-4 g-4 mb-5">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 row-cols-xxl-4 g-4 mb-4">
             @foreach($featuredRooms as $room)
                 <x-room-card :room="$room" />
             @endforeach
         </div>
     @else
-        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4">
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
             <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
                 <i class="bi bi-house-exclamation text-muted fs-3"></i>
             </div>
@@ -186,69 +182,6 @@
             </div>
         </div>
     @endif
-
-    {{-- ── 5. Campus Vicinity Exploration Banner ── --}}
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5 bg-dark text-white p-4 p-md-5 position-relative" style="background: linear-gradient(135deg, #064e3b 0%, #14532d 50%, #0f172a 100%) !important;">
-        <div class="row align-items-center position-relative" style="z-index: 2;">
-            <div class="col-lg-8">
-                <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-1.5 mb-3 fw-medium small">
-                    <i class="bi bi-pin-map-fill me-1 text-warning"></i>Interactive MinSU Map
-                </span>
-                <h2 class="display-6 fw-bold mb-2">Find Boarding Houses Near Your Classes</h2>
-                <p class="lead fs-6 text-white text-opacity-80 mb-4 mb-lg-0">
-                    Use the Campus Map to explore accredited boarding houses situated near MinSU main gates, library, and departmental buildings.
-                </p>
-            </div>
-            <div class="col-lg-4 text-lg-end">
-                <a href="{{ route('student.properties.map_view') }}" class="btn btn-warning rounded-pill px-4 py-2.5 fw-bold text-dark shadow">
-                    <i class="bi bi-map-fill me-2"></i>Open Campus Map
-                </a>
-            </div>
-        </div>
-    </div>
-
-    {{-- ── 6. Safety, Accreditation & Support Notice ── --}}
-    <div class="row g-3 text-center text-md-start mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-2.5 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <i class="bi bi-shield-check fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="h6 fw-bold text-dark mb-0">Accredited by MinSU</h3>
-                        <p class="text-muted small mb-0">Inspected for safety and sanitation.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-2.5 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <i class="bi bi-receipt fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="h6 fw-bold text-dark mb-0">Transparent Pricing</h3>
-                        <p class="text-muted small mb-0">Clear monthly rent per bed or room.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-success bg-opacity-10 text-success p-2.5 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <i class="bi bi-headset fs-4"></i>
-                    </div>
-                    <div>
-                        <h3 class="h6 fw-bold text-dark mb-0">Student Support</h3>
-                        <p class="text-muted small mb-0"><a href="{{ route('student.reports.index') }}" class="text-success text-decoration-none fw-semibold">Visit Help & Safety &rarr;</a></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 </div>
 @endsection

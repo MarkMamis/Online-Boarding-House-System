@@ -28,17 +28,9 @@
 <div class="container-fluid px-3 px-md-4 py-3">
 
     {{-- ── 1. Page Header ── --}}
-    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="h3 fw-bold text-dark mb-1">My Bookings & Stays</h1>
-            <p class="text-muted small mb-0">Track your room reservation requests, move-in progress, and stay history.</p>
-        </div>
-        <div>
-            <a href="{{ route('student.rooms.index') }}" class="btn btn-success rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2">
-                <i class="bi bi-search"></i>
-                <span>Explore More Rooms</span>
-            </a>
-        </div>
+    <div class="mb-4">
+        <h1 class="h3 fw-bold text-dark mb-1">My Bookings & Stays</h1>
+        <p class="text-muted small mb-0">Track your room reservation requests, move-in progress, and stay history.</p>
     </div>
 
     {{-- Session Alerts --}}
@@ -90,18 +82,6 @@
                 @endif
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button 
-                class="nav-link rounded-pill px-4 py-2 fw-semibold {{ $activeTab === 'all' ? 'active bg-success' : 'text-dark bg-white border' }}" 
-                id="all-tab" 
-                data-bs-toggle="pill" 
-                data-bs-target="#allStaysPane" 
-                type="button" 
-                role="tab"
-            >
-                <span>All Requests ({{ $totalCount }})</span>
-            </button>
-        </li>
     </ul>
 
     {{-- ── 3. Tab Content ── --}}
@@ -148,28 +128,6 @@
                     </div>
                     <h3 class="h5 fw-bold text-dark mb-1">No Past Stays Recorded</h3>
                     <p class="text-muted small mb-0">Your completed stays and past reservation decisions will appear here.</p>
-                </div>
-            @endif
-        </div>
-
-        {{-- TAB 3: All Stays --}}
-        <div class="tab-pane fade {{ $activeTab === 'all' ? 'show active' : '' }}" id="allStaysPane" role="tabpanel">
-            @if($bookingItems->isNotEmpty())
-                <div class="d-flex flex-column gap-3 mb-5">
-                    @foreach($bookingItems as $booking)
-                        @include('student.bookings.partials.booking-card', ['booking' => $booking, 'today' => $today])
-                    @endforeach
-                </div>
-            @else
-                <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
-                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
-                        <i class="bi bi-inbox text-muted fs-3"></i>
-                    </div>
-                    <h3 class="h5 fw-bold text-dark mb-1">No Bookings Yet</h3>
-                    <p class="text-muted small mb-4">You have not submitted any room requests yet.</p>
-                    <a href="{{ route('student.rooms.index') }}" class="btn btn-success rounded-pill px-4 py-2 fw-semibold">
-                        Browse Accommodations
-                    </a>
                 </div>
             @endif
         </div>
