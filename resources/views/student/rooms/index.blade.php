@@ -20,11 +20,13 @@
         : 'Your academic verification is still in process. Boarding requests stay locked until admin validation is completed.';
 
     $hasActiveFilters = filled(request('q')) 
+        || filled(request('search'))
+        || filled(request('property_id'))
         || request('rating', 'any') !== 'any' 
         || request('occupancy', 'all') !== 'all' 
         || ($selectedAmenities ?? collect())->isNotEmpty()
-        || (isset($minPrice) && (int) round((float) $minPrice) !== (int) ($priceBoundsMin ?? 0))
-        || (isset($maxPrice) && (int) round((float) $maxPrice) !== (int) ($priceBoundsMax ?? 0));
+        || request()->filled('min_price')
+        || request()->filled('max_price');
 @endphp
 
 <div class="container-fluid px-3 px-md-4 py-3">
@@ -36,10 +38,6 @@
             <p class="text-muted small mb-0">Discover and compare accredited accommodations near MinSU campus.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('student.properties.map_view') }}" class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-2">
-                <i class="bi bi-map"></i>
-                <span>Campus Map</span>
-            </a>
             <button 
                 type="button" 
                 class="btn {{ $hasActiveFilters ? 'btn-success' : 'btn-outline-secondary' }} rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-2"
@@ -67,11 +65,11 @@
                 name="q" 
                 class="form-control border-0 shadow-none px-2 py-2" 
                 placeholder="Search by boarding house name, address, or barangay..."
-                value="{{ request('q') }}"
+                value="{{ request('q', request('search')) }}"
                 aria-label="Search accommodations"
             >
-            @if(request('q'))
-                <a href="{{ route('student.rooms.index', request()->except('q')) }}" class="btn btn-link text-muted p-0 me-2" title="Clear keyword">
+            @if(request('q') || request('search'))
+                <a href="{{ route('student.rooms.index', request()->except(['q', 'search'])) }}" class="btn btn-link text-muted p-0 me-2" title="Clear keyword">
                     <i class="bi bi-x-circle-fill"></i>
                 </a>
             @endif
@@ -96,10 +94,9 @@
                                     type="number" 
                                     name="min_price" 
                                     class="form-control" 
-                                    placeholder="Min" 
-                                    min="{{ (int) ($priceBoundsMin ?? 0) }}" 
-                                    max="{{ (int) ($priceBoundsMax ?? 10000) }}" 
-                                    value="{{ request('min_price', (int) round((float) ($minPrice ?? 0))) }}"
+                                    placeholder="Min ({{ (int) ($priceBoundsMin ?? 0) }})" 
+                                    min="0" 
+                                    value="{{ request()->filled('min_price') ? request('min_price') : '' }}"
                                 >
                             </div>
                             <span class="text-muted">–</span>
@@ -109,10 +106,9 @@
                                     type="number" 
                                     name="max_price" 
                                     class="form-control" 
-                                    placeholder="Max" 
-                                    min="{{ (int) ($priceBoundsMin ?? 0) }}" 
-                                    max="{{ (int) ($priceBoundsMax ?? 10000) }}" 
-                                    value="{{ request('max_price', (int) round((float) ($maxPrice ?? 10000))) }}"
+                                    placeholder="Max ({{ (int) ($priceBoundsMax ?? 10000) }})" 
+                                    min="0" 
+                                    value="{{ request()->filled('max_price') ? request('max_price') : '' }}"
                                 >
                             </div>
                         </div>

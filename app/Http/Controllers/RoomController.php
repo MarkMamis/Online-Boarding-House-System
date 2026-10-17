@@ -21,7 +21,7 @@ class RoomController extends Controller
 
     protected function ensureLandlord()
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403, 'Unauthorized');
         }
     }
@@ -32,6 +32,7 @@ class RoomController extends Controller
         $property = Property::where('id', $propertyId)
             ->where('landlord_id', Auth::id())
             ->firstOrFail();
+
         return $property;
     }
 
@@ -100,6 +101,7 @@ class RoomController extends Controller
             if (($pricePerRoom ?? 0) <= 0) {
                 $validator->errors()->add('price_per_room', 'Per-room monthly price is required for per room pricing.');
             }
+
             return;
         }
 
@@ -107,6 +109,7 @@ class RoomController extends Controller
             if (($pricePerBed ?? 0) <= 0) {
                 $validator->errors()->add('price_per_bed', 'Per-bed monthly price is required for per bed pricing.');
             }
+
             return;
         }
 
@@ -174,12 +177,12 @@ class RoomController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'address']);
 
-        $rooms = Room::with(['property', 'bookings' => function($q) {
-                $q->where('status', 'approved')
-                  ->where('check_in', '<=', now()->toDateString())
-                  ->where('check_out', '>', now()->toDateString())
-                  ->with('student');
-            }])
+        $rooms = Room::with(['property', 'bookings' => function ($q) {
+            $q->where('status', 'approved')
+                ->where('check_in', '<=', now()->toDateString())
+                ->where('check_out', '>', now()->toDateString())
+                ->with('student');
+        }])
             ->whereHas('property', function ($q) {
                 $q->where('landlord_id', Auth::id());
             })
@@ -187,10 +190,10 @@ class RoomController extends Controller
             ->get();
 
         // Add current tenant info and full active tenants list to each room
-        $rooms->each(function($room) {
+        $rooms->each(function ($room) {
             $activeStudents = $room->bookings
-                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
-                ->map(fn($b) => $b->student)
+                ->filter(fn ($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn ($b) => $b->student)
                 ->values();
 
             $room->active_tenants = $activeStudents;
@@ -206,20 +209,20 @@ class RoomController extends Controller
     {
         $property = $this->getOwnedProperty($propertyId);
         $rooms = $property->rooms()
-            ->with(['bookings' => function($q) {
+            ->with(['bookings' => function ($q) {
                 $q->where('status', 'approved')
-                  ->where('check_in', '<=', now()->toDateString())
-                  ->where('check_out', '>', now()->toDateString())
-                  ->with('student');
+                    ->where('check_in', '<=', now()->toDateString())
+                    ->where('check_out', '>', now()->toDateString())
+                    ->with('student');
             }])
             ->orderBy('room_number')
             ->get();
 
         // Add current tenant info and full active tenants list to each room
-        $rooms->each(function($room) {
+        $rooms->each(function ($room) {
             $activeStudents = $room->bookings
-                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
-                ->map(fn($b) => $b->student)
+                ->filter(fn ($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn ($b) => $b->student)
                 ->values();
 
             $room->active_tenants = $activeStudents;
@@ -235,6 +238,7 @@ class RoomController extends Controller
     {
         $property = $this->getOwnedProperty($propertyId);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+
         return view('landlord.rooms.create', compact('property', 'supportsAdvanceRequirement'));
     }
 
@@ -295,7 +299,7 @@ class RoomController extends Controller
                 $room->update([
                     'image_path' => app(\App\Services\FileStorageService::class)->upload(
                         $request->file('image'),
-                        'rooms/' . $room->id . '/images'
+                        'rooms/'.$room->id.'/images'
                     ),
                 ]);
             } catch (\Throwable $e) {
@@ -306,11 +310,11 @@ class RoomController extends Controller
         if ($request->hasFile('detail_images')) {
             $labels = $request->input('detail_labels', []);
             foreach ($request->file('detail_images') as $i => $file) {
-                if (!$file || !$file->isValid()) {
+                if (! $file || ! $file->isValid()) {
                     continue;
                 }
                 try {
-                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/' . $room->id . '/images');
+                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/'.$room->id.'/images');
                     RoomImage::create([
                         'room_id' => $room->id,
                         'image_path' => $path,
@@ -339,6 +343,7 @@ class RoomController extends Controller
         $this->authorize('update', $room);
         $roomImages = $room->roomImages;
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+
         return view('landlord.rooms.edit', compact('property', 'room', 'roomImages', 'supportsAdvanceRequirement'));
     }
 
@@ -351,16 +356,16 @@ class RoomController extends Controller
         $this->authorize('update', $room);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $validator = Validator::make($request->all(), [
-            'room_number'            => 'required|string|max:50',
-            'capacity'               => 'required|integer|min:1',
-            'slots_available'        => 'nullable|integer|min:0|lte:capacity',
-            'status'                 => 'required|in:available,occupied,maintenance',
-            'image'                  => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
-            'inclusions'             => 'nullable|string|max:2000',
+            'room_number' => 'required|string|max:50',
+            'capacity' => 'required|integer|min:1',
+            'slots_available' => 'nullable|integer|min:0|lte:capacity',
+            'status' => 'required|in:available,occupied,maintenance',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'inclusions' => 'nullable|string|max:2000',
             'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
-            'detail_images.*'        => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
-            'detail_labels.*'        => 'nullable|string|max:100',
-            'delete_detail_images'   => 'nullable|array',
+            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'detail_labels.*' => 'nullable|string|max:100',
+            'delete_detail_images' => 'nullable|array',
             'delete_detail_images.*' => 'integer',
         ] + $this->pricingRules());
 
@@ -393,7 +398,7 @@ class RoomController extends Controller
                 $validated['image_path'] = app(\App\Services\FileStorageService::class)->replace(
                     $room->image_path,
                     $request->file('image'),
-                    'rooms/' . $room->id . '/images'
+                    'rooms/'.$room->id.'/images'
                 );
             } catch (\RuntimeException $e) {
                 return back()->withInput()->with('error', 'File upload failed. Please try again.');
@@ -437,13 +442,15 @@ class RoomController extends Controller
             $existingCount = $room->roomImages()->count();
             $labels = $request->input('detail_labels', []);
             foreach ($request->file('detail_images') as $i => $file) {
-                if (!$file || !$file->isValid()) continue;
+                if (! $file || ! $file->isValid()) {
+                    continue;
+                }
                 try {
-                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/' . $room->id . '/images');
+                    $path = app(\App\Services\FileStorageService::class)->upload($file, 'rooms/'.$room->id.'/images');
                     RoomImage::create([
-                        'room_id'    => $room->id,
+                        'room_id' => $room->id,
                         'image_path' => $path,
-                        'label'      => $labels[$i] ?? null,
+                        'label' => $labels[$i] ?? null,
                         'sort_order' => $existingCount + $i,
                     ]);
                 } catch (\Exception $e) {
@@ -469,7 +476,7 @@ class RoomController extends Controller
             ->where(function ($q) use ($today) {
                 $q->where(function ($sq) use ($today) {
                     $sq->where('status', 'approved')
-                       ->where('check_out', '>', $today);
+                        ->where('check_out', '>', $today);
                 })->orWhere('status', 'pending');
             })
             ->exists();
@@ -480,6 +487,7 @@ class RoomController extends Controller
 
         $room->delete();
         $this->syncPropertyPriceRange($property);
+
         return redirect()->route('landlord.properties.show', $property->id)
             ->with('success', 'Room deleted.');
     }
@@ -544,7 +552,7 @@ class RoomController extends Controller
                 $room->update([
                     'image_path' => app(\App\Services\FileStorageService::class)->upload(
                         $request->file('image'),
-                        'rooms/' . $room->id . '/images'
+                        'rooms/'.$room->id.'/images'
                     ),
                 ]);
             } catch (\Throwable $e) {
@@ -553,6 +561,7 @@ class RoomController extends Controller
         }
 
         $this->syncPropertyPriceRange($property);
+
         return redirect()->route('landlord.dashboard')
             ->with('success', 'Room added to property "'.$property->name.'"');
     }
@@ -573,7 +582,7 @@ class RoomController extends Controller
 
         $room->loadCount('feedbacks')->loadAvg('feedbacks', 'rating');
 
-        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
+        if (! \App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
             abort(404);
         }
 
@@ -583,7 +592,7 @@ class RoomController extends Controller
     // Student: browse available rooms
     public function studentIndex(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403, 'Unauthorized');
         }
 
@@ -597,15 +606,16 @@ class RoomController extends Controller
             ->with(['room.property.landlord'])
             ->orderByDesc('check_in')
             ->first();
-        $hasCurrentApprovedBooking = !empty($currentApprovedBooking);
+        $hasCurrentApprovedBooking = ! empty($currentApprovedBooking);
 
         // Filters from query string
-        $search = trim((string) $request->query('q', ''));
+        $search = trim((string) $request->query('q', $request->query('search', '')));
+        $propertyId = $request->query('property_id');
         $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
         $amenityOptions = (array) config('property_amenities.flat', []);
 
-        $amenitiesInput = $request->query('amenities', []);
-        if (!is_array($amenitiesInput)) {
+        $amenitiesInput = $request->query('amenities', $request->query('amenity', []));
+        if (! is_array($amenitiesInput)) {
             $amenitiesInput = [$amenitiesInput];
         }
 
@@ -615,7 +625,7 @@ class RoomController extends Controller
             ->unique()
             ->values();
 
-        if (!$supportsBuildingInclusions) {
+        if (! $supportsBuildingInclusions) {
             $selectedAmenities = collect();
         } else {
             $selectedAmenities = $selectedAmenities
@@ -624,12 +634,12 @@ class RoomController extends Controller
         }
 
         $ratingFilter = strtolower(trim((string) $request->query('rating', 'any')));
-        if (!in_array($ratingFilter, ['any', '4_up', '3_up', 'unrated'], true)) {
+        if (! in_array($ratingFilter, ['any', '4_up', '3_up', 'unrated'], true)) {
             $ratingFilter = 'any';
         }
 
         $occupancyFilter = strtolower(trim((string) $request->query('occupancy', 'all')));
-        if (!in_array($occupancyFilter, ['all', Room::PRICING_MODEL_PER_ROOM, Room::PRICING_MODEL_PER_BED], true)) {
+        if (! in_array($occupancyFilter, ['all', Room::PRICING_MODEL_PER_ROOM, Room::PRICING_MODEL_PER_BED], true)) {
             $occupancyFilter = 'all';
         }
 
@@ -639,6 +649,9 @@ class RoomController extends Controller
             ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
                 $q->visibleToAudience();
+            })
+            ->when(is_numeric($propertyId) && (int) $propertyId > 0, function ($q) use ($propertyId) {
+                $q->where('property_id', (int) $propertyId);
             })
             ->when($selectedAmenities->isNotEmpty(), function ($q) use ($selectedAmenities) {
                 $q->whereHas('property', function ($propertyQuery) use ($selectedAmenities) {
@@ -650,7 +663,13 @@ class RoomController extends Controller
                 });
             })
             ->when($search !== '', function ($q) use ($search) {
-                $q->whereHas('property', fn ($pq) => $pq->where('address', 'like', "%{$search}%"));
+                $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('room_number', 'like', "%{$search}%")
+                        ->orWhereHas('property', function ($pq) use ($search) {
+                            $pq->where('name', 'like', "%{$search}%")
+                                ->orWhere('address', 'like', "%{$search}%");
+                        });
+                });
             });
 
         $allCandidateRooms = $roomsBaseQuery
@@ -701,16 +720,14 @@ class RoomController extends Controller
             $priceBoundsMax = $priceBoundsMin + 1000;
         }
 
-        $minPrice = $request->query('min_price', $priceBoundsMin);
-        $maxPrice = $request->query('max_price', $priceBoundsMax);
+        $hasUserMinPrice = $request->filled('min_price') && is_numeric($request->query('min_price'));
+        $hasUserMaxPrice = $request->filled('max_price') && is_numeric($request->query('max_price'));
 
-        $minPrice = is_numeric($minPrice) ? (float) $minPrice : (float) $priceBoundsMin;
-        $maxPrice = is_numeric($maxPrice) ? (float) $maxPrice : (float) $priceBoundsMax;
-        $minPrice = max((float) $priceBoundsMin, min((float) $priceBoundsMax, $minPrice));
-        $maxPrice = max((float) $priceBoundsMin, min((float) $priceBoundsMax, $maxPrice));
-        if ($minPrice > $maxPrice) {
-            [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
-        }
+        $userMinPrice = $hasUserMinPrice ? (float) $request->query('min_price') : null;
+        $userMaxPrice = $hasUserMaxPrice ? (float) $request->query('max_price') : null;
+
+        $minPrice = $hasUserMinPrice ? $userMinPrice : $priceBoundsMin;
+        $maxPrice = $hasUserMaxPrice ? $userMaxPrice : $priceBoundsMax;
 
         $matchesOccupancyFilter = function (Room $room) use ($occupancyFilter): bool {
             if ($occupancyFilter === 'all') {
@@ -750,13 +767,20 @@ class RoomController extends Controller
         };
 
         $filteredRooms = $allCandidateRooms
-            ->filter(function (Room $room) use ($resolveComparablePrice, $minPrice, $maxPrice, $matchesOccupancyFilter, $matchesRatingFilter) {
-                if (!$matchesOccupancyFilter($room) || !$matchesRatingFilter($room)) {
+            ->filter(function (Room $room) use ($resolveComparablePrice, $userMinPrice, $userMaxPrice, $matchesOccupancyFilter, $matchesRatingFilter) {
+                if (! $matchesOccupancyFilter($room) || ! $matchesRatingFilter($room)) {
                     return false;
                 }
 
                 $price = $resolveComparablePrice($room);
-                return $price >= $minPrice && $price <= $maxPrice;
+                if ($userMinPrice !== null && $price < $userMinPrice) {
+                    return false;
+                }
+                if ($userMaxPrice !== null && $price > $userMaxPrice) {
+                    return false;
+                }
+
+                return true;
             })
             ->values();
 
@@ -789,8 +813,8 @@ class RoomController extends Controller
         $showAdvancedFilters = $selectedAmenities->isNotEmpty()
             || $ratingFilter !== 'any'
             || $occupancyFilter !== 'all'
-            || (int) round($minPrice) !== $priceBoundsMin
-            || (int) round($maxPrice) !== $priceBoundsMax;
+            || $hasUserMinPrice
+            || $hasUserMaxPrice;
 
         $newThreshold = now()->subDays(3);
 
@@ -821,14 +845,14 @@ class RoomController extends Controller
         $tenantOnboarding = TenantOnboarding::where('status', 'completed')
             ->whereHas('booking', function ($q) use ($today) {
                 $q->where('student_id', Auth::id())
-                  ->where('status', 'approved')
-                  ->where('check_out', '>', $today);
+                    ->where('status', 'approved')
+                    ->where('check_out', '>', $today);
             })
             ->with('booking.room.property.landlord')
             ->orderByDesc('updated_at')
             ->first();
 
-        $tenantMode = !empty($tenantOnboarding);
+        $tenantMode = ! empty($tenantOnboarding);
         $tenantBooking = $tenantOnboarding?->booking;
 
         $room->load([
@@ -838,7 +862,7 @@ class RoomController extends Controller
             'feedbacks.user:id,full_name',
         ]);
 
-        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
+        if (! \App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
             abort(404);
         }
 
@@ -847,8 +871,8 @@ class RoomController extends Controller
             ->whereIn('status', ['pending', 'approved'])
             ->where('check_out', '>', $today)
             ->first();
-        
-        $hasExistingBooking = !empty($existingBooking);
+
+        $hasExistingBooking = ! empty($existingBooking);
         $existingBookingRoomId = $hasExistingBooking ? $existingBooking->room_id : null;
         $existingBookingIsThisRoom = $hasExistingBooking && $existingBookingRoomId === $room->id;
 
@@ -860,10 +884,10 @@ class RoomController extends Controller
                 ->where(function ($q) use ($room) {
                     $q->where(function ($inner) use ($room) {
                         $inner->where('sender_id', Auth::id())
-                              ->where('receiver_id', $room->property->landlord_id);
+                            ->where('receiver_id', $room->property->landlord_id);
                     })->orWhere(function ($inner) use ($room) {
                         $inner->where('sender_id', $room->property->landlord_id)
-                              ->where('receiver_id', Auth::id());
+                            ->where('receiver_id', Auth::id());
                     });
                 })
                 ->orderBy('created_at')
@@ -938,8 +962,8 @@ class RoomController extends Controller
         $tenantOnboarding = TenantOnboarding::where('status', 'completed')
             ->whereHas('booking', function ($q) use ($today) {
                 $q->where('student_id', Auth::id())
-                  ->where('status', 'approved')
-                  ->where('check_out', '>', $today);
+                    ->where('status', 'approved')
+                    ->where('check_out', '>', $today);
             })
             ->with('booking.room.property.landlord')
             ->orderByDesc('updated_at')
@@ -949,7 +973,7 @@ class RoomController extends Controller
             return redirect()->route('student.rooms.feedback_page', $tenantOnboarding->booking->room_id);
         }
 
-        $tenantMode = !empty($tenantOnboarding);
+        $tenantMode = ! empty($tenantOnboarding);
 
         $room->load([
             'property:id,name,address,landlord_id,image_path,approval_status',
@@ -957,7 +981,7 @@ class RoomController extends Controller
             'feedbacks.user:id,full_name',
         ]);
 
-        if (!\App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
+        if (! \App\Models\Property::query()->visibleToAudience()->whereKey($room->property_id)->exists()) {
             abort(404);
         }
 

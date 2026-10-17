@@ -736,20 +736,6 @@
 
 @push('scripts')
 <script>
-    // ── Sidebar panel buttons: redirect to dashboard with the correct hash ──
-    (function() {
-        const dashUrl = '{{ route('student.dashboard') }}';
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('[data-panel-target],[data-panel-jump]');
-            if (!btn) return;
-            const panel = btn.dataset.panelTarget || btn.dataset.panelJump;
-            if (panel) {
-                e.preventDefault();
-                window.location.href = dashUrl + '#' + panel;
-            }
-        });
-    })();
-
     // Scroll chat to bottom
     const chatBox = document.getElementById('chatBox');
     if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
