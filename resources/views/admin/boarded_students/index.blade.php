@@ -303,7 +303,7 @@
                                                     {{ $boarding->student?->full_name ?? $boarding->student?->name ?? 'Unknown Student' }}
                                                 </a>
                                                 <div class="small text-muted">
-                                                    {{ $boarding->student?->student_id ?: 'No Student ID' }}
+                                                    {{ $boarding->student?->student_id ?: 'Not provided' }}
                                                 </div>
                                             </div>
                                         </div>
@@ -578,7 +578,7 @@
                                                     {{ $boarding->student?->full_name ?? $boarding->student?->name ?? 'Unknown Student' }}
                                                 </a>
                                                 <div class="small text-muted">
-                                                    {{ $boarding->student?->student_id ?: 'No Student ID' }}
+                                                    {{ $boarding->student?->student_id ?: 'Not provided' }}
                                                 </div>
                                             </div>
                                         </div>

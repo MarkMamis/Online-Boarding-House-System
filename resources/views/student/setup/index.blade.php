@@ -466,15 +466,15 @@
 
                     <div class="row g-3">
                         <div class="col-12" id="studentIdInputContainer">
-                            <label class="form-label" for="student_id" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
-                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }} autocomplete="off" spellcheck="false">
-                            <div class="field-hint">Format example: MCC2026-00000. Exactly as shown on your Certificate of Registration (COR) or MinSU ID card.</div>
+                            <label class="form-label" for="student_id" id="studentIdLabel">Student ID (Optional)</label>
+                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="Enter your Student ID, if available" autocomplete="off" spellcheck="false">
+                            <div class="field-hint" id="student_id_help">If you haven't received your Student ID yet, you may leave this blank. Format example: MCC2026-00000.</div>
                             <div id="student_id_feedback" class="mt-2 small" role="status" aria-live="polite"></div>
                             @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 
                             <div class="mt-3">
                                 <button type="button" class="btn btn-link p-0 text-decoration-none small text-muted" id="skipStudentIdBtn">
-                                    First-year student without an official Student ID yet? <span class="text-decoration-underline text-success fw-semibold">Continue without ID &rarr;</span>
+                                    Don't have an official Student ID yet? <span class="text-decoration-underline text-success fw-semibold">Continue without ID &rarr;</span>
                                 </button>
                             </div>
                         </div>
@@ -709,16 +709,17 @@
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <label class="form-label">Student ID</label>
-                            <div class="p-2 px-3 rounded-3 bg-light border d-flex align-items-center justify-content-between" style="min-height: 42px;">
-                                <span class="font-monospace fw-bold text-dark" id="confirmedStudentIdDisplay">
-                                    {{ old('student_id', $user->student_id) ?: '(Pending / 1st Year without ID)' }}
-                                </span>
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" id="btnEditStudentId" title="Change Student ID">
-                                    <i class="bi bi-pencil me-1"></i>Change
+                            <label class="form-label" for="academic_student_id">Student ID (Optional)</label>
+                            <div class="input-group">
+                                <input type="text" id="academic_student_id" class="form-control" placeholder="Enter your Student ID, if available" value="{{ old('student_id', $user->student_id) }}" autocomplete="off" spellcheck="false">
+                                <button type="button" class="btn btn-outline-secondary" id="btnClearStudentId" title="Clear Student ID" style="{{ old('student_id', $user->student_id) ? '' : 'display: none;' }}">
+                                    <i class="bi bi-x-lg"></i>
                                 </button>
                             </div>
-                            <div class="field-hint">Validated early for identity protection.</div>
+                            <div id="academic_student_id_feedback" class="mt-1 small" role="status" aria-live="polite"></div>
+                            <div class="field-hint" id="academic_student_id_hint">
+                                {{ old('student_id', $user->student_id) ? 'Validated early for identity protection.' : "If you haven't received your Student ID yet, you may leave this blank." }}
+                            </div>
                         </div>
                     </div>
 
@@ -902,6 +903,10 @@
             const assistFormWrap = document.getElementById('assistanceRequestFormWrap');
             const assistStudentIdInput = document.getElementById('assist_student_id');
             const confirmedStudentIdDisplay = document.getElementById('confirmedStudentIdDisplay');
+            const academicStudentIdInput = document.getElementById('academic_student_id');
+            const btnClearStudentId = document.getElementById('btnClearStudentId');
+            const academicStudentIdHint = document.getElementById('academic_student_id_hint');
+            const academicStudentIdFeedback = document.getElementById('academic_student_id_feedback');
             const toggleAssistanceBtn = document.getElementById('toggleAssistanceFormBtn');
             const dismissConflictBtn = document.getElementById('dismissConflictBtn');
             const cancelAssistanceBtn = document.getElementById('cancelAssistanceBtn');
@@ -946,13 +951,12 @@
                     studentIdInput.classList.add('is-valid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
                     hideConflictCard();
-                    if (confirmedStudentIdDisplay) {
-                        confirmedStudentIdDisplay.textContent = lastCheckedStudentId || (studentIdInput.value || '').trim();
-                    }
+                    syncAcademicStudentIdUI();
                 } else if (state === 'taken') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
                     showConflictCard(lastCheckedStudentId || (studentIdInput.value || '').trim());
+                    syncAcademicStudentIdUI();
                 } else if (state === 'invalid_format') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
@@ -1123,6 +1127,113 @@
             }
 
             // Assistance Form & Conflict Card Listeners
+            const syncAcademicStudentIdUI = function () {
+                if (!academicStudentIdInput) return;
+                const val = (studentIdInput ? studentIdInput.value : '').trim();
+                academicStudentIdInput.value = val;
+                if (btnClearStudentId) {
+                    btnClearStudentId.style.display = val !== '' ? '' : 'none';
+                }
+                if (academicStudentIdHint) {
+                    if (val !== '' && (currentStudentIdCheckState === 'available' || (initialStudentId && val.toLowerCase() === initialStudentId.toLowerCase()))) {
+                        academicStudentIdHint.textContent = 'Validated early for identity protection.';
+                    } else {
+                        academicStudentIdHint.textContent = "If you haven't received your Student ID yet, you may leave this blank.";
+                    }
+                }
+            };
+
+            const renderAcademicStudentIdFeedback = function (state, message) {
+                if (!academicStudentIdFeedback || !academicStudentIdInput) return;
+                academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
+                if (state === 'checking') {
+                    academicStudentIdFeedback.innerHTML = `<span class="spinner-border spinner-border-sm me-1 text-muted" role="status" aria-hidden="true"></span><span class="text-muted">${message}</span>`;
+                } else if (state === 'available') {
+                    academicStudentIdInput.classList.add('is-valid');
+                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
+                    hideConflictCard();
+                    if (academicStudentIdHint) {
+                        academicStudentIdHint.textContent = 'Validated early for identity protection.';
+                    }
+                } else if (state === 'taken') {
+                    academicStudentIdInput.classList.add('is-invalid');
+                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
+                    showConflictCard(academicStudentIdInput.value.trim());
+                } else if (state === 'invalid_format' || state === 'failed') {
+                    academicStudentIdInput.classList.add('is-invalid');
+                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
+                } else {
+                    academicStudentIdFeedback.innerHTML = '';
+                }
+            };
+
+            if (btnClearStudentId) {
+                btnClearStudentId.addEventListener('click', function () {
+                    if (studentIdInput) {
+                        studentIdInput.value = '';
+                        studentIdInput.classList.remove('is-valid', 'is-invalid');
+                    }
+                    if (academicStudentIdInput) {
+                        academicStudentIdInput.value = '';
+                        academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
+                    }
+                    currentStudentIdCheckState = 'idle';
+                    lastCheckedStudentId = '';
+                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
+                    if (academicStudentIdFeedback) academicStudentIdFeedback.innerHTML = '';
+                    hideConflictCard();
+                    syncAcademicStudentIdUI();
+                });
+            }
+
+            if (academicStudentIdInput) {
+                academicStudentIdInput.addEventListener('input', function () {
+                    const val = academicStudentIdInput.value.trim();
+                    if (studentIdInput) {
+                        studentIdInput.value = val;
+                        studentIdInput.classList.remove('is-valid', 'is-invalid');
+                    }
+                    academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
+                    if (academicStudentIdFeedback) academicStudentIdFeedback.innerHTML = '';
+                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
+                    if (btnClearStudentId) {
+                        btnClearStudentId.style.display = val !== '' ? '' : 'none';
+                    }
+                    currentStudentIdCheckState = 'idle';
+                    lastCheckedStudentId = '';
+                    if (academicStudentIdHint) {
+                        academicStudentIdHint.textContent = "If you haven't received your Student ID yet, you may leave this blank.";
+                    }
+                });
+
+                academicStudentIdInput.addEventListener('blur', function () {
+                    const val = academicStudentIdInput.value.trim();
+                    if (val === '') {
+                        currentStudentIdCheckState = 'idle';
+                        lastCheckedStudentId = '';
+                        syncAcademicStudentIdUI();
+                        return;
+                    }
+                    if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                        currentStudentIdCheckState = 'invalid_format';
+                        renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        return;
+                    }
+                    if (val.toLowerCase() === lastCheckedStudentId.toLowerCase() && (currentStudentIdCheckState === 'available' || currentStudentIdCheckState === 'taken')) {
+                        return;
+                    }
+                    performStudentIdCheck(val).then(function (result) {
+                        if (result.state === 'available') {
+                            renderAcademicStudentIdFeedback('available', 'Student ID is available.');
+                        } else if (result.state === 'taken') {
+                            renderAcademicStudentIdFeedback('taken', 'We couldn\'t continue with this Student ID.');
+                        } else if (result.state === 'invalid_format') {
+                            renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        }
+                    });
+                });
+            }
+
             if (dismissConflictBtn) {
                 dismissConflictBtn.addEventListener('click', function () {
                     hideConflictCard();
@@ -1154,9 +1265,14 @@
                         lastCheckedStudentId = '';
                         renderStudentIdFeedback('idle', '');
                     }
-                    if (confirmedStudentIdDisplay) {
-                        confirmedStudentIdDisplay.textContent = '(Pending / 1st Year without ID)';
+                    if (academicStudentIdInput) {
+                        academicStudentIdInput.value = '';
+                        academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
                     }
+                    if (academicStudentIdFeedback) {
+                        academicStudentIdFeedback.innerHTML = '';
+                    }
+                    syncAcademicStudentIdUI();
                     hideConflictCard();
                     moveToPanel(1);
                 });
@@ -1450,11 +1566,49 @@
                                 try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
                                 return;
                             }
-
-                            if (confirmedStudentIdDisplay) {
-                                confirmedStudentIdDisplay.textContent = val;
-                            }
+                        } else {
+                            currentStudentIdCheckState = 'idle';
+                            lastCheckedStudentId = '';
+                            studentIdInput.classList.remove('is-valid', 'is-invalid');
+                            if (studentIdFeedback) studentIdFeedback.innerHTML = '';
+                            hideConflictCard();
                         }
+                        syncAcademicStudentIdUI();
+                    }
+
+                    // If advancing from Academic panel (Panel 3) with an entered Student ID
+                    if (currentPanel === 3 && academicStudentIdInput) {
+                        const val = (academicStudentIdInput.value || '').trim();
+                        if (studentIdInput) {
+                            studentIdInput.value = val;
+                        }
+                        if (val !== '') {
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                academicStudentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { academicStudentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
+                                renderAcademicStudentIdFeedback('taken', 'We couldn\'t continue with this Student ID.');
+                                academicStudentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { academicStudentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+                        } else {
+                            currentStudentIdCheckState = 'idle';
+                            lastCheckedStudentId = '';
+                            renderAcademicStudentIdFeedback('idle', '');
+                        }
+                        syncAcademicStudentIdUI();
                     }
 
                     if (!validatePanel(currentPanel)) {
@@ -1487,6 +1641,9 @@
 
                 form.addEventListener('submit', async function (event) {
                     if (studentIdInput) {
+                        if (academicStudentIdInput) {
+                            studentIdInput.value = academicStudentIdInput.value.trim();
+                        }
                         const val = (studentIdInput.value || '').trim();
                         if (val !== '') {
                             if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
@@ -1598,14 +1755,12 @@
             const syncAcademicProofRequirements = function () {
                 const isFirstYear = yearLevelInput && yearLevelInput.value === '1st Year';
 
+                // Student ID is optional across all year levels
                 if (studentIdInput) {
-                    studentIdInput.required = !isFirstYear;
+                    studentIdInput.required = false;
                 }
                 if (studentIdLabel) {
-                    studentIdLabel.textContent = isFirstYear ? 'Student ID' : 'Student ID *';
-                }
-                if (studentIdHelp) {
-                    studentIdHelp.classList.toggle('d-none', !isFirstYear);
+                    studentIdLabel.textContent = 'Student ID (Optional)';
                 }
 
                 if (schoolIdLabel) {
@@ -1870,6 +2025,7 @@
                 }
             }
 
+            syncAcademicStudentIdUI();
             updateActivePanel();
         })();
     </script>

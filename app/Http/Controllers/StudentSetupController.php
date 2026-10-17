@@ -195,9 +195,7 @@ class StudentSetupController extends Controller
             ? 'required|string|max:20'
             : 'required|in:'.implode(',', $collegeOptions);
 
-        $studentIdRule = $isFirstYear
-            ? 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id
-            : 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id;
+        $studentIdRule = 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id;
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
@@ -226,7 +224,6 @@ class StudentSetupController extends Controller
             'contact_number.regex' => 'Contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'emergency_contact_number.regex' => 'Emergency contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'parent_contact_number.regex' => 'Parent or guardian number must use 11-digit PH mobile format (09XXXXXXXXX).',
-            'student_id.required' => 'Student ID is required for 2nd year and above.',
             'student_id.regex' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
             'student_id.unique' => 'This Student ID is already registered.',
             'birth_date.required' => 'Birthdate is required.',
@@ -381,8 +378,7 @@ class StudentSetupController extends Controller
             [
                 'title' => 'Academic verification',
                 'description' => 'Set college, program, year level, and upload your school verification files.',
-                'completed' => (($user->year_level === '1st Year') || filled($user->student_id))
-                    && filled($user->college)
+                'completed' => filled($user->college)
                     && filled($user->program)
                     && filled($user->year_level)
                     && filled($user->gender)

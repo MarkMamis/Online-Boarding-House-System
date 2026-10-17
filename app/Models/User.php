@@ -169,7 +169,6 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
 
         if (!$isFirstYear) {
-            $requiredFields['student_id'] = 'Student ID';
             $requiredFields['school_id_path'] = 'School ID photo';
         }
 

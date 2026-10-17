@@ -259,7 +259,7 @@
                         <div class="section-tag">Party</div>
                         <div class="party-heading">Tenant</div>
                         <div><strong>Name:</strong> {{ $student->full_name ?? $student->name }}</div>
-                        <div><strong>Student ID:</strong> {{ $student->student_id }}</div>
+                        <div><strong>Student ID:</strong> {{ $student->student_id ?: 'Not provided' }}</div>
                         <div><strong>Email:</strong> {{ $student->email }}</div>
                     </div>
                 </div>

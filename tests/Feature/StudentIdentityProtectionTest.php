@@ -155,6 +155,10 @@ class StudentIdentityProtectionTest extends TestCase
 
         $response->assertOk()
             ->assertSee('What is your Student ID?')
+            ->assertSee('Student ID (Optional)')
+            ->assertSee('Enter your Student ID, if available')
+            ->assertSee("If you haven't received your Student ID yet, you may leave this blank.")
+            ->assertDontSee('(Pending / 1st Year without ID)')
             ->assertSee('studentIdConflictCard')
             ->assertSee('Recover Account')
             ->assertSee('Request Assistance');
@@ -362,5 +366,236 @@ class StudentIdentityProtectionTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('student_id');
+    }
+
+    // ==========================================
+    // 7. OPTIONAL STUDENT ID & YEAR LEVEL INDEPENDENCE
+    // ==========================================
+
+    public function test_first_year_student_setup_with_student_id_passes_and_saves_id(): void
+    {
+        $student = $this->createStudentUser();
+        $corFile = UploadedFile::fake()->create('cor.pdf', 500, 'application/pdf');
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+
+        $response = $this->actingAs($student)->put(route('student.setup.update'), [
+            'full_name' => 'First Year With ID',
+            'contact_number' => '09171112233',
+            'birth_date' => '2005-06-20',
+            'gender' => 'Female',
+            'address' => 'Calapan City, Oriental Mindoro',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '1st Year',
+            'student_id' => 'MCC2026-10101',
+            'profile_image' => $profilePhoto,
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_file' => $corFile,
+            'parent_contact_name' => 'Parent Name',
+            'parent_contact_number' => '09171112222',
+            'parent_contact_address' => 'Calapan City',
+            'emergency_contact_name' => 'Emergency Name',
+            'emergency_contact_number' => '09173334444',
+            'emergency_contact_relationship' => 'Mother',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $refreshed = $student->fresh();
+        $this->assertEquals('MCC2026-10101', $refreshed->student_id);
+        $this->assertTrue((bool) $refreshed->onboarding_complete);
+    }
+
+    public function test_first_year_student_setup_without_student_id_passes_and_stores_null(): void
+    {
+        $student = $this->createStudentUser();
+        $corFile = UploadedFile::fake()->create('cor.pdf', 500, 'application/pdf');
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+
+        $response = $this->actingAs($student)->put(route('student.setup.update'), [
+            'full_name' => 'First Year Without ID',
+            'contact_number' => '09171112233',
+            'birth_date' => '2005-06-20',
+            'gender' => 'Female',
+            'address' => 'Calapan City, Oriental Mindoro',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '1st Year',
+            'student_id' => '', // Left empty!
+            'profile_image' => $profilePhoto,
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_file' => $corFile,
+            'parent_contact_name' => 'Parent Name',
+            'parent_contact_number' => '09171112222',
+            'parent_contact_address' => 'Calapan City',
+            'emergency_contact_name' => 'Emergency Name',
+            'emergency_contact_number' => '09173334444',
+            'emergency_contact_relationship' => 'Mother',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $refreshed = $student->fresh();
+        $this->assertNull($refreshed->student_id);
+        $this->assertNotEquals('Pending', $refreshed->student_id);
+        $this->assertNotEquals('N/A', $refreshed->student_id);
+        $this->assertNotEquals('1st Year without ID', $refreshed->student_id);
+        $this->assertTrue((bool) $refreshed->onboarding_complete);
+    }
+
+    public function test_second_year_student_setup_with_student_id_passes_and_saves_id(): void
+    {
+        $student = $this->createStudentUser();
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+        $schoolIdPhoto = UploadedFile::fake()->image('school_id.jpg');
+        $corFile = UploadedFile::fake()->create('cor.pdf', 500, 'application/pdf');
+
+        $response = $this->actingAs($student)->put(route('student.setup.update'), [
+            'full_name' => 'Second Year With ID',
+            'contact_number' => '09171112233',
+            'birth_date' => '2004-05-15',
+            'gender' => 'Male',
+            'address' => 'Calapan City, Oriental Mindoro',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '2nd Year',
+            'student_id' => 'MCC2026-20202',
+            'profile_image' => $profilePhoto,
+            'school_id_photo' => $schoolIdPhoto,
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_file' => $corFile,
+            'parent_contact_name' => 'Parent Name',
+            'parent_contact_number' => '09171112222',
+            'parent_contact_address' => 'Calapan City',
+            'emergency_contact_name' => 'Emergency Name',
+            'emergency_contact_number' => '09173334444',
+            'emergency_contact_relationship' => 'Father',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $refreshed = $student->fresh();
+        $this->assertEquals('MCC2026-20202', $refreshed->student_id);
+        $this->assertTrue((bool) $refreshed->onboarding_complete);
+    }
+
+    public function test_second_year_student_setup_without_student_id_passes_and_stores_null(): void
+    {
+        $student = $this->createStudentUser();
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+        $schoolIdPhoto = UploadedFile::fake()->image('school_id.jpg');
+        $corFile = UploadedFile::fake()->create('cor.pdf', 500, 'application/pdf');
+
+        $response = $this->actingAs($student)->put(route('student.setup.update'), [
+            'full_name' => 'Second Year Without ID',
+            'contact_number' => '09171112233',
+            'birth_date' => '2004-05-15',
+            'gender' => 'Male',
+            'address' => 'Calapan City, Oriental Mindoro',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '2nd Year',
+            'student_id' => '', // Genuinely absent ID
+            'profile_image' => $profilePhoto,
+            'school_id_photo' => $schoolIdPhoto,
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_file' => $corFile,
+            'parent_contact_name' => 'Parent Name',
+            'parent_contact_number' => '09171112222',
+            'parent_contact_address' => 'Calapan City',
+            'emergency_contact_name' => 'Emergency Name',
+            'emergency_contact_number' => '09173334444',
+            'emergency_contact_relationship' => 'Father',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $refreshed = $student->fresh();
+        $this->assertNull($refreshed->student_id);
+        $this->assertNotEquals('Pending', $refreshed->student_id);
+        $this->assertNotEquals('N/A', $refreshed->student_id);
+        $this->assertNotEquals('1st Year without ID', $refreshed->student_id);
+        $this->assertTrue((bool) $refreshed->onboarding_complete);
+        $this->assertEquals('pending', $refreshed->school_id_verification_status);
+    }
+
+    public function test_admin_student_verification_displays_not_provided_for_missing_student_id(): void
+    {
+        $admin = $this->createAdminUser();
+        $studentWithoutId = $this->createStudentUser([
+            'full_name' => 'No ID Student',
+            'student_id' => null,
+            'enrollment_proof_path' => 'proofs/cor.pdf',
+            'school_id_verification_status' => 'pending',
+        ]);
+
+        $responseApprovals = $this->actingAs($admin)->get(route('admin.approvals.students'));
+        $responseApprovals->assertOk()
+            ->assertSee('No ID Student')
+            ->assertSee('Not provided');
+
+        $responseVerifications = $this->actingAs($admin)->get(route('admin.student_verifications.index'));
+        $responseVerifications->assertRedirect(route('admin.approvals.students'));
+    }
+
+    public function test_student_profile_update_allows_later_id_entry_and_enforces_exact_uniqueness(): void
+    {
+        $completedProfile = [
+            'onboarding_complete' => true,
+            'full_name' => 'Complete Student',
+            'profile_image_path' => 'profiles/test.jpg',
+            'contact_number' => '09171234567',
+            'birth_date' => '2004-01-01',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '1st Year',
+            'gender' => 'Male',
+            'address' => 'Calapan City',
+            'emergency_contact_name' => 'Jane Doe',
+            'emergency_contact_number' => '09181234567',
+            'emergency_contact_relationship' => 'Mother',
+            'parent_contact_name' => 'Jane Doe',
+            'parent_contact_number' => '09181234567',
+            'parent_contact_address' => 'Calapan City',
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_path' => 'proofs/cor.pdf',
+        ];
+
+        $otherStudent = $this->createStudentUser(array_merge($completedProfile, [
+            'student_id' => 'MCC2026-77777',
+        ]));
+
+        $student = $this->createStudentUser(array_merge($completedProfile, [
+            'student_id' => null,
+        ]));
+
+        // Trying to update profile to an already taken ID fails
+        $failResponse = $this->actingAs($student)
+            ->from(route('student.profile.edit'))
+            ->put(route('student.profile.update'), [
+                'full_name' => 'Profile Updated Name',
+                'email' => $student->email,
+                'student_id' => 'MCC2026-77777', // Duplicate
+            ]);
+        $failResponse->assertSessionHasErrors('student_id');
+
+        // Updating profile with unique ID succeeds
+        $passResponse = $this->actingAs($student)
+            ->from(route('student.profile.edit'))
+            ->put(route('student.profile.update'), [
+                'full_name' => 'Profile Updated Name',
+                'email' => $student->email,
+                'student_id' => 'MCC2026-88888', // Unique
+            ]);
+        $passResponse->assertSessionHasNoErrors();
+        $this->assertEquals('MCC2026-88888', $student->fresh()->student_id);
+
+        // Updating profile with blank ID stores null
+        $studentUser = $student->fresh();
+        $blankResponse = $this->actingAs($studentUser)
+            ->from(route('student.profile.edit'))
+            ->put(route('student.profile.update'), [
+                'full_name' => 'Profile Updated Name',
+                'email' => $studentUser->email,
+                'student_id' => '', // Cleared
+            ]);
+        $blankResponse->assertSessionHasNoErrors();
+        $this->assertNull($studentUser->fresh()->student_id);
     }
 }

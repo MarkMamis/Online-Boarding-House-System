@@ -37,6 +37,14 @@ class StudentProfileController extends Controller
             $request->merge(['program' => $request->input('course')]);
         }
 
+        $studentIdSubmitted = array_key_exists('student_id', $request->all());
+        $rawStudentId = $request->input('student_id');
+        $trimmedStudentId = is_string($rawStudentId) ? trim($rawStudentId) : null;
+        $normalizedStudentId = ($trimmedStudentId !== null && $trimmedStudentId !== '') ? $trimmedStudentId : null;
+        if ($studentIdSubmitted) {
+            $request->merge(['student_id' => $normalizedStudentId]);
+        }
+
         $academicCatalog = AcademicCatalogService::getCatalog();
         $collegeOptions = array_keys($academicCatalog['colleges'] ?? []);
         $collegeRule = empty($collegeOptions)
@@ -64,7 +72,7 @@ class StudentProfileController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'profile_image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
             'contact_number' => 'nullable|string|max:20',
-            'student_id' => 'nullable|string|max:50|unique:users,student_id,' . $user->id,
+            'student_id' => 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,' . $user->id,
             'college' => $collegeRule,
             'program' => 'nullable|string|max:255',
             'major' => 'nullable|string|max:255',
@@ -91,6 +99,8 @@ class StudentProfileController extends Controller
             'medical_conditions' => 'nullable|string|max:1000',
         ], [
             'gender.max' => 'Gender must not exceed 50 characters.',
+            'student_id.regex' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
+            'student_id.unique' => 'This Student ID is already registered.',
         ]);
 
         $validator->after(function ($validator) use ($genderInput, $normalizedGender, $request, $academicCatalog) {
@@ -228,16 +238,27 @@ class StudentProfileController extends Controller
         ]));
 
         $user->name = $request->input('full_name');
-        $user->college = $college !== '' ? $college : null;
-        $user->program = $program !== '' ? $program : null;
-        $user->major = $major !== '' ? $major : null;
+        if ($studentIdSubmitted) {
+            $user->student_id = $normalizedStudentId;
+        }
+        if (array_key_exists('college', $request->all()) || $request->filled('college')) {
+            $user->college = $college !== '' ? $college : null;
+        }
+        if (array_key_exists('program', $request->all()) || $request->filled('program')) {
+            $user->program = $program !== '' ? $program : null;
+        }
+        if (array_key_exists('major', $request->all()) || $request->filled('major')) {
+            $user->major = $major !== '' ? $major : null;
+        }
 
-        if ($normalizedGender === 'Other') {
-            $user->gender = trim((string) $request->input('gender_custom'));
-        } elseif ($normalizedGender !== null) {
-            $user->gender = $normalizedGender;
-        } else {
-            $user->gender = null;
+        if (array_key_exists('gender', $request->all()) || $request->filled('gender')) {
+            if ($normalizedGender === 'Other') {
+                $user->gender = trim((string) $request->input('gender_custom'));
+            } elseif ($normalizedGender !== null) {
+                $user->gender = $normalizedGender;
+            } else {
+                $user->gender = null;
+            }
         }
 
         $user->save();

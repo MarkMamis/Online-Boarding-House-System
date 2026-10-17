@@ -115,7 +115,7 @@
                                 <div class="small text-muted">{{ $student->email }}</div>
                             </td>
                             <td>
-                                <div class="fw-medium text-dark">{{ $student->student_id ?: 'No student ID' }}</div>
+                                <div class="fw-medium text-dark">{{ $student->student_id ?: 'Not provided' }}</div>
                                 <div class="small text-muted">{{ $student->program ?: 'No program provided' }}</div>
                             </td>
                             <td>

@@ -116,7 +116,7 @@ class AdminReportingService
         $records = $query->get()->map(function ($b) {
             return [
                 'student_name' => (string) ($b->student?->full_name ?: $b->student?->name ?: 'Student'),
-                'student_id' => (string) ($b->student?->student_id ?: 'N/A'),
+                'student_id' => (string) ($b->student?->student_id ?: 'Not provided'),
                 'college' => (string) ($b->student?->college ?: 'Not specified'),
                 'program' => (string) ($b->student?->program ?: 'Not specified'),
                 'property_name' => (string) ($b->room?->property?->name ?: 'N/A'),

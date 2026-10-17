@@ -63,7 +63,7 @@
                     </div>
                     <div class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted small">Student ID</span>
-                        <span class="fw-medium text-dark">{{ $onboarding->booking->student->student_id ?: 'N/A' }}</span>
+                        <span class="fw-medium text-dark">{{ $onboarding->booking->student->student_id ?: 'Not provided' }}</span>
                     </div>
                     <div class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted small">Email</span>

@@ -262,7 +262,7 @@
                     <td>
                         <strong>{{ $boarding->student?->full_name ?? $boarding->student?->name ?? 'Unknown Student' }}</strong>
                     </td>
-                    <td class="font-mono">{{ $boarding->student?->student_id ?: 'N/A' }}</td>
+                    <td class="font-mono">{{ $boarding->student?->student_id ?: 'Not provided' }}</td>
                     <td>{{ $boarding->student?->college ?: 'Not specified' }}</td>
                     <td>
                         {{ $boarding->student?->program ?: 'Not specified' }}

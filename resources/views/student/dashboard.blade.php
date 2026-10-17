@@ -1602,7 +1602,7 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="small text-muted">Student ID</div>
-                            <div class="fw-semibold">{{ Auth::user()->student_id ?: '—' }}</div>
+                            <div class="fw-semibold">{{ Auth::user()->student_id ?: 'Not provided' }}</div>
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="small text-muted">Contact</div>

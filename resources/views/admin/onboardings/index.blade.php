@@ -121,7 +121,7 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-dark">{{ $onboarding->booking->student->full_name }}</div>
-                                        <div class="text-secondary small">{{ $onboarding->booking->student->student_id }}</div>
+                                        <div class="text-secondary small">{{ $onboarding->booking->student->student_id ?: 'Not provided' }}</div>
                                     </div>
                                 </div>
                             </td>
