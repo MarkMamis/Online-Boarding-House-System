@@ -50,33 +50,25 @@
     <div class="list-group list-group-flush rounded-3 overflow-hidden student-nav-list">
         <div class="nav-section">Main</div>
         <a href="{{ $dashboardRoute }}" class="list-group-item {{ request()->routeIs('student.dashboard') || request()->routeIs('student.tenant.dashboard') ? 'active' : '' }}">
-            <i class="bi bi-speedometer2"></i>
-            <span>Dashboard</span>
+            <i class="bi bi-house-door"></i>
+            <span>Home</span>
         </a>
 
         <div class="nav-section">Explore</div>
-        @if($tenantMode)
-            <a href="{{ route('student.rooms.show', $tenantRoomId) }}" class="list-group-item {{ request()->routeIs('student.rooms.show') ? 'active' : '' }}">
-                <i class="bi bi-house-door"></i>
+        @if($tenantMode && $tenantRoomId)
+            <a href="{{ route('student.rooms.show', $tenantRoomId) }}" class="list-group-item {{ request()->routeIs('student.rooms.show') && request()->route('room') == $tenantRoomId ? 'active' : '' }}">
+                <i class="bi bi-door-open"></i>
                 <span>My Room</span>
             </a>
-            <a href="{{ route('student.rooms.index') }}" class="list-group-item {{ request()->routeIs('student.rooms.index') ? 'active' : '' }}">
-                <i class="bi bi-search"></i>
-                <span>Browse Rooms</span>
-            </a>
         @endif
-        @unless($hideBrowse)
-            <a href="{{ route('student.rooms.index') }}" class="list-group-item {{ request()->routeIs('student.rooms.*') ? 'active' : '' }}">
-                <i class="bi bi-search"></i>
-                <span>Browse Rooms</span>
-            </a>
-        @endunless
-        @unless($tenantMode)
-            <a href="{{ route('student.properties.map_view') }}" class="list-group-item {{ request()->routeIs('student.properties.map_view') ? 'active' : '' }}">
-                <i class="bi bi-map"></i>
-                <span>Property Map</span>
-            </a>
-        @endunless
+        <a href="{{ route('student.rooms.index') }}" class="list-group-item {{ request()->routeIs('student.rooms.index') || (request()->routeIs('student.rooms.show') && request()->route('room') != $tenantRoomId) ? 'active' : '' }}">
+            <i class="bi bi-compass"></i>
+            <span>Explore Rooms</span>
+        </a>
+        <a href="{{ route('student.properties.map_view') }}" class="list-group-item {{ request()->routeIs('student.properties.map_view') ? 'active' : '' }}">
+            <i class="bi bi-map"></i>
+            <span>Campus Map</span>
+        </a>
 
         <div class="nav-section">Shortcuts</div>
         <a href="{{ route('notifications.index') }}" class="list-group-item {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
@@ -87,10 +79,10 @@
             @endif
         </a>
 
-        <div class="nav-section">My Activity</div>
+        <div class="nav-section">My Stays & Activity</div>
         <a href="{{ route('student.bookings.index') }}" class="list-group-item {{ request()->routeIs('student.bookings.*') ? 'active' : '' }}">
-            <i class="bi bi-journal-check"></i>
-            <span>Requests</span>
+            <i class="bi bi-calendar-check"></i>
+            <span>My Bookings & Stays</span>
             @if($pendingBookingsCount > 0)
                 <span class="badge rounded-pill text-bg-warning ms-auto">{{ $pendingBookingsCount }}</span>
             @endif
@@ -149,16 +141,14 @@
             <span>Profile</span>
         </a>
 
-        @if(!$showLimitedNavigation)
-            <div class="nav-section">Help</div>
-            <a href="{{ route('student.reports.index') }}" class="list-group-item {{ request()->routeIs('student.reports.*') ? 'active' : '' }}">
-                <i class="bi bi-question-circle"></i>
-                <span>Help Center</span>
-                @if(isset($unreadResponsesCount) && $unreadResponsesCount > 0)
-                    <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadResponsesCount }}</span>
-                @endif
-            </a>
-        @endif
+        <div class="nav-section">Help & Safety</div>
+        <a href="{{ route('student.reports.index') }}" class="list-group-item {{ request()->routeIs('student.reports.*') ? 'active' : '' }}">
+            <i class="bi bi-shield-check"></i>
+            <span>Help & Safety</span>
+            @if(isset($unreadResponsesCount) && $unreadResponsesCount > 0)
+                <span class="badge rounded-pill text-bg-danger ms-auto">{{ $unreadResponsesCount }}</span>
+            @endif
+        </a>
 
         <div class="nav-section">Session</div>
         <form method="POST" action="{{ route('logout') }}">

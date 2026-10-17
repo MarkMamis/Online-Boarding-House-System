@@ -2673,141 +2673,37 @@ class AuthController extends Controller
             ->limit(5)
             ->get();
 
-        // Recent activity panels
-        $recentBookings = $student->bookings()
+        $latestPendingBooking = $student->bookings()
+            ->where('status', 'pending')
             ->with(['room.property.landlord'])
             ->latest()
-            ->limit(10)
-            ->get();
-
-        $recentMessages = $student->messagesReceived()
-            ->with(['sender'])
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        // Build conversation threads: group all messages (sent + received) by (other_person, property)
-        $allMessages = \App\Models\Message::with(['sender:id,full_name', 'receiver:id,full_name', 'property:id,name'])
-            ->where(function ($q) use ($student) {
-                $q->where('sender_id', $student->id)
-                    ->orWhere('receiver_id', $student->id);
-            })
-            ->latest()
-            ->limit(200)
-            ->get();
-
-        // Group into threads: key = "otherId_propertyId"
-        $threads = [];
-        foreach ($allMessages as $msg) {
-            $otherId = (int) $msg->sender_id === $student->id ? $msg->receiver_id : $msg->sender_id;
-            $propId = $msg->property_id ?? 0;
-            $key = $otherId.'_'.$propId;
-            if (! isset($threads[$key])) {
-                $threads[$key] = [
-                    'other' => (int) $msg->sender_id === $student->id ? $msg->receiver : $msg->sender,
-                    'property' => $msg->property,
-                    'property_id' => $msg->property_id,
-                    'latest' => $msg,
-                    'unread' => 0,
-                    'messages' => [],
-                ];
-            }
-            if (empty($msg->read_at) && (int) $msg->receiver_id === $student->id) {
-                $threads[$key]['unread']++;
-            }
-            $threads[$key]['messages'][] = $msg;
-        }
-        $messageThreads = collect(array_values($threads));
-
-        $latestOnboarding = \App\Models\TenantOnboarding::query()
-            ->whereHas('booking', function ($q) use ($student) {
-                $q->where('student_id', $student->id);
-            })
-            ->with(['booking.room.property.landlord'])
-            ->latest()
             ->first();
 
-        $allOnboardings = \App\Models\TenantOnboarding::query()
-            ->whereHas('booking', function ($q) use ($student) {
-                $q->where('student_id', $student->id);
-            })
-            ->with(['booking.room.property.landlord'])
-            ->orderByDesc('created_at')
-            ->get();
-
-        $leaveRequests = collect();
-        if (Schema::hasTable('leave_requests')) {
-            $leaveRequests = LeaveRequest::query()
-                ->where('student_id', $student->id)
-                ->with(['booking.room.property.landlord'])
-                ->orderByDesc('created_at')
-                ->get();
+        // Determine student lifecycle state
+        if ($hasCurrentApprovedBooking && $currentApprovedOnboardingStatus !== 'completed') {
+            $lifecycleState = 'move_in_pending';
+        } elseif (! empty($latestPendingBooking)) {
+            $lifecycleState = 'booking_pending';
+        } elseif ($ratingReminders->isNotEmpty()) {
+            $lifecycleState = 'completed_stay';
+        } else {
+            $lifecycleState = 'searching';
         }
 
-        $currentBookingLeaveRequests = collect();
-        if (! empty($currentApprovedBooking)) {
-            $currentBookingLeaveRequests = $leaveRequests->where('booking_id', $currentApprovedBooking->id)->values();
-        }
-
-        // Roommates panel: onboarded students in the same room
-        $roommates = collect();
-        $roommatesCount = 0;
-        $roomCapacity = null;
-        if (! empty($currentApprovedBooking) && ! empty($currentApprovedBooking->room_id)) {
-            $roomCapacity = $currentApprovedBooking->room?->capacity;
-
-            $roommates = Booking::query()
-                ->where('room_id', $currentApprovedBooking->room_id)
-                ->where('status', 'approved')
-                ->where(function ($q) use ($today) {
-                    $q->whereNull('check_out')
-                        ->orWhereDate('check_out', '>=', $today);
-                })
-                ->whereHas('tenantOnboarding')
-                ->with(['student'])
-                ->orderByDesc('check_in')
-                ->get();
-
-            $roommatesCount = (int) $roommates->count();
-        }
-
-        $recentReports = $student->reports()
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        // Properties the student has booked (used to restrict messaging to the property owner)
-        $messageProperties = \App\Models\Property::query()
-            ->join('rooms', 'rooms.property_id', '=', 'properties.id')
-            ->join('bookings', 'bookings.room_id', '=', 'rooms.id')
-            ->where('bookings.student_id', $student->id)
-            ->whereIn('bookings.status', ['pending', 'approved'])
-            ->select('properties.id', 'properties.name', 'properties.landlord_id')
-            ->distinct()
-            ->orderBy('properties.name')
-            ->get();
-
-        // Personalize: infer preferred capacity from latest approved booking
-        $latestApproved = $student->bookings()
-            ->where('status', 'approved')
-            ->latest()
-            ->with('room')
-            ->first();
-        $preferredCapacity = $latestApproved && $latestApproved->room ? max(1, (int) $latestApproved->room->capacity) : 1;
-
-        // Filters from query string
+        // Bounded, eager-loaded featured rooms for accommodation discovery (limit 8)
+        $search = trim((string) $request->query('q', ''));
         $minPrice = $request->query('min_price');
         $maxPrice = $request->query('max_price');
         $minCapacity = $request->query('capacity');
-        $search = $request->query('q');
 
-        // Recommended rooms (rooms with available slots; apply user filters if provided)
-        // Don't filter by status='available' - instead check actual occupancy
-        $recommendedRooms = Room::with('property.landlord')
-            ->where('status', '!=', 'maintenance') // Exclude maintenance rooms
+        $featuredRoomsQuery = Room::with(['property.landlord', 'roomImages', 'feedbacks'])
+            ->withAvg('feedbacks', 'rating')
+            ->withCount('feedbacks')
+            ->where('status', '!=', 'maintenance')
             ->whereHas('property', function ($q) {
                 $q->visibleToAudience();
             })
+            ->where('slots_available', '>', 0)
             ->when($minCapacity !== null && $minCapacity !== '', function ($q) use ($minCapacity) {
                 $q->where('capacity', '>=', (int) $minCapacity);
             })
@@ -2817,64 +2713,42 @@ class AuthController extends Controller
             ->when($maxPrice !== null && $maxPrice !== '', function ($q) use ($maxPrice) {
                 $q->where('price', '<=', (float) $maxPrice);
             })
-            ->when($search && $search !== '', function ($q) use ($search) {
+            ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('room_number', 'like', "%$search%")
                         ->orWhereHas('property', fn ($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
                 });
             })
-            ->orderBy('price')
-            ->get()
-            ->filter(fn ($room) => $room->hasAvailableSlots()) // Filter by actual occupancy
-            ->values()
-            ->take(6);
+            ->orderBy('price');
 
-        // All rooms with occupancy info (exclude maintenance)
-        $allRooms = Room::with('property.landlord')
-            ->where('status', '!=', 'maintenance') // Exclude maintenance rooms
-            ->whereHas('property', function ($q) {
-                $q->visibleToAudience();
-            })
-            ->when($minCapacity !== null && $minCapacity !== '', function ($q) use ($minCapacity) {
-                $q->where('capacity', '>=', (int) $minCapacity);
-            })
-            ->when($minPrice !== null && $minPrice !== '', function ($q) use ($minPrice) {
-                $q->where('price', '>=', (float) $minPrice);
-            })
-            ->when($maxPrice !== null && $maxPrice !== '', function ($q) use ($maxPrice) {
-                $q->where('price', '<=', (float) $maxPrice);
-            })
-            ->when($search && $search !== '', function ($q) use ($search) {
-                $q->where(function ($qq) use ($search) {
-                    $qq->where('room_number', 'like', "%$search%")
-                        ->orWhereHas('property', fn ($pq) => $pq->where('name', 'like', "%$search%")->orWhere('address', 'like', "%$search%"));
-                });
-            })
-            ->orderBy('property_id')
-            ->orderBy('room_number')
-            ->get();
+        $featuredRooms = $featuredRoomsQuery->limit(8)->get();
+        $recommendedRooms = $featuredRooms; // Backward-compatibility
+        $allRooms = $featuredRooms; // Backward-compatibility
 
+        $totalAvailableRoomsCount = Room::where('status', '!=', 'maintenance')
+            ->whereHas('property', fn ($q) => $q->visibleToAudience())
+            ->where('slots_available', '>', 0)
+            ->count();
+
+        // Lightweight backward-compatibility placeholders
+        $latestOnboarding = $currentApprovedBooking?->tenantOnboarding;
+        $allOnboardings = collect();
+        $recentBookings = collect();
+        $recentMessages = collect();
+        $recentReports = collect();
+        $messageProperties = collect();
+        $messageThreads = collect();
+        $leaveRequests = collect();
+        $currentBookingLeaveRequests = collect();
+        $roommates = collect();
+        $roommatesCount = 0;
+        $roomCapacity = null;
+        $allProperties = collect();
+        $preferredCapacity = 1;
         $newThreshold = now()->subDays(3);
 
-        // All properties with live counts for student reference (boarding houses directory)
-        $allProperties = Property::with(['landlord:id,full_name'])
-            ->visibleToAudience()
-            ->withCount([
-                'rooms as rooms_total_live',
-                'rooms as rooms_available_live' => function ($q) {
-                    $q->where('status', 'available')->where('slots_available', '>', 0);
-                },
-            ])
-            ->when($search && $search !== '', function ($q) use ($search) {
-                $q->where(function ($qq) use ($search) {
-                    $qq->where('name', 'like', "%$search%")
-                        ->orWhere('address', 'like', "%$search%");
-                });
-            })
-            ->orderBy('name')
-            ->get();
-
         return view('student.dashboard', compact(
+            'lifecycleState', 'latestPendingBooking', 'featuredRooms', 'totalAvailableRoomsCount',
             'activeBookingsCount', 'pendingBookingsCount', 'messagesCount', 'unreadMessagesCount', 'notificationsCount',
             'recommendedRooms', 'allRooms', 'preferredCapacity', 'minPrice', 'maxPrice', 'minCapacity', 'newThreshold', 'allProperties',
             'totalReports', 'reportsWithResponses', 'unreadResponsesCount',
@@ -2884,7 +2758,8 @@ class AuthController extends Controller
             'currentApprovedBooking', 'hasCurrentApprovedBooking',
             'showApprovedBookingModal',
             'leaveRequests', 'currentBookingLeaveRequests',
-            'roommates', 'roommatesCount', 'roomCapacity'
+            'roommates', 'roommatesCount', 'roomCapacity',
+            'search'
         ));
     }
 

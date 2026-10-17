@@ -387,6 +387,79 @@
                 padding: 1.25rem;
             }
         }
+
+        /* ── Consumer Marketplace & Listing Cards ── */
+        .room-market-card {
+            border-radius: 1rem;
+            transition: transform .2s ease, box-shadow .2s ease;
+            background: #ffffff;
+            border: 1px solid rgba(2, 8, 20, 0.08) !important;
+        }
+        .room-market-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 30px rgba(2, 8, 20, 0.10) !important;
+        }
+        .room-photo-wrapper {
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+            background: #f1f5f9;
+        }
+        .room-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .35s ease;
+        }
+        .room-market-card:hover .room-photo {
+            transform: scale(1.04);
+        }
+        .room-photo-fallback {
+            min-height: 180px;
+        }
+        .chip-scroll-row {
+            display: flex;
+            gap: .5rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: .25rem;
+        }
+        .chip-scroll-row::-webkit-scrollbar {
+            display: none;
+        }
+        .market-category-chip {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .5rem 1rem;
+            border-radius: 999px;
+            font-size: .84rem;
+            font-weight: 600;
+            color: #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+        .market-category-chip:hover,
+        .market-category-chip.active {
+            background: #14532d;
+            color: #ffffff;
+            border-color: #14532d;
+        }
+        .market-search-bar {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(2, 8, 20, 0.08);
+            border-radius: 999px;
+            padding: .35rem .5rem .35rem 1.25rem;
+            transition: box-shadow .2s ease, border-color .2s ease;
+        }
+        .market-search-bar:focus-within {
+            border-color: #166534;
+            box-shadow: 0 6px 24px rgba(22, 101, 52, 0.16);
+        }
     </style>
 </head>
 <body>
@@ -416,8 +489,8 @@
             </div>
             <div class="d-flex align-items-center gap-3 ms-auto">
                 <div class="top-meta d-none d-lg-block text-end">
-                    <div>Workspace</div>
-                    <div class="fw-semibold">Student Operations</div>
+                    <div class="small text-muted">MinSU Housing</div>
+                    <div class="fw-semibold text-dark">Student Portal</div>
                 </div>
                 <span class="icon-btn-wrap">
                     <a class="icon-btn" href="{{ route('notifications.index') }}" title="Notifications">
