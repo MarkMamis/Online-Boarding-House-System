@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Property;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
@@ -12,20 +12,20 @@ class StudentPropertyController extends Controller
 {
     public function show(Property $property)
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
-        if (!Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
+        if (! Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
             abort(404);
         }
         // Load landlord and rooms
-        $property->load(['landlord:id,full_name', 'rooms' => function($q){
+        $property->load(['landlord:id,full_name', 'rooms' => function ($q) {
             $q->orderBy('room_number');
         }])->loadCount([
             'rooms as rooms_total_live',
-            'rooms as rooms_available_live' => function($q){
-                $q->where('status','available')->where('slots_available', '>', 0);
+            'rooms as rooms_available_live' => function ($q) {
+                $q->where('status', 'available')->where('slots_available', '>', 0);
             },
         ]);
 
@@ -34,7 +34,7 @@ class StudentPropertyController extends Controller
 
     public function map(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
@@ -45,7 +45,7 @@ class StudentPropertyController extends Controller
         $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
         $amenityOptions = (array) config('property_amenities.flat', []);
         $amenity = trim((string) $request->query('amenity', ''));
-        if (!$supportsBuildingInclusions || ($amenity !== '' && !array_key_exists($amenity, $amenityOptions))) {
+        if (! $supportsBuildingInclusions || ($amenity !== '' && ! array_key_exists($amenity, $amenityOptions))) {
             $amenity = '';
         }
 
@@ -60,7 +60,7 @@ class StudentPropertyController extends Controller
             ->when($search && $search !== '', function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('name', 'like', "%$search%")
-                       ->orWhere('address', 'like', "%$search%");
+                        ->orWhere('address', 'like', "%$search%");
                 });
             })
             ->when($amenity !== '', function ($q) use ($amenity) {
@@ -82,7 +82,7 @@ class StudentPropertyController extends Controller
 
     public function mapData(Request $request): JsonResponse
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
@@ -90,7 +90,7 @@ class StudentPropertyController extends Controller
         $supportsBuildingInclusions = Schema::hasColumn('properties', 'building_inclusions');
         $amenityOptions = (array) config('property_amenities.flat', []);
         $amenity = trim((string) $request->query('amenity', ''));
-        if (!$supportsBuildingInclusions || ($amenity !== '' && !array_key_exists($amenity, $amenityOptions))) {
+        if (! $supportsBuildingInclusions || ($amenity !== '' && ! array_key_exists($amenity, $amenityOptions))) {
             $amenity = '';
         }
 
@@ -117,6 +117,8 @@ class StudentPropertyController extends Controller
                     $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
+            ->withMin('rooms as computed_min_price', 'price')
+            ->withMax('rooms as computed_max_price', 'price')
             ->orderBy('name')
             ->get($selectColumns);
 
@@ -130,6 +132,9 @@ class StudentPropertyController extends Controller
                 ->values()
                 ->all();
 
+            $minPrice = $p->price_min !== null ? (float) $p->price_min : ($p->computed_min_price !== null ? (float) $p->computed_min_price : null);
+            $maxPrice = $p->price_max !== null ? (float) $p->price_max : ($p->computed_max_price !== null ? (float) $p->computed_max_price : null);
+
             return [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -137,8 +142,8 @@ class StudentPropertyController extends Controller
                 'lat' => (float) $p->latitude,
                 'lng' => (float) $p->longitude,
                 'available_rooms' => (int) ($p->available_rooms ?? 0),
-                'price_min' => $p->price_min !== null ? (float) $p->price_min : null,
-                'price_max' => $p->price_max !== null ? (float) $p->price_max : null,
+                'price_min' => $minPrice,
+                'price_max' => $maxPrice,
                 'image_url' => $imageExists ? file_url($imagePath) : null,
                 'inclusions' => $inclusions,
             ];
@@ -151,11 +156,11 @@ class StudentPropertyController extends Controller
 
     public function roomsData(Property $property): JsonResponse
     {
-        if (!Auth::check() || Auth::user()->role !== 'student') {
+        if (! Auth::check() || Auth::user()->role !== 'student') {
             abort(403);
         }
 
-        if (!Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
+        if (! Property::query()->visibleToAudience()->whereKey($property->id)->exists()) {
             abort(404);
         }
 

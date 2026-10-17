@@ -13,13 +13,13 @@
 
     /* ── Hero cover ── */
     .sr-hero {
-        width: 100%; aspect-ratio: 16/6; object-fit: cover;
+        width: 100%; aspect-ratio: 16/9; max-height: 440px; object-fit: cover;
         border-radius: 1rem; display: block;
         border: 1px solid rgba(2,8,20,.08);
         box-shadow: 0 4px 18px rgba(2,8,20,.10);
     }
     .sr-hero-placeholder {
-        aspect-ratio: 16/6; background: #f1f5f9; border-radius: 1rem;
+        aspect-ratio: 16/9; max-height: 440px; background: #f1f5f9; border-radius: 1rem;
         border: 1px solid rgba(2,8,20,.08);
         display:flex; align-items:center; justify-content:center; color:#94a3b8;
     }
@@ -148,7 +148,7 @@
     }
 
     @media (max-width: 991.98px) {
-        .sr-hero, .sr-hero-placeholder { aspect-ratio: 16/8; }
+        .sr-hero, .sr-hero-placeholder { aspect-ratio: 4/3; max-height: 320px; }
     }
 </style>
 @endpush
@@ -463,7 +463,7 @@
 @else
 {{-- Breadcrumb --}}
 <div class="sr-back-bar">
-    <a href="{{ route('student.dashboard') }}#browse-rooms"><i class="bi bi-arrow-left me-1"></i>Browse Rooms</a>
+    <a href="{{ route('student.rooms.index') }}"><i class="bi bi-arrow-left me-1"></i>Explore Rooms</a>
     <span class="sep"><i class="bi bi-chevron-right"></i></span>
     <span class="cur">Room {{ $displayNum }}</span>
 </div>

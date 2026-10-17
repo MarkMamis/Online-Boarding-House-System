@@ -389,7 +389,7 @@
                 };
 
                 const formatPriceLabel = (minPrice, maxPrice) => {
-                    if (minPrice === null && maxPrice === null) return 'Price TBD';
+                    if (minPrice === null && maxPrice === null) return 'View Rooms';
                     if (minPrice !== null && maxPrice !== null && Number(minPrice) !== Number(maxPrice)) {
                         return `₱${Number(minPrice).toLocaleString()}-₱${Number(maxPrice).toLocaleString()}`;
                     }
