@@ -75,6 +75,16 @@
         </div>
     </div>
 
+    {{-- Sub-navigation Tabs --}}
+    <div class="d-flex flex-wrap gap-2 mb-3 border-bottom pb-2">
+        <a href="{{ route('admin.approvals.students') }}" class="btn btn-sm btn-brand">
+            <i class="bi bi-person-vcard me-1"></i> Student Enrollment Verification
+        </a>
+        <a href="{{ route('admin.identity_recoveries.index') }}" class="btn btn-sm btn-light border text-muted">
+            <i class="bi bi-shield-lock me-1"></i> Identity Recovery Requests
+        </a>
+    </div>
+
     {{-- Filter Segmented Tabs --}}
     <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <div class="d-flex flex-wrap gap-1">

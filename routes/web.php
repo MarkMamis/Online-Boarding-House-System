@@ -33,6 +33,8 @@ use App\Http\Controllers\LandlordMonitoringController;
 use App\Http\Controllers\AdminLandlordDocumentController;
 use App\Http\Controllers\AdminAnalyticsController;
 use App\Http\Controllers\AdminInstitutionalReportController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\AdminIdentityRecoveryController;
 use App\Models\Room;
 use App\Models\Property;
 use App\Models\User;
@@ -186,6 +188,14 @@ Route::get('/register/landlord', [AuthController::class, 'showRegisterLandlordFo
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Password Reset & Secure Account Recovery
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email')->middleware('throttle:6,1');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+});
+
 Route::get('/unauthorized', function () {
     return response()->view('errors.unauthorized', [], 403);
 })->name('unauthorized');
@@ -310,6 +320,11 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/users/students/{user}', [AuthController::class, 'adminStudentDetails'])->name('admin.users.students.show');
     Route::get('/admin/users/students/{user}/edit', [AuthController::class, 'adminEditStudent'])->name('admin.users.students.edit');
     Route::put('/admin/users/students/{user}', [AuthController::class, 'adminUpdateStudent'])->name('admin.users.students.update');
+
+    // Admin Identity Recovery Review
+    Route::get('/admin/identity-recoveries', [AdminIdentityRecoveryController::class, 'index'])->name('admin.identity_recoveries.index');
+    Route::post('/admin/identity-recoveries/{recovery}/approve', [AdminIdentityRecoveryController::class, 'approve'])->name('admin.identity_recoveries.approve');
+    Route::post('/admin/identity-recoveries/{recovery}/reject', [AdminIdentityRecoveryController::class, 'reject'])->name('admin.identity_recoveries.reject');
 
     // Admin landlord document verification & monitoring
     Route::get('/admin/documents/verification', [AdminLandlordDocumentController::class, 'verification'])->name('admin.documents.verification');
@@ -468,6 +483,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
     Route::get('/student/setup', [StudentSetupController::class, 'show'])->name('student.setup.show');
     Route::put('/student/setup', [StudentSetupController::class, 'update'])->name('student.setup.update');
     Route::post('/student/setup/check-student-id', [StudentSetupController::class, 'checkStudentId'])->name('student.setup.check_student_id')->middleware('throttle:60,1');
+    Route::post('/student/setup/recovery-request', [StudentSetupController::class, 'storeRecoveryRequest'])->name('student.setup.recovery_request')->middleware('throttle:10,1');
 
     Route::middleware(['student.setup'])->group(function () {
         Route::get('/student/dashboard', [AuthController::class, 'studentDashboard'])->name('student.dashboard');
