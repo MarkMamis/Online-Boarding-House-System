@@ -373,6 +373,141 @@
             outline-offset: 2px;
         }
 
+        /* Save & Return to Review Button */
+        .btn-save-return-review {
+            padding: .75rem 1.4rem;
+            font-weight: 700;
+            font-size: .92rem;
+            border-radius: 999px;
+            border: 1.5px solid var(--premium-emerald-deep);
+            background: rgba(16, 185, 129, .08);
+            color: var(--premium-emerald-deep);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-save-return-review:hover {
+            background: var(--premium-emerald-deep);
+            color: #ffffff;
+            border-color: var(--premium-emerald-deep);
+            transform: translateY(-1px);
+        }
+
+        /* Review Screen Cards */
+        .review-sections-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .review-card {
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: #ffffff;
+            padding: 1.15rem 1.35rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .review-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: .6rem;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .review-section-title {
+            font-size: .8rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--premium-emerald-deep);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .btn-review-edit {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--brand-dark);
+            text-decoration: none;
+            border-radius: .5rem;
+            padding: .25rem .6rem;
+            background: rgba(20, 83, 45, .06);
+            border: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            transition: all .15s ease;
+            cursor: pointer;
+        }
+
+        .btn-review-edit:hover {
+            background: rgba(20, 83, 45, .14);
+            color: var(--brand);
+        }
+
+        .btn-review-edit:focus-visible {
+            outline: 2px solid var(--premium-emerald);
+            outline-offset: 2px;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: .75rem 1rem;
+        }
+
+        .review-item {
+            display: flex;
+            flex-direction: column;
+            gap: .15rem;
+        }
+
+        .review-label {
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--muted);
+        }
+
+        .review-val {
+            font-size: .92rem;
+            font-weight: 600;
+            color: var(--ink);
+            word-break: break-word;
+        }
+
+        .review-val.is-empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        .review-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: .5rem;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
+        }
+
         @media (max-width: 575.98px) {
             .setup-wrap {
                 padding: 1rem .75rem 2rem;
@@ -389,6 +524,7 @@
             }
 
             .question-actions .btn-prev,
+            .question-actions .btn-save-return-review,
             .question-actions .btn-brand {
                 width: 100%;
             }
@@ -549,6 +685,10 @@
                     </div>
 
                     <div class="question-actions first-question">
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="1" id="btnContinueFromStudentId">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
@@ -597,6 +737,10 @@
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
                         </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="2">
                             <span>Continue</span>
@@ -653,6 +797,10 @@
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="3">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
@@ -707,6 +855,10 @@
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
                         </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="4">
                             <span>Continue</span>
@@ -771,6 +923,10 @@
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="5">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
@@ -832,6 +988,184 @@
 
                     <div class="question-actions">
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="4">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="6">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 6: Review Your Information -->
+                <section class="question-panel" data-question-panel="6">
+                    <div class="question-kicker">Review your information</div>
+                    <h2 class="question-title">Review your information</h2>
+                    <p class="question-subtitle">Make sure your details are correct before submitting.</p>
+
+                    <div class="review-sections-wrap">
+                        <!-- 1. Student Identity -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-person-badge me-1"></i>Student Identity</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="0">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Student ID</span>
+                                    <span class="review-val" id="review_student_id">Not provided</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Personal Details -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-person me-1"></i>Personal Details</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="1">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Full Name</span>
+                                    <span class="review-val" id="review_full_name">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Contact Number</span>
+                                    <span class="review-val" id="review_contact_number">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Profile Photo</span>
+                                    <div id="review_profile_photo_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_profile_photo">Not provided</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Demographics & Location -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-geo-alt me-1"></i>Demographics & Address</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="2">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Birthdate</span>
+                                    <span class="review-val" id="review_birth_date">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Gender</span>
+                                    <span class="review-val" id="review_gender">—</span>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">Permanent Home Address</span>
+                                    <span class="review-val" id="review_street_address">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Academic Standing -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-mortarboard me-1"></i>Academic Information</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="3">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">College</span>
+                                    <span class="review-val" id="review_college">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Program</span>
+                                    <span class="review-val" id="review_program">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Year Level</span>
+                                    <span class="review-val" id="review_year_level">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Academic Verification Documents -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-file-earmark-check me-1"></i>Academic Verification</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="4">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">School ID</span>
+                                    <div id="review_school_id_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_school_id">Not provided</span>
+                                    </div>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Enrollment Proof Type</span>
+                                    <span class="review-val" id="review_enrollment_proof_type">—</span>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">COR / COE Document</span>
+                                    <div id="review_enrollment_proof_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_enrollment_proof_file">—</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Safety & Emergency Contacts -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-shield-plus me-1"></i>Emergency Contact</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="5">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Parent / Guardian Name</span>
+                                    <span class="review-val" id="review_parent_name">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Parent Contact Number</span>
+                                    <span class="review-val" id="review_parent_number">—</span>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">Parent Permanent Address</span>
+                                    <span class="review-val" id="review_parent_address">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Emergency Contact Name</span>
+                                    <span class="review-val" id="review_emergency_name">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Emergency Mobile Number</span>
+                                    <span class="review-val" id="review_emergency_number">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Relationship to Student</span>
+                                    <span class="review-val" id="review_emergency_relationship">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="5">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
@@ -1204,6 +1538,158 @@
             }
 
             // --- Panel Navigation & Visibility ---
+            let editingFromReview = false;
+
+            const populateStudentReviewSummary = function () {
+                // 1. Student Identity
+                const revStudentId = document.getElementById('review_student_id');
+                if (revStudentId && studentIdInput) {
+                    const sidVal = (studentIdInput.value || '').trim();
+                    if (sidVal) {
+                        revStudentId.textContent = sidVal;
+                        revStudentId.classList.remove('is-empty');
+                    } else {
+                        revStudentId.textContent = 'Not provided';
+                        revStudentId.classList.add('is-empty');
+                    }
+                }
+
+                // 2. Personal Details
+                const revFullName = document.getElementById('review_full_name');
+                const fullNameInput = form.querySelector('[name="full_name"]');
+                if (revFullName && fullNameInput) {
+                    const fnVal = (fullNameInput.value || '').trim();
+                    revFullName.textContent = fnVal || '—';
+                }
+
+                const revContact = document.getElementById('review_contact_number');
+                const contactInput = form.querySelector('[name="contact_number"]');
+                if (revContact && contactInput) {
+                    const cVal = (contactInput.value || '').trim();
+                    revContact.textContent = cVal || '—';
+                }
+
+                const revPhotoWrap = document.getElementById('review_profile_photo_wrap');
+                if (revPhotoWrap) {
+                    if (profileInput && profileInput.files && profileInput.files[0]) {
+                        const file = profileInput.files[0];
+                        const url = URL.createObjectURL(file);
+                        revPhotoWrap.innerHTML = `<img src="${url}" class="review-thumb" alt="Profile photo preview"><span class="review-val">${file.name}</span>`;
+                    } else if (profilePreview && !profilePreview.classList.contains('d-none') && profilePreview.src) {
+                        revPhotoWrap.innerHTML = `<img src="${profilePreview.src}" class="review-thumb" alt="Profile photo"><span class="review-val text-muted">Current photo on record</span>`;
+                    } else {
+                        revPhotoWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                // 3. Demographics & Address
+                const revBirthDate = document.getElementById('review_birth_date');
+                const birthInput = form.querySelector('[name="birth_date"]');
+                if (revBirthDate && birthInput) {
+                    const bVal = (birthInput.value || '').trim();
+                    if (bVal) {
+                        try {
+                            const d = new Date(bVal + 'T00:00:00');
+                            revBirthDate.textContent = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                            revBirthDate.classList.remove('is-empty');
+                        } catch (e) {
+                            revBirthDate.textContent = bVal;
+                        }
+                    } else {
+                        revBirthDate.textContent = 'Not provided';
+                        revBirthDate.classList.add('is-empty');
+                    }
+                }
+
+                const revGender = document.getElementById('review_gender');
+                if (revGender && genderSelect) {
+                    let gVal = genderSelect.value;
+                    if (gVal === 'Other' && genderCustomInput && genderCustomInput.value.trim()) {
+                        gVal = genderCustomInput.value.trim();
+                    }
+                    revGender.textContent = gVal || '—';
+                }
+
+                const revAddress = document.getElementById('review_street_address');
+                if (revAddress && homeAddressInput) {
+                    revAddress.textContent = (homeAddressInput.value || '').trim() || '—';
+                }
+
+                // 4. Academic Standing
+                const revCollege = document.getElementById('review_college');
+                if (revCollege && collegeSelect) {
+                    const selOpt = collegeSelect.selectedOptions[0];
+                    revCollege.textContent = selOpt && selOpt.value ? selOpt.textContent.trim() : (collegeSelect.value || '—');
+                }
+
+                const revProgram = document.getElementById('review_program');
+                if (revProgram && programSelect) {
+                    revProgram.textContent = programSelect.value || '—';
+                }
+
+                const revYearLevel = document.getElementById('review_year_level');
+                if (revYearLevel && yearLevelInput) {
+                    revYearLevel.textContent = yearLevelInput.value || '—';
+                }
+
+                // 5. Academic Verification
+                const revSchoolIdWrap = document.getElementById('review_school_id_wrap');
+                if (revSchoolIdWrap) {
+                    if (schoolIdInput && schoolIdInput.files && schoolIdInput.files[0]) {
+                        const file = schoolIdInput.files[0];
+                        const url = URL.createObjectURL(file);
+                        revSchoolIdWrap.innerHTML = `<img src="${url}" class="review-thumb" alt="School ID preview"><span class="review-val">${file.name}</span>`;
+                    } else if (schoolIdPreview && !schoolIdPreview.classList.contains('d-none') && schoolIdPreview.src) {
+                        revSchoolIdWrap.innerHTML = `<img src="${schoolIdPreview.src}" class="review-thumb" alt="School ID"><span class="review-val text-muted">Current file on record</span>`;
+                    } else {
+                        revSchoolIdWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                const revProofType = document.getElementById('review_enrollment_proof_type');
+                if (revProofType && enrollmentProofType) {
+                    const sel = enrollmentProofType.selectedOptions[0];
+                    revProofType.textContent = sel && sel.value ? sel.textContent.trim() : (enrollmentProofType.value ? enrollmentProofType.value.toUpperCase() : '—');
+                }
+
+                const revProofWrap = document.getElementById('review_enrollment_proof_wrap');
+                if (revProofWrap) {
+                    if (enrollmentProofFile && enrollmentProofFile.files && enrollmentProofFile.files[0]) {
+                        const file = enrollmentProofFile.files[0];
+                        revProofWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val">${file.name}</span>`;
+                    } else if (enrollmentProofFile && enrollmentProofFile.dataset.hasExisting === '1') {
+                        revProofWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val text-muted">Current proof document on record</span>`;
+                    } else {
+                        revProofWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                // 6. Safety & Emergency Contacts
+                const revParentName = document.getElementById('review_parent_name');
+                const parentNameInput = form.querySelector('[name="parent_contact_name"]');
+                if (revParentName && parentNameInput) revParentName.textContent = (parentNameInput.value || '').trim() || '—';
+
+                const revParentNum = document.getElementById('review_parent_number');
+                const parentNumInput = form.querySelector('[name="parent_contact_number"]');
+                if (revParentNum && parentNumInput) revParentNum.textContent = (parentNumInput.value || '').trim() || '—';
+
+                const revParentAddr = document.getElementById('review_parent_address');
+                const parentAddrInput = form.querySelector('[name="parent_contact_address"]');
+                if (revParentAddr && parentAddrInput) revParentAddr.textContent = (parentAddrInput.value || '').trim() || '—';
+
+                const revEmergName = document.getElementById('review_emergency_name');
+                const emergNameInput = form.querySelector('[name="emergency_contact_name"]');
+                if (revEmergName && emergNameInput) revEmergName.textContent = (emergNameInput.value || '').trim() || '—';
+
+                const revEmergNum = document.getElementById('review_emergency_number');
+                const emergNumInput = form.querySelector('[name="emergency_contact_number"]');
+                if (revEmergNum && emergNumInput) revEmergNum.textContent = (emergNumInput.value || '').trim() || '—';
+
+                const revEmergRel = document.getElementById('review_emergency_relationship');
+                const emergRelInput = form.querySelector('[name="emergency_contact_relationship"]');
+                if (revEmergRel && emergRelInput) revEmergRel.textContent = (emergRelInput.value || '').trim() || '—';
+            };
+
             const updateActivePanel = function () {
                 questionPanels.forEach((panel, index) => {
                     panel.classList.toggle('active', index === currentPanel);
@@ -1213,6 +1699,11 @@
 
             const moveToPanel = function (targetIndex) {
                 currentPanel = Math.max(0, Math.min(questionPanels.length - 1, targetIndex));
+                if (currentPanel === 6) {
+                    populateStudentReviewSummary();
+                    editingFromReview = false;
+                    document.querySelectorAll('.btn-save-return-review').forEach((b) => b.classList.add('d-none'));
+                }
                 updateActivePanel();
             };
 
@@ -1435,6 +1926,61 @@
                 });
             });
 
+            // --- Edit Section & Save-Return Listeners ---
+            document.querySelectorAll('.btn-review-edit').forEach((button) => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetIndex = Number(button.getAttribute('data-edit-panel'));
+                    editingFromReview = true;
+                    document.querySelectorAll('.btn-save-return-review').forEach((b) => b.classList.remove('d-none'));
+                    moveToPanel(targetIndex);
+                });
+            });
+
+            document.querySelectorAll('.btn-save-return-review').forEach((button) => {
+                button.addEventListener('click', async function (e) {
+                    e.preventDefault();
+
+                    // If saving from Student ID panel (Panel 0)
+                    if (currentPanel === 0 && studentIdInput) {
+                        const val = (studentIdInput.value || '').trim();
+                        if (val !== '') {
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+                        } else {
+                            currentStudentIdCheckState = 'idle';
+                            lastCheckedStudentId = '';
+                            studentIdInput.classList.remove('is-valid', 'is-invalid');
+                            if (studentIdFeedback) studentIdFeedback.innerHTML = '';
+                            hideConflictCard();
+                        }
+                    }
+
+                    if (!validatePanel(currentPanel)) {
+                        return;
+                    }
+
+                    moveToPanel(6);
+                });
+            });
+
             // Automatically clear client validation on user edit
             if (form) {
                 ['input', 'change'].forEach((eventName) => {
@@ -1449,9 +1995,6 @@
 
                 form.addEventListener('submit', async function (event) {
                     if (studentIdInput) {
-                        if (academicStudentIdInput) {
-                            studentIdInput.value = academicStudentIdInput.value.trim();
-                        }
                         const val = (studentIdInput.value || '').trim();
                         if (val !== '') {
                             if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
@@ -1480,7 +2023,7 @@
                         }
                     }
 
-                    for (let i = 0; i < questionPanels.length; i++) {
+                    for (let i = 0; i < 6; i++) {
                         if (!validatePanel(i)) {
                             moveToPanel(i);
                             event.preventDefault();

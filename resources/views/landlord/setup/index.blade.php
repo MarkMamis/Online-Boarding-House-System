@@ -441,6 +441,151 @@
             color: #b91c1c;
         }
 
+        /* Save & Return to Review Button */
+        .btn-save-return-review {
+            padding: .75rem 1.4rem;
+            font-weight: 700;
+            font-size: .92rem;
+            border-radius: 999px;
+            border: 1.5px solid var(--premium-emerald-deep);
+            background: rgba(16, 185, 129, .08);
+            color: var(--premium-emerald-deep);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-save-return-review:hover {
+            background: var(--premium-emerald-deep);
+            color: #ffffff;
+            border-color: var(--premium-emerald-deep);
+            transform: translateY(-1px);
+        }
+
+        /* Review Screen Cards */
+        .review-sections-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .review-card {
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: #ffffff;
+            padding: 1.15rem 1.35rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .review-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: .6rem;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .review-section-title {
+            font-size: .8rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--premium-emerald-deep);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .btn-review-edit {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--brand-dark);
+            text-decoration: none;
+            border-radius: .5rem;
+            padding: .25rem .6rem;
+            background: rgba(20, 83, 45, .06);
+            border: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            transition: all .15s ease;
+            cursor: pointer;
+        }
+
+        .btn-review-edit:hover {
+            background: rgba(20, 83, 45, .14);
+            color: var(--brand);
+        }
+
+        .btn-review-edit:focus-visible {
+            outline: 2px solid var(--premium-emerald);
+            outline-offset: 2px;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: .75rem 1rem;
+        }
+
+        .review-item {
+            display: flex;
+            flex-direction: column;
+            gap: .15rem;
+        }
+
+        .review-label {
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--muted);
+        }
+
+        .review-val {
+            font-size: .92rem;
+            font-weight: 600;
+            color: var(--ink);
+            word-break: break-word;
+        }
+
+        .review-val.is-empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        .review-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: .5rem;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
+        }
+
+        .review-sig-preview {
+            max-height: 44px;
+            max-width: 160px;
+            object-fit: contain;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: .4rem;
+            padding: 2px 6px;
+        }
+
         @media (max-width: 575.98px) {
             .setup-wrap {
                 padding: 1rem .75rem 2rem;
@@ -461,6 +606,7 @@
             }
 
             .question-actions .btn-prev,
+            .question-actions .btn-save-return-review,
             .question-actions .btn-brand {
                 width: 100%;
             }
@@ -577,6 +723,10 @@
                     </div>
 
                     <div class="question-actions first-question">
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="1">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
@@ -629,6 +779,10 @@
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
                         </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="2">
                             <span>Continue</span>
@@ -685,6 +839,10 @@
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="1">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
                         </button>
                         <button type="button" class="btn btn-brand btn-next-question" data-target="3">
                             <span>Continue</span>
@@ -790,6 +948,146 @@
 
                     <div class="question-actions">
                         <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-save-return-review d-none">
+                            <i class="bi bi-arrow-return-left"></i>
+                            <span>Save & Return to Review</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="4">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 4: Review Your Information -->
+                <section class="question-panel" data-question-panel="4">
+                    <div class="question-kicker">Review your information</div>
+                    <h2 class="question-title">Review your information</h2>
+                    <p class="question-subtitle">Make sure your details are correct before submitting.</p>
+
+                    <div class="review-sections-wrap">
+                        <!-- 1. Landlord Information -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-person-vcard me-1"></i>Landlord Details</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="0">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Full Name</span>
+                                    <span class="review-val" id="review_landlord_name">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Contact Number</span>
+                                    <span class="review-val" id="review_landlord_contact">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Email Address</span>
+                                    <span class="review-val" id="review_landlord_email">{{ $user->email }}</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Boarding House Name</span>
+                                    <span class="review-val" id="review_boarding_house">—</span>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">Boarding House Address</span>
+                                    <span class="review-val" id="review_landlord_address">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Description & Media -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-card-text me-1"></i>Profile & Signature</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="1">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Profile Photo</span>
+                                    <div id="review_landlord_photo_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_landlord_photo">Not provided</span>
+                                    </div>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Contract E-Signature</span>
+                                    <div id="review_signature_wrap" class="mt-1">
+                                        <span class="review-val" id="review_signature_val">Not provided</span>
+                                    </div>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">About / Description</span>
+                                    <span class="review-val" id="review_about_me">Not provided</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Legal Compliance -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-patch-check me-1"></i>Accreditation Permits</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="2">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Business Permit</span>
+                                    <div id="review_permit_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_business_permit">Not provided</span>
+                                    </div>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Safety Certificate</span>
+                                    <div id="review_safety_wrap" class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="review-val" id="review_safety_cert">Not provided</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Payment Preferences -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-credit-card me-1"></i>Payment Preferences</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="3">
+                                    <i class="bi bi-pencil-square"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">Accepted Payment Methods</span>
+                                    <div id="review_payment_methods" class="d-flex flex-wrap gap-1 mt-1">
+                                        <span class="review-val is-empty">None selected</span>
+                                    </div>
+                                </div>
+                                <div class="review-item" id="review_bank_details_item">
+                                    <span class="review-label">Bank Account</span>
+                                    <span class="review-val" id="review_bank_details">Not provided</span>
+                                </div>
+                                <div class="review-item" id="review_gcash_details_item">
+                                    <span class="review-label">GCash Account</span>
+                                    <div id="review_gcash_details_wrap">
+                                        <span class="review-val" id="review_gcash_details">Not provided</span>
+                                    </div>
+                                </div>
+                                <div class="review-item" style="grid-column: 1 / -1;">
+                                    <span class="review-label">Payment Instructions</span>
+                                    <span class="review-val" id="review_payment_instructions">Not provided</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="3">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
@@ -956,8 +1254,171 @@
                 return isValid;
             };
 
+            let editingFromReview = false;
+
+            const populateLandlordReviewSummary = function () {
+                // 1. Landlord Details
+                const revName = document.getElementById('review_landlord_name');
+                const nameInput = form.querySelector('[name="full_name"]');
+                if (revName && nameInput) revName.textContent = (nameInput.value || '').trim() || '—';
+
+                const revContact = document.getElementById('review_landlord_contact');
+                const contactInput = form.querySelector('[name="contact_number"]');
+                if (revContact && contactInput) revContact.textContent = (contactInput.value || '').trim() || '—';
+
+                const revEmail = document.getElementById('review_landlord_email');
+                const emailInput = form.querySelector('[name="email"]');
+                if (revEmail && emailInput) revEmail.textContent = (emailInput.value || '').trim() || '—';
+
+                const revHouse = document.getElementById('review_boarding_house');
+                const houseInput = form.querySelector('[name="boarding_house_name"]');
+                if (revHouse && houseInput) revHouse.textContent = (houseInput.value || '').trim() || '—';
+
+                const revAddress = document.getElementById('review_landlord_address');
+                const addressInput = document.getElementById('landlordAddressInput') || form.querySelector('[name="address"]');
+                if (revAddress && addressInput) revAddress.textContent = (addressInput.value || '').trim() || '—';
+
+                // 2. Profile & Signature
+                const revPhotoWrap = document.getElementById('review_landlord_photo_wrap');
+                if (revPhotoWrap) {
+                    if (profileInput && profileInput.files && profileInput.files[0]) {
+                        const file = profileInput.files[0];
+                        const url = URL.createObjectURL(file);
+                        revPhotoWrap.innerHTML = `<img src="${url}" class="review-thumb" alt="Profile photo preview"><span class="review-val">${file.name}</span>`;
+                    } else if (profilePreview && !profilePreview.classList.contains('d-none') && profilePreview.src) {
+                        revPhotoWrap.innerHTML = `<img src="${profilePreview.src}" class="review-thumb" alt="Profile photo"><span class="review-val text-muted">Current photo on record</span>`;
+                    } else {
+                        revPhotoWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                const revSigWrap = document.getElementById('review_signature_wrap');
+                if (revSigWrap) {
+                    const sigInput = document.getElementById('landlordSetupSignatureInput') || form.querySelector('[name="contract_signature_data"]');
+                    const sigVal = sigInput ? sigInput.value.trim() : '';
+                    const serverSigUrl = @json($hasContractSignature ? file_download_url(optional($landlordProfile)->contract_signature_path) : null);
+                    if (sigVal && sigVal.startsWith('data:image/')) {
+                        revSigWrap.innerHTML = `<img src="${sigVal}" class="review-sig-preview" alt="Contract signature preview">`;
+                    } else if (serverSigUrl) {
+                        revSigWrap.innerHTML = `<img src="${serverSigUrl}" class="review-sig-preview" alt="Current contract signature">`;
+                    } else {
+                        revSigWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                const revAbout = document.getElementById('review_about_me');
+                const aboutInput = form.querySelector('[name="about"]');
+                if (revAbout && aboutInput) {
+                    const aVal = (aboutInput.value || '').trim();
+                    if (aVal) {
+                        revAbout.textContent = aVal;
+                        revAbout.classList.remove('is-empty');
+                    } else {
+                        revAbout.textContent = 'Not provided';
+                        revAbout.classList.add('is-empty');
+                    }
+                }
+
+                // 3. Legal Compliance
+                const revPermitWrap = document.getElementById('review_permit_wrap');
+                const permitInput = form.querySelector('[name="business_permit"]');
+                if (revPermitWrap) {
+                    if (permitInput && permitInput.files && permitInput.files[0]) {
+                        const file = permitInput.files[0];
+                        revPermitWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val">${file.name}</span>`;
+                    } else if (@json($hasBusinessPermit)) {
+                        revPermitWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val text-muted">Current permit on record</span>`;
+                    } else {
+                        revPermitWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                const revSafetyWrap = document.getElementById('review_safety_wrap');
+                const safetyInput = form.querySelector('[name="safety_certificate"]');
+                if (revSafetyWrap) {
+                    if (safetyInput && safetyInput.files && safetyInput.files[0]) {
+                        const file = safetyInput.files[0];
+                        revSafetyWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val">${file.name}</span>`;
+                    } else if (@json($hasSafetyCertificate)) {
+                        revSafetyWrap.innerHTML = `<i class="bi bi-file-earmark-check text-success fs-5"></i><span class="review-val text-muted">Current certificate on record</span>`;
+                    } else {
+                        revSafetyWrap.innerHTML = `<span class="review-val is-empty">Not provided</span>`;
+                    }
+                }
+
+                // 4. Payment Preferences
+                const revMethodsWrap = document.getElementById('review_payment_methods');
+                const selectedMethods = Array.from(form.querySelectorAll('.payment-method-toggle:checked')).map((c) => c.value);
+                if (revMethodsWrap) {
+                    if (selectedMethods.length === 0) {
+                        revMethodsWrap.innerHTML = `<span class="review-val is-empty">None selected</span>`;
+                    } else {
+                        const methodLabels = { bank: 'Bank Transfer', gcash: 'GCash', cash: 'Cash' };
+                        revMethodsWrap.innerHTML = selectedMethods
+                            .map((m) => `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-1">${methodLabels[m] || m}</span>`)
+                            .join(' ');
+                    }
+                }
+
+                const revBankDetails = document.getElementById('review_bank_details');
+                const revBankItem = document.getElementById('review_bank_details_item');
+                if (revBankDetails && revBankItem) {
+                    if (selectedMethods.includes('bank')) {
+                        revBankItem.style.display = '';
+                        const bName = (form.querySelector('[name="payment_bank_name"]')?.value || '').trim();
+                        const accName = (form.querySelector('[name="payment_account_name"]')?.value || '').trim();
+                        const accNum = (form.querySelector('[name="payment_account_number"]')?.value || '').trim();
+                        let parts = [];
+                        if (bName) parts.push(`Bank: ${bName}`);
+                        if (accName) parts.push(`Holder: ${accName}`);
+                        if (accNum) parts.push(`Account: ${accNum}`);
+                        revBankDetails.textContent = parts.join(' | ') || 'Details pending';
+                        revBankDetails.classList.remove('is-empty');
+                    } else {
+                        revBankItem.style.display = 'none';
+                    }
+                }
+
+                const revGcashDetailsWrap = document.getElementById('review_gcash_details_wrap');
+                const revGcashItem = document.getElementById('review_gcash_details_item');
+                if (revGcashDetailsWrap && revGcashItem) {
+                    if (selectedMethods.includes('gcash')) {
+                        revGcashItem.style.display = '';
+                        const gName = (form.querySelector('[name="payment_gcash_name"]')?.value || '').trim();
+                        const gNum = (form.querySelector('[name="payment_gcash_number"]')?.value || '').trim();
+                        const gQrInput = form.querySelector('[name="payment_gcash_qr"]');
+                        const hasQr = (gQrInput && gQrInput.files && gQrInput.files[0]) || @json(!empty(optional($landlordProfile)->payment_gcash_qr_path));
+                        let html = `<span class="review-val">Name: ${gName || '—'} | Mobile: ${gNum || '—'}</span>`;
+                        if (hasQr) {
+                            html += ` <span class="badge bg-light text-dark border ms-1"><i class="bi bi-qr-code me-1"></i>QR Attached</span>`;
+                        }
+                        revGcashDetailsWrap.innerHTML = html;
+                    } else {
+                        revGcashItem.style.display = 'none';
+                    }
+                }
+
+                const revInstructions = document.getElementById('review_payment_instructions');
+                const instInput = form.querySelector('[name="payment_instructions"]');
+                if (revInstructions && instInput) {
+                    const instVal = (instInput.value || '').trim();
+                    if (instVal) {
+                        revInstructions.textContent = instVal;
+                        revInstructions.classList.remove('is-empty');
+                    } else {
+                        revInstructions.textContent = 'Not provided';
+                        revInstructions.classList.add('is-empty');
+                    }
+                }
+            };
+
             const moveToPanel = function (targetIndex) {
                 currentPanel = Math.max(0, Math.min(questionPanels.length - 1, targetIndex));
+                if (currentPanel === 4) {
+                    populateLandlordReviewSummary();
+                    editingFromReview = false;
+                    document.querySelectorAll('.btn-save-return-review').forEach((b) => b.classList.add('d-none'));
+                }
                 updateActivePanel();
             };
 
@@ -976,6 +1437,25 @@
                 });
             });
 
+            // Edit Section & Save-Return Listeners
+            document.querySelectorAll('.btn-review-edit').forEach((button) => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetIndex = Number(button.getAttribute('data-edit-panel'));
+                    editingFromReview = true;
+                    document.querySelectorAll('.btn-save-return-review').forEach((b) => b.classList.remove('d-none'));
+                    moveToPanel(targetIndex);
+                });
+            });
+
+            document.querySelectorAll('.btn-save-return-review').forEach((button) => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (!validatePanel(currentPanel)) return;
+                    moveToPanel(4);
+                });
+            });
+
             // Automatically clear client validation on user edit
             if (form) {
                 ['input', 'change'].forEach((eventName) => {
@@ -987,7 +1467,7 @@
                 });
 
                 form.addEventListener('submit', function (event) {
-                    for (let i = 0; i < questionPanels.length; i++) {
+                    for (let i = 0; i < 4; i++) {
                         if (!validatePanel(i)) {
                             moveToPanel(i);
                             event.preventDefault();
