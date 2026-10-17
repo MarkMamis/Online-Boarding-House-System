@@ -602,8 +602,9 @@
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
-                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }}>
+                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }} autocomplete="off">
                             <div id="student_id_help" class="field-hint {{ $isFirstYearSelected ? '' : 'd-none' }}">Optional for 1st Year while official ID is pending.</div>
+                            <div id="student_id_feedback" class="mt-1 small" role="status" aria-live="polite"></div>
                             @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -766,6 +767,9 @@
             const studentIdInput = document.getElementById('student_id');
             const studentIdLabel = document.getElementById('studentIdLabel');
             const studentIdHelp = document.getElementById('student_id_help');
+            const studentIdFeedback = document.getElementById('student_id_feedback');
+            const checkStudentIdUrl = @json(route('student.setup.check_student_id'));
+            const initialStudentId = @json(trim((string) ($user->student_id ?? '')));
             const schoolIdLabel = document.getElementById('schoolIdLabel');
             const schoolIdHelp = document.getElementById('school_id_help');
             const enrollmentProofType = document.getElementById('enrollment_proof_type');
@@ -779,6 +783,174 @@
             const homeAddressInput = document.getElementById('homeAddressInput');
             const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
             const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
+
+            // --- Student ID Real-time Availability State ---
+            let currentStudentIdCheckState = initialStudentId ? 'available' : 'idle';
+            let lastCheckedStudentId = initialStudentId;
+            let studentIdAbortController = null;
+            let studentIdDebounceTimer = null;
+            let studentIdRequestId = 0;
+
+            const renderStudentIdFeedback = function (state, message, showRetry = false) {
+                if (!studentIdFeedback || !studentIdInput) return;
+                studentIdInput.classList.remove('is-valid', 'is-invalid');
+
+                if (state === 'checking') {
+                    studentIdFeedback.innerHTML = `<span class="spinner-border spinner-border-sm me-1 text-muted" role="status" aria-hidden="true"></span><span class="text-muted">${message}</span>`;
+                } else if (state === 'available') {
+                    studentIdInput.classList.add('is-valid');
+                    studentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
+                } else if (state === 'taken') {
+                    studentIdInput.classList.add('is-invalid');
+                    studentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
+                } else if (state === 'invalid_format') {
+                    studentIdInput.classList.add('is-invalid');
+                    studentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
+                } else if (state === 'failed') {
+                    studentIdInput.classList.add('is-invalid');
+                    let html = `<i class="bi bi-exclamation-triangle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
+                    if (showRetry) {
+                        html += `<button type="button" class="btn btn-link btn-sm p-0 ms-1 text-danger fw-bold text-decoration-underline" id="retryStudentIdCheckBtn">Retry</button>`;
+                    }
+                    studentIdFeedback.innerHTML = html;
+                    const retryBtn = document.getElementById('retryStudentIdCheckBtn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            performStudentIdCheck((studentIdInput.value || '').trim());
+                        });
+                    }
+                } else {
+                    studentIdFeedback.innerHTML = '';
+                }
+            };
+
+            const performStudentIdCheck = function (rawVal) {
+                const val = (rawVal || '').trim();
+                if (val === '') {
+                    currentStudentIdCheckState = 'idle';
+                    lastCheckedStudentId = '';
+                    renderStudentIdFeedback('idle', '');
+                    return Promise.resolve({ available: false, state: 'idle' });
+                }
+
+                if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                    currentStudentIdCheckState = 'invalid_format';
+                    renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                    return Promise.resolve({ available: false, state: 'invalid_format' });
+                }
+
+                if (initialStudentId && val.toLowerCase() === initialStudentId.toLowerCase()) {
+                    currentStudentIdCheckState = 'available';
+                    lastCheckedStudentId = val;
+                    renderStudentIdFeedback('available', 'Student ID is available (currently assigned to your account).');
+                    return Promise.resolve({ available: true, state: 'available' });
+                }
+
+                if (studentIdAbortController) {
+                    studentIdAbortController.abort();
+                }
+                studentIdAbortController = new AbortController();
+                const reqId = ++studentIdRequestId;
+
+                currentStudentIdCheckState = 'checking';
+                renderStudentIdFeedback('checking', 'Checking Student ID...');
+
+                const token = document.querySelector('input[name="_token"]')?.value || '';
+
+                return fetch(checkStudentIdUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ student_id: val }),
+                    signal: studentIdAbortController.signal
+                })
+                .then(async function (response) {
+                    if (reqId !== studentIdRequestId) return { available: false, state: 'stale' };
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (response.status === 422) {
+                        currentStudentIdCheckState = data.status === 'taken' ? 'taken' : 'invalid_format';
+                        renderStudentIdFeedback(currentStudentIdCheckState, data.message || 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        return { available: false, state: currentStudentIdCheckState };
+                    }
+
+                    if (response.status === 429) {
+                        currentStudentIdCheckState = 'failed';
+                        renderStudentIdFeedback('failed', 'Too many check attempts. Please wait a moment and try again.', true);
+                        return { available: false, state: 'failed' };
+                    }
+
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
+                    if (reqId !== studentIdRequestId) return { available: false, state: 'stale' };
+
+                    if (data.available) {
+                        currentStudentIdCheckState = 'available';
+                        lastCheckedStudentId = val;
+                        renderStudentIdFeedback('available', data.message || 'Student ID is available.');
+                        return { available: true, state: 'available' };
+                    } else {
+                        currentStudentIdCheckState = data.status === 'invalid_format' ? 'invalid_format' : 'taken';
+                        renderStudentIdFeedback(currentStudentIdCheckState, data.message || 'This Student ID is already registered. Please check your ID.');
+                        return { available: false, state: currentStudentIdCheckState };
+                    }
+                })
+                .catch(function (err) {
+                    if (err.name === 'AbortError') {
+                        return { available: false, state: 'aborted' };
+                    }
+                    if (reqId !== studentIdRequestId) return { available: false, state: 'stale' };
+
+                    currentStudentIdCheckState = 'failed';
+                    renderStudentIdFeedback('failed', 'Unable to check Student ID right now. ', true);
+                    return { available: false, state: 'failed' };
+                });
+            };
+
+            if (studentIdInput) {
+                studentIdInput.addEventListener('input', function () {
+                    clearTimeout(studentIdDebounceTimer);
+                    const val = (studentIdInput.value || '').trim();
+
+                    if (val === '') {
+                        if (studentIdAbortController) studentIdAbortController.abort();
+                        currentStudentIdCheckState = 'idle';
+                        lastCheckedStudentId = '';
+                        renderStudentIdFeedback('idle', '');
+                        return;
+                    }
+
+                    // Format check
+                    if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                        if (studentIdAbortController) studentIdAbortController.abort();
+                        currentStudentIdCheckState = 'invalid_format';
+                        renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        return;
+                    }
+
+                    if (val.toLowerCase() === lastCheckedStudentId.toLowerCase() && currentStudentIdCheckState === 'available') {
+                        return;
+                    }
+
+                    // Invalidate previous state while user is typing
+                    if (studentIdAbortController) studentIdAbortController.abort();
+                    currentStudentIdCheckState = 'idle';
+                    studentIdInput.classList.remove('is-valid', 'is-invalid');
+                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
+
+                    studentIdDebounceTimer = setTimeout(function () {
+                        performStudentIdCheck(val);
+                    }, 500);
+                });
+            }
 
             // --- Panel Navigation & Visibility ---
             const updateActivePanel = function () {
@@ -859,7 +1031,31 @@
                     }
                 }
 
-                // 2. File size & format checks if file is selected
+                // 2. Student ID availability check state validation
+                if (field === studentIdInput && value !== '') {
+                    if (!/^[A-Za-z0-9\-]{3,50}$/.test(value)) {
+                        renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        return false;
+                    }
+                    if (currentStudentIdCheckState === 'taken') {
+                        renderStudentIdFeedback('taken', 'This Student ID is already registered. Please check your ID.');
+                        return false;
+                    }
+                    if (currentStudentIdCheckState === 'invalid_format') {
+                        renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                        return false;
+                    }
+                    if (currentStudentIdCheckState === 'failed') {
+                        renderStudentIdFeedback('failed', 'Unable to check Student ID right now. ', true);
+                        return false;
+                    }
+                    if (currentStudentIdCheckState === 'checking') {
+                        renderStudentIdFeedback('checking', 'Checking Student ID availability, please wait...');
+                        return false;
+                    }
+                }
+
+                // 3. File size & format checks if file is selected
                 if (field.type === 'file' && field.files && field.files.length > 0) {
                     const file = field.files[0];
                     let maxMb = 3;
@@ -885,7 +1081,7 @@
                     }
                 }
 
-                // 3. Philippine mobile phone validation
+                // 4. Philippine mobile phone validation
                 if (field.classList.contains('ph-contact-number')) {
                     if (value !== '' && !/^09\d{9}$/.test(value)) {
                         showFieldError(field, 'Use 11-digit Philippine mobile format: 09XXXXXXXXX.');
@@ -893,7 +1089,7 @@
                     }
                 }
 
-                // 4. HTML5 Constraint Validation
+                // 5. HTML5 Constraint Validation
                 if (!field.checkValidity()) {
                     showFieldError(field, field.validationMessage || 'Please provide a valid value.');
                     return false;
@@ -934,8 +1130,23 @@
 
             // --- Navigation Button Listeners ---
             document.querySelectorAll('.btn-next-question').forEach((button) => {
-                button.addEventListener('click', function (e) {
+                button.addEventListener('click', async function (e) {
                     e.preventDefault();
+                    if (button.disabled) return;
+
+                    // If advancing from Academic panel (Panel 2) with a Student ID that is not yet verified
+                    if (currentPanel === 2 && studentIdInput) {
+                        const val = (studentIdInput.value || '').trim();
+                        if (val !== '' && (currentStudentIdCheckState === 'idle' || currentStudentIdCheckState === 'checking')) {
+                            const checkResult = await performStudentIdCheck(val);
+                            if (!checkResult.available) {
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+                        }
+                    }
+
                     if (!validatePanel(currentPanel)) {
                         return;
                     }
@@ -957,12 +1168,28 @@
                 ['input', 'change'].forEach((eventName) => {
                     form.addEventListener(eventName, function (e) {
                         if (e.target && e.target.matches('input, select, textarea')) {
-                            clearFieldError(e.target);
+                            if (e.target !== studentIdInput) {
+                                clearFieldError(e.target);
+                            }
                         }
                     });
                 });
 
-                form.addEventListener('submit', function (event) {
+                form.addEventListener('submit', async function (event) {
+                    if (studentIdInput) {
+                        const val = (studentIdInput.value || '').trim();
+                        if (val !== '' && (currentStudentIdCheckState === 'idle' || currentStudentIdCheckState === 'checking')) {
+                            const checkResult = await performStudentIdCheck(val);
+                            if (!checkResult.available) {
+                                moveToPanel(2);
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                event.preventDefault();
+                                return;
+                            }
+                        }
+                    }
+
                     for (let i = 0; i < questionPanels.length; i++) {
                         if (!validatePanel(i)) {
                             moveToPanel(i);
@@ -977,6 +1204,7 @@
                     }
                 });
             }
+
 
             // --- Image Preview Handlers ---
             if (profileInput && profilePreview) {

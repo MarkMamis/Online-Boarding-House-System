@@ -467,6 +467,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
     // Dedicated student verification setup (accessible before full portal unlock)
     Route::get('/student/setup', [StudentSetupController::class, 'show'])->name('student.setup.show');
     Route::put('/student/setup', [StudentSetupController::class, 'update'])->name('student.setup.update');
+    Route::post('/student/setup/check-student-id', [StudentSetupController::class, 'checkStudentId'])->name('student.setup.check_student_id')->middleware('throttle:60,1');
 
     Route::middleware(['student.setup'])->group(function () {
         Route::get('/student/dashboard', [AuthController::class, 'studentDashboard'])->name('student.dashboard');

@@ -300,4 +300,183 @@ class UnifiedOnboardingExperienceTest extends TestCase
         $this->assertEquals('Santos Boarding Haven', $refreshed->boarding_house_name);
         $this->assertTrue((bool) $refreshed->landlordProfile->profile_completed);
     }
+
+    public function test_realtime_check_returns_available_for_unused_student_id(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2026-99999',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+                'message' => 'Student ID is available.',
+            ])
+            ->assertJsonMissing(['id', 'email', 'name', 'full_name']);
+    }
+
+    public function test_realtime_check_returns_unavailable_for_existing_student_id(): void
+    {
+        $existing = $this->createUser([
+            'role' => 'student',
+            'student_id' => 'MCC2024-11111',
+            'onboarding_complete' => true,
+        ]);
+
+        $currentUser = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        // Case-insensitive test
+        $response = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'mcc2024-11111',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'available' => false,
+                'valid' => true,
+                'status' => 'taken',
+                'message' => 'This Student ID is already registered. Please check your ID.',
+            ])
+            ->assertJsonMissing([
+                'id' => $existing->id,
+                'email' => $existing->email,
+                'name' => $existing->name,
+            ]);
+    }
+
+    public function test_realtime_check_returns_available_for_own_existing_student_id(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'student_id' => 'MCC2024-00123',
+            'onboarding_complete' => false,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'mcc2024-00123',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+            ]);
+    }
+
+    public function test_realtime_check_rejects_invalid_format(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'ID@INVALID!',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'available' => false,
+                'valid' => false,
+                'status' => 'invalid_format',
+            ]);
+    }
+
+    public function test_realtime_check_requires_authentication(): void
+    {
+        $response = $this->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2026-99999',
+        ]);
+
+        // Unauthenticated JSON request should receive 401 or redirect to login
+        $this->assertTrue(in_array($response->status(), [401, 302, 403]));
+    }
+
+    public function test_realtime_check_rejects_unauthorized_role(): void
+    {
+        $landlord = $this->createUser([
+            'role' => 'landlord',
+            'onboarding_complete' => true,
+        ]);
+
+        $response = $this->actingAs($landlord)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2026-99999',
+        ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_realtime_check_rate_limiting(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        for ($i = 0; $i < 60; $i++) {
+            $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+                'student_id' => 'MCC2026-' . sprintf('%05d', $i),
+            ]);
+        }
+
+        $rateLimitedResponse = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2026-99999',
+        ]);
+
+        $rateLimitedResponse->assertStatus(429);
+    }
+
+    public function test_final_submission_rejects_duplicate_student_id(): void
+    {
+        $otherStudent = $this->createUser([
+            'role' => 'student',
+            'student_id' => 'MCC2024-88888',
+            'onboarding_complete' => true,
+        ]);
+
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+        $schoolIdPhoto = UploadedFile::fake()->image('school_id.jpg');
+        $corFile = UploadedFile::fake()->create('cor.pdf', 500, 'application/pdf');
+
+        $response = $this->actingAs($user)->put(route('student.setup.update'), [
+            'full_name' => 'Test Student',
+            'contact_number' => '09171234567',
+            'birth_date' => '2003-05-15',
+            'gender' => 'Male',
+            'address' => 'Masipit, Calapan City, Oriental Mindoro',
+            'college' => 'CCS',
+            'program' => 'Bachelor of Science in Information Technology',
+            'year_level' => '2nd Year',
+            'student_id' => 'MCC2024-88888', // Duplicate of $otherStudent
+            'profile_image' => $profilePhoto,
+            'school_id_photo' => $schoolIdPhoto,
+            'enrollment_proof_type' => 'cor',
+            'enrollment_proof_file' => $corFile,
+            'parent_contact_name' => 'Maria Dela Cruz',
+            'parent_contact_number' => '09179876543',
+            'parent_contact_address' => 'Masipit, Calapan City, Oriental Mindoro',
+            'emergency_contact_name' => 'Pedro Dela Cruz',
+            'emergency_contact_number' => '09181112233',
+            'emergency_contact_relationship' => 'Father',
+        ]);
+
+        $response->assertSessionHasErrors(['student_id']);
+        $this->assertFalse((bool) $user->fresh()->onboarding_complete);
+    }
 }

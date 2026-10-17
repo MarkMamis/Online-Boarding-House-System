@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Services\AcademicCatalogService;
+use App\Models\User;
 
 class StudentSetupController extends Controller
 {
@@ -34,10 +35,78 @@ class StudentSetupController extends Controller
         ));
     }
 
+    public function checkStudentId(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|string|max:50',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'available' => false,
+                'valid' => false,
+                'status' => 'invalid_format',
+                'message' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
+            ], 422);
+        }
+
+        $studentId = trim((string) $request->input('student_id'));
+
+        // Validate format (alphanumeric with hyphens, 3-50 characters)
+        if (!preg_match('/^[A-Za-z0-9\-]{3,50}$/', $studentId)) {
+            return response()->json([
+                'available' => false,
+                'valid' => false,
+                'status' => 'invalid_format',
+                'message' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
+            ], 422);
+        }
+
+        // Ownership check: If this Student ID belongs to the current user, it is available to them
+        if (filled($user->student_id) && strcasecmp(trim($user->student_id), $studentId) === 0) {
+            return response()->json([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+                'message' => 'Student ID is available (currently assigned to your account).',
+            ]);
+        }
+
+        // Check if any other user in the database has this student_id (case-insensitive)
+        $isTaken = User::where('id', '!=', $user->id)
+            ->whereNotNull('student_id')
+            ->whereRaw('LOWER(TRIM(student_id)) = ?', [strtolower($studentId)])
+            ->exists();
+
+        if ($isTaken) {
+            return response()->json([
+                'available' => false,
+                'valid' => true,
+                'status' => 'taken',
+                'message' => 'This Student ID is already registered. Please check your ID.',
+            ]);
+        }
+
+        return response()->json([
+            'available' => true,
+            'valid' => true,
+            'status' => 'available',
+            'message' => 'Student ID is available.',
+        ]);
+    }
+
     public function update(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+
+        if ($request->has('student_id')) {
+            $trimmedStudentId = trim((string) $request->input('student_id'));
+            $request->merge(['student_id' => $trimmedStudentId !== '' ? $trimmedStudentId : null]);
+        }
 
         if (!$request->filled('program') && $request->filled('course')) {
             $request->merge(['program' => $request->input('course')]);
@@ -99,10 +168,12 @@ class StudentSetupController extends Controller
             'emergency_contact_number.regex' => 'Emergency contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'parent_contact_number.regex' => 'Parent or guardian number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'student_id.required' => 'Student ID is required for 2nd year and above.',
+            'student_id.unique' => 'This Student ID is already registered. Please check your ID.',
             'birth_date.required' => 'Birthdate is required.',
             'birth_date.after_or_equal' => 'Birthdate must be January 1, 1920 or later.',
             'enrollment_proof_file.required' => 'COR or COE file is required before completing setup.',
         ]);
+
 
         $validator->after(function ($validator) use ($request, $academicCatalog) {
             $college = trim((string) $request->input('college', ''));
