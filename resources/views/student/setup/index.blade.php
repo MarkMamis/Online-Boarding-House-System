@@ -3,193 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Verification Setup</title>
+    <title>Student Verification Setup - Online Boarding House System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
     <style>
         :root {
             --brand: #14532d;
             --brand-dark: #166534;
+            --premium-emerald: #10b981;
+            --premium-emerald-deep: #047857;
             --ink: #0f172a;
+            --muted: #64748b;
             --line: #e2e8f0;
             --shell: #f8fafc;
-            --step-idle: #cbd5e1;
-            --step-active: #14532d;
-            --step-done: #16a34a;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(760px 320px at -4% -10%, rgba(34, 197, 94, .18), transparent 58%),
-                radial-gradient(860px 340px at 110% -16%, rgba(20, 83, 45, .10), transparent 60%),
-                var(--shell);
             color: var(--ink);
+            background:
+                radial-gradient(800px 380px at -4% -10%, rgba(16, 185, 129, .10), transparent 58%),
+                radial-gradient(860px 400px at 110% -16%, rgba(4, 120, 87, .06), transparent 60%),
+                var(--shell);
             min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .setup-wrap {
-            max-width: 680px;
+            width: min(680px, 100%);
             margin: 0 auto;
-            padding: 1rem .82rem 1.6rem;
+            padding: 1.5rem 1rem 2.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .setup-shell {
-            border: 1px solid rgba(255, 255, 255, .78);
-            border-radius: 1.75rem;
-            background: rgba(255, 255, 255, .95);
-            box-shadow: 0 24px 54px rgba(15, 23, 42, .12);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-
-        .setup-head {
-            display: none;
-        }
-
+        /* Topbar */
         .setup-topbar {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: .9rem;
+            margin-bottom: 1.25rem;
+            padding: 0 .25rem;
+        }
+
+        .setup-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            text-decoration: none;
+            color: var(--brand);
+            font-weight: 800;
+            font-size: 1.05rem;
+            letter-spacing: -.02em;
+        }
+
+        .setup-brand-badge {
+            width: 2rem;
+            height: 2rem;
+            border-radius: .6rem;
+            background: rgba(16, 185, 129, .12);
+            color: var(--premium-emerald-deep);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
         }
 
         .setup-topbar-actions {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: .2rem;
-            justify-content: flex-start;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .setup-topbar-title {
-            font-size: .8rem;
-            font-weight: 800;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            color: #166534;
-            margin: 0;
-        }
-
-        .setup-link {
-            font-size: .86rem;
-            color: #475569;
+        .change-role-link {
+            font-size: .84rem;
+            color: var(--premium-emerald-deep);
+            font-weight: 600;
             text-decoration: none;
-            padding: .1rem 0;
+            transition: color .18s ease;
         }
 
-        .setup-link:hover {
-            color: #14532d;
+        .change-role-link:hover {
+            color: var(--brand);
             text-decoration: underline;
         }
 
-        .setup-main {
-            padding: 1rem 1rem 1.1rem;
-        }
-
-        .stepper-shell {
+        .setup-logout {
             border: 0;
-            border-radius: 0;
             background: transparent;
-            padding: .1rem 0 1rem;
-            margin-bottom: .15rem;
-            box-shadow: none;
-        }
-
-        .stepper-track {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: .5rem;
-            align-items: center;
-        }
-
-        .step-chip {
-            position: relative;
-            padding-top: .7rem;
-            transition: opacity .2s ease;
-        }
-
-        .step-chip::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            border-radius: 999px;
-            background: var(--step-idle);
-        }
-
-        .step-badge {
-            display: none;
-        }
-
-        .step-copy {
-            min-width: 0;
-            text-align: left;
-        }
-
-        .step-label {
-            font-size: .72rem;
-            color: #64748b;
-            margin-bottom: 0;
-            line-height: 1.2;
+            color: var(--muted);
+            font-size: .84rem;
             font-weight: 600;
+            padding: .3rem .6rem;
+            border-radius: .5rem;
+            transition: all .18s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
         }
 
-        .step-title {
+        .setup-logout:hover {
+            color: #b91c1c;
+            background: rgba(239, 68, 68, .08);
+        }
+
+        /* Main Setup Shell */
+        .setup-shell {
+            border: 1px solid rgba(226, 232, 240, .9);
+            border-radius: 1.5rem;
+            background: #ffffff;
+            box-shadow: 0 20px 45px -12px rgba(15, 23, 42, .08);
+            padding: 2.25rem 2rem;
+        }
+
+        /* Question Panel */
+        .question-panel {
             display: none;
         }
 
-        .step-chip.active {
-            opacity: 1;
-        }
-
-        .step-chip.active::before {
-            background: linear-gradient(90deg, #7cf94c, #52d228);
-        }
-
-        .step-chip.active .step-label {
-            color: #14532d;
-        }
-
-        .step-chip.done {
-            opacity: .9;
-        }
-
-        .step-chip.done::before {
-            background: #16a34a;
-        }
-
-        .step-chip.done .step-label {
-            color: #166534;
-        }
-
-        .step-status-text {
-            display: inline-block;
-            font-size: .8rem;
-            color: #166534;
-            font-weight: 700;
-            margin-top: .95rem;
-        }
-
-        .step-panel {
-            display: none;
-        }
-
-        .step-panel.active {
+        .question-panel.active {
             display: block;
+            animation: questionFadeIn .22s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .step-panel-enter {
-            animation: stepFade .24s ease;
-        }
-
-        @keyframes stepFade {
+        @keyframes questionFadeIn {
             from {
                 opacity: 0;
-                transform: translateY(4px);
+                transform: translateY(6px);
             }
             to {
                 opacity: 1;
@@ -197,80 +149,94 @@
             }
         }
 
-        .section-card {
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-            padding: .25rem 0 0;
-            margin-bottom: 0;
-            box-shadow: none;
-        }
-
-        .section-title {
-            display: block;
-            font-size: 1.6rem;
+        .question-kicker {
+            font-size: .75rem;
             font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--premium-emerald-deep);
+            margin-bottom: .45rem;
+        }
+
+        .question-title {
+            font-family: 'Bricolage Grotesque', 'Manrope', system-ui, sans-serif;
+            font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+            font-weight: 800;
+            letter-spacing: -.025em;
+            line-height: 1.2;
+            color: var(--ink);
             margin-bottom: .35rem;
-            letter-spacing: -.02em;
         }
 
-        .section-sub {
-            display: block;
-            font-size: .9rem;
-            color: #64748b;
-            margin-bottom: 1.1rem;
+        .question-subtitle {
+            font-size: .92rem;
+            color: var(--muted);
+            margin-bottom: 1.75rem;
+            line-height: 1.5;
         }
 
+        /* Form Inputs & Controls */
         .form-label {
-            font-weight: 600;
             font-size: .86rem;
+            font-weight: 700;
             color: #334155;
-            margin-bottom: .35rem;
+            margin-bottom: .4rem;
         }
 
-        .form-control,
-        .form-select {
-            border-color: var(--line);
-            border-radius: .9rem;
-            min-height: 46px;
-            padding: .68rem .8rem;
-            background: #fff;
+        .form-control, .form-select {
+            border: 1.5px solid var(--line);
+            border-radius: .75rem;
+            padding: .65rem .95rem;
+            font-size: .95rem;
+            color: var(--ink);
+            background-color: #ffffff;
+            transition: border-color .18s ease, box-shadow .18s ease;
         }
 
-        textarea.form-control {
-            min-height: unset;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #14532d;
-            box-shadow: 0 0 0 .2rem rgba(20, 83, 45, .12);
+        .form-control:focus, .form-select:focus {
+            border-color: var(--premium-emerald);
+            box-shadow: 0 0 0 3.5px rgba(16, 185, 129, .15);
+            outline: 0;
         }
 
         .field-hint {
             font-size: .78rem;
-            color: #64748b;
-            margin-top: .38rem;
+            color: var(--muted);
+            margin-top: .35rem;
+            line-height: 1.4;
         }
 
+        /* Upload previews */
+        .upload-preview {
+            width: 76px;
+            height: 76px;
+            object-fit: cover;
+            border-radius: .85rem;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, .06);
+            flex-shrink: 0;
+        }
+
+        /* PSGC Address Autocomplete */
         .address-suggest-wrap {
             position: relative;
         }
 
         .address-suggestion-menu {
             position: absolute;
-            top: calc(100% + 4px);
+            top: 100%;
             left: 0;
             right: 0;
-            z-index: 40;
-            border: 1px solid rgba(2, 8, 20, .14);
-            border-radius: .75rem;
-            background: #fff;
-            box-shadow: 0 12px 24px rgba(2, 8, 20, .12);
-            padding: .3rem;
-            max-height: 230px;
-            overflow-y: auto;
+            z-index: 1050;
             display: none;
+            max-height: 220px;
+            overflow-y: auto;
+            margin-top: .35rem;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: .75rem;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, .14);
+            padding: .35rem;
         }
 
         .address-suggestion-menu.is-open {
@@ -282,504 +248,540 @@
             border: 0;
             background: transparent;
             text-align: left;
-            border-radius: .55rem;
-            padding: .42rem .55rem;
-            font-size: .86rem;
-            color: #0f172a;
-            line-height: 1.35;
+            padding: .55rem .75rem;
+            border-radius: .5rem;
+            font-size: .88rem;
+            color: var(--ink);
+            transition: background .15s ease;
+            cursor: pointer;
         }
 
-        .address-suggestion-item:hover,
-        .address-suggestion-item:focus {
-            background: rgba(167, 243, 208, .28);
+        .address-suggestion-item:hover, .address-suggestion-item:focus {
+            background: #f1f5f9;
+            color: var(--brand);
             outline: none;
         }
 
-        .upload-preview {
-            width: 86px;
-            height: 86px;
-            border-radius: 1rem;
-            border: 1px solid rgba(2, 8, 20, .08);
-            object-fit: cover;
-            background: #f8fafc;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
-        }
-
-        .step-actions {
+        /* Navigation Actions */
+        .question-actions {
             display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: flex-start;
-            gap: .6rem;
-            margin-top: .5rem;
-            padding-top: .85rem;
-            border-top: 1px solid rgba(15, 23, 42, .05);
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--line);
         }
 
-        .step-actions.has-dual-actions {
-            display: grid;
-            grid-template-columns: 1fr;
+        .question-actions.first-question {
+            justify-content: flex-end;
         }
 
-        @media (min-width: 576px) {
-            .step-actions.has-desktop-dual-actions {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                align-items: end;
-            }
-        }
-
-        .step-actions-right {
-            display: flex;
-            align-items: stretch;
-            gap: .5rem;
-            width: 100%;
-        }
-
-        .step-actions-left {
-            width: 100%;
-        }
-
+        /* Primary Button (.btn-brand) matching landing page */
         .btn-brand {
-            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-            border-color: var(--brand);
-            color: #fff;
-            box-shadow: 0 12px 24px rgba(20, 83, 45, .16);
-        }
-
-        .btn-brand:hover {
-            background: var(--brand-dark);
-            border-color: var(--brand-dark);
-            color: #fff;
-        }
-
-        .btn-next,
-        .btn-prev {
-            border-radius: 999px;
-            width: 100%;
-            min-height: 44px;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            padding: .75rem 1.6rem;
             font-weight: 700;
-        }
-
-        .change-role-link {
-            font-size: .84rem;
-            color: #14532d;
+            font-size: .95rem;
+            border-radius: 999px;
+            border: 1px solid rgba(16, 185, 129, .9);
+            background: linear-gradient(125deg, var(--premium-emerald) 0%, var(--premium-emerald-deep) 100%);
+            color: #ecfdf5;
+            box-shadow: 0 10px 24px rgba(4, 120, 87, .34);
+            transform: translateY(0) scale(1);
+            transition: transform .22s ease, box-shadow .24s ease, background .22s ease, border-color .22s ease, color .22s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            cursor: pointer;
             text-decoration: none;
         }
 
-        .change-role-link:hover {
-            text-decoration: underline;
+        .btn-brand::after {
+            content: "";
+            position: absolute;
+            top: -130%;
+            bottom: -130%;
+            left: -45%;
+            width: 38%;
+            background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,.55) 50%, transparent 90%);
+            transform: translateX(-190%) rotate(18deg);
+            transition: transform .55s ease;
+            pointer-events: none;
+            z-index: 1;
         }
 
-        @media (max-width: 991.98px) {
-            .setup-wrap {
-                max-width: 720px;
-            }
+        .btn-brand:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.01);
+            background: linear-gradient(125deg, #0ea770 0%, #046246 100%);
+            border-color: #0ea770;
+            color: #fff;
+            box-shadow: 0 16px 34px rgba(4, 120, 87, .45);
+        }
+
+        .btn-brand:hover:not(:disabled)::after {
+            transform: translateX(430%) rotate(18deg);
+        }
+
+        .btn-brand:active:not(:disabled) {
+            transform: translateY(0) scale(.99);
+        }
+
+        .btn-brand:focus-visible {
+            outline: 2px solid rgba(16, 185, 129, .72);
+            outline-offset: 2px;
+        }
+
+        .btn-brand:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Secondary Outline Button (.btn-prev) */
+        .btn-prev {
+            padding: .75rem 1.4rem;
+            font-weight: 600;
+            font-size: .92rem;
+            border-radius: 999px;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-prev:hover:not(:disabled) {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+
+        .btn-prev:focus-visible {
+            outline: 2px solid #94a3b8;
+            outline-offset: 2px;
         }
 
         @media (max-width: 575.98px) {
             .setup-wrap {
-                padding: .8rem .7rem 1.25rem;
+                padding: 1rem .75rem 2rem;
             }
 
-            .setup-topbar,
-            .setup-topbar-actions {
-                align-items: flex-start;
+            .setup-shell {
+                padding: 1.5rem 1.15rem;
+                border-radius: 1.25rem;
             }
 
-            .setup-topbar,
-            .setup-topbar-actions {
-                flex-direction: column;
+            .question-actions {
+                flex-direction: column-reverse;
+                gap: .75rem;
             }
 
-            .setup-topbar-actions {
-                gap: .08rem;
-            }
-
-            .setup-main,
-            .setup-head {
-                padding-left: .88rem;
-                padding-right: .88rem;
-            }
-
-            .setup-main {
-                padding: .88rem;
-            }
-
-            .setup-head {
-                padding: 1rem .95rem .75rem;
-            }
-
-            .stepper-shell {
-                padding: .1rem 0 .8rem;
-            }
-
-            .step-chip {
-                padding-top: .58rem;
-            }
-
-            .step-label {
-                font-size: .66rem;
-            }
-
-            .step-actions.has-dual-actions {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                align-items: end;
-            }
-
-            .step-actions-right,
-            .step-actions-left {
+            .question-actions .btn-prev,
+            .question-actions .btn-brand {
                 width: 100%;
             }
 
-            .section-title {
-                font-size: 1.35rem;
+            .setup-topbar-actions {
+                gap: .6rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .question-panel.active {
+                animation: none !important;
+            }
+            .btn-brand, .btn-brand::after, .btn-prev {
+                transition: none !important;
+                transform: none !important;
             }
         }
     </style>
 </head>
 <body>
     <div class="setup-wrap">
-        <div class="setup-topbar px-1">
-            <p class="setup-topbar-title">Student Verification Setup</p>
+        <header class="setup-topbar">
+            <a href="{{ url('/') }}" class="setup-brand">
+                <span class="setup-brand-badge"><i class="bi bi-mortarboard-fill"></i></span>
+                <span>OBHS</span>
+            </a>
             <div class="setup-topbar-actions">
                 @if(!$user->isStudentSetupComplete())
                     <a href="{{ route('onboarding.role.show') }}" class="change-role-link">
-                        Selected the wrong role? Change role
+                        <i class="bi bi-arrow-left-right me-1"></i>Change role
                     </a>
                 @endif
                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                     @csrf
-                    <button type="submit" class="btn btn-link setup-link p-0">Logout</button>
+                    <button type="submit" class="setup-logout" title="Sign out of your account">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Log out</span>
+                    </button>
                 </form>
             </div>
-        </div>
+        </header>
 
-        <div class="setup-shell">
-            <div class="setup-main">
-                    @if(session('error'))
-                        <div class="alert alert-danger">{{ session('error') }}</div>
-                    @endif
+        <main class="setup-shell">
+            @if(session('error'))
+                <div class="alert alert-danger rounded-3 border-0 py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <span>{{ session('error') }}</span>
+                </div>
+            @endif
 
-                    <div class="stepper-shell">
-                        <div class="stepper-track" id="setupStepper">
-                            <div class="step-chip active" data-step-nav="0">
-                                <div class="step-copy">
-                                    <div class="step-label">Personal</div>
-                                </div>
-                            </div>
-                            <div class="step-chip" data-step-nav="1">
-                                <div class="step-copy">
-                                    <div class="step-label">Academic</div>
-                                </div>
-                            </div>
-                            <div class="step-chip" data-step-nav="2">
-                                <div class="step-copy">
-                                    <div class="step-label">Emergency</div>
+            <form method="POST" action="{{ route('student.setup.update') }}" enctype="multipart/form-data" id="studentSetupForm" novalidate>
+                @csrf
+                @method('PUT')
+
+                @php
+                    $selectedGender = old('gender', in_array($user->gender, ['Male', 'Female', 'Other', 'Rather not Say', 'Rather not say']) ? $user->gender : (filled($user->gender) ? 'Other' : ''));
+                    $selectedYearLevel = old('year_level', $user->year_level);
+                    $isFirstYearSelected = $selectedYearLevel === '1st Year';
+                    $selectedEnrollmentProofType = old('enrollment_proof_type', $user->enrollment_proof_type);
+                    $hasEnrollmentProof = !empty($user->enrollment_proof_path);
+                    $collegeMap = $academicCatalog['colleges'] ?? [];
+                    $programMap = $academicCatalog['programs'] ?? [];
+                    $selectedCollege = old('college', $user->college);
+                    $selectedProgram = old('program', $user->program);
+                    $programOptions = $programMap[$selectedCollege] ?? [];
+                    $selectedFullName = old('full_name', $user->full_name ?: $user->name);
+                @endphp
+
+                <!-- PANEL 1: Basic Identity & Contact Number -->
+                <section class="question-panel active" data-question-panel="0">
+                    <div class="question-kicker">Personal details</div>
+                    <h1 class="question-title">What should we call you and how can we reach you?</h1>
+                    <p class="question-subtitle">Enter your full legal name as it appears on university records, active mobile number, and profile picture.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ $selectedFullName }}" placeholder="e.g., Juan Dela Cruz" required>
+                            @error('full_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Mobile Number *</label>
+                            <input type="text" id="contact_number" name="contact_number" class="form-control ph-contact-number @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $user->contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
+                            <div class="field-hint">Must be an 11-digit Philippine mobile format (09XXXXXXXXX).</div>
+                            @error('contact_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Profile Photo *</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if(!empty($user->profile_image_path))
+                                    <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile preview" class="upload-preview">
+                                @else
+                                    <img id="profile_preview" src="" alt="Profile preview" class="upload-preview d-none">
+                                @endif
+                                <div class="w-100">
+                                    <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*" {{ empty($user->profile_image_path) ? 'required' : '' }}>
+                                    <div class="field-hint">JPG, PNG, WEBP, or GIF up to 3MB.</div>
+                                    @error('profile_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                         </div>
-                        <span class="step-status-text" id="stepStatusText">Step 1 of 3</span>
                     </div>
 
-                    <form method="POST" action="{{ route('student.setup.update') }}" enctype="multipart/form-data" id="studentSetupForm">
-                        @csrf
-                        @method('PUT')
+                    <div class="question-actions first-question">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="1">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
 
-                        @php
-                            $selectedGender = old('gender', in_array($user->gender, ['Male', 'Female', 'Other', 'Rather not Say', 'Rather not say']) ? $user->gender : (filled($user->gender) ? 'Other' : ''));
-                            $selectedYearLevel = old('year_level', $user->year_level);
-                            $isFirstYearSelected = $selectedYearLevel === '1st Year';
-                            $selectedEnrollmentProofType = old('enrollment_proof_type', $user->enrollment_proof_type);
-                            $hasEnrollmentProof = !empty($user->enrollment_proof_path);
-                            $collegeMap = $academicCatalog['colleges'] ?? [];
-                            $programMap = $academicCatalog['programs'] ?? [];
-                            $selectedCollege = old('college', $user->college);
-                            $selectedProgram = old('program', $user->program);
-                            $programOptions = $programMap[$selectedCollege] ?? [];
-                            $selectedFullName = old('full_name', $user->full_name ?: $user->name);
-                        @endphp
+                <!-- PANEL 2: Demographics & Permanent Location -->
+                <section class="question-panel" data-question-panel="1">
+                    <div class="question-kicker">Personal details</div>
+                    <h2 class="question-title">Tell us a bit more about yourself</h2>
+                    <p class="question-subtitle">Your birthdate, gender, and permanent home address for student verification.</p>
 
-                        <section class="step-panel active" data-step="0">
-                            <div class="section-card step-panel-enter">
-                                <div class="section-title">Personal Info</div>
-                                <div class="section-sub">Add the basic profile details needed for student verification.</div>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Birthdate *</label>
+                            <input type="date" name="birth_date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', optional($user->birth_date)->format('Y-m-d')) }}" min="1920-01-01" max="{{ now()->toDateString() }}" required>
+                            @error('birth_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
 
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <label class="form-label">Name *</label>
-                                        <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ $selectedFullName }}" required>
-                                        @error('full_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Contact Number *</label>
-                                        <input type="text" id="contact_number" name="contact_number" class="form-control ph-contact-number @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $user->contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
-                                        @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Birthdate *</label>
-                                        <input type="date" name="birth_date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', optional($user->birth_date)->format('Y-m-d')) }}" min="1920-01-01" max="{{ now()->toDateString() }}" required>
-                                        @error('birth_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Gender *</label>
-                                        <select name="gender" id="gender" class="form-select @error('gender') is-invalid @enderror" required>
-                                            <option value="" disabled {{ $selectedGender === '' ? 'selected' : '' }}>Select gender</option>
-                                            <option value="Male" {{ $selectedGender === 'Male' ? 'selected' : '' }}>Male</option>
-                                            <option value="Female" {{ $selectedGender === 'Female' ? 'selected' : '' }}>Female</option>
-                                            <option value="Other" {{ $selectedGender === 'Other' ? 'selected' : '' }}>Other</option>
-                                            <option value="Rather not Say" {{ in_array($selectedGender, ['Rather not Say', 'Rather not say']) ? 'selected' : '' }}>Rather not Say</option>
-                                        </select>
-                                        @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12" id="genderCustomWrap" style="display: none;">
-                                        <label class="form-label">Specify Gender *</label>
-                                        <input type="text" name="gender_custom" id="gender_custom" class="form-control @error('gender_custom') is-invalid @enderror" value="{{ old('gender_custom', $selectedGender === 'Other' && !in_array($user->gender, ['Male', 'Female', 'Other', 'Rather not Say', 'Rather not say']) ? $user->gender : '') }}" maxlength="100" placeholder="Please specify">
-                                        @error('gender_custom')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Home Address *</label>
-                                        <div class="address-suggest-wrap">
-                                            <textarea id="homeAddressInput" name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Start typing barangay..." required>{{ old('address', $user->address) }}</textarea>
-                                            <div id="homeAddressSuggestMenu" class="address-suggestion-menu" role="listbox" aria-label="Home address suggestions"></div>
-                                        </div>
-                                        <div class="field-hint">Format: Barangay, City/Municipality, Province (e.g., Masipit, Calapan City, Oriental Mindoro).</div>
-                                        <div id="homeAddressSuggestStatus" class="small text-muted mt-1"></div>
-                                        @error('address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Profile Photo *</label>
-                                        <div class="d-flex align-items-center gap-3">
-                                            @if(!empty($user->profile_image_path))
-                                                <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile" class="upload-preview">
-                                            @else
-                                                <img id="profile_preview" src="" alt="Profile" class="upload-preview d-none">
-                                            @endif
-                                            <div class="w-100">
-                                                <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*" {{ empty($user->profile_image_path) ? 'required' : '' }}>
-                                                <div class="field-hint">Required. JPG, PNG, WEBP, GIF up to 3MB.</div>
-                                                @error('profile_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Gender *</label>
+                            <select name="gender" id="gender" class="form-select @error('gender') is-invalid @enderror" required>
+                                <option value="" disabled {{ $selectedGender === '' ? 'selected' : '' }}>Select gender</option>
+                                <option value="Male" {{ $selectedGender === 'Male' ? 'selected' : '' }}>Male</option>
+                                <option value="Female" {{ $selectedGender === 'Female' ? 'selected' : '' }}>Female</option>
+                                <option value="Other" {{ $selectedGender === 'Other' ? 'selected' : '' }}>Other</option>
+                                <option value="Rather not Say" {{ in_array($selectedGender, ['Rather not Say', 'Rather not say']) ? 'selected' : '' }}>Rather not Say</option>
+                            </select>
+                            @error('gender')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
 
-                                <div class="step-actions has-dual-actions">
-                                    <div class="step-actions-left">
-                                        <span class="d-block" aria-hidden="true"></span>
+                        <div class="col-12" id="genderCustomWrap" style="display: none;">
+                            <label class="form-label">Specify Gender *</label>
+                            <input type="text" name="gender_custom" id="gender_custom" class="form-control @error('gender_custom') is-invalid @enderror" value="{{ old('gender_custom', $selectedGender === 'Other' && !in_array($user->gender, ['Male', 'Female', 'Other', 'Rather not Say', 'Rather not say']) ? $user->gender : '') }}" maxlength="100" placeholder="Please specify your gender">
+                            @error('gender_custom')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Home Address *</label>
+                            <div class="address-suggest-wrap">
+                                <textarea id="homeAddressInput" name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Start typing barangay or municipality..." required>{{ old('address', $user->address) }}</textarea>
+                                <div id="homeAddressSuggestMenu" class="address-suggestion-menu" role="listbox" aria-label="Home address suggestions"></div>
+                            </div>
+                            <div class="field-hint">Format: Barangay, City/Municipality, Province (e.g., Masipit, Calapan City, Oriental Mindoro).</div>
+                            <div id="homeAddressSuggestStatus" class="small text-muted mt-1"></div>
+                            @error('address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="2">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 3: Academic Standing at MinSU -->
+                <section class="question-panel" data-question-panel="2">
+                    <div class="question-kicker">Academic information</div>
+                    <h2 class="question-title">What is your academic standing at MinSU?</h2>
+                    <p class="question-subtitle">Select your college, degree program, and current year level.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">College *</label>
+                            <select id="college" name="college" class="form-select @error('college') is-invalid @enderror" required>
+                                <option value="">Select college</option>
+                                @foreach($collegeMap as $collegeCode => $collegeName)
+                                    <option value="{{ $collegeCode }}" @selected($selectedCollege === $collegeCode)>
+                                        {{ $collegeCode }} - {{ $collegeName }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('college')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Program *</label>
+                            <select id="program" name="program" class="form-select @error('program') is-invalid @enderror" data-initial-program="{{ $selectedProgram }}" required>
+                                <option value="">Select program</option>
+                                @foreach($programOptions as $programName)
+                                    <option value="{{ $programName }}" @selected($selectedProgram === $programName)>{{ $programName }}</option>
+                                @endforeach
+                            </select>
+                            @error('program')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Year Level *</label>
+                            <select id="year_level" name="year_level" class="form-select @error('year_level') is-invalid @enderror" required>
+                                <option value="" disabled {{ $selectedYearLevel ? '' : 'selected' }}>Select year</option>
+                                @foreach(['1st Year','2nd Year','3rd Year','4th Year'] as $level)
+                                    <option value="{{ $level }}" {{ $selectedYearLevel === $level ? 'selected' : '' }}>{{ $level }}</option>
+                                @endforeach
+                            </select>
+                            @error('year_level')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
+                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }}>
+                            <div id="student_id_help" class="field-hint {{ $isFirstYearSelected ? '' : 'd-none' }}">Optional for 1st Year while official ID is pending.</div>
+                            @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="1">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="3">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 4: Student Verification Documents -->
+                <section class="question-panel" data-question-panel="3">
+                    <div class="question-kicker">Academic verification</div>
+                    <h2 class="question-title">Verify your student enrollment</h2>
+                    <p class="question-subtitle">Upload your school ID and proof of enrollment (COR or COE) to verify your account.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" id="schoolIdLabel">School ID Upload{{ $isFirstYearSelected ? '' : ' *' }}</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if(!empty($user->school_id_path))
+                                    <img id="school_id_preview" src="{{ file_download_url($user->school_id_path) }}" alt="School ID preview" class="upload-preview">
+                                @else
+                                    <img id="school_id_preview" src="" alt="School ID preview" class="upload-preview d-none">
+                                @endif
+                                <div class="w-100">
+                                    <input type="file" name="school_id_photo" id="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*" data-has-existing="{{ empty($user->school_id_path) ? '0' : '1' }}" {{ ($isFirstYearSelected || !empty($user->school_id_path)) ? '' : 'required' }}>
+                                    <div id="school_id_help" class="field-hint">
+                                        {{ $isFirstYearSelected ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.' : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).' }}
                                     </div>
-                                    <div class="step-actions-right">
-                                        <button type="button" class="btn btn-brand btn-next" data-next-step="1">Next Step </button>
-                                    </div>
+                                    @error('school_id_photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
-                        </section>
+                        </div>
 
-                        <section class="step-panel" data-step="1">
-                            <div class="section-card step-panel-enter">
-                                <div class="section-title">Academic Verification</div>
-                                <div class="section-sub">Submit the academic details and proof documents required to continue.</div>
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <label class="form-label">College *</label>
-                                        <select id="college" name="college" class="form-select @error('college') is-invalid @enderror" required>
-                                            <option value="">Select college</option>
-                                            @foreach($collegeMap as $collegeCode => $collegeName)
-                                                <option value="{{ $collegeCode }}" @selected($selectedCollege === $collegeCode)>
-                                                    {{ $collegeCode }} - {{ $collegeName }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('college')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
+                        <div class="col-12">
+                            <label class="form-label">Enrollment Proof Type (COR or COE) *</label>
+                            <select id="enrollment_proof_type" name="enrollment_proof_type" class="form-select @error('enrollment_proof_type') is-invalid @enderror" required>
+                                <option value="" {{ filled($selectedEnrollmentProofType) ? '' : 'selected' }}>Select proof type</option>
+                                <option value="cor" {{ (string) $selectedEnrollmentProofType === 'cor' ? 'selected' : '' }}>Certificate of Registration (COR)</option>
+                                <option value="coe" {{ (string) $selectedEnrollmentProofType === 'coe' ? 'selected' : '' }}>Certificate of Enrollment (COE)</option>
+                            </select>
+                            <div class="field-hint">Choose whichever official enrollment document you currently have available.</div>
+                            @error('enrollment_proof_type')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
 
-                                    <div class="col-12">
-                                        <label class="form-label">Program *</label>
-                                        <select id="program" name="program" class="form-select @error('program') is-invalid @enderror" data-initial-program="{{ $selectedProgram }}" required>
-                                            <option value="">Select program</option>
-                                            @foreach($programOptions as $programName)
-                                                <option value="{{ $programName }}" @selected($selectedProgram === $programName)>{{ $programName }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('program')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">Year Level *</label>
-                                        <select id="year_level" name="year_level" class="form-select @error('year_level') is-invalid @enderror" required>
-                                            <option value="" disabled {{ $selectedYearLevel ? '' : 'selected' }}>Select year</option>
-                                            @foreach(['1st Year','2nd Year','3rd Year','4th Year'] as $level)
-                                                <option value="{{ $level }}" {{ $selectedYearLevel === $level ? 'selected' : '' }}>{{ $level }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('year_level')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
-                                        <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }}>
-                                        <div id="student_id_help" class="field-hint {{ $isFirstYearSelected ? '' : 'd-none' }}">Optional for 1st Year while official ID release is pending.</div>
-                                        @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label" id="schoolIdLabel">School ID Upload{{ $isFirstYearSelected ? '' : ' *' }}</label>
-                                        <div class="d-flex align-items-center gap-3">
-                                            @if(!empty($user->school_id_path))
-                                                <img id="school_id_preview" src="{{ file_download_url($user->school_id_path) }}" alt="School ID" class="upload-preview">
-                                            @else
-                                                <img id="school_id_preview" src="" alt="School ID" class="upload-preview d-none">
-                                            @endif
-                                            <div class="w-100">
-                                                <input type="file" name="school_id_photo" id="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*" data-has-existing="{{ empty($user->school_id_path) ? '0' : '1' }}" {{ ($isFirstYearSelected || !empty($user->school_id_path)) ? '' : 'required' }}>
-                                                <div id="school_id_help" class="field-hint">
-                                                    {{ $isFirstYearSelected ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.' : 'Required for 2nd Year and above. Upload a clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).' }}
-                                                </div>
-                                                @error('school_id_photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Enrollment Proof Type (COR or COE) *</label>
-                                        <select id="enrollment_proof_type" name="enrollment_proof_type" class="form-select @error('enrollment_proof_type') is-invalid @enderror" required>
-                                            <option value="" {{ filled($selectedEnrollmentProofType) ? '' : 'selected' }}>Select proof type</option>
-                                            <option value="cor" {{ (string) $selectedEnrollmentProofType === 'cor' ? 'selected' : '' }}>Certificate of Registration (COR)</option>
-                                            <option value="coe" {{ (string) $selectedEnrollmentProofType === 'coe' ? 'selected' : '' }}>Certificate of Enrollment (COE)</option>
-                                        </select>
-                                        <div class="field-hint">Choose whichever document you have available.</div>
-                                        @error('enrollment_proof_type')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">COR / COE Upload *</label>
-                                        <input type="file" name="enrollment_proof_file" id="enrollment_proof_file" class="form-control @error('enrollment_proof_file') is-invalid @enderror" accept=".pdf,image/*" data-has-existing="{{ $hasEnrollmentProof ? '1' : '0' }}" {{ $hasEnrollmentProof ? '' : 'required' }}>
-                                        <div id="enrollment_proof_help" class="field-hint">
-                                            Accepted: PDF, JPG, PNG, WEBP up to 4MB.
-                                        </div>
-                                        @error('enrollment_proof_file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                        @if($hasEnrollmentProof)
-                                            <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                                <i class="bi bi-file-earmark-arrow-down me-1"></i>View current {{ strtoupper((string) ($user->enrollment_proof_type ?? 'proof')) }} file
-                                            </a>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="step-actions has-dual-actions">
-                                    <div class="step-actions-left">
-                                        <button type="button" class="btn btn-outline-secondary btn-prev" data-prev-step="0">Back</button>
-                                    </div>
-                                    <div class="step-actions-right">
-                                        <button type="button" class="btn btn-brand btn-next" data-next-step="2">Next Step </button>
-                                    </div>
-                                </div>
+                        <div class="col-12">
+                            <label class="form-label">COR / COE Upload *</label>
+                            <input type="file" name="enrollment_proof_file" id="enrollment_proof_file" class="form-control @error('enrollment_proof_file') is-invalid @enderror" accept=".pdf,image/*" data-has-existing="{{ $hasEnrollmentProof ? '1' : '0' }}" {{ $hasEnrollmentProof ? '' : 'required' }}>
+                            <div id="enrollment_proof_help" class="field-hint">
+                                Accepted: PDF, JPG, PNG, WEBP up to 4MB.
                             </div>
-                        </section>
+                            @error('enrollment_proof_file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @if($hasEnrollmentProof)
+                                <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                    <i class="bi bi-file-earmark-arrow-down me-1"></i>View current {{ strtoupper((string) ($user->enrollment_proof_type ?? 'proof')) }} file
+                                </a>
+                            @endif
+                        </div>
+                    </div>
 
-                        <section class="step-panel" data-step="2">
-                            <div class="section-card step-panel-enter">
-                                <div class="section-title">Emergency and Parent Contact</div>
-                                <div class="section-sub">Provide the contact details we need for urgent coordination and safety checks.</div>
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <div class="fw-semibold small text-uppercase text-muted">Parent / Guardian Details</div>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Parent / Guardian Name *</label>
-                                        <input type="text" name="parent_contact_name" class="form-control @error('parent_contact_name') is-invalid @enderror" value="{{ old('parent_contact_name', $user->parent_contact_name) }}" required>
-                                        @error('parent_contact_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Parent / Guardian Number *</label>
-                                        <input type="text" name="parent_contact_number" class="form-control ph-contact-number @error('parent_contact_number') is-invalid @enderror" value="{{ old('parent_contact_number', $user->parent_contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
-                                        @error('parent_contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Parent / Guardian Address *</label>
-                                        <textarea name="parent_contact_address" rows="2" class="form-control @error('parent_contact_address') is-invalid @enderror" required>{{ old('parent_contact_address', $user->parent_contact_address) }}</textarea>
-                                        @error('parent_contact_address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12 pt-1">
-                                        <div class="fw-semibold small text-uppercase text-muted">Emergency Contact Details</div>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Emergency Contact Name *</label>
-                                        <input type="text" name="emergency_contact_name" class="form-control @error('emergency_contact_name') is-invalid @enderror" value="{{ old('emergency_contact_name', $user->emergency_contact_name) }}" required>
-                                        @error('emergency_contact_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Emergency Contact Number *</label>
-                                        <input type="text" name="emergency_contact_number" class="form-control ph-contact-number @error('emergency_contact_number') is-invalid @enderror" value="{{ old('emergency_contact_number', $user->emergency_contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
-                                        @error('emergency_contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Emergency Contact Relationship *</label>
-                                        <input type="text" name="emergency_contact_relationship" class="form-control @error('emergency_contact_relationship') is-invalid @enderror" value="{{ old('emergency_contact_relationship', $user->emergency_contact_relationship) }}" required>
-                                        @error('emergency_contact_relationship')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="4">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
 
-                                <div class="step-actions has-dual-actions has-desktop-dual-actions">
-                                    <div class="step-actions-left">
-                                        <button type="button" class="btn btn-outline-secondary btn-prev" data-prev-step="1">Back</button>
-                                    </div>
-                                    <div class="step-actions-right">
-                                        <button type="submit" class="btn btn-brand rounded-pill px-4">Complete Setup and Unlock Portal</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </form>
-            </div>
-        </div>
+                <!-- PANEL 5: Emergency & Parent Contact -->
+                <section class="question-panel" data-question-panel="4">
+                    <div class="question-kicker">Safety & emergency contacts</div>
+                    <h2 class="question-title">Who should we contact in case of emergency?</h2>
+                    <p class="question-subtitle">Provide your parent or guardian details and an emergency contact for safety coordination.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="fw-bold small text-uppercase text-muted border-bottom pb-1">Parent or Guardian Information</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Parent / Guardian Full Name *</label>
+                            <input type="text" name="parent_contact_name" class="form-control @error('parent_contact_name') is-invalid @enderror" value="{{ old('parent_contact_name', $user->parent_contact_name) }}" placeholder="e.g., Maria Dela Cruz" required>
+                            @error('parent_contact_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Parent / Guardian Mobile Number *</label>
+                            <input type="text" name="parent_contact_number" class="form-control ph-contact-number @error('parent_contact_number') is-invalid @enderror" value="{{ old('parent_contact_number', $user->parent_contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
+                            @error('parent_contact_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Parent / Guardian Permanent Address *</label>
+                            <textarea name="parent_contact_address" rows="2" class="form-control @error('parent_contact_address') is-invalid @enderror" placeholder="Barangay, City/Municipality, Province" required>{{ old('parent_contact_address', $user->parent_contact_address) }}</textarea>
+                            @error('parent_contact_address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12 pt-2">
+                            <div class="fw-bold small text-uppercase text-muted border-bottom pb-1">Designated Emergency Contact</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Emergency Contact Name *</label>
+                            <input type="text" name="emergency_contact_name" class="form-control @error('emergency_contact_name') is-invalid @enderror" value="{{ old('emergency_contact_name', $user->emergency_contact_name) }}" placeholder="e.g., Juan Dela Cruz Sr." required>
+                            @error('emergency_contact_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Emergency Mobile Number *</label>
+                            <input type="text" name="emergency_contact_number" class="form-control ph-contact-number @error('emergency_contact_number') is-invalid @enderror" value="{{ old('emergency_contact_number', $user->emergency_contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
+                            @error('emergency_contact_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Relationship to Student *</label>
+                            <input type="text" name="emergency_contact_relationship" class="form-control @error('emergency_contact_relationship') is-invalid @enderror" value="{{ old('emergency_contact_relationship', $user->emergency_contact_relationship) }}" placeholder="e.g., Father, Mother, Aunt" required>
+                            @error('emergency_contact_relationship')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="3">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="submit" id="submitFormBtn" class="btn btn-brand">
+                            <span>Submit for Verification</span>
+                            <i class="bi bi-check2-circle"></i>
+                        </button>
+                    </div>
+                </section>
+            </form>
+        </main>
     </div>
 
     <script>
         (function () {
             const form = document.getElementById('studentSetupForm');
-            const stepPanels = Array.from(document.querySelectorAll('[data-step]'));
-            const stepNavs = Array.from(document.querySelectorAll('[data-step-nav]'));
-            const stepStatusText = document.getElementById('stepStatusText');
+            const submitBtn = document.getElementById('submitFormBtn');
+            const questionPanels = Array.from(document.querySelectorAll('[data-question-panel]'));
+            let currentPanel = 0;
 
-            let currentStep = 0;
-
-            const updateStepper = function () {
-                stepPanels.forEach((panel, index) => {
-                    panel.classList.toggle('active', index === currentStep);
+            const updateActivePanel = function () {
+                questionPanels.forEach((panel, index) => {
+                    panel.classList.toggle('active', index === currentPanel);
                 });
-
-                stepNavs.forEach((nav, index) => {
-                    nav.classList.remove('active', 'done');
-                    if (index < currentStep) {
-                        nav.classList.add('done');
-                    } else if (index === currentStep) {
-                        nav.classList.add('active');
-                    }
-                });
-
-                if (stepStatusText) {
-                    stepStatusText.textContent = 'Step ' + (currentStep + 1) + ' of ' + stepPanels.length;
-                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const firstInvalidInStep = function (stepIndex) {
-                const panel = stepPanels[stepIndex];
+            const firstInvalidInPanel = function (panelIndex) {
+                const panel = questionPanels[panelIndex];
                 if (!panel) return null;
                 const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
 
                 for (let i = 0; i < fields.length; i++) {
                     const field = fields[i];
                     if (field.disabled) continue;
+                    if (field.offsetParent === null) continue;
                     if (!field.checkValidity()) {
                         return field;
                     }
                 }
-
                 return null;
             };
 
-            const validateStep = function (stepIndex) {
-                const panel = stepPanels[stepIndex];
-                if (!panel) return true;
-
-                const invalidField = firstInvalidInStep(stepIndex);
+            const validatePanel = function (panelIndex) {
+                const invalidField = firstInvalidInPanel(panelIndex);
                 if (!invalidField) return true;
 
                 invalidField.reportValidity();
@@ -787,38 +789,44 @@
                 return false;
             };
 
-            const moveToStep = function (targetStep) {
-                currentStep = Math.max(0, Math.min(stepPanels.length - 1, targetStep));
-                updateStepper();
+            const moveToPanel = function (targetIndex) {
+                currentPanel = Math.max(0, Math.min(questionPanels.length - 1, targetIndex));
+                updateActivePanel();
             };
 
-            document.querySelectorAll('[data-next-step]').forEach((button) => {
+            document.querySelectorAll('.btn-next-question').forEach((button) => {
                 button.addEventListener('click', function () {
-                    if (!validateStep(currentStep)) return;
-                    const targetStep = Number(button.getAttribute('data-next-step'));
-                    moveToStep(targetStep);
+                    if (!validatePanel(currentPanel)) return;
+                    const target = Number(button.getAttribute('data-target'));
+                    moveToPanel(target);
                 });
             });
 
-            document.querySelectorAll('[data-prev-step]').forEach((button) => {
+            document.querySelectorAll('.btn-prev-question').forEach((button) => {
                 button.addEventListener('click', function () {
-                    const targetStep = Number(button.getAttribute('data-prev-step'));
-                    moveToStep(targetStep);
+                    const target = Number(button.getAttribute('data-target'));
+                    moveToPanel(target);
                 });
             });
 
             if (form) {
                 form.addEventListener('submit', function (event) {
-                    for (let i = 0; i < stepPanels.length; i++) {
-                        if (!validateStep(i)) {
-                            moveToStep(i);
+                    for (let i = 0; i < questionPanels.length; i++) {
+                        if (!validatePanel(i)) {
+                            moveToPanel(i);
                             event.preventDefault();
                             return;
                         }
                     }
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span>Submitting verification...</span><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                    }
                 });
             }
 
+            // Image Preview Handlers
             const profileInput = document.getElementById('profile_image');
             const profilePreview = document.getElementById('profile_preview');
             if (profileInput && profilePreview) {
@@ -841,6 +849,7 @@
                 });
             }
 
+            // PSGC Philippine Location Suggestions for Home Address
             const homeAddressInput = document.getElementById('homeAddressInput');
             const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
             const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
@@ -868,13 +877,9 @@
 
                 const fetchJson = function (endpoint) {
                     return fetch(psgcBaseUrl + endpoint, {
-                        headers: {
-                            Accept: 'application/json'
-                        }
+                        headers: { Accept: 'application/json' }
                     }).then(function (response) {
-                        if (!response.ok) {
-                            throw new Error('Unable to load PSGC data.');
-                        }
+                        if (!response.ok) throw new Error('Unable to load PSGC data.');
                         return response.json();
                     });
                 };
@@ -904,9 +909,7 @@
                     indexedBarangays = barangays
                         .map(function (barangayItem) {
                             const barangayName = String(barangayItem?.name || '').trim();
-                            if (!barangayName) {
-                                return null;
-                            }
+                            if (!barangayName) return null;
 
                             const cityCode = normalizeCode(barangayItem?.cityCode) || normalizeCode(barangayItem?.municipalityCode) || normalizeCode(barangayItem?.subMunicipalityCode);
                             const cityRecord = cityCode ? cityByCode.get(cityCode) : null;
@@ -915,9 +918,7 @@
                             const provinceCode = normalizeCode(barangayItem?.provinceCode) || normalizeCode(cityRecord?.provinceCode);
                             const provinceName = provinceCode ? String(provinceByCode.get(provinceCode) || '').trim() : '';
 
-                            if (!cityName || !provinceName) {
-                                return null;
-                            }
+                            if (!cityName || !provinceName) return null;
 
                             const fullAddress = [barangayName, cityName, provinceName].join(', ');
 
@@ -931,13 +932,8 @@
                 };
 
                 const loadDatasets = function () {
-                    if (indexedBarangays.length > 0) {
-                        return Promise.resolve();
-                    }
-
-                    if (datasetsPromise) {
-                        return datasetsPromise;
-                    }
+                    if (indexedBarangays.length > 0) return Promise.resolve();
+                    if (datasetsPromise) return datasetsPromise;
 
                     setAddressStatus('Loading PH location suggestions...', false);
 
@@ -964,30 +960,20 @@
                     for (let i = 0; i < indexedBarangays.length; i += 1) {
                         const item = indexedBarangays[i];
                         if (!item) continue;
-
-                        if (!item.barangayLower.includes(needle) && !item.addressLower.includes(needle)) {
-                            continue;
-                        }
+                        if (!item.barangayLower.includes(needle) && !item.addressLower.includes(needle)) continue;
 
                         const key = item.addressLower;
-                        if (seen.has(key)) {
-                            continue;
-                        }
+                        if (seen.has(key)) continue;
 
                         seen.add(key);
                         suggestions.push(item.address);
-
-                        if (suggestions.length >= 8) {
-                            break;
-                        }
+                        if (suggestions.length >= 8) break;
                     }
-
                     return suggestions;
                 };
 
                 const renderSuggestions = function (items) {
                     homeAddressSuggestMenu.innerHTML = '';
-
                     if (!items.length) {
                         closeSuggestionMenu();
                         return;
@@ -1011,7 +997,6 @@
 
                 const runSuggestionSearch = function () {
                     const term = String(homeAddressInput.value || '').trim();
-
                     if (term.length < 2) {
                         closeSuggestionMenu();
                         setAddressStatus('', false);
@@ -1022,7 +1007,6 @@
                         .then(function () {
                             const suggestions = getSuggestions(term);
                             renderSuggestions(suggestions);
-
                             if (suggestions.length === 0) {
                                 setAddressStatus('No matching barangay found yet. Try a different spelling.', false);
                             } else {
@@ -1045,19 +1029,16 @@
                 });
 
                 homeAddressInput.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape') {
-                        closeSuggestionMenu();
-                    }
+                    if (event.key === 'Escape') closeSuggestionMenu();
                 });
 
                 document.addEventListener('click', function (event) {
-                    if (homeAddressSuggestMenu.contains(event.target) || event.target === homeAddressInput) {
-                        return;
-                    }
+                    if (homeAddressSuggestMenu.contains(event.target) || event.target === homeAddressInput) return;
                     closeSuggestionMenu();
                 });
             }
 
+            // Academic Catalog & Program Population
             const collegeSelect = document.getElementById('college');
             const programSelect = document.getElementById('program');
             const catalog = @json($academicCatalog ?? ['programs' => [], 'majors' => []]);
@@ -1089,12 +1070,14 @@
                 populatePrograms(collegeSelect.value, initialProgram);
             }
 
+            // Academic Proof Sync based on Year Level
             const yearLevelInput = document.getElementById('year_level');
             const studentIdInput = document.getElementById('student_id');
             const studentIdLabel = document.getElementById('studentIdLabel');
             const studentIdHelp = document.getElementById('student_id_help');
             const schoolIdLabel = document.getElementById('schoolIdLabel');
             const schoolIdHelp = document.getElementById('school_id_help');
+            const schoolIdInput = document.getElementById('school_id_photo');
             const enrollmentProofType = document.getElementById('enrollment_proof_type');
             const enrollmentProofFile = document.getElementById('enrollment_proof_file');
             const enrollmentProofHelp = document.getElementById('enrollment_proof_help');
@@ -1122,7 +1105,7 @@
                 if (schoolIdHelp) {
                     schoolIdHelp.textContent = isFirstYear
                         ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.'
-                        : 'Required for 2nd Year and above. Upload a clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).';
+                        : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).';
                 }
 
                 if (enrollmentProofFile) {
@@ -1143,14 +1126,11 @@
                 }
             };
 
-            if (yearLevelInput) {
-                yearLevelInput.addEventListener('change', syncAcademicProofRequirements);
-            }
-            if (enrollmentProofFile) {
-                enrollmentProofFile.addEventListener('change', syncAcademicProofRequirements);
-            }
+            if (yearLevelInput) yearLevelInput.addEventListener('change', syncAcademicProofRequirements);
+            if (enrollmentProofFile) enrollmentProofFile.addEventListener('change', syncAcademicProofRequirements);
             syncAcademicProofRequirements();
 
+            // Phone Normalization & Validation
             const phoneInputs = Array.from(document.querySelectorAll('.ph-contact-number'));
             const phonePattern = /^09\d{9}$/;
             const sanitizePhone = function (value) {
@@ -1176,10 +1156,10 @@
                 input.addEventListener('paste', function () {
                     window.setTimeout(normalize, 0);
                 });
-
                 normalize();
             });
 
+            // Gender Custom Input Toggle
             const genderSelect = document.getElementById('gender');
             const genderCustomWrap = document.getElementById('genderCustomWrap');
             const genderCustomInput = document.getElementById('gender_custom');
@@ -1190,9 +1170,7 @@
                 genderCustomWrap.style.display = isOther ? '' : 'none';
                 if (genderCustomInput) {
                     genderCustomInput.required = isOther;
-                    if (!isOther) {
-                        genderCustomInput.value = '';
-                    }
+                    if (!isOther) genderCustomInput.value = '';
                 }
             };
 
@@ -1201,15 +1179,16 @@
                 syncGenderCustom();
             }
 
+            // Server-side invalid field automatic panel activation
             const invalidServerField = document.querySelector('#studentSetupForm .is-invalid');
             if (invalidServerField) {
-                const invalidStep = stepPanels.findIndex((panel) => panel.contains(invalidServerField));
-                if (invalidStep >= 0) {
-                    currentStep = invalidStep;
+                const invalidPanelIndex = questionPanels.findIndex((panel) => panel.contains(invalidServerField));
+                if (invalidPanelIndex >= 0) {
+                    currentPanel = invalidPanelIndex;
                 }
             }
 
-            updateStepper();
+            updateActivePanel();
         })();
     </script>
 </body>

@@ -3,180 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landlord Setup</title>
+    <title>Landlord Setup - Online Boarding House System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
     <style>
         :root {
             --brand: #14532d;
             --brand-dark: #166534;
+            --premium-emerald: #10b981;
+            --premium-emerald-deep: #047857;
             --ink: #0f172a;
+            --muted: #64748b;
             --line: #e2e8f0;
             --shell: #f8fafc;
-            --step-idle: #cbd5e1;
-            --step-active: #14532d;
-            --step-done: #16a34a;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(760px 320px at -4% -10%, rgba(34, 197, 94, .18), transparent 58%),
-                radial-gradient(860px 340px at 110% -16%, rgba(20, 83, 45, .10), transparent 60%),
-                var(--shell);
             color: var(--ink);
+            background:
+                radial-gradient(800px 380px at -4% -10%, rgba(16, 185, 129, .10), transparent 58%),
+                radial-gradient(860px 400px at 110% -16%, rgba(4, 120, 87, .06), transparent 60%),
+                var(--shell);
             min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .setup-wrap {
-            max-width: 680px;
+            width: min(680px, 100%);
             margin: 0 auto;
-            padding: 1rem .82rem 1.6rem;
+            padding: 1.5rem 1rem 2.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .setup-shell {
-            border: 1px solid rgba(255, 255, 255, .78);
-            border-radius: 1.75rem;
-            background: rgba(255, 255, 255, .95);
-            box-shadow: 0 24px 54px rgba(15, 23, 42, .12);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-
+        /* Topbar */
         .setup-topbar {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: .9rem;
+            margin-bottom: 1.25rem;
+            padding: 0 .25rem;
+        }
+
+        .setup-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            text-decoration: none;
+            color: var(--brand);
+            font-weight: 800;
+            font-size: 1.05rem;
+            letter-spacing: -.02em;
+        }
+
+        .setup-brand-badge {
+            width: 2rem;
+            height: 2rem;
+            border-radius: .6rem;
+            background: rgba(16, 185, 129, .12);
+            color: var(--premium-emerald-deep);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
         }
 
         .setup-topbar-actions {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: .2rem;
-            justify-content: flex-start;
-        }
-
-        .setup-topbar-title {
-            font-size: .8rem;
-            font-weight: 800;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            color: #166534;
-            margin: 0;
-        }
-
-        .setup-link {
-            font-size: .86rem;
-            color: #475569;
-            text-decoration: none;
-            padding: .1rem 0;
-        }
-
-        .setup-link:hover,
-        .change-role-link:hover {
-            color: #14532d;
-            text-decoration: underline;
+            align-items: center;
+            gap: 1rem;
         }
 
         .change-role-link {
             font-size: .84rem;
-            color: #14532d;
-            text-decoration: none;
-        }
-
-        .setup-main {
-            padding: 1rem 1rem 1.1rem;
-        }
-
-        .stepper-shell {
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-            padding: .1rem 0 1rem;
-            margin-bottom: .15rem;
-            box-shadow: none;
-        }
-
-        .stepper-track {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: .5rem;
-            align-items: center;
-        }
-
-        .step-chip {
-            position: relative;
-            padding-top: .7rem;
-            transition: opacity .2s ease;
-        }
-
-        .step-chip::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            border-radius: 999px;
-            background: var(--step-idle);
-        }
-
-        .step-label {
-            font-size: .72rem;
-            color: #64748b;
-            margin-bottom: 0;
-            line-height: 1.2;
+            color: var(--premium-emerald-deep);
             font-weight: 600;
-            text-align: left;
+            text-decoration: none;
+            transition: color .18s ease;
         }
 
-        .step-chip.active::before {
-            background: linear-gradient(90deg, #7cf94c, #52d228);
+        .change-role-link:hover {
+            color: var(--brand);
+            text-decoration: underline;
         }
 
-        .step-chip.active .step-label {
-            color: #14532d;
+        .setup-logout {
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            font-size: .84rem;
+            font-weight: 600;
+            padding: .3rem .6rem;
+            border-radius: .5rem;
+            transition: all .18s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
         }
 
-        .step-chip.done {
-            opacity: .9;
+        .setup-logout:hover {
+            color: #b91c1c;
+            background: rgba(239, 68, 68, .08);
         }
 
-        .step-chip.done::before {
-            background: #16a34a;
+        /* Main Setup Shell */
+        .setup-shell {
+            border: 1px solid rgba(226, 232, 240, .9);
+            border-radius: 1.5rem;
+            background: #ffffff;
+            box-shadow: 0 20px 45px -12px rgba(15, 23, 42, .08);
+            padding: 2.25rem 2rem;
         }
 
-        .step-chip.done .step-label {
-            color: #166534;
-        }
-
-        .step-status-text {
-            display: inline-block;
-            font-size: .8rem;
-            color: #166534;
-            font-weight: 700;
-            margin-top: .95rem;
-        }
-
-        .step-panel {
+        /* Question Panel */
+        .question-panel {
             display: none;
         }
 
-        .step-panel.active {
+        .question-panel.active {
             display: block;
+            animation: questionFadeIn .22s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .step-panel-enter {
-            animation: stepFade .24s ease;
-        }
-
-        @keyframes stepFade {
+        @keyframes questionFadeIn {
             from {
                 opacity: 0;
-                transform: translateY(4px);
+                transform: translateY(6px);
             }
             to {
                 opacity: 1;
@@ -184,81 +149,94 @@
             }
         }
 
-        .section-card {
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-            padding: .25rem 0 0;
-            margin-bottom: 0;
-            box-shadow: none;
-        }
-
-        .section-title {
-            display: block;
-            font-size: 1.6rem;
+        .question-kicker {
+            font-size: .75rem;
             font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--premium-emerald-deep);
+            margin-bottom: .45rem;
+        }
+
+        .question-title {
+            font-family: 'Bricolage Grotesque', 'Manrope', system-ui, sans-serif;
+            font-size: clamp(1.45rem, 2.8vw, 1.85rem);
+            font-weight: 800;
+            letter-spacing: -.025em;
+            line-height: 1.2;
+            color: var(--ink);
             margin-bottom: .35rem;
-            letter-spacing: -.02em;
         }
 
-        .section-sub {
-            display: block;
-            font-size: .9rem;
-            color: #64748b;
-            margin-bottom: 1.1rem;
+        .question-subtitle {
+            font-size: .92rem;
+            color: var(--muted);
+            margin-bottom: 1.75rem;
+            line-height: 1.5;
         }
 
+        /* Form Inputs & Controls */
         .form-label {
-            font-weight: 600;
             font-size: .86rem;
+            font-weight: 700;
             color: #334155;
-            margin-bottom: .35rem;
+            margin-bottom: .4rem;
         }
 
-        .form-control,
-        .form-select {
-            border-color: var(--line);
-            border-radius: .9rem;
-            min-height: 46px;
-            padding: .68rem .8rem;
-            background: #fff;
+        .form-control, .form-select {
+            border: 1.5px solid var(--line);
+            border-radius: .75rem;
+            padding: .65rem .95rem;
+            font-size: .95rem;
+            color: var(--ink);
+            background-color: #ffffff;
+            transition: border-color .18s ease, box-shadow .18s ease;
         }
 
-        textarea.form-control {
-            min-height: unset;
-        }
-
-        .form-control:focus,
-        .form-select:focus,
-        .form-check-input:focus {
-            border-color: #14532d;
-            box-shadow: 0 0 0 .2rem rgba(20, 83, 45, .12);
+        .form-control:focus, .form-select:focus {
+            border-color: var(--premium-emerald);
+            box-shadow: 0 0 0 3.5px rgba(16, 185, 129, .15);
+            outline: 0;
         }
 
         .field-hint {
             font-size: .78rem;
-            color: #64748b;
-            margin-top: .38rem;
+            color: var(--muted);
+            margin-top: .35rem;
+            line-height: 1.4;
         }
 
+        /* Upload preview */
+        .upload-preview {
+            width: 76px;
+            height: 76px;
+            object-fit: cover;
+            border-radius: .85rem;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, .06);
+            flex-shrink: 0;
+        }
+
+        /* Address Suggestions */
         .address-suggest-wrap {
             position: relative;
         }
 
         .address-suggestion-menu {
             position: absolute;
-            top: calc(100% + 4px);
+            top: 100%;
             left: 0;
             right: 0;
-            z-index: 25;
+            z-index: 1050;
             display: none;
-            max-height: 230px;
+            max-height: 220px;
             overflow-y: auto;
-            border: 1px solid rgba(15, 23, 42, .08);
-            border-radius: 1rem;
-            background: rgba(255, 255, 255, .98);
-            box-shadow: 0 20px 34px rgba(15, 23, 42, .12);
-            padding: .3rem;
+            margin-top: .35rem;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: .75rem;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, .14);
+            padding: .35rem;
         }
 
         .address-suggestion-menu.is-open {
@@ -270,169 +248,235 @@
             border: 0;
             background: transparent;
             text-align: left;
-            padding: .72rem .8rem;
-            border-radius: .8rem;
-            color: #0f172a;
+            padding: .55rem .75rem;
+            border-radius: .5rem;
             font-size: .88rem;
+            color: var(--ink);
+            transition: background .15s ease;
+            cursor: pointer;
         }
 
-        .address-suggestion-item:hover,
-        .address-suggestion-item:focus {
-            background: rgba(20, 83, 45, .08);
+        .address-suggestion-item:hover, .address-suggestion-item:focus {
+            background: #f1f5f9;
+            color: var(--brand);
             outline: none;
         }
 
-        .upload-preview {
-            width: 86px;
-            height: 86px;
-            border-radius: 1rem;
-            border: 1px solid rgba(2, 8, 20, .08);
-            object-fit: cover;
-            background: #f8fafc;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
-        }
-
-        .step-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            align-items: end;
-            gap: .6rem;
-            margin-top: .5rem;
-            padding-top: .85rem;
-            border-top: 1px solid rgba(15, 23, 42, .05);
-        }
-
-        .step-actions.step-actions-single {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .step-actions-left,
-        .step-actions-right {
-            width: 100%;
-        }
-
-        .step-actions-right {
-            display: flex;
-            width: 100%;
-        }
-
-        .btn-brand {
-            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-            border-color: var(--brand);
-            color: #fff;
-            box-shadow: 0 12px 24px rgba(20, 83, 45, .16);
-        }
-
-        .btn-brand:hover {
-            background: var(--brand-dark);
-            border-color: var(--brand-dark);
-            color: #fff;
-        }
-
-        .btn-next,
-        .btn-prev {
-            border-radius: 999px;
-            width: 100%;
-            min-height: 44px;
-            font-weight: 700;
-        }
-
+        /* Payment Methods */
         .method-grid {
             display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: .75rem;
         }
 
         .method-option {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: .65rem;
-            border: 1px solid rgba(15, 23, 42, .08);
-            border-radius: 1rem;
-            padding: .78rem .85rem;
-            background: #fff;
+            padding: .9rem .75rem;
+            border-radius: .85rem;
+            border: 1.5px solid var(--line);
+            background: #ffffff;
+            cursor: pointer;
+            transition: all .18s ease;
         }
 
-        .method-option .form-check-input {
-            margin-top: 0;
+        .method-option:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
         }
 
-        .method-copy {
-            min-width: 0;
+        .method-option:has(input:checked) {
+            border-color: var(--premium-emerald-deep);
+            background: rgba(16, 185, 129, .04);
+            box-shadow: 0 0 0 1px var(--premium-emerald-deep);
         }
 
         .method-title {
             font-weight: 700;
-            color: #0f172a;
+            font-size: .95rem;
+            color: var(--ink);
+            line-height: 1.2;
         }
 
         .method-sub {
             font-size: .78rem;
-            color: #64748b;
-            margin: 0;
+            color: var(--muted);
+            margin: .2rem 0 0;
+            line-height: 1.35;
         }
 
         .conditional-group {
-            display: grid;
-            gap: .75rem;
-            margin-top: .85rem;
-            padding-top: .2rem;
+            background: #f8fafc;
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        /* Navigation Actions */
+        .question-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--line);
+        }
+
+        .question-actions.first-question {
+            justify-content: flex-end;
+        }
+
+        /* Primary Button (.btn-brand) matching landing page */
+        .btn-brand {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            padding: .75rem 1.6rem;
+            font-weight: 700;
+            font-size: .95rem;
+            border-radius: 999px;
+            border: 1px solid rgba(16, 185, 129, .9);
+            background: linear-gradient(125deg, var(--premium-emerald) 0%, var(--premium-emerald-deep) 100%);
+            color: #ecfdf5;
+            box-shadow: 0 10px 24px rgba(4, 120, 87, .34);
+            transform: translateY(0) scale(1);
+            transition: transform .22s ease, box-shadow .24s ease, background .22s ease, border-color .22s ease, color .22s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-brand::after {
+            content: "";
+            position: absolute;
+            top: -130%;
+            bottom: -130%;
+            left: -45%;
+            width: 38%;
+            background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,.55) 50%, transparent 90%);
+            transform: translateX(-190%) rotate(18deg);
+            transition: transform .55s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .btn-brand:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.01);
+            background: linear-gradient(125deg, #0ea770 0%, #046246 100%);
+            border-color: #0ea770;
+            color: #fff;
+            box-shadow: 0 16px 34px rgba(4, 120, 87, .45);
+        }
+
+        .btn-brand:hover:not(:disabled)::after {
+            transform: translateX(430%) rotate(18deg);
+        }
+
+        .btn-brand:active:not(:disabled) {
+            transform: translateY(0) scale(.99);
+        }
+
+        .btn-brand:focus-visible {
+            outline: 2px solid rgba(16, 185, 129, .72);
+            outline-offset: 2px;
+        }
+
+        .btn-brand:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Secondary Outline Button (.btn-prev) */
+        .btn-prev {
+            padding: .75rem 1.4rem;
+            font-weight: 600;
+            font-size: .92rem;
+            border-radius: 999px;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-prev:hover:not(:disabled) {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+
+        .btn-prev:focus-visible {
+            outline: 2px solid #94a3b8;
+            outline-offset: 2px;
         }
 
         .inline-note {
-            border-radius: .9rem;
-            border: 1px solid rgba(15, 23, 42, .06);
-            background: rgba(248, 250, 252, .92);
-            padding: .8rem .9rem;
-            font-size: .82rem;
-            color: #475569;
-            margin-bottom: .85rem;
+            padding: .75rem 1rem;
+            border-radius: .75rem;
+            background: rgba(16, 185, 129, .08);
+            border: 1px solid rgba(16, 185, 129, .2);
+            color: var(--brand-dark);
+            font-size: .88rem;
+            margin-bottom: 1.25rem;
         }
 
         .inline-note.is-danger {
-            border-color: rgba(220, 38, 38, .18);
-            background: rgba(254, 242, 242, .95);
-            color: #991b1b;
-        }
-
-        .inline-note.is-success {
-            border-color: rgba(22, 163, 74, .18);
-            background: rgba(240, 253, 244, .92);
-            color: #166534;
+            background: rgba(239, 68, 68, .08);
+            border-color: rgba(239, 68, 68, .2);
+            color: #b91c1c;
         }
 
         @media (max-width: 575.98px) {
             .setup-wrap {
-                padding: .8rem .7rem 1.25rem;
+                padding: 1rem .75rem 2rem;
             }
 
-            .setup-topbar,
+            .setup-shell {
+                padding: 1.5rem 1.15rem;
+                border-radius: 1.25rem;
+            }
+
+            .method-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .question-actions {
+                flex-direction: column-reverse;
+                gap: .75rem;
+            }
+
+            .question-actions .btn-prev,
+            .question-actions .btn-brand {
+                width: 100%;
+            }
+
             .setup-topbar-actions {
-                align-items: flex-start;
-                flex-direction: column;
+                gap: .6rem;
             }
+        }
 
-            .setup-topbar-actions {
-                gap: .08rem;
+        @media (prefers-reduced-motion: reduce) {
+            .question-panel.active {
+                animation: none !important;
             }
-
-            .setup-main {
-                padding: .88rem;
-            }
-
-            .stepper-shell {
-                padding: .1rem 0 .8rem;
-            }
-
-            .step-chip {
-                padding-top: .58rem;
-            }
-
-            .step-label {
-                font-size: .66rem;
-            }
-
-            .section-title {
-                font-size: 1.35rem;
+            .btn-brand, .btn-brand::after, .btn-prev {
+                transition: none !important;
+                transform: none !important;
             }
         }
     </style>
@@ -449,297 +493,334 @@
     @endphp
 
     <div class="setup-wrap">
-        <div class="setup-topbar px-1">
-            <p class="setup-topbar-title">Landlord Verification Setup</p>
+        <header class="setup-topbar">
+            <a href="{{ url('/') }}" class="setup-brand">
+                <span class="setup-brand-badge"><i class="bi bi-houses-fill"></i></span>
+                <span>OBHS</span>
+            </a>
             <div class="setup-topbar-actions">
                 @if(!$setupSnapshot['setup_submitted'])
                     <a href="{{ route('onboarding.role.show') }}" class="change-role-link">
-                        Selected the wrong role? Change role
+                        <i class="bi bi-arrow-left-right me-1"></i>Change role
                     </a>
                 @endif
                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                     @csrf
-                    <button type="submit" class="btn btn-link setup-link p-0">Logout</button>
+                    <button type="submit" class="setup-logout" title="Sign out of your account">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Log out</span>
+                    </button>
                 </form>
             </div>
-        </div>
+        </header>
 
-        <div class="setup-shell" data-initial-step="{{ (int) ($initialStep ?? 0) }}">
-            <div class="setup-main">
-                @if(session('error'))
-                    <div class="alert alert-danger">{{ session('error') }}</div>
-                @endif
+        <main class="setup-shell" data-initial-step="{{ (int) ($initialStep ?? 0) }}">
+            @if(session('error'))
+                <div class="alert alert-danger rounded-3 border-0 py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <span>{{ session('error') }}</span>
+                </div>
+            @endif
 
-                @if(session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
-                @endif
+            @if(session('success'))
+                <div class="alert alert-success rounded-3 border-0 py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>{{ session('success') }}</span>
+                </div>
+            @endif
 
-                <div class="stepper-shell">
-                    <div class="stepper-track" id="setupStepper">
-                        <div class="step-chip" data-step-nav="0">
-                            <div class="step-label">Profile</div>
+            <form method="POST" action="{{ route('landlord.setup.update') }}" enctype="multipart/form-data" id="landlordSetupForm" novalidate>
+                @csrf
+                @method('PUT')
+
+                <!-- PANEL 1: Identity & Boarding House Basics -->
+                <section class="question-panel active" data-question-panel="0">
+                    <div class="question-kicker">Landlord details</div>
+                    <h1 class="question-title">Tell us about you and your boarding house</h1>
+                    <p class="question-subtitle">Enter your legal contact information and official boarding house name.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $user->full_name ?: $user->name) }}" placeholder="e.g., Maria Santos" required>
+                            @error('full_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
-                        <div class="step-chip" data-step-nav="1">
-                            <div class="step-label">Permit</div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" placeholder="landlord@example.com" required>
+                            @error('email')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
-                        <div class="step-chip" data-step-nav="2">
-                            <div class="step-label">Billing</div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Contact Number *</label>
+                            <input type="text" name="contact_number" class="form-control ph-number @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $user->contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
+                            @error('contact_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Boarding House Name *</label>
+                            <input type="text" name="boarding_house_name" class="form-control @error('boarding_house_name') is-invalid @enderror" value="{{ old('boarding_house_name', $user->boarding_house_name ?? optional($landlordProfile)->boarding_house_name) }}" placeholder="e.g., Sunshine Student Residence" required>
+                            @error('boarding_house_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Property Address *</label>
+                            <div class="address-suggest-wrap">
+                                <textarea id="landlordAddressInput" name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Start typing barangay or municipality..." required>{{ old('address', $user->address) }}</textarea>
+                                <div id="landlordAddressSuggestMenu" class="address-suggestion-menu" role="listbox" aria-label="Landlord address suggestions"></div>
+                            </div>
+                            <div class="field-hint">Format: Barangay, City/Municipality, Province (e.g., Masipit, Calapan City, Oriental Mindoro).</div>
+                            <div id="landlordAddressSuggestStatus" class="small text-muted mt-1"></div>
+                            @error('address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    <span class="step-status-text" id="stepStatusText">Step 1 of 3</span>
-                </div>
 
-                <form method="POST" action="{{ route('landlord.setup.update') }}" enctype="multipart/form-data" id="landlordSetupForm">
-                    @csrf
-                    @method('PUT')
+                    <div class="question-actions first-question">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="1">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
 
-                    <section class="step-panel" data-step="0">
-                        <div class="section-card step-panel-enter">
-                            <div class="section-title">Profile</div>
-                            <div class="section-sub">Add the identity and boarding house details needed to verify your landlord account.</div>
+                <!-- PANEL 2: Property Description & Media -->
+                <section class="question-panel" data-question-panel="1">
+                    <div class="question-kicker">Property description</div>
+                    <h2 class="question-title">Introduce your boarding house to students</h2>
+                    <p class="question-subtitle">Provide a welcoming description, your profile photo, and an optional contract e-signature.</p>
 
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label">Full Name *</label>
-                                    <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $user->full_name ?: $user->name) }}" required>
-                                    @error('full_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Email *</label>
-                                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
-                                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Contact Number *</label>
-                                    <input type="text" name="contact_number" class="form-control ph-number @error('contact_number') is-invalid @enderror" value="{{ old('contact_number', $user->contact_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX" required>
-                                    @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Address *</label>
-                                    <div class="address-suggest-wrap">
-                                        <textarea id="landlordAddressInput" name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Start typing barangay..." required>{{ old('address', $user->address) }}</textarea>
-                                        <div id="landlordAddressSuggestMenu" class="address-suggestion-menu" role="listbox" aria-label="Landlord address suggestions"></div>
-                                    </div>
-                                    <div class="field-hint">Format: Barangay, City/Municipality, Province (e.g., Masipit, Calapan City, Oriental Mindoro).</div>
-                                    <div id="landlordAddressSuggestStatus" class="small text-muted mt-1"></div>
-                                    @error('address')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Boarding House Name *</label>
-                                    <input type="text" name="boarding_house_name" class="form-control @error('boarding_house_name') is-invalid @enderror" value="{{ old('boarding_house_name', $user->boarding_house_name ?? optional($landlordProfile)->boarding_house_name) }}" required>
-                                    @error('boarding_house_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">About Your Boarding House / Description *</label>
-                                    <textarea name="about" rows="4" class="form-control @error('about') is-invalid @enderror" required>{{ old('about', optional($landlordProfile)->about) }}</textarea>
-                                    @error('about')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Profile Photo</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        @if($hasProfilePhoto)
-                                            <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile" class="upload-preview">
-                                        @else
-                                            <img id="profile_preview" src="" alt="Profile" class="upload-preview d-none">
-                                        @endif
-                                        <div class="w-100">
-                                            <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*">
-                                            <div class="field-hint">Optional. JPG, PNG, WEBP, GIF up to 2MB.</div>
-                                            @error('profile_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Contract E-sign</label>
-                                    <input type="file" name="contract_signature_image" class="form-control @error('contract_signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp">
-                                    <div class="field-hint">Optional. JPG, JPEG, PNG, WEBP up to 2MB.</div>
-                                    @error('contract_signature_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    @if($hasContractSignature)
-                                        <a href="{{ file_download_url(optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                            <i class="bi bi-pen me-1"></i>View current e-sign
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">About Your Boarding House / Description *</label>
+                            <textarea name="about" rows="4" class="form-control @error('about') is-invalid @enderror" placeholder="Describe the amenities, room rules, nearby landmarks, and boarding culture..." required>{{ old('about', optional($landlordProfile)->about) }}</textarea>
+                            @error('about')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
 
-                            <div class="step-actions step-actions-single">
-                                <div class="step-actions-left">
-                                    <span class="d-block" aria-hidden="true"></span>
-                                </div>
-                                <div class="step-actions-right">
-                                    <button type="button" class="btn btn-brand btn-next" data-next-step="1">Next Step</button>
+                        <div class="col-12">
+                            <label class="form-label">Profile Photo</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if($hasProfilePhoto)
+                                    <img id="profile_preview" src="{{ file_url($user->profile_image_path) }}" alt="Profile preview" class="upload-preview">
+                                @else
+                                    <img id="profile_preview" src="" alt="Profile preview" class="upload-preview d-none">
+                                @endif
+                                <div class="w-100">
+                                    <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*">
+                                    <div class="field-hint">Optional. JPG, PNG, WEBP, or GIF up to 2MB.</div>
+                                    @error('profile_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                         </div>
-                    </section>
 
-                    <section class="step-panel" data-step="1">
-                            <div class="section-card step-panel-enter">
-                                <div class="section-title">Permit</div>
-                                <div class="section-sub">Upload permit files if you already have them available for review.</div>
-
-                            @if(($setupSnapshot['permit_status'] ?? '') === 'rejected' && filled($setupSnapshot['permit_rejection_reason'] ?? ''))
-                                <div class="inline-note is-danger">Business permit rejected: {{ $setupSnapshot['permit_rejection_reason'] }}</div>
-                            @elseif(($setupSnapshot['permit_status'] ?? '') === 'pending')
-                                <div class="inline-note">Business permit submitted. Admin review is still pending.</div>
+                        <div class="col-12">
+                            <label class="form-label">Contract E-signature</label>
+                            <input type="file" name="contract_signature_image" class="form-control @error('contract_signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp">
+                            <div class="field-hint">Optional. Upload an image of your signature for digital rental contracts (JPG, PNG up to 2MB).</div>
+                            @error('contract_signature_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @if($hasContractSignature)
+                                <a href="{{ file_download_url(optional($landlordProfile)->contract_signature_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                    <i class="bi bi-pen me-1"></i>View current e-signature
+                                </a>
                             @endif
-
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label">Business Permit</label>
-                                    <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
-                                    <div class="field-hint">Optional. Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
-                                    @error('business_permit')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    @if($hasBusinessPermit)
-                                        <a href="{{ file_download_url(optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                            <i class="bi bi-file-earmark-text me-1"></i>View current permit
-                                        </a>
-                                    @endif
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Safety Certificate</label>
-                                    <input type="file" name="safety_certificate" class="form-control @error('safety_certificate') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
-                                    <div class="field-hint">Optional. Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
-                                    @error('safety_certificate')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    @if($hasSafetyCertificate)
-                                        <a href="{{ file_download_url(optional($landlordProfile)->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                            <i class="bi bi-shield-check me-1"></i>View current safety certificate
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="step-actions">
-                                <div class="step-actions-left">
-                                    <button type="button" class="btn btn-outline-secondary btn-prev" data-prev-step="0">Back</button>
-                                </div>
-                                <div class="step-actions-right">
-                                    <button type="button" class="btn btn-brand btn-next" data-next-step="2">Next Step</button>
-                                </div>
-                            </div>
                         </div>
-                    </section>
+                    </div>
 
-                    <section class="step-panel" data-step="2">
-                        <div class="section-card step-panel-enter">
-                            <div class="section-title">Billing</div>
-                            <div class="section-sub">Choose how tenants can pay you and fill in the matching account details.</div>
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="2">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
 
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label">Preferred Payment Method(s) *</label>
-                                    <div class="method-grid">
-                                        <label class="method-option">
-                                            <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="bank" id="pm_bank" @checked(in_array('bank', $selectedMethods, true))>
-                                            <div class="method-copy">
-                                                <div class="method-title">Bank</div>
-                                                <p class="method-sub">Collect payments through a bank account.</p>
-                                            </div>
-                                        </label>
-                                        <label class="method-option">
-                                            <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="gcash" id="pm_gcash" @checked(in_array('gcash', $selectedMethods, true))>
-                                            <div class="method-copy">
-                                                <div class="method-title">GCash</div>
-                                                <p class="method-sub">Accept direct wallet transfers and optional QR scans.</p>
-                                            </div>
-                                        </label>
-                                        <label class="method-option">
-                                            <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="cash" id="pm_cash" @checked(in_array('cash', $selectedMethods, true))>
-                                            <div class="method-copy">
-                                                <div class="method-title">Cash</div>
-                                                <p class="method-sub">Allow cash payments without extra account fields.</p>
-                                            </div>
-                                        </label>
+                <!-- PANEL 3: Accreditation Documents -->
+                <section class="question-panel" data-question-panel="2">
+                    <div class="question-kicker">Accreditation documents</div>
+                    <h2 class="question-title">Upload your accreditation permits</h2>
+                    <p class="question-subtitle">Upload your permits to become an accredited boarding house with the University.</p>
+
+                    @if(($setupSnapshot['permit_status'] ?? '') === 'rejected' && filled($setupSnapshot['permit_rejection_reason'] ?? ''))
+                        <div class="inline-note is-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            <strong>Business permit rejected:</strong> {{ $setupSnapshot['permit_rejection_reason'] }}
+                        </div>
+                    @elseif(($setupSnapshot['permit_status'] ?? '') === 'pending')
+                        <div class="inline-note">
+                            <i class="bi bi-clock-history me-1"></i>
+                            Business permit submitted. University accreditation review is currently pending.
+                        </div>
+                    @endif
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Business Permit</label>
+                            <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP up to 2MB. Can be uploaded now or updated later.</div>
+                            @error('business_permit')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @if($hasBusinessPermit)
+                                <a href="{{ file_download_url(optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                    <i class="bi bi-file-earmark-text me-1"></i>View current business permit
+                                </a>
+                            @endif
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Safety Certificate (BFP Inspection / Barangay Clearance)</label>
+                            <input type="file" name="safety_certificate" class="form-control @error('safety_certificate') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
+                            @error('safety_certificate')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @if($hasSafetyCertificate)
+                                <a href="{{ file_download_url(optional($landlordProfile)->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
+                                    <i class="bi bi-shield-check me-1"></i>View current safety certificate
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="1">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="3">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 4: Payment Preferences & Billing -->
+                <section class="question-panel" data-question-panel="3">
+                    <div class="question-kicker">Payment preferences</div>
+                    <h2 class="question-title">How would you like to receive rental payments?</h2>
+                    <p class="question-subtitle">Select your accepted payment channels and enter receiving account information.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Preferred Payment Method(s) *</label>
+                            <div class="method-grid">
+                                <label class="method-option" for="pm_bank">
+                                    <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="bank" id="pm_bank" @checked(in_array('bank', $selectedMethods, true))>
+                                    <div class="method-copy">
+                                        <div class="method-title">Bank</div>
+                                        <p class="method-sub">Accept bank transfers directly to your bank account.</p>
                                     </div>
-                                    @error('preferred_payment_methods')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                    @error('preferred_payment_methods.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                </div>
-                            </div>
+                                </label>
 
-                            <div class="conditional-group d-none" id="bankFields" data-payment-section="bank">
-                                <div class="col-12">
+                                <label class="method-option" for="pm_gcash">
+                                    <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="gcash" id="pm_gcash" @checked(in_array('gcash', $selectedMethods, true))>
+                                    <div class="method-copy">
+                                        <div class="method-title">GCash</div>
+                                        <p class="method-sub">Accept direct wallet transfers and optional QR code scans.</p>
+                                    </div>
+                                </label>
+
+                                <label class="method-option" for="pm_cash">
+                                    <input class="form-check-input payment-method-toggle" type="checkbox" name="preferred_payment_methods[]" value="cash" id="pm_cash" @checked(in_array('cash', $selectedMethods, true))>
+                                    <div class="method-copy">
+                                        <div class="method-title">Cash</div>
+                                        <p class="method-sub">Allow in-person cash payments without extra account details.</p>
+                                    </div>
+                                </label>
+                            </div>
+                            @error('preferred_payment_methods')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @error('preferred_payment_methods.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+
+                        <!-- Bank Account Conditional Fields -->
+                        <div class="col-12 conditional-group d-none" id="bankFields" data-payment-section="bank">
+                            <div class="fw-bold small text-uppercase text-muted border-bottom pb-1 mb-3">Bank Account Information</div>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
                                     <label class="form-label">Bank Name *</label>
-                                    <input type="text" name="payment_bank_name" class="form-control @error('payment_bank_name') is-invalid @enderror" value="{{ old('payment_bank_name', optional($landlordProfile)->payment_bank_name) }}">
+                                    <input type="text" name="payment_bank_name" class="form-control @error('payment_bank_name') is-invalid @enderror" value="{{ old('payment_bank_name', optional($landlordProfile)->payment_bank_name) }}" placeholder="e.g., BDO, BPI, Landbank">
                                     @error('payment_bank_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label">Account Name *</label>
-                                    <input type="text" name="payment_account_name" class="form-control @error('payment_account_name') is-invalid @enderror" value="{{ old('payment_account_name', optional($landlordProfile)->payment_account_name) }}">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Account Holder Name *</label>
+                                    <input type="text" name="payment_account_name" class="form-control @error('payment_account_name') is-invalid @enderror" value="{{ old('payment_account_name', optional($landlordProfile)->payment_account_name) }}" placeholder="e.g., Maria Santos">
                                     @error('payment_account_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Account Number</label>
-                                    <input type="text" name="payment_account_number" class="form-control @error('payment_account_number') is-invalid @enderror" value="{{ old('payment_account_number', optional($landlordProfile)->payment_account_number) }}">
+                                    <input type="text" name="payment_account_number" class="form-control @error('payment_account_number') is-invalid @enderror" value="{{ old('payment_account_number', optional($landlordProfile)->payment_account_number) }}" placeholder="e.g., 1234-5678-9012">
                                     @error('payment_account_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="conditional-group d-none" id="gcashFields" data-payment-section="gcash">
-                                <div class="col-12">
-                                    <label class="form-label">GCash Name *</label>
-                                    <input type="text" name="payment_gcash_name" class="form-control @error('payment_gcash_name') is-invalid @enderror" value="{{ old('payment_gcash_name', optional($landlordProfile)->payment_gcash_name) }}">
+                        <!-- GCash Conditional Fields -->
+                        <div class="col-12 conditional-group d-none" id="gcashFields" data-payment-section="gcash">
+                            <div class="fw-bold small text-uppercase text-muted border-bottom pb-1 mb-3">GCash Account Information</div>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">GCash Registered Name *</label>
+                                    <input type="text" name="payment_gcash_name" class="form-control @error('payment_gcash_name') is-invalid @enderror" value="{{ old('payment_gcash_name', optional($landlordProfile)->payment_gcash_name) }}" placeholder="e.g., Maria S.">
                                     @error('payment_gcash_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label">GCash Number *</label>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">GCash Mobile Number *</label>
                                     <input type="text" name="payment_gcash_number" class="form-control ph-number @error('payment_gcash_number') is-invalid @enderror" value="{{ old('payment_gcash_number', optional($landlordProfile)->payment_gcash_number) }}" inputmode="numeric" pattern="^09\d{9}$" maxlength="11" placeholder="09XXXXXXXXX" title="Use 11-digit PH mobile format: 09XXXXXXXXX">
                                     @error('payment_gcash_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">GCash QR</label>
+                                    <label class="form-label">GCash QR Code</label>
                                     <input type="file" name="payment_gcash_qr" class="form-control @error('payment_gcash_qr') is-invalid @enderror" accept="image/*">
                                     <div class="field-hint">Optional. Upload a JPG, PNG, or WEBP QR image up to 2MB.</div>
                                     @error('payment_gcash_qr')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if(!empty(optional($landlordProfile)->payment_gcash_qr_path))
                                         <a href="{{ file_download_url(optional($landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
-                                            View current QR
+                                            <i class="bi bi-qr-code me-1"></i>View current QR code
                                         </a>
                                     @endif
                                 </div>
                             </div>
-
-                            <div class="step-actions">
-                                <div class="step-actions-left">
-                                    <button type="button" class="btn btn-outline-secondary btn-prev" data-prev-step="1">Back</button>
-                                </div>
-                                <div class="step-actions-right">
-                                    <button type="submit" class="btn btn-brand btn-next">Complete Landlord Setup</button>
-                                </div>
-                            </div>
                         </div>
-                    </section>
-                </form>
-            </div>
-        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Payment Instructions</label>
+                            <textarea name="payment_instructions" rows="2" class="form-control @error('payment_instructions') is-invalid @enderror" placeholder="Optional instructions for students when paying rent (e.g., Send screenshot of receipt via chat)...">{{ old('payment_instructions', optional($landlordProfile)->payment_instructions) }}</textarea>
+                            @error('payment_instructions')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="submit" id="submitLandlordBtn" class="btn btn-brand">
+                            <span>Complete Landlord Setup</span>
+                            <i class="bi bi-check2-circle"></i>
+                        </button>
+                    </div>
+                </section>
+            </form>
+        </main>
     </div>
 
     <script>
         (function () {
             const shell = document.querySelector('.setup-shell');
             const form = document.getElementById('landlordSetupForm');
-            const stepPanels = Array.from(document.querySelectorAll('[data-step]'));
-            const stepNavs = Array.from(document.querySelectorAll('[data-step-nav]'));
-            const stepStatusText = document.getElementById('stepStatusText');
-            let currentStep = Number(shell ? shell.getAttribute('data-initial-step') : 0);
+            const submitBtn = document.getElementById('submitLandlordBtn');
+            const questionPanels = Array.from(document.querySelectorAll('[data-question-panel]'));
+            let currentPanel = Number(shell ? shell.getAttribute('data-initial-step') : 0);
 
-            const updateStepper = function () {
-                stepPanels.forEach((panel, index) => {
-                    panel.classList.toggle('active', index === currentStep);
+            const updateActivePanel = function () {
+                questionPanels.forEach((panel, index) => {
+                    panel.classList.toggle('active', index === currentPanel);
                 });
-
-                stepNavs.forEach((nav, index) => {
-                    nav.classList.remove('active', 'done');
-                    if (index < currentStep) nav.classList.add('done');
-                    if (index === currentStep) nav.classList.add('active');
-                });
-
-                if (stepStatusText) {
-                    stepStatusText.textContent = 'Step ' + (currentStep + 1) + ' of ' + stepPanels.length;
-                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const firstInvalidInStep = function (stepIndex) {
-                const panel = stepPanels[stepIndex];
+            const firstInvalidInPanel = function (panelIndex) {
+                const panel = questionPanels[panelIndex];
                 if (!panel) return null;
                 const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
 
@@ -751,48 +832,54 @@
                         return field;
                     }
                 }
-
                 return null;
             };
 
-            const validateStep = function (stepIndex) {
-                const invalidField = firstInvalidInStep(stepIndex);
+            const validatePanel = function (panelIndex) {
+                const invalidField = firstInvalidInPanel(panelIndex);
                 if (!invalidField) return true;
+
                 invalidField.reportValidity();
                 invalidField.focus();
                 return false;
             };
 
-            const moveToStep = function (targetStep) {
-                currentStep = Math.max(0, Math.min(stepPanels.length - 1, targetStep));
-                updateStepper();
+            const moveToPanel = function (targetIndex) {
+                currentPanel = Math.max(0, Math.min(questionPanels.length - 1, targetIndex));
+                updateActivePanel();
             };
 
-            document.querySelectorAll('[data-next-step]').forEach((button) => {
+            document.querySelectorAll('.btn-next-question').forEach((button) => {
                 button.addEventListener('click', function () {
-                    if (!validateStep(currentStep)) return;
-                    moveToStep(Number(button.getAttribute('data-next-step')));
+                    if (!validatePanel(currentPanel)) return;
+                    moveToPanel(Number(button.getAttribute('data-target')));
                 });
             });
 
-            document.querySelectorAll('[data-prev-step]').forEach((button) => {
+            document.querySelectorAll('.btn-prev-question').forEach((button) => {
                 button.addEventListener('click', function () {
-                    moveToStep(Number(button.getAttribute('data-prev-step')));
+                    moveToPanel(Number(button.getAttribute('data-target')));
                 });
             });
 
             if (form) {
                 form.addEventListener('submit', function (event) {
-                    for (let i = 0; i < stepPanels.length; i++) {
-                        if (!validateStep(i)) {
-                            moveToStep(i);
+                    for (let i = 0; i < questionPanels.length; i++) {
+                        if (!validatePanel(i)) {
+                            moveToPanel(i);
                             event.preventDefault();
                             return;
                         }
                     }
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span>Saving setup...</span><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                    }
                 });
             }
 
+            // Image Preview Handlers
             const profileInput = document.getElementById('profile_image');
             const profilePreview = document.getElementById('profile_preview');
             if (profileInput && profilePreview) {
@@ -804,11 +891,11 @@
                 });
             }
 
+            // Mobile Phone Normalization & Validation
             const phonePattern = /^09\d{9}$/;
             const sanitizePhone = function (value) {
                 return (value || '').replace(/\D/g, '').slice(0, 11);
             };
-
             const syncPhoneValidity = function (input) {
                 const value = input.value || '';
                 if (value === '' || phonePattern.test(value)) {
@@ -832,6 +919,7 @@
                 normalize();
             });
 
+            // PSGC Location Suggestions for Landlord Address
             const landlordAddressInput = document.getElementById('landlordAddressInput');
             const landlordAddressSuggestMenu = document.getElementById('landlordAddressSuggestMenu');
             const landlordAddressSuggestStatus = document.getElementById('landlordAddressSuggestStatus');
@@ -859,14 +947,9 @@
 
                 const fetchJson = function (endpoint) {
                     return fetch(psgcBaseUrl + endpoint, {
-                        headers: {
-                            Accept: 'application/json'
-                        }
+                        headers: { Accept: 'application/json' }
                     }).then(function (response) {
-                        if (!response.ok) {
-                            throw new Error('Unable to load PSGC data.');
-                        }
-
+                        if (!response.ok) throw new Error('Unable to load PSGC data.');
                         return response.json();
                     });
                 };
@@ -879,25 +962,19 @@
                     const cityMap = new Map();
                     cities.forEach(function (cityItem) {
                         const cityCode = normalizeCode(cityItem?.code);
-                        if (cityCode) {
-                            cityMap.set(cityCode, cityItem);
-                        }
+                        if (cityCode) cityMap.set(cityCode, cityItem);
                     });
 
                     const provinceMap = new Map();
                     provinces.forEach(function (provinceItem) {
                         const provinceCode = normalizeCode(provinceItem?.code);
-                        if (provinceCode) {
-                            provinceMap.set(provinceCode, provinceItem);
-                        }
+                        if (provinceCode) provinceMap.set(provinceCode, provinceItem);
                     });
 
                     indexedBarangays = barangays
                         .map(function (barangayItem) {
                             const barangayName = String(barangayItem?.name || '').trim();
-                            if (!barangayName) {
-                                return null;
-                            }
+                            if (!barangayName) return null;
 
                             const cityCode = normalizeCode(barangayItem?.cityCode) || normalizeCode(barangayItem?.municipalityCode) || normalizeCode(barangayItem?.subMunicipalityCode);
                             const cityRecord = cityMap.get(cityCode);
@@ -906,10 +983,7 @@
                             const provinceName = String(provinceMap.get(provinceCode)?.name || '').trim();
                             const fullAddress = [barangayName, cityName, provinceName].filter(Boolean).join(', ');
 
-                            return [
-                                barangayName,
-                                fullAddress,
-                            ];
+                            return [barangayName, fullAddress];
                         })
                         .filter(Boolean)
                         .map(function (item) {
@@ -922,13 +996,8 @@
                 };
 
                 const loadDatasets = function () {
-                    if (indexedBarangays.length > 0) {
-                        return Promise.resolve();
-                    }
-
-                    if (datasetsPromise) {
-                        return datasetsPromise;
-                    }
+                    if (indexedBarangays.length > 0) return Promise.resolve();
+                    if (datasetsPromise) return datasetsPromise;
 
                     setAddressStatus('Loading PH location suggestions...', false);
 
@@ -955,30 +1024,20 @@
                     for (let i = 0; i < indexedBarangays.length; i += 1) {
                         const item = indexedBarangays[i];
                         if (!item) continue;
-
-                        if (!item.barangayLower.includes(needle) && !item.addressLower.includes(needle)) {
-                            continue;
-                        }
+                        if (!item.barangayLower.includes(needle) && !item.addressLower.includes(needle)) continue;
 
                         const key = item.addressLower;
-                        if (seen.has(key)) {
-                            continue;
-                        }
+                        if (seen.has(key)) continue;
 
                         seen.add(key);
                         suggestions.push(item.fullAddress);
-
-                        if (suggestions.length >= 8) {
-                            break;
-                        }
+                        if (suggestions.length >= 8) break;
                     }
-
                     return suggestions;
                 };
 
                 const renderSuggestions = function (items) {
                     landlordAddressSuggestMenu.innerHTML = '';
-
                     if (!items.length) {
                         closeSuggestionMenu();
                         return;
@@ -1002,7 +1061,6 @@
 
                 const runSuggestionSearch = function () {
                     const term = String(landlordAddressInput.value || '').trim();
-
                     if (term.length < 2) {
                         closeSuggestionMenu();
                         setAddressStatus('', false);
@@ -1013,7 +1071,6 @@
                         .then(function () {
                             const suggestions = getSuggestions(term);
                             renderSuggestions(suggestions);
-
                             if (suggestions.length === 0) {
                                 setAddressStatus('No matching barangay found yet. Try a different spelling.', false);
                             } else {
@@ -1036,34 +1093,27 @@
                 });
 
                 landlordAddressInput.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape') {
-                        closeSuggestionMenu();
-                    }
+                    if (event.key === 'Escape') closeSuggestionMenu();
                 });
 
                 document.addEventListener('click', function (event) {
-                    if (landlordAddressSuggestMenu.contains(event.target) || event.target === landlordAddressInput) {
-                        return;
-                    }
-
+                    if (landlordAddressSuggestMenu.contains(event.target) || event.target === landlordAddressInput) return;
                     closeSuggestionMenu();
                 });
             }
 
+            // Payment Methods Toggle & Validation
             const paymentMethodToggles = Array.from(document.querySelectorAll('.payment-method-toggle'));
             const bankFields = document.getElementById('bankFields');
             const gcashFields = document.getElementById('gcashFields');
 
             const setRequiredInSection = function (section, requiredFieldNames, enabled) {
                 if (!section) return;
-
                 requiredFieldNames.forEach(function (name) {
                     const input = section.querySelector('[name="' + name + '"]');
                     if (!input) return;
                     input.required = enabled;
-                    if (!enabled) {
-                        input.setCustomValidity('');
-                    }
+                    if (!enabled) input.setCustomValidity('');
                 });
             };
 
@@ -1086,16 +1136,17 @@
                 toggle.addEventListener('change', syncPaymentFields);
             });
 
+            // Server-side invalid field automatic panel activation
             const invalidServerField = document.querySelector('#landlordSetupForm .is-invalid');
             if (invalidServerField) {
-                const invalidStep = stepPanels.findIndex((panel) => panel.contains(invalidServerField));
-                if (invalidStep >= 0) {
-                    currentStep = invalidStep;
+                const invalidPanelIndex = questionPanels.findIndex((panel) => panel.contains(invalidServerField));
+                if (invalidPanelIndex >= 0) {
+                    currentPanel = invalidPanelIndex;
                 }
             }
 
             syncPaymentFields();
-            updateStepper();
+            updateActivePanel();
         })();
     </script>
 </body>
