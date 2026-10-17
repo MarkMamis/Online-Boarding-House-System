@@ -952,7 +952,7 @@ class PropertyController extends Controller
                 $q->where('status', 'available')->where('slots_available', '>', 0);
             },
         ])->load(['rooms' => function($q){
-            $q->with(['bookings' => function($bookingQ) {
+            $q->with(['roomImages', 'bookings' => function($bookingQ) {
                 $bookingQ->where('status', 'approved')
                   ->where('check_in', '<=', now()->toDateString())
                   ->where('check_out', '>', now()->toDateString())
