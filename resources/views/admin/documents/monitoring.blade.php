@@ -13,22 +13,7 @@
             ['label' => 'Monitoring'],
             ['label' => 'Compliance Monitor']
         ]"
-    >
-        <x-slot:actions>
-            <a href="{{ route('admin.documents.verification') }}" class="btn btn-sm btn-outline-brand px-3">
-                <i class="bi bi-file-earmark-check me-1"></i>Document Review Queue
-            </a>
-            @if($includeHistory)
-                <a href="{{ route('admin.documents.monitoring', ['search' => $search, 'document_type' => $documentType, 'verification_status' => $statusFilter, 'expiration_status' => $expirationFilter]) }}" class="btn btn-sm btn-brand px-3">
-                    <i class="bi bi-clock-history me-1"></i>Current Versions
-                </a>
-            @else
-                <a href="{{ route('admin.documents.monitoring', ['search' => $search, 'document_type' => $documentType, 'verification_status' => $statusFilter, 'expiration_status' => $expirationFilter, 'history' => 1]) }}" class="btn btn-sm btn-light border px-3 text-secondary">
-                    <i class="bi bi-clock-history me-1"></i>Include History
-                </a>
-            @endif
-        </x-slot:actions>
-    </x-admin.page-header>
+    />
 
     @if(session('success'))
         <div class="alert alert-success border-0 shadow-sm py-2 mb-3 d-flex align-items-center gap-2">
