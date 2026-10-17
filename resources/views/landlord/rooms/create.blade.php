@@ -1,1902 +1,1363 @@
 @extends('layouts.landlord')
 
 @section('content')
-@php
-    $errorKeys = $errors->keys();
-    $initialStep = 1;
+    @php
+        $errorKeys = $errors->keys();
+        $initialPanel = 0;
 
-    if (collect($errorKeys)->contains(fn ($key) => str_starts_with((string) $key, 'detail_images') || str_starts_with((string) $key, 'detail_labels') || (string) $key === 'image')) {
-        $initialStep = 2;
-    } elseif (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['pricing_model', 'price_per_room', 'price_per_bed', 'requires_advance_payment'], true))) {
-        $initialStep = 3;
-    }
+        if (collect($errorKeys)->contains(fn ($key) => str_starts_with((string) $key, 'detail_images') || (string) $key === 'image')) {
+            $initialPanel = 3;
+        } elseif (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['inclusions'], true))) {
+            $initialPanel = 2;
+        } elseif (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['pricing_model', 'price_per_room', 'price_per_bed', 'requires_advance_payment'], true))) {
+            $initialPanel = 1;
+        }
 
-    $initialInclusions = collect(explode(',', (string) old('inclusions')))
-        ->map(fn ($item) => trim($item))
-        ->filter()
-        ->values();
+        $initialInclusions = collect(explode(',', (string) old('inclusions')))
+            ->map(fn ($item) => trim($item))
+            ->filter()
+            ->values();
 
-    $quickInclusionOptions = [
-        'Wifi',
-        'Water Bill',
-        'Electricity Bill',
-        'Electic Fan',
-        'Aircon',
-        'Comfort Room',
-        'Kitchen',
-        'Balcony',
-        'Study Table',
-        'Kitchen Table',
-        'Tambayan',
-    ];
-@endphp
+        $quickInclusionOptions = [
+            'Wifi',
+            'Water Bill',
+            'Electricity Bill',
+            'Electric Fan',
+            'Aircon',
+            'Comfort Room',
+            'Kitchen',
+            'Balcony',
+            'Study Table',
+            'Kitchen Table',
+            'Tambayan',
+        ];
+    @endphp
 
-<div class="room-create-shell" data-initial-step="{{ $initialStep }}" data-draft-key="room-create-{{ $property->id }}">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <div class="text-uppercase small text-muted fw-semibold">Room Setup</div>
-            <h1 class="h3 mb-1">Add Room - {{ $property->name }}</h1>
-            <div class="text-muted small">{{ $property->address }}</div>
-        </div>
-        <a href="{{ route('landlord.properties.rooms.index', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3">Back</a>
-    </div>
-
-    <div class="create-summary mb-4">
-        <div class="create-summary-item">
-            <div class="create-summary-label">Property</div>
-            <div class="create-summary-value text-truncate">{{ $property->name }}</div>
-        </div>
-        <div class="create-summary-item">
-            <div class="create-summary-label">Default Status</div>
-            <div class="create-summary-value">Available</div>
-        </div>
-        <div class="create-summary-item">
-            <div class="create-summary-label">Address</div>
-            <div class="create-summary-value text-truncate">{{ $property->address }}</div>
-        </div>
-    </div>
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <form id="createRoomForm" method="POST" enctype="multipart/form-data" action="{{ route('landlord.properties.rooms.store', $property->id) }}" class="card shadow-sm room-form-card" autocomplete="off">
-        @csrf
-
-        <div class="stepper-head border-bottom">
-            <div class="room-stepper" id="roomStepper">
-                <button type="button" class="stepper-node" data-step-target="1">
-                    <span class="step-track" aria-hidden="true">
-                        <span class="step-line step-line-left"></span>
-                        <span class="step-count">
-                            <i class="bi bi-check2 step-check"></i>
-                            <span class="step-number">1</span>
-                        </span>
-                        <span class="step-line step-line-right"></span>
-                    </span>
-                    <span class="step-kicker">Step 1</span>
-                    <span class="step-label">Room Details</span>
-                    <span class="step-status">Pending</span>
-                </button>
-                <button type="button" class="stepper-node" data-step-target="2">
-                    <span class="step-track" aria-hidden="true">
-                        <span class="step-line step-line-left"></span>
-                        <span class="step-count">
-                            <i class="bi bi-check2 step-check"></i>
-                            <span class="step-number">2</span>
-                        </span>
-                        <span class="step-line step-line-right"></span>
-                    </span>
-                    <span class="step-kicker">Step 2</span>
-                    <span class="step-label">Room Photos</span>
-                    <span class="step-status">Pending</span>
-                </button>
-                <button type="button" class="stepper-node" data-step-target="3">
-                    <span class="step-track" aria-hidden="true">
-                        <span class="step-line step-line-left"></span>
-                        <span class="step-count">
-                            <i class="bi bi-check2 step-check"></i>
-                            <span class="step-number">3</span>
-                        </span>
-                        <span class="step-line step-line-right"></span>
-                    </span>
-                    <span class="step-kicker">Step 3</span>
-                    <span class="step-label">Room Price</span>
-                    <span class="step-status">Pending</span>
-                </button>
-                <button type="button" class="stepper-node" data-step-target="4">
-                    <span class="step-track" aria-hidden="true">
-                        <span class="step-line step-line-left"></span>
-                        <span class="step-count">
-                            <i class="bi bi-check2 step-check"></i>
-                            <span class="step-number">4</span>
-                        </span>
-                        <span class="step-line step-line-right"></span>
-                    </span>
-                    <span class="step-kicker">Step 4</span>
-                    <span class="step-label">Review</span>
-                    <span class="step-status">Pending</span>
-                </button>
+    <div class="guided-setup-wrapper">
+        <div class="guided-setup-card">
+            <!-- Setup Header: Clean Context -->
+            <div class="setup-header mb-4 d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="setup-kicker-context">Adding Room To</div>
+                    <h1 class="setup-property-title mb-0">{{ $property->name }}</h1>
+                    <div class="text-muted small mt-1"><i class="bi bi-geo-alt me-1"></i>{{ $property->address }}</div>
+                </div>
+                <a href="{{ route('landlord.properties.rooms.index', $property->id) }}" class="setup-back-link" title="Cancel and go back">
+                    <i class="bi bi-x-lg fs-5"></i>
+                </a>
             </div>
-        </div>
 
-        <div class="card-body p-0">
-            <div class="step-pane" data-step="1">
-                <div class="pane-wrap">
-                    <div class="section-kicker">Step 1</div>
-                    <h5 class="fw-semibold mb-1">Room Details</h5>
-                    <p class="text-muted small mb-3">Set core room attributes and rent inclusions.</p>
+            @if($errors->any())
+                <div class="alert alert-danger rounded-3 mb-4">
+                    <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Please check the following:</div>
+                    <ul class="mb-0 ps-3">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-                    <div class="row g-3">
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label">Room Name/Number</label>
-                            <input type="text" name="room_number" class="form-control" value="{{ old('room_number') }}" data-required="1" data-label="Room name or number" id="room_number_input" autocomplete="off" spellcheck="false" placeholder="Room 101">
+            <form id="createRoomForm" method="POST" enctype="multipart/form-data" action="{{ route('landlord.properties.rooms.store', $property->id) }}" novalidate>
+                @csrf
+
+                <!-- ========================================== -->
+                <!-- PANEL 0: ROOM DETAILS                      -->
+                <!-- ========================================== -->
+                <div class="question-panel {{ $initialPanel === 0 ? 'active' : '' }}" data-panel="0">
+                    <div class="question-kicker">Room Details</div>
+                    <h2 class="question-title">Tell us about this room.</h2>
+                    <p class="question-subtitle">Enter the room identifier and maximum tenant capacity.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="roomNumber">Room Name or Number <span class="text-danger">*</span></label>
+                        <input
+                            type="text"
+                            id="roomNumber"
+                            name="room_number"
+                            value="{{ old('room_number') }}"
+                            class="form-control @error('room_number') is-invalid @enderror"
+                            required
+                            placeholder="e.g. Room 101, Room A, Bedspace 1">
+                        @error('room_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <div class="field-hint">How students and you will identify this room.</div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="roomCapacity">Capacity (Beds/Tenants) <span class="text-danger">*</span></label>
+                            <input
+                                type="number"
+                                id="roomCapacity"
+                                name="capacity"
+                                min="1"
+                                max="50"
+                                value="{{ old('capacity', 1) }}"
+                                class="form-control @error('capacity') is-invalid @enderror"
+                                required>
+                            @error('capacity')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="field-hint">Maximum number of students who can stay here.</div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label">Capacity</label>
-                            <input type="number" min="1" name="capacity" class="form-control" value="{{ old('capacity', 1) }}" data-required="1" data-label="Capacity" id="capacity_input">
-                        </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select" data-required="1" data-label="Status" id="status_input">
-                                <option value="available" @selected(old('status')==='available')>Available</option>
-                                <option value="occupied" @selected(old('status')==='occupied')>Occupied</option>
-                                <option value="maintenance" @selected(old('status')==='maintenance')>Maintenance</option>
+
+                        <div class="col-sm-6">
+                            <label class="form-label" for="roomStatus">Initial Status <span class="text-danger">*</span></label>
+                            <select id="roomStatus" name="status" class="form-select @error('status') is-invalid @enderror" required>
+                                <option value="available" @selected(old('status', 'available') === 'available')>Available (Ready for bookings)</option>
+                                <option value="maintenance" @selected(old('status') === 'maintenance')>Under Maintenance (Hidden)</option>
+                                <option value="occupied" @selected(old('status') === 'occupied')>Occupied (Not bookable)</option>
                             </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="field-hint">Default is Available so students can book immediately.</div>
                         </div>
+                    </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Included in Rent (optional)</label>
-                            <input type="hidden" name="inclusions" id="inclusionsSerialized" value="{{ old('inclusions') }}">
-
-                            <div class="quick-inclusion-wrap mb-2">
-                                <div class="small text-muted fw-semibold mb-1">Quick add:</div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @foreach($quickInclusionOptions as $quickOption)
-                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill quick-inclusion-btn" data-inclusion="{{ $quickOption }}">{{ $quickOption }}</button>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <div id="inclusionsList" class="vstack gap-2">
-                                @forelse($initialInclusions as $item)
-                                    <div class="input-group inclusion-row">
-                                        <input type="text" class="form-control inclusion-input" value="{{ $item }}" placeholder="e.g., Electric fan">
-                                        <button class="btn btn-outline-danger remove-inclusion" type="button" aria-label="Remove inclusion">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </div>
-                                @empty
-                                    <div class="input-group inclusion-row">
-                                        <input type="text" class="form-control inclusion-input" placeholder="e.g., Electric fan">
-                                        <button class="btn btn-outline-danger remove-inclusion" type="button" aria-label="Remove inclusion">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </div>
-                                @endforelse
-                            </div>
-
-                            <button id="addInclusionBtn" type="button" class="btn btn-sm btn-outline-brand mt-2 rounded-pill px-3">
-                                <i class="bi bi-plus-lg me-1"></i>Add another
+                    <!-- Actions -->
+                    <div class="question-actions">
+                        <a href="{{ route('landlord.properties.rooms.index', $property->id) }}" class="btn-prev">Cancel</a>
+                        <div class="actions-right">
+                            <button type="button" class="btn-save-return-review d-none" data-save-panel="0">
+                                <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
                             </button>
-                            <div class="form-text">Add one item per field. These will be saved as comma-separated text.</div>
+                            <button type="button" class="btn-continue btn-primary-green" data-target="1">
+                                Continue <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="step-pane" data-step="2">
-                <div class="pane-wrap">
-                    <div class="section-kicker">Step 2</div>
-                    <h5 class="fw-semibold mb-1">Room Photos</h5>
-                    <p class="text-muted small mb-3">Upload a cover and optional detail photos to improve listing quality.</p>
+                <!-- ========================================== -->
+                <!-- PANEL 1: RENT & PRICING                    -->
+                <!-- ========================================== -->
+                <div class="question-panel {{ $initialPanel === 1 ? 'active' : '' }}" data-panel="1">
+                    <div class="question-kicker">Rent &amp; Billing</div>
+                    <h2 class="question-title">Set the monthly rent.</h2>
+                    <p class="question-subtitle">Choose whether rent is billed per student or for the entire room.</p>
 
-                    <div class="row g-4 room-split-grid">
-                        <div class="col-xl-5">
-                            <div class="edit-panel cover-panel h-100">
-                                <div class="section-kicker mb-3">Room Cover Photo</div>
-                                <p class="text-muted small mb-3">Upload a clear main photo for room listings and search results.</p>
-                                <label class="form-label">Room Photo <span class="text-muted">(optional)</span></label>
-                                <div class="custom-file-box">
-                                    <input type="file" id="roomImageInput" name="image" class="visually-hidden" accept="image/*">
-                                    <div class="custom-file-actions">
-                                        <button type="button" class="btn btn-outline-brand btn-sm rounded-pill px-3" id="roomImageTrigger">
-                                            <i class="bi bi-upload me-1"></i>Choose cover photo
-                                        </button>
-                                        <div class="custom-file-name" id="roomImageName">No file selected</div>
-                                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pricing Model <span class="text-danger">*</span></label>
+                        <div class="pricing-model-options">
+                            <label class="pricing-card-option" for="pricingPerBed">
+                                <input
+                                    type="radio"
+                                    id="pricingPerBed"
+                                    name="pricing_model"
+                                    value="per_bed"
+                                    class="pricing-radio"
+                                    @checked(old('pricing_model', 'per_bed') === 'per_bed')>
+                                <div class="pricing-card-content">
+                                    <div class="pricing-card-title"><i class="bi bi-person me-1"></i> Per Bed / Student</div>
+                                    <div class="pricing-card-desc">Each student pays individually for their assigned bed slot.</div>
                                 </div>
-                                <div class="form-text">JPG/PNG/WebP/GIF, up to 2MB.</div>
-                                <div class="mt-2" id="roomImagePreviewWrap" style="display:none;">
-                                    <img id="roomImagePreview" alt="Room photo preview" class="img-thumbnail w-100 room-cover-preview" style="max-height: 220px; object-fit: cover;">
+                            </label>
+
+                            <label class="pricing-card-option" for="pricingPerRoom">
+                                <input
+                                    type="radio"
+                                    id="pricingPerRoom"
+                                    name="pricing_model"
+                                    value="per_room"
+                                    class="pricing-radio"
+                                    @checked(old('pricing_model') === 'per_room')>
+                                <div class="pricing-card-content">
+                                    <div class="pricing-card-title"><i class="bi bi-door-closed me-1"></i> Entire Room</div>
+                                    <div class="pricing-card-desc">One fixed monthly rate for renting the entire private room.</div>
                                 </div>
+                            </label>
+
+                            <label class="pricing-card-option" for="pricingHybrid">
+                                <input
+                                    type="radio"
+                                    id="pricingHybrid"
+                                    name="pricing_model"
+                                    value="hybrid"
+                                    class="pricing-radio"
+                                    @checked(old('pricing_model') === 'hybrid')>
+                                <div class="pricing-card-content">
+                                    <div class="pricing-card-title"><i class="bi bi-grid-fill me-1"></i> Hybrid (Flexible)</div>
+                                    <div class="pricing-card-desc">Supports both individual bed bookings and whole-room leases.</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6" id="fieldPricePerBed">
+                            <label class="form-label" for="pricePerBed">Price Per Bed (₱ / Month) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    id="pricePerBed"
+                                    name="price_per_bed"
+                                    value="{{ old('price_per_bed') }}"
+                                    class="form-control @error('price_per_bed') is-invalid @enderror"
+                                    placeholder="e.g. 2500.00">
                             </div>
+                            @error('price_per_bed')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <div class="field-hint">Monthly charge per student occupant.</div>
                         </div>
 
-                        <div class="col-xl-7">
-                            <div class="detail-photos-panel">
-                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-                                    <div>
-                                        <div class="section-kicker">Detail Photos</div>
-                                        <div class="text-muted small">Optional photos for bed, kitchen, comfort room, and other room highlights.</div>
-                                    </div>
-                                </div>
+                        <div class="col-sm-6" id="fieldPricePerRoom">
+                            <label class="form-label" for="pricePerRoom">Price Per Room (₱ / Month) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    id="pricePerRoom"
+                                    name="price_per_room"
+                                    value="{{ old('price_per_room') }}"
+                                    class="form-control @error('price_per_room') is-invalid @enderror"
+                                    placeholder="e.g. 5000.00">
+                            </div>
+                            @error('price_per_room')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <div class="field-hint">Monthly rate if leasing the whole room.</div>
+                        </div>
+                    </div>
 
-                                <div id="newDetailSlots" class="detail-upload-stack">
-                                    <div class="new-detail-slot" data-index="0">
-                                        <div class="new-slot-head">
-                                            <div class="slot-index">Photo 1</div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 remove-slot-btn d-none">
-                                                <i class="bi bi-x-lg me-1"></i>Remove
-                                            </button>
-                                        </div>
-                                        <div class="detail-slot-grid">
-                                            <div>
-                                                <label class="form-label small fw-semibold mb-1">Select Photo</label>
-                                                <input type="file" name="detail_images[]" class="visually-hidden detail-file-input" accept="image/*">
-                                                <div class="custom-file-actions custom-file-actions--tight">
-                                                    <button type="button" class="btn btn-outline-brand btn-sm rounded-pill px-3 detail-file-trigger">
-                                                        <i class="bi bi-upload me-1"></i>Choose file
-                                                    </button>
-                                                    <div class="custom-file-name detail-file-name">No file selected</div>
-                                                </div>
-                                                <div class="detail-preview-wrap mt-2">
-                                                    <img src="" alt="Preview" class="detail-preview-img d-none">
-                                                    <div class="detail-preview-empty">No photo selected yet</div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="form-label small fw-semibold mb-1">Label <span class="text-danger">*</span></label>
-                                                <input type="text" name="detail_labels[]" class="form-control detail-label-input" value="{{ old('detail_labels.0') }}" placeholder="e.g. Bed, Kitchen, Comfort Room">
-                                                <div class="form-text mt-2">Use short labels, like "Bed", "Kitchen", or "CR".</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                    @if($supportsAdvanceRequirement)
+                        <div class="form-check form-switch mb-3 p-3 bg-light rounded-3">
+                            <input
+                                class="form-check-input ms-0 me-2"
+                                type="checkbox"
+                                role="switch"
+                                id="requiresAdvance"
+                                name="requires_advance_payment"
+                                value="1"
+                                @checked(old('requires_advance_payment'))>
+                            <label class="form-check-label fw-semibold" for="requiresAdvance">Require Advance Deposit Upon Move-In</label>
+                            <div class="field-hint ps-0">Students will be prompted to deposit 1 month advance payment during onboarding.</div>
+                        </div>
+                    @endif
 
-                                <button type="button" id="addDetailSlotBtn" class="btn btn-sm btn-outline-brand mt-2 rounded-pill px-3">
-                                    <i class="bi bi-plus-lg me-1"></i>Add Another Photo
+                    <!-- Actions -->
+                    <div class="question-actions">
+                        <button type="button" class="btn-prev" data-target="0">
+                            <i class="bi bi-arrow-left me-1"></i> Previous
+                        </button>
+                        <div class="actions-right">
+                            <button type="button" class="btn-save-return-review d-none" data-save-panel="1">
+                                <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
+                            </button>
+                            <button type="button" class="btn-continue btn-primary-green" data-target="2">
+                                Continue <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PANEL 2: ROOM INCLUSIONS                   -->
+                <!-- ========================================== -->
+                <div class="question-panel {{ $initialPanel === 2 ? 'active' : '' }}" data-panel="2">
+                    <div class="question-kicker">Room Inclusions</div>
+                    <h2 class="question-title">What's included in the rent?</h2>
+                    <p class="question-subtitle">Select utilities, furnishings, and amenities included with this room.</p>
+
+                    <input type="hidden" id="inclusionsInput" name="inclusions" value="{{ old('inclusions') }}">
+
+                    <div class="mb-4">
+                        <label class="form-label mb-2">Common Utilities &amp; Features</label>
+                        <div class="inclusions-chips-wrap">
+                            @foreach($quickInclusionOptions as $option)
+                                <button
+                                    type="button"
+                                    class="inclusion-chip-btn {{ in_array($option, $initialInclusions->all(), true) ? 'selected' : '' }}"
+                                    data-value="{{ $option }}">
+                                    <i class="bi bi-check2 check-icon"></i>
+                                    <span>{{ $option }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="customInclusionText">Add Custom Inclusion</label>
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="customInclusionText"
+                                class="form-control"
+                                placeholder="e.g. Foam Mattress, Personal Cabinet, Study Lamp">
+                            <button type="button" class="btn btn-outline-success px-3" id="btnAddCustomInclusion">
+                                <i class="bi bi-plus-lg me-1"></i> Add
+                            </button>
+                        </div>
+                        <div id="customInclusionsList" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="question-actions">
+                        <button type="button" class="btn-prev" data-target="1">
+                            <i class="bi bi-arrow-left me-1"></i> Previous
+                        </button>
+                        <div class="actions-right">
+                            <button type="button" class="btn-save-return-review d-none" data-save-panel="2">
+                                <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
+                            </button>
+                            <button type="button" class="btn-continue btn-primary-green" data-target="3">
+                                Continue <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PANEL 3: ROOM PHOTOS                       -->
+                <!-- ========================================== -->
+                <div class="question-panel {{ $initialPanel === 3 ? 'active' : '' }}" data-panel="3">
+                    <div class="question-kicker">Room Photos</div>
+                    <h2 class="question-title">Upload room photos.</h2>
+                    <p class="question-subtitle">Clear photos help students choose this room faster.</p>
+
+                    <div class="mb-4">
+                        <label class="form-label">Cover Photo</label>
+                        <div class="photo-upload-zone" id="roomCoverZone">
+                            <input
+                                type="file"
+                                id="roomImageInput"
+                                name="image"
+                                class="file-input-hidden"
+                                accept="image/jpeg,image/png,image/webp">
+                            <div class="upload-idle" id="roomUploadIdle">
+                                <div class="upload-icon-circle">
+                                    <i class="bi bi-camera"></i>
+                                </div>
+                                <div class="upload-prompt">
+                                    <span class="upload-action-text">Click to choose room cover photo</span> or drag here
+                                </div>
+                                <div class="upload-help-text">JPG, PNG, or WebP up to 2MB</div>
+                            </div>
+                            <div class="upload-preview-card d-none" id="roomUploadPreview">
+                                <img id="roomImagePreviewThumb" src="" alt="Room Preview" class="upload-preview-thumb">
+                                <div class="upload-file-info">
+                                    <div class="upload-file-name text-truncate" id="roomFileName">room.jpg</div>
+                                    <div class="upload-file-size" id="roomFileSize">0 KB</div>
+                                </div>
+                                <button type="button" class="btn-remove-photo" id="btnRemoveRoomPhoto" title="Remove photo">
+                                    <i class="bi bi-trash3"></i>
                                 </button>
                             </div>
                         </div>
+                        @error('image')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Additional Photos -->
+                    <div class="mb-4">
+                        <label class="form-label">Additional Photos (Optional)</label>
+                        <input
+                            type="file"
+                            id="detailImagesInput"
+                            name="detail_images[]"
+                            class="form-control"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple>
+                        <div class="field-hint">Upload bathroom, bed, or window views (up to 4MB each).</div>
+                        <div id="detailImagesPreviewGrid" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="question-actions">
+                        <button type="button" class="btn-prev" data-target="2">
+                            <i class="bi bi-arrow-left me-1"></i> Previous
+                        </button>
+                        <div class="actions-right">
+                            <button type="button" class="btn-save-return-review d-none" data-save-panel="3">
+                                <i class="bi bi-check-lg me-1"></i> Save &amp; Return to Review
+                            </button>
+                            <button type="button" class="btn-continue btn-primary-green" data-target="4">
+                                Review Room <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="step-pane" data-step="3">
-                <div class="pane-wrap">
-                    <div class="section-kicker">Step 3</div>
-                    <h5 class="fw-semibold mb-1">Room Price</h5>
-                    <p class="text-muted small mb-3">Set your pricing model and monthly rates for room and bed occupancy.</p>
+                <!-- ========================================== -->
+                <!-- PANEL 4: REVIEW & SUBMIT                   -->
+                <!-- ========================================== -->
+                <div class="question-panel {{ $initialPanel === 4 ? 'active' : '' }}" data-panel="4">
+                    <div class="question-kicker">Review &amp; Confirmation</div>
+                    <h2 class="question-title">Review your room details.</h2>
+                    <p class="question-subtitle">Confirm the configuration below before adding this room to your property.</p>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Pricing Model</label>
-                            <div class="pricing-model-grid" id="pricingModelGroup">
-                                <label class="pricing-model-option">
-                                    <input type="radio" name="pricing_model" value="per_room" @checked(old('pricing_model', 'hybrid')==='per_room')>
-                                    <span class="pricing-model-copy">
-                                        <span class="pricing-model-title">Per room</span>
-                                        <span class="pricing-model-note">Exclusive room / solo occupancy</span>
-                                    </span>
-                                </label>
-                                <label class="pricing-model-option">
-                                    <input type="radio" name="pricing_model" value="per_bed" @checked(old('pricing_model', 'hybrid')==='per_bed')>
-                                    <span class="pricing-model-copy">
-                                        <span class="pricing-model-title">Per bed</span>
-                                        <span class="pricing-model-note">Bedspacer setup</span>
-                                    </span>
-                                </label>
-                                <label class="pricing-model-option">
-                                    <input type="radio" name="pricing_model" value="hybrid" @checked(old('pricing_model', 'hybrid')==='hybrid')>
-                                    <span class="pricing-model-copy">
-                                        <span class="pricing-model-title">Hybrid</span>
-                                        <span class="pricing-model-note">Bedspacer and exclusive room</span>
-                                    </span>
-                                </label>
+                    <div class="review-sections-wrap mb-4">
+                        <!-- 1. Room Basics -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-door-open me-1"></i> Room Details</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="0">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                </button>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="alert alert-light border h-100 mb-0 d-flex align-items-center">
-                                <div class="small text-muted mb-0">
-                                    <strong class="text-dark">Pricing Guide:</strong> use <em>Per bed</em> for bedspacer rates, <em>Per room</em> for exclusive room/solo occupancy, or <em>Hybrid</em> to offer both.
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Room Identifier</span>
+                                    <span class="review-val" id="review_room_number">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Capacity</span>
+                                    <span class="review-val" id="review_capacity">—</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Initial Status</span>
+                                    <span class="review-val" id="review_status">Available</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6" id="pricePerRoomGroup">
-                            <label class="form-label">Per-Room Monthly Price (P)</label>
-                            <input type="number" step="0.01" min="0" name="price_per_room" class="form-control" value="{{ old('price_per_room', old('price')) }}" data-required="1" data-label="Per-room monthly price" id="price_per_room_input">
-                            <div class="form-text">Used for exclusive room or solo occupancy rates.</div>
-                        </div>
-                        <div class="col-md-6" id="pricePerBedGroup">
-                            <label class="form-label">Per-Bed Monthly Price (P)</label>
-                            <input type="number" step="0.01" min="0" name="price_per_bed" class="form-control" value="{{ old('price_per_bed') }}" data-required="1" data-label="Per-bed monthly price" id="price_per_bed_input">
-                            <div class="form-text">Used for bedspacer rate per tenant.</div>
-                        </div>
 
-                        @if(!empty($supportsAdvanceRequirement))
-                        <div class="col-12">
-                            <label class="advance-cta" for="requiresAdvancePayment">
-                                <span class="advance-cta-body">
-                                    <input
-                                        class="form-check-input advance-cta-input"
-                                        type="checkbox"
-                                        value="1"
-                                        id="requiresAdvancePayment"
-                                        name="requires_advance_payment"
-                                        @checked(old('requires_advance_payment') == '1')
-                                    >
-                                    <span class="advance-cta-icon">
-                                        <i class="bi bi-shield-check"></i>
-                                    </span>
-                                    <span>
-                                        <span class="advance-cta-title">Require 1 month advance payment for this room</span>
-                                        <span class="advance-cta-note">If enabled, students cannot turn off advance payment during the boarding request.</span>
-                                    </span>
-                                </span>
-                            </label>
-                        </div>
-                        <div class="col-12 mt-n1">
-                            <div class="form-text">Recommended for high-demand rooms to reduce no-show bookings.</div>
-                        </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-pane" data-step="4">
-                <div class="pane-wrap">
-                    <div class="section-kicker">Step 4</div>
-                    <h5 class="fw-semibold mb-1">Review and Submit</h5>
-                    <p class="text-muted small mb-3">Review room details, pricing, and uploaded photos before saving.</p>
-
-                    <div class="review-grid">
+                        <!-- 2. Rent & Pricing -->
                         <div class="review-card">
-                            <div class="review-label">Room</div>
-                            <div class="review-value" id="reviewRoom">-</div>
-                        </div>
-                        <div class="review-card">
-                            <div class="review-label">Capacity</div>
-                            <div class="review-value" id="reviewCapacity">1 pax</div>
-                        </div>
-                        <div class="review-card">
-                            <div class="review-label">Price Summary</div>
-                            <div class="review-value" id="reviewPrice">P0.00</div>
-                        </div>
-                        <div class="review-card">
-                            <div class="review-label">Status</div>
-                            <div class="review-value" id="reviewStatus">Available</div>
-                        </div>
-                        <div class="review-card">
-                            <div class="review-label">Inclusions</div>
-                            <div class="review-value" id="reviewInclusionCount">0 item(s)</div>
-                        </div>
-                        <div class="review-card">
-                            <div class="review-label">Detail Photos</div>
-                            <div class="review-value" id="reviewDetailCount">0 photo(s)</div>
-                        </div>
-                    </div>
-
-                    <div class="review-media-grid mt-3">
-                        <div class="review-media-card">
-                            <div class="review-label mb-2">Cover Photo</div>
-                            <div class="review-cover-wrap" id="reviewCoverWrap">
-                                <img src="" alt="Cover review" id="reviewCoverImage" class="review-cover-image d-none">
-                                <div class="review-empty" id="reviewCoverEmpty">No cover photo uploaded.</div>
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-cash-coin me-1"></i> Rent &amp; Pricing</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="1">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Pricing Model</span>
+                                    <span class="review-val" id="review_pricing_model">Per Bed</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Monthly Rent</span>
+                                    <span class="review-val text-success fw-bold" id="review_price_amount">₱0.00</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="review-media-card">
-                            <div class="review-label mb-2">Detail Photo Preview</div>
-                            <div class="review-detail-gallery" id="reviewDetailGallery">
-                                <div class="review-empty">No detail photos uploaded.</div>
+
+                        <!-- 3. Inclusions -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-check2-all me-1"></i> Inclusions</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="2">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item col-12">
+                                    <span class="review-label">Included in Rent</span>
+                                    <span class="review-val" id="review_inclusions">None specified</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Photos -->
+                        <div class="review-card">
+                            <div class="review-header">
+                                <h3 class="review-section-title"><i class="bi bi-images me-1"></i> Photos</h3>
+                                <button type="button" class="btn-review-edit" data-edit-panel="3">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                </button>
+                            </div>
+                            <div class="review-grid">
+                                <div class="review-item col-12">
+                                    <span class="review-label">Cover Photo</span>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <img id="review_room_photo_thumb" src="" alt="Thumbnail" class="upload-preview d-none" style="width: 50px; height: 50px; object-fit: cover; border-radius: .5rem;">
+                                        <span class="review-val" id="review_cover_photo">No photo uploaded</span>
+                                    </div>
+                                </div>
+                                <div class="review-item col-12">
+                                    <span class="review-label">Additional Photos</span>
+                                    <span class="review-val" id="review_detail_photos_count">0 photos</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="alert alert-light border mt-3 mb-0">
-                        <strong>Before saving</strong>
-                        <div class="small text-muted">Make sure room number, pricing, and photos are correct. You can still edit and add more photos after saving.</div>
+                    <!-- Actions -->
+                    <div class="question-actions">
+                        <button type="button" class="btn-prev" data-target="3">
+                            <i class="bi bi-arrow-left me-1"></i> Previous
+                        </button>
+                        <button type="submit" class="btn-submit btn-primary-green" id="submitRoomBtn">
+                            <i class="bi bi-plus-circle me-1"></i> Add Room
+                        </button>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
-
-        <div class="card-footer bg-light d-flex justify-content-between align-items-center flex-wrap gap-2 action-bar">
-            <button type="button" class="btn btn-outline-secondary rounded-pill px-3" id="prevStepBtn">Previous</button>
-            <div class="d-flex gap-2">
-                <a href="{{ route('landlord.properties.rooms.index', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3">Cancel</a>
-                <button type="button" class="btn btn-brand rounded-pill px-4" id="nextStepBtn">Next</button>
-                <button type="submit" class="btn btn-brand rounded-pill px-4" id="saveRoomBtn">Save Room</button>
-            </div>
-        </div>
-    </form>
-</div>
+    </div>
+@endsection
 
 @push('styles')
 <style>
-    .room-create-shell {
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
-        border: 1px solid rgba(2,8,20,.08);
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 26px rgba(2,8,20,.06);
-        padding: 1.25rem;
+    :root {
+        --brand: #14532d;
+        --brand-dark: #166534;
+        --premium-emerald: #10b981;
+        --premium-emerald-deep: #047857;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --shell: #f8fafc;
     }
 
-    .create-summary {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .75rem;
-    }
-
-    .create-summary-item {
-        border: 1px solid rgba(20,83,45,.16);
-        background: linear-gradient(180deg, rgba(167,243,208,.18), rgba(255,255,255,.85));
-        border-radius: .9rem;
-        padding: .7rem .8rem;
-        min-width: 0;
-    }
-
-    .create-summary-label {
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: rgba(2,8,20,.55);
-        font-weight: 700;
-        margin-bottom: .2rem;
-    }
-
-    .create-summary-value {
-        font-size: .94rem;
-        font-weight: 700;
-        color: #14532d;
-    }
-
-    .room-form-card {
-        border: 1px solid rgba(2,8,20,.08) !important;
-        box-shadow: 0 14px 30px rgba(2,8,20,.08) !important;
-        border-radius: 1rem;
-        overflow: hidden;
-    }
-
-    .stepper-head {
-        background: #ffffff;
-        padding: 1rem 1.15rem;
-    }
-
-    .room-stepper {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: .85rem;
-        border: 1px solid rgba(2,8,20,.08);
-        border-radius: 1rem;
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-        padding: .75rem;
-    }
-
-    .stepper-node {
-        border: none;
-        background: transparent;
-        border-radius: .8rem;
-        padding: .3rem .35rem .45rem;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: .35rem;
-        text-align: left;
-        transition: transform .16s ease, opacity .16s ease;
-        cursor: pointer;
-        min-width: 0;
-    }
-
-    .stepper-node:hover {
-        transform: translateY(-1px);
-    }
-
-    .step-track {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        align-items: center;
-        gap: .42rem;
+    .guided-setup-wrapper {
         width: 100%;
+        display: flex;
+        justify-content: center;
+        padding: 0.5rem 0.5rem 2.5rem;
     }
 
-    .step-line {
-        height: 4px;
-        border-radius: 999px;
-        background: #d1d5db;
-        transition: background .2s ease;
-        position: relative;
-        overflow: hidden;
+    .guided-setup-card {
+        width: min(680px, 100%);
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.08);
+        padding: 2.25rem 2rem;
     }
 
-    .stepper-node:first-child .step-line-left,
-    .stepper-node:last-child .step-line-right {
-        visibility: hidden;
+    @media (max-width: 576px) {
+        .guided-setup-card {
+            padding: 1.35rem 1.1rem;
+            border-radius: 1.15rem;
+        }
     }
 
-    .stepper-node .step-count {
-        width: 38px;
-        height: 38px;
-        border-radius: 999px;
+    .setup-kicker-context {
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--premium-emerald-deep);
+        margin-bottom: 0.2rem;
+    }
+
+    .setup-property-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--ink);
+    }
+
+    .setup-back-link {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: .95rem;
-        font-weight: 700;
-        border: 2px solid #cbd5e1;
-        color: #475569;
-        background: #e2e8f0;
-        flex: 0 0 auto;
-        transition: all .2s ease;
-    }
-
-    .stepper-node .step-check {
-        display: none;
-        line-height: 1;
-    }
-
-    .stepper-node .step-number {
-        line-height: 1;
-    }
-
-    .stepper-node .step-kicker {
-        font-size: .66rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        color: #64748b;
-        font-weight: 700;
-        line-height: 1;
-    }
-
-    .stepper-node .step-label {
-        font-size: .9rem;
-        font-weight: 700;
-        color: #334155;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .stepper-node .step-status {
-        align-self: flex-start;
-        border: 1px solid #cbd5e1;
-        border-radius: 999px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        color: var(--muted);
         background: #f1f5f9;
-        color: #475569;
-        font-size: .66rem;
-        font-weight: 700;
-        letter-spacing: .03em;
-        line-height: 1;
-        padding: .27rem .56rem;
+        text-decoration: none;
+        transition: all 0.15s ease;
     }
 
-    .stepper-node.is-active {
-        opacity: 1;
+    .setup-back-link:hover {
+        color: var(--brand);
+        background: #e2e8f0;
     }
 
-    .stepper-node.is-active .step-count {
-        border-color: #1d4ed8;
-        color: #ffffff;
-        background: #2563eb;
-        box-shadow: 0 0 0 .18rem rgba(37,99,235,.18);
-    }
-
-    .stepper-node.is-active .step-line-left {
-        background: #22c55e;
-    }
-
-    .stepper-node.is-active .step-line-right {
-        background: #d1d5db;
-    }
-
-    .stepper-node.is-active .step-line-right::after {
-        content: '';
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 42%;
-        border-radius: inherit;
-        background: #2563eb;
-        animation: stepperPulse 1.2s ease-in-out infinite alternate;
-    }
-
-    .stepper-node.is-active .step-kicker,
-    .stepper-node.is-active .step-label {
-        color: #1e3a8a;
-    }
-
-    .stepper-node.is-active .step-status {
-        border-color: #93c5fd;
-        background: #dbeafe;
-        color: #1d4ed8;
-    }
-
-    .stepper-node.is-done {
-        opacity: 1;
-    }
-
-    .stepper-node.is-done .step-count {
-        border-color: #16a34a;
-        color: #ffffff;
-        background: #22c55e;
-        box-shadow: 0 0 0 .16rem rgba(34,197,94,.14);
-    }
-
-    .stepper-node.is-done .step-check {
-        display: inline-flex;
-    }
-
-    .stepper-node.is-done .step-number {
+    /* Question Panels */
+    .question-panel {
         display: none;
     }
 
-    .stepper-node.is-done .step-line-left,
-    .stepper-node.is-done .step-line-right {
-        background: #22c55e;
+    .question-panel.active {
+        display: block;
+        animation: questionFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .stepper-node.is-done .step-kicker,
-    .stepper-node.is-done .step-label {
-        color: #14532d;
-    }
-
-    .stepper-node.is-done .step-status {
-        border-color: #86efac;
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    @keyframes stepperPulse {
+    @keyframes questionFadeIn {
         from {
-            width: 36%;
+            opacity: 0;
+            transform: translateY(6px);
         }
         to {
-            width: 52%;
+            opacity: 1;
+            transform: translateY(0);
         }
     }
 
-    .step-pane {
-        display: none;
-        padding: 1.2rem 1.25rem;
+    .question-kicker {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--premium-emerald-deep);
+        margin-bottom: 0.45rem;
     }
 
-    .step-pane.is-visible {
-        display: block;
+    .question-title {
+        font-size: clamp(1.4rem, 2.8vw, 1.75rem);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.25;
+        color: var(--ink);
+        margin-bottom: 0.35rem;
     }
 
-    .pane-wrap {
-        border: 1px solid rgba(2,8,20,.09);
-        border-radius: 1rem;
-        background: linear-gradient(180deg, #ffffff 0%, #fcfffd 100%);
-        padding: 1rem;
-        box-shadow: 0 8px 20px rgba(2,8,20,.05);
+    .question-subtitle {
+        font-size: 0.92rem;
+        color: var(--muted);
+        margin-bottom: 1.75rem;
+        line-height: 1.5;
     }
 
-    .pricing-model-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .55rem;
-    }
-
-    .pricing-model-option {
-        border: 1px solid rgba(2,8,20,.16);
-        border-radius: .8rem;
-        padding: .55rem .65rem;
-        background: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: .55rem;
-        cursor: pointer;
-        transition: all .2s ease;
-        min-width: 0;
-    }
-
-    .pricing-model-option input[type="radio"] {
-        accent-color: #2563eb;
-        cursor: pointer;
-        margin-top: 0;
-        flex: 0 0 auto;
-    }
-
-    .pricing-model-copy {
-        min-width: 0;
-        display: grid;
-        gap: .08rem;
-    }
-
-    .pricing-model-title {
-        font-size: .84rem;
+    /* Form Inputs */
+    .form-label {
+        font-size: 0.86rem;
         font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
+        color: #334155;
+        margin-bottom: 0.4rem;
     }
 
-    .pricing-model-note {
-        font-size: .74rem;
-        color: #64748b;
-        line-height: 1.2;
+    .form-control, .form-select {
+        border: 1.5px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 0.65rem 0.95rem;
+        font-size: 0.95rem;
+        color: var(--ink);
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .pricing-model-option:has(input[type="radio"]:checked) {
-        border-color: rgba(37,99,235,.44);
-        background: linear-gradient(180deg, rgba(219,234,254,.5), #ffffff 84%);
-        box-shadow: 0 0 0 .14rem rgba(37,99,235,.12);
+    .form-control:focus, .form-select:focus {
+        border-color: var(--premium-emerald);
+        box-shadow: 0 0 0 3.5px rgba(16, 185, 129, 0.15);
+        outline: 0;
     }
 
-    .pricing-model-option.is-selected {
-        border-color: rgba(37,99,235,.44);
-        background: linear-gradient(180deg, rgba(219,234,254,.5), #ffffff 84%);
-        box-shadow: 0 0 0 .14rem rgba(37,99,235,.12);
+    .field-hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.35rem;
+        line-height: 1.4;
     }
 
-    .pricing-model-option:has(input[type="radio"]:checked) .pricing-model-title {
-        color: #1e3a8a;
+    /* Pricing Model Selection Cards */
+    .pricing-model-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
     }
 
-    .pricing-model-option.is-selected .pricing-model-title {
-        color: #1e3a8a;
-    }
-
-    .advance-cta {
+    .pricing-card-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        border: 1.5px solid var(--line);
+        border-radius: 0.85rem;
+        padding: 0.85rem 1rem;
+        background: #ffffff;
         cursor: pointer;
-        display: block;
+        transition: all 0.15s ease;
         margin: 0;
     }
 
-    .advance-cta-input {
-        position: relative;
-        width: 1.15rem;
-        height: 1.15rem;
-        margin: .2rem 0 0;
-        accent-color: #166534;
-        cursor: pointer;
-        flex: 0 0 auto;
+    .pricing-card-option:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
     }
 
-    .advance-cta-body {
+    .pricing-radio {
+        margin-top: 0.25rem;
+        accent-color: var(--premium-emerald);
+    }
+
+    .pricing-card-option:has(.pricing-radio:checked) {
+        border-color: var(--premium-emerald);
+        background: rgba(16, 185, 129, 0.05);
+    }
+
+    .pricing-card-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .pricing-card-desc {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+    }
+
+    /* Inclusions Chips */
+    .inclusions-chips-wrap {
         display: flex;
-        align-items: flex-start;
-        gap: .75rem;
-        border: 1px solid rgba(2,8,20,.15);
-        border-radius: .85rem;
-        background: #ffffff;
-        padding: .75rem .8rem;
-        transition: all .2s ease;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
-    .advance-cta-icon {
-        width: 34px;
-        height: 34px;
+    .inclusion-chip-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.85rem;
+        border: 1.5px solid var(--line);
         border-radius: 999px;
-        border: 1px solid rgba(20,83,45,.28);
-        background: rgba(167,243,208,.2);
-        color: #14532d;
+        background: #ffffff;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .inclusion-chip-btn .check-icon {
+        display: none;
+        font-size: 0.95rem;
+    }
+
+    .inclusion-chip-btn.selected {
+        border-color: var(--premium-emerald);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--premium-emerald-deep);
+        font-weight: 700;
+    }
+
+    .inclusion-chip-btn.selected .check-icon {
+        display: inline-block;
+    }
+
+    .custom-chip-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .custom-chip-remove {
+        background: none;
+        border: none;
+        padding: 0;
+        color: #ef4444;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Photo Upload Zone */
+    .photo-upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 1rem;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .photo-upload-zone:hover {
+        border-color: var(--premium-emerald);
+        background: rgba(16, 185, 129, 0.03);
+    }
+
+    .file-input-hidden {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+
+    .upload-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--premium-emerald-deep);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        flex: 0 0 auto;
-        font-size: 1rem;
+        font-size: 1.4rem;
+        margin-bottom: 0.6rem;
     }
 
-    .advance-cta-title {
-        display: block;
-        font-size: .95rem;
+    .upload-prompt {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .upload-action-text {
+        color: var(--premium-emerald-deep);
+        text-decoration: underline;
+    }
+
+    .upload-help-text {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+
+    .upload-preview-card {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        background: #ffffff;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 0.65rem 0.85rem;
+        position: relative;
+        z-index: 3;
+    }
+
+    .upload-preview-thumb {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        flex-shrink: 0;
+    }
+
+    .upload-file-info {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .upload-file-name {
+        font-size: 0.88rem;
         font-weight: 700;
-        color: #166534;
-        line-height: 1.25;
+        color: #1e293b;
     }
 
-    .advance-cta-note {
-        display: block;
-        margin-top: .2rem;
-        font-size: .82rem;
-        color: #0f766e;
-        line-height: 1.35;
+    .upload-file-size {
+        font-size: 0.76rem;
+        color: var(--muted);
     }
 
-    .advance-cta.is-checked .advance-cta-body {
-        border-color: rgba(20,83,45,.55);
-        background: linear-gradient(180deg, rgba(167,243,208,.2), #ffffff 85%);
-        box-shadow: 0 0 0 .14rem rgba(22,163,74,.14);
+    .btn-remove-photo {
+        background: transparent;
+        border: none;
+        color: #ef4444;
+        font-size: 1.1rem;
+        padding: 0.35rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
     }
 
-    .advance-cta.is-checked .advance-cta-title {
-        color: #14532d;
+    .btn-remove-photo:hover {
+        background-color: rgba(239, 68, 68, 0.1);
     }
 
-    .advance-cta.is-checked .advance-cta-note {
-        color: #065f46;
+    /* Actions Footer */
+    .question-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 2rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+        flex-wrap: wrap;
+    }
+
+    .actions-right {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary-green {
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        color: #ffffff;
+        border: none;
+        border-radius: 999px;
+        padding: 0.7rem 1.6rem;
+        font-weight: 700;
+        font-size: 0.92rem;
+        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.2);
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.18s ease;
+        cursor: pointer;
+    }
+
+    .btn-primary-green:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(4, 120, 87, 0.28);
+        color: #ffffff;
+    }
+
+    .btn-prev {
+        background: transparent;
+        color: var(--muted);
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        padding: 0.68rem 1.25rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        transition: all 0.18s ease;
+        cursor: pointer;
+    }
+
+    .btn-prev:hover {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .btn-save-return-review {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--premium-emerald-deep);
+        border: 1.5px solid var(--premium-emerald-deep);
+        border-radius: 999px;
+        padding: 0.68rem 1.25rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+
+    .btn-save-return-review:hover {
+        background: var(--premium-emerald-deep);
+        color: #ffffff;
+    }
+
+    /* Review Screen Cards */
+    .review-sections-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .review-card {
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background: #ffffff;
+        padding: 1.15rem 1.35rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .review-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .review-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 0.55rem;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .review-section-title {
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--premium-emerald-deep);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .btn-review-edit {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--brand-dark);
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.6rem;
+        background: rgba(20, 83, 45, 0.06);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-review-edit:hover {
+        background: rgba(20, 83, 45, 0.14);
+        color: var(--brand);
     }
 
     .review-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .6rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem 1rem;
     }
 
-    .review-card {
-        border: 1px solid rgba(2,8,20,.1);
-        border-radius: .75rem;
-        padding: .55rem .65rem;
-        background: #fff;
+    .review-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
     }
 
     .review-label {
-        font-size: .68rem;
-        letter-spacing: .05em;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: #64748b;
-        font-weight: 700;
+        color: var(--muted);
     }
 
-    .review-value {
-        font-size: .92rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .review-media-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-        gap: .75rem;
-    }
-
-    .review-media-card {
-        border: 1px solid rgba(2,8,20,.1);
-        border-radius: .75rem;
-        padding: .65rem;
-        background: #fff;
-    }
-
-    .review-cover-wrap {
-        border: 1px dashed rgba(2,8,20,.2);
-        border-radius: .7rem;
-        min-height: 180px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        background: #f8fafc;
-    }
-
-    .review-cover-image {
-        width: 100%;
-        max-height: 220px;
-        object-fit: cover;
-    }
-
-    .review-detail-gallery {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .55rem;
-    }
-
-    .review-photo-card {
-        border: 1px solid rgba(2,8,20,.12);
-        border-radius: .65rem;
-        overflow: hidden;
-        background: #ffffff;
-    }
-
-    .review-photo-card img {
-        width: 100%;
-        height: 100px;
-        object-fit: cover;
-        display: block;
-    }
-
-    .review-photo-caption {
-        font-size: .75rem;
+    .review-val {
+        font-size: 0.92rem;
         font-weight: 600;
-        color: #334155;
-        padding: .38rem .45rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .review-empty {
-        font-size: .82rem;
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    .room-split-grid {
-        align-items: stretch;
-    }
-
-    .edit-panel {
-        border: 1px solid rgba(2,8,20,.09);
-        border-radius: 1rem;
-        background: linear-gradient(180deg, #ffffff 0%, #fcfffd 100%);
-        padding: 1rem;
-        box-shadow: 0 8px 20px rgba(2,8,20,.05);
-    }
-
-    .cover-panel {
-        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-    }
-
-    .section-kicker {
-        font-size: .78rem;
-        letter-spacing: .05em;
-        text-transform: uppercase;
-        color: rgba(2,8,20,.6);
-        font-weight: 700;
-    }
-
-    .room-form-card .form-label {
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    .room-form-card .form-control,
-    .room-form-card .form-select {
-        border-color: rgba(2,8,20,.14);
-        background: #ffffff;
-    }
-
-    .quick-inclusion-wrap {
-        border: 1px dashed rgba(2,8,20,.16);
-        border-radius: .75rem;
-        background: #f8fafc;
-        padding: .55rem .65rem;
-    }
-
-    .quick-inclusion-btn {
-        transition: all .2s ease;
-    }
-
-    .quick-inclusion-btn.is-selected,
-    .quick-inclusion-btn.is-selected:disabled {
-        border-color: #86efac;
-        background: linear-gradient(180deg, #dcfce7 0%, #f0fdf4 100%);
-        color: #166534;
-        font-weight: 700;
-        box-shadow: inset 0 0 0 1px rgba(22,163,74,.24);
-        cursor: not-allowed;
-    }
-
-    .quick-inclusion-btn:disabled {
-        opacity: 1;
-    }
-
-    .custom-file-box {
-        border: 1px dashed rgba(2,8,20,.24);
-        border-radius: .75rem;
-        padding: .7rem;
-        background: #ffffff;
-        margin-bottom: .35rem;
-    }
-
-    .custom-file-actions {
-        display: flex;
-        align-items: center;
-        gap: .55rem;
-        flex-wrap: wrap;
-    }
-
-    .custom-file-actions--tight {
-        align-items: flex-start;
-    }
-
-    .custom-file-name {
-        font-size: .82rem;
-        color: #475569;
-        border: 1px solid rgba(2,8,20,.12);
-        border-radius: 999px;
-        padding: .22rem .65rem;
-        background: #f8fafc;
-        max-width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .room-cover-preview {
-        border-radius: .75rem;
-        border: 1px solid rgba(2,8,20,.14);
-    }
-
-    .detail-photos-panel {
-        border: 1px solid rgba(2,8,20,.1);
-        border-radius: 1rem;
-        background: #ffffff;
-        padding: 1rem;
-        box-shadow: 0 8px 20px rgba(2,8,20,.05);
-    }
-
-    .detail-upload-stack {
-        display: grid;
-        gap: .75rem;
-    }
-
-    .new-detail-slot {
-        border: 1px solid rgba(2,8,20,.12);
-        border-radius: .85rem;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        padding: .8rem;
-    }
-
-    .new-slot-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: .6rem;
-        margin-bottom: .65rem;
-    }
-
-    .slot-index {
-        font-size: .76rem;
-        letter-spacing: .05em;
-        text-transform: uppercase;
-        color: rgba(2,8,20,.58);
-        font-weight: 700;
-    }
-
-    .detail-slot-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: .7rem;
-    }
-
-    .detail-preview-wrap {
-        border: 1px dashed rgba(2,8,20,.22);
-        border-radius: .7rem;
-        min-height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #ffffff;
-        overflow: hidden;
-    }
-
-    .detail-preview-img {
-        width: 100%;
-        height: 140px;
-        object-fit: cover;
-    }
-
-    .detail-preview-empty {
-        font-size: .8rem;
-        color: rgba(2,8,20,.5);
-        font-weight: 600;
-    }
-
-    .action-bar {
-        border-top: 1px solid rgba(2,8,20,.08);
-    }
-
-    @media (max-width: 991.98px) {
-        .create-summary,
-        .review-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .pricing-model-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .room-stepper {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: .65rem;
-            padding: .65rem;
-        }
-
-        .stepper-node {
-            padding: .4rem .28rem .5rem;
-        }
-
-        .step-track {
-            grid-template-columns: auto;
-            justify-content: flex-start;
-        }
-
-        .stepper-node .step-line {
-            display: none;
-        }
-
-        .stepper-node .step-label {
-            font-size: .86rem;
-        }
-
-        .detail-slot-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .review-detail-gallery {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .room-create-shell {
-            padding: .95rem;
-        }
-
-        .cover-panel {
-            background: #ffffff;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        .room-stepper {
-            grid-template-columns: 1fr;
-            padding: .58rem;
-        }
-
-        .stepper-node {
-            padding: .35rem .2rem .45rem;
-        }
+        color: var(--ink);
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const shell = document.querySelector('.room-create-shell');
+    (function () {
+        'use strict';
+
         const form = document.getElementById('createRoomForm');
-        const nodes = Array.from(document.querySelectorAll('.stepper-node'));
-        const panes = Array.from(document.querySelectorAll('.step-pane'));
-        const prevBtn = document.getElementById('prevStepBtn');
-        const nextBtn = document.getElementById('nextStepBtn');
-        const saveBtn = document.getElementById('saveRoomBtn');
-        const totalSteps = panes.length;
-        let currentStep = Number(shell?.dataset.initialStep || 1);
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        const reviewEditButtons = document.querySelectorAll('.btn-review-edit');
+        const saveReturnButtons = document.querySelectorAll('.btn-save-return-review');
+        let currentPanel = {{ $initialPanel }};
+        let editingFromReview = false;
 
-        const roomNumberInput = document.getElementById('room_number_input');
-        const capacityInput = document.getElementById('capacity_input');
-        const pricingModelRadios = Array.from(document.querySelectorAll('input[name="pricing_model"]'));
-        const pricePerRoomInput = document.getElementById('price_per_room_input');
-        const pricePerBedInput = document.getElementById('price_per_bed_input');
-        const pricePerRoomGroup = document.getElementById('pricePerRoomGroup');
-        const pricePerBedGroup = document.getElementById('pricePerBedGroup');
-        const statusInput = document.getElementById('status_input');
-        const roomImageInput = document.getElementById('roomImageInput');
-        const roomImageTrigger = document.getElementById('roomImageTrigger');
-        const roomImageName = document.getElementById('roomImageName');
-        const roomImageWrap = document.getElementById('roomImagePreviewWrap');
-        const roomImagePreview = document.getElementById('roomImagePreview');
-
-        const reviewRoom = document.getElementById('reviewRoom');
-        const reviewCapacity = document.getElementById('reviewCapacity');
-        const reviewPrice = document.getElementById('reviewPrice');
-        const reviewStatus = document.getElementById('reviewStatus');
-        const reviewInclusionCount = document.getElementById('reviewInclusionCount');
-        const reviewDetailCount = document.getElementById('reviewDetailCount');
-        const reviewCoverImage = document.getElementById('reviewCoverImage');
-        const reviewCoverEmpty = document.getElementById('reviewCoverEmpty');
-        const reviewDetailGallery = document.getElementById('reviewDetailGallery');
-
-        const inclusionsList = document.getElementById('inclusionsList');
-        const addInclusionBtn = document.getElementById('addInclusionBtn');
-        const inclusionsSerialized = document.getElementById('inclusionsSerialized');
-        const quickInclusionBtns = Array.from(document.querySelectorAll('.quick-inclusion-btn'));
-        const addDetailSlotBtn = document.getElementById('addDetailSlotBtn');
-        const newDetailSlots = document.getElementById('newDetailSlots');
-        const advancePaymentCheckbox = document.getElementById('requiresAdvancePayment');
-        const advanceCta = advancePaymentCheckbox ? advancePaymentCheckbox.closest('.advance-cta') : null;
-        const draftPrefix = shell?.dataset.draftKey || 'room-create-draft';
-        const coverDraftKey = draftPrefix + ':cover';
-        const detailDraftKey = draftPrefix + ':details';
-        const hasServerValidationErrors = @json($errors->any());
-
-        function getStorageValue(key, fallback = null) {
-            try {
-                const raw = localStorage.getItem(key);
-                return raw ? JSON.parse(raw) : fallback;
-            } catch (error) {
-                return fallback;
-            }
-        }
-
-        function setStorageValue(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (error) {
-                // Ignore storage limits and continue with in-memory preview.
-            }
-        }
-
-        function syncAdvanceCtaState() {
-            if (!advancePaymentCheckbox || !advanceCta) return;
-            advanceCta.classList.toggle('is-checked', !!advancePaymentCheckbox.checked);
-        }
-
-        function removeStorageValue(key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (error) {
-                // No-op on storage access issues.
-            }
-        }
-
-        function formatPrice(value) {
-            const numeric = Number(value || 0);
-            if (Number.isNaN(numeric)) return 'P0.00';
-            return 'P' + numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function pricingModelLabel(value) {
-            if (value === 'per_room') return 'Per room';
-            if (value === 'per_bed') return 'Per bed';
-            return 'Hybrid';
-        }
-
-        function selectedPricingModel() {
-            const selected = pricingModelRadios.find((radio) => radio.checked);
-            return selected ? selected.value : 'hybrid';
-        }
-
-        function syncPricingModelOptionState() {
-            pricingModelRadios.forEach((radio) => {
-                radio.closest('.pricing-model-option')?.classList.toggle('is-selected', radio.checked);
+        // --- Panel Navigation ---
+        function showPanel(index) {
+            if (index < 0 || index >= panels.length) return;
+            panels.forEach((p, idx) => {
+                p.classList.toggle('active', idx === index);
             });
-        }
+            currentPanel = index;
 
-        function updatePricingFieldState() {
-            const pricingModel = selectedPricingModel();
-            const needsPerRoom = pricingModel === 'per_room' || pricingModel === 'hybrid';
-            const needsPerBed = pricingModel === 'per_bed' || pricingModel === 'hybrid';
-
-            syncPricingModelOptionState();
-
-            if (pricePerRoomGroup) {
-                pricePerRoomGroup.classList.toggle('d-none', !needsPerRoom);
-            }
-
-            if (pricePerBedGroup) {
-                pricePerBedGroup.classList.toggle('d-none', !needsPerBed);
-            }
-
-            if (pricePerRoomInput) {
-                pricePerRoomInput.disabled = !needsPerRoom;
-                if (!needsPerRoom) {
-                    pricePerRoomInput.setCustomValidity('');
-                }
-            }
-
-            if (pricePerBedInput) {
-                pricePerBedInput.disabled = !needsPerBed;
-                if (!needsPerBed) {
-                    pricePerBedInput.setCustomValidity('');
-                }
-            }
-        }
-
-        function filename(value) {
-            if (!value) return 'No file selected';
-            const parts = String(value).split(/[\\/]/).filter(Boolean);
-            return parts[parts.length - 1] || 'No file selected';
-        }
-
-        function fileToDataUrl(file) {
-            return new Promise((resolve) => {
-                if (!file) {
-                    resolve('');
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const rawDataUrl = String(reader.result || '');
-                    if (!rawDataUrl) {
-                        resolve('');
-                        return;
-                    }
-
-                    const image = new Image();
-                    image.onload = () => {
-                        const maxDimension = 1200;
-                        let targetWidth = image.width;
-                        let targetHeight = image.height;
-
-                        if (targetWidth > maxDimension || targetHeight > maxDimension) {
-                            const scale = Math.min(maxDimension / targetWidth, maxDimension / targetHeight);
-                            targetWidth = Math.max(1, Math.round(targetWidth * scale));
-                            targetHeight = Math.max(1, Math.round(targetHeight * scale));
-                        }
-
-                        const canvas = document.createElement('canvas');
-                        canvas.width = targetWidth;
-                        canvas.height = targetHeight;
-                        const ctx = canvas.getContext('2d');
-                        if (!ctx) {
-                            resolve(rawDataUrl);
-                            return;
-                        }
-
-                        ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-                        resolve(canvas.toDataURL('image/jpeg', 0.84));
-                    };
-                    image.onerror = () => resolve(rawDataUrl);
-                    image.src = rawDataUrl;
-                };
-                reader.onerror = () => resolve('');
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function persistDetailDraft() {
-            const payload = Array.from(newDetailSlots.querySelectorAll('.new-detail-slot'))
-                .map((slot) => {
-                    const previewImg = slot.querySelector('.detail-preview-img');
-                    const src = previewImg ? (previewImg.getAttribute('src') || '').trim() : '';
-                    if (!src) return null;
-
-                    const labelInput = slot.querySelector('input[name="detail_labels[]"]');
-                    return {
-                        src,
-                        label: (labelInput?.value || '').trim(),
-                    };
-                })
-                .filter(Boolean);
-
-            if (payload.length === 0) {
-                removeStorageValue(detailDraftKey);
-                return;
-            }
-
-            setStorageValue(detailDraftKey, payload);
-        }
-
-        function hydrateDetailSlot(slot, draft) {
-            const previewImg = slot.querySelector('.detail-preview-img');
-            const previewEmpty = slot.querySelector('.detail-preview-empty');
-            const labelInput = slot.querySelector('.detail-label-input');
-            const fileName = slot.querySelector('.detail-file-name');
-
-            if (previewImg) {
-                previewImg.src = draft.src || '';
-                previewImg.classList.toggle('d-none', !draft.src);
-            }
-
-            if (previewEmpty) {
-                previewEmpty.classList.toggle('d-none', !!draft.src);
-            }
-
-            if (labelInput) {
-                labelInput.value = draft.label || '';
-            }
-
-            if (fileName && draft.src) {
-                fileName.textContent = 'Draft preview loaded';
-            }
-        }
-
-        function restoreImageDrafts() {
-            const storedCover = getStorageValue(coverDraftKey, '');
-            if (typeof storedCover === 'string' && storedCover.trim() !== '') {
-                roomImagePreview.src = storedCover;
-                roomImageWrap.style.display = '';
-                roomImageName.textContent = 'Draft preview loaded';
-            }
-
-            const storedDetails = getStorageValue(detailDraftKey, []);
-            if (!Array.isArray(storedDetails) || storedDetails.length === 0) {
-                return;
-            }
-
-            while (newDetailSlots.querySelectorAll('.new-detail-slot').length < storedDetails.length) {
-                createNewDetailSlot();
-            }
-
-            const slots = Array.from(newDetailSlots.querySelectorAll('.new-detail-slot'));
-            storedDetails.forEach((draft, index) => {
-                if (!slots[index] || !draft || typeof draft !== 'object') return;
-                hydrateDetailSlot(slots[index], draft);
+            // Handle Save & Return visibility
+            saveReturnButtons.forEach((btn) => {
+                btn.classList.toggle('d-none', !editingFromReview);
             });
 
-            updateDetailSlotState();
-        }
-
-        function clearImageDraftState() {
-            removeStorageValue(coverDraftKey);
-            removeStorageValue(detailDraftKey);
-        }
-
-        function setStep(step) {
-            currentStep = Math.max(1, Math.min(totalSteps, step));
-
-            panes.forEach((pane) => {
-                pane.classList.toggle('is-visible', Number(pane.dataset.step) === currentStep);
-            });
-
-            nodes.forEach((node) => {
-                const targetStep = Number(node.dataset.stepTarget);
-                const isActive = targetStep === currentStep;
-                const isDone = targetStep < currentStep;
-                const statusEl = node.querySelector('.step-status');
-
-                node.classList.toggle('is-active', isActive);
-                node.classList.toggle('is-done', isDone);
-                node.dataset.stepState = isDone ? 'completed' : (isActive ? 'in-progress' : 'pending');
-                node.setAttribute('aria-current', isActive ? 'step' : 'false');
-
-                if (statusEl) {
-                    statusEl.textContent = isDone
-                        ? 'Completed'
-                        : (isActive ? 'In Progress' : 'Pending');
-                }
-            });
-
-            prevBtn.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
-            nextBtn.style.display = currentStep === totalSteps ? 'none' : 'inline-flex';
-            saveBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
-
-            if (currentStep === totalSteps) {
-                updateReviewSummary();
-            }
-        }
-
-        function validateStep(step) {
-            const activePane = panes.find((pane) => Number(pane.dataset.step) === step);
-            if (!activePane) return true;
-
-            const requiredFields = activePane.querySelectorAll('[data-required="1"]');
-            for (const field of requiredFields) {
-                const label = field.dataset.label || 'This field';
-                const value = (field.value || '').trim();
-                const pricingModel = selectedPricingModel();
-                const skipForPricing =
-                    (field.name === 'price_per_room' && pricingModel === 'per_bed') ||
-                    (field.name === 'price_per_bed' && pricingModel === 'per_room');
-
-                field.setCustomValidity('');
-                if (skipForPricing) {
-                    continue;
-                }
-
-                if (value === '') {
-                    field.setCustomValidity(label + ' is required.');
-                    field.reportValidity();
-                    return false;
-                }
-
-                if (field.name === 'capacity' && Number(value) < 1) {
-                    field.setCustomValidity('Capacity must be at least 1.');
-                    field.reportValidity();
-                    return false;
-                }
-
-                if ((field.name === 'price_per_room' || field.name === 'price_per_bed') && Number(value) <= 0) {
-                    field.setCustomValidity('Price must be greater than zero.');
-                    field.reportValidity();
-                    return false;
-                }
+            // If entering review panel (panel 4), sync review data
+            if (index === 4) {
+                syncReviewData();
+                editingFromReview = false;
+                saveReturnButtons.forEach((btn) => btn.classList.add('d-none'));
             }
 
-            if (step === 3) {
-                pricingModelRadios.forEach((radio) => radio.setCustomValidity(''));
-                const selectedModel = pricingModelRadios.find((radio) => radio.checked);
-                if (!selectedModel) {
-                    const firstRadio = pricingModelRadios[0];
-                    if (firstRadio) {
-                        firstRadio.setCustomValidity('Pricing model is required.');
-                        firstRadio.reportValidity();
-                    }
-                    return false;
-                }
-            }
-
-            if (step === 2) {
-                const detailSlots = Array.from(activePane.querySelectorAll('.new-detail-slot'));
-                for (const slot of detailSlots) {
-                    const fileInput = slot.querySelector('.detail-file-input');
-                    const labelInput = slot.querySelector('.detail-label-input');
-                    const hasFile = !!(fileInput?.files && fileInput.files.length > 0);
-                    const labelValue = (labelInput?.value || '').trim();
-
-                    if (labelInput) {
-                        labelInput.setCustomValidity('');
-                    }
-
-                    if (hasFile && !labelValue) {
-                        if (labelInput) {
-                            labelInput.setCustomValidity('Label is required when a detail photo is selected.');
-                            labelInput.reportValidity();
-                        }
-                        return false;
-                    }
-                }
-            }
-
-            return true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function collectInclusions() {
-            return Array.from(inclusionsList.querySelectorAll('.inclusion-input'))
-                .map((el) => el.value.trim())
-                .filter((value) => value.length > 0);
-        }
+        // --- Pricing Model Visibility Control ---
+        const pricingRadios = document.querySelectorAll('input[name="pricing_model"]');
+        const fieldPricePerBed = document.getElementById('fieldPricePerBed');
+        const fieldPricePerRoom = document.getElementById('fieldPricePerRoom');
+        const inputPricePerBed = document.getElementById('pricePerBed');
+        const inputPricePerRoom = document.getElementById('pricePerRoom');
 
-        function collectDetailPhotoRows() {
-            const slots = Array.from(newDetailSlots.querySelectorAll('.new-detail-slot'));
-            return slots
-                .map((slot) => {
-                    const previewImg = slot.querySelector('.detail-preview-img');
-                    const previewSrc = previewImg ? (previewImg.getAttribute('src') || '').trim() : '';
-                    const isVisible = previewImg && !previewImg.classList.contains('d-none') && previewSrc !== '';
-                    const labelInput = slot.querySelector('input[name="detail_labels[]"]');
-                    if (!isVisible) return null;
-                    return {
-                        src: previewSrc,
-                        label: (labelInput?.value || '').trim() || 'Detail photo',
-                    };
-                })
-                .filter(Boolean);
-        }
-
-        function updateReviewSummary() {
-            const roomText = (roomNumberInput?.value || '').trim();
-            const capVal = Math.max(1, Number(capacityInput?.value || 1));
-            const pricingModel = selectedPricingModel();
-            const perRoomVal = pricePerRoomInput?.value || 0;
-            const perBedVal = pricePerBedInput?.value || 0;
-            const statusVal = statusInput?.value || 'available';
-            const statusLabel = statusVal.charAt(0).toUpperCase() + statusVal.slice(1);
-            const inclusionItems = collectInclusions();
-            const detailRows = collectDetailPhotoRows();
-
-            let pricingSummary = '';
-            if (pricingModel === 'per_room') {
-                pricingSummary = pricingModelLabel(pricingModel) + ': ' + formatPrice(perRoomVal);
-            } else if (pricingModel === 'per_bed') {
-                pricingSummary = pricingModelLabel(pricingModel) + ': ' + formatPrice(perBedVal);
+        function updatePricingFields() {
+            const selectedModel = document.querySelector('input[name="pricing_model"]:checked')?.value || 'per_bed';
+            if (selectedModel === 'per_bed') {
+                fieldPricePerBed.style.display = 'block';
+                fieldPricePerRoom.style.display = 'none';
+            } else if (selectedModel === 'per_room') {
+                fieldPricePerBed.style.display = 'none';
+                fieldPricePerRoom.style.display = 'block';
             } else {
-                pricingSummary = pricingModelLabel(pricingModel)
-                    + ': Room ' + formatPrice(perRoomVal)
-                    + ' | Bed ' + formatPrice(perBedVal);
+                fieldPricePerBed.style.display = 'block';
+                fieldPricePerRoom.style.display = 'block';
             }
-
-            if (reviewRoom) reviewRoom.textContent = roomText || '-';
-            if (reviewCapacity) reviewCapacity.textContent = capVal + ' pax';
-            if (reviewPrice) reviewPrice.textContent = pricingSummary;
-            if (reviewStatus) reviewStatus.textContent = statusLabel;
-            if (reviewInclusionCount) reviewInclusionCount.textContent = inclusionItems.length + ' item(s)';
-            if (reviewDetailCount) reviewDetailCount.textContent = detailRows.length + ' photo(s)';
-
-            const coverSrc = roomImagePreview ? (roomImagePreview.getAttribute('src') || '').trim() : '';
-
-            if (coverSrc !== '') {
-                reviewCoverImage.src = coverSrc;
-                reviewCoverImage.classList.remove('d-none');
-                reviewCoverEmpty.classList.add('d-none');
-            } else {
-                reviewCoverImage.src = '';
-                reviewCoverImage.classList.add('d-none');
-                reviewCoverEmpty.classList.remove('d-none');
-            }
-
-            if (detailRows.length === 0) {
-                reviewDetailGallery.innerHTML = '<div class="review-empty">No detail photos uploaded.</div>';
-                return;
-            }
-
-            reviewDetailGallery.innerHTML = detailRows
-                .map((row) => {
-                    const safeLabel = row.label
-                        .replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/"/g, '&quot;')
-                        .replace(/'/g, '&#39;');
-                    return '<div class="review-photo-card">'
-                        + '<img src="' + row.src + '" alt="' + safeLabel + '">'
-                        + '<div class="review-photo-caption" title="' + safeLabel + '">' + safeLabel + '</div>'
-                        + '</div>';
-                })
-                .join('');
         }
 
-        function createInclusionRow(value = '') {
-            const row = document.createElement('div');
-            row.className = 'input-group inclusion-row';
-            row.innerHTML = ''
-                + '<input type="text" class="form-control inclusion-input" placeholder="e.g., Electric fan">'
-                + '<button class="btn btn-outline-danger remove-inclusion" type="button" aria-label="Remove inclusion">'
-                + '<i class="bi bi-x-lg"></i>'
-                + '</button>';
-            row.querySelector('.inclusion-input').value = value;
-            return row;
-        }
+        pricingRadios.forEach((r) => r.addEventListener('change', updatePricingFields));
+        updatePricingFields();
 
-        function serializeInclusions() {
-            inclusionsSerialized.value = collectInclusions().join(', ');
-        }
+        // --- Validation per Panel ---
+        function validatePanel(panelIndex) {
+            let isValid = true;
+            const panel = panels[panelIndex];
+            if (!panel) return true;
 
-        function normalizeInclusionValue(value) {
-            return (value || '').trim().toLowerCase();
-        }
+            if (panelIndex === 0) {
+                const roomNum = document.getElementById('roomNumber');
+                const cap = document.getElementById('roomCapacity');
 
-        function hasInclusionValue(value) {
-            const normalized = normalizeInclusionValue(value);
-            if (!normalized) return false;
-            return Array.from(inclusionsList.querySelectorAll('.inclusion-input'))
-                .some((el) => normalizeInclusionValue(el.value) === normalized);
-        }
+                if (roomNum && !roomNum.value.trim()) {
+                    roomNum.classList.add('is-invalid');
+                    isValid = false;
+                } else if (roomNum) {
+                    roomNum.classList.remove('is-invalid');
+                }
 
-        function syncQuickInclusionButtons() {
-            quickInclusionBtns.forEach((btn) => {
-                const inclusionValue = btn.dataset.inclusion || '';
-                const isSelected = hasInclusionValue(inclusionValue);
-                btn.classList.toggle('is-selected', isSelected);
-                btn.disabled = isSelected;
-                btn.setAttribute('aria-disabled', isSelected ? 'true' : 'false');
-            });
-        }
-
-        function addInclusionValue(value) {
-            const normalized = (value || '').trim();
-            if (!normalized || hasInclusionValue(normalized)) return;
-
-            const rows = inclusionsList.querySelectorAll('.inclusion-row');
-            const firstInput = rows[0]?.querySelector('.inclusion-input');
-            if (rows.length === 1 && firstInput && firstInput.value.trim() === '') {
-                firstInput.value = normalized;
-            } else {
-                inclusionsList.appendChild(createInclusionRow(normalized));
-            }
-
-            serializeInclusions();
-            syncQuickInclusionButtons();
-            updateReviewSummary();
-        }
-
-        function wireDetailSlot(slot) {
-            const fileInput = slot.querySelector('.detail-file-input');
-            const fileTrigger = slot.querySelector('.detail-file-trigger');
-            const fileName = slot.querySelector('.detail-file-name');
-            const previewImg = slot.querySelector('.detail-preview-img');
-            const previewEmpty = slot.querySelector('.detail-preview-empty');
-            const labelInput = slot.querySelector('.detail-label-input');
-
-            if (fileTrigger && fileInput) {
-                fileTrigger.addEventListener('click', () => fileInput.click());
-            }
-
-            if (fileInput) {
-                fileInput.addEventListener('change', () => {
-                    if (fileName) fileName.textContent = filename(fileInput.value);
-
-                    const file = fileInput.files && fileInput.files[0];
-                    if (!file) {
-                        if (previewImg) {
-                            previewImg.src = '';
-                            previewImg.classList.add('d-none');
-                        }
-                        if (previewEmpty) previewEmpty.classList.remove('d-none');
-                        persistDetailDraft();
-                        updateReviewSummary();
-                        return;
+                if (cap && (isNaN(Number(cap.value)) || Number(cap.value) < 1)) {
+                    cap.classList.add('is-invalid');
+                    isValid = false;
+                } else if (cap) {
+                    cap.classList.remove('is-invalid');
+                }
+            } else if (panelIndex === 1) {
+                const model = document.querySelector('input[name="pricing_model"]:checked')?.value || 'per_bed';
+                if (model === 'per_bed' || model === 'hybrid') {
+                    if (!inputPricePerBed.value || Number(inputPricePerBed.value) <= 0) {
+                        inputPricePerBed.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        inputPricePerBed.classList.remove('is-invalid');
                     }
+                }
+                if (model === 'per_room' || model === 'hybrid') {
+                    if (!inputPricePerRoom.value || Number(inputPricePerRoom.value) <= 0) {
+                        inputPricePerRoom.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        inputPricePerRoom.classList.remove('is-invalid');
+                    }
+                }
+            }
 
-                    fileToDataUrl(file).then((dataUrl) => {
-                        if (!dataUrl) {
-                            persistDetailDraft();
-                            updateReviewSummary();
-                            return;
-                        }
+            if (!isValid) {
+                const firstInvalid = panel.querySelector('.is-invalid');
+                if (firstInvalid) firstInvalid.focus();
+            }
 
-                        if (previewImg) {
-                            previewImg.src = dataUrl;
-                            previewImg.classList.remove('d-none');
-                        }
-                        if (previewEmpty) previewEmpty.classList.add('d-none');
-                        persistDetailDraft();
-                        updateReviewSummary();
+            return isValid;
+        }
+
+        // --- Event Listeners: Continue Buttons ---
+        document.querySelectorAll('.btn-continue').forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const target = Number(btn.getAttribute('data-target'));
+                if (validatePanel(currentPanel)) {
+                    showPanel(target);
+                }
+            });
+        });
+
+        // --- Event Listeners: Previous Buttons ---
+        document.querySelectorAll('.btn-prev').forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const target = btn.getAttribute('data-target');
+                if (target !== null) {
+                    showPanel(Number(target));
+                }
+            });
+        });
+
+        // --- Event Listeners: Edit from Review ---
+        reviewEditButtons.forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const targetPanel = Number(btn.getAttribute('data-edit-panel'));
+                editingFromReview = true;
+                showPanel(targetPanel);
+            });
+        });
+
+        // --- Event Listeners: Save & Return to Review ---
+        saveReturnButtons.forEach((btn) => {
+            btn.addEventListener('click', function () {
+                if (validatePanel(currentPanel)) {
+                    showPanel(4); // Jump back to Review panel
+                }
+            });
+        });
+
+        // --- Inclusions Management ---
+        const inclusionsInput = document.getElementById('inclusionsInput');
+        const inclusionBtns = document.querySelectorAll('.inclusion-chip-btn');
+        const customText = document.getElementById('customInclusionText');
+        const btnAddCustom = document.getElementById('btnAddCustomInclusion');
+        const customList = document.getElementById('customInclusionsList');
+        let selectedInclusions = new Set(
+            (inclusionsInput?.value || '')
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+        );
+
+        function syncInclusionsInput() {
+            if (inclusionsInput) {
+                inclusionsInput.value = Array.from(selectedInclusions).join(', ');
+            }
+        }
+
+        function renderCustomInclusions() {
+            customList.innerHTML = '';
+            selectedInclusions.forEach((item) => {
+                // If it's not in the quick buttons
+                const isQuick = Array.from(inclusionBtns).some((b) => b.getAttribute('data-value') === item);
+                if (!isQuick) {
+                    const badge = document.createElement('span');
+                    badge.className = 'custom-chip-badge';
+                    badge.innerHTML = `<span>${item}</span><button type="button" class="custom-chip-remove" title="Remove"><i class="bi bi-x"></i></button>`;
+                    badge.querySelector('.custom-chip-remove').addEventListener('click', function () {
+                        selectedInclusions.delete(item);
+                        syncInclusionsInput();
+                        renderCustomInclusions();
                     });
-                });
-            }
-
-            if (labelInput) {
-                labelInput.addEventListener('input', () => {
-                    persistDetailDraft();
-                    updateReviewSummary();
-                });
-                labelInput.addEventListener('change', () => {
-                    persistDetailDraft();
-                    updateReviewSummary();
-                });
-            }
-        }
-
-        function updateDetailSlotState() {
-            const slots = Array.from(newDetailSlots.querySelectorAll('.new-detail-slot'));
-            slots.forEach((slot, index) => {
-                const indexLabel = slot.querySelector('.slot-index');
-                const removeBtn = slot.querySelector('.remove-slot-btn');
-                if (indexLabel) indexLabel.textContent = 'Photo ' + (index + 1);
-                if (removeBtn) removeBtn.classList.toggle('d-none', slots.length === 1);
+                    customList.appendChild(badge);
+                }
             });
         }
 
-        function createNewDetailSlot() {
-            const first = newDetailSlots.querySelector('.new-detail-slot');
-            if (!first) return;
+        inclusionBtns.forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const val = btn.getAttribute('data-value');
+                if (selectedInclusions.has(val)) {
+                    selectedInclusions.delete(val);
+                    btn.classList.remove('selected');
+                } else {
+                    selectedInclusions.add(val);
+                    btn.classList.add('selected');
+                }
+                syncInclusionsInput();
+            });
+        });
 
-            const clone = first.cloneNode(true);
-            const fileInput = clone.querySelector('.detail-file-input');
-            const fileName = clone.querySelector('.detail-file-name');
-            const labelInput = clone.querySelector('.detail-label-input');
-            const previewImg = clone.querySelector('.detail-preview-img');
-            const previewEmpty = clone.querySelector('.detail-preview-empty');
+        if (btnAddCustom && customText) {
+            btnAddCustom.addEventListener('click', function () {
+                const val = customText.value.trim();
+                if (val && !selectedInclusions.has(val)) {
+                    selectedInclusions.add(val);
+                    customText.value = '';
+                    syncInclusionsInput();
+                    renderCustomInclusions();
+                }
+            });
 
-            if (fileInput) fileInput.value = '';
-            if (fileName) fileName.textContent = 'No file selected';
-            if (labelInput) labelInput.value = '';
-            if (previewImg) {
-                previewImg.src = '';
-                previewImg.classList.add('d-none');
-            }
-            if (previewEmpty) previewEmpty.classList.remove('d-none');
-
-            newDetailSlots.appendChild(clone);
-            wireDetailSlot(clone);
-            updateDetailSlotState();
+            customText.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnAddCustom.click();
+                }
+            });
         }
 
-        if (roomImageTrigger && roomImageInput) {
-            roomImageTrigger.addEventListener('click', () => roomImageInput.click());
-        }
+        renderCustomInclusions();
 
-        if (roomImageInput && roomImageWrap && roomImagePreview && roomImageName) {
-            roomImageInput.addEventListener('change', () => {
-                roomImageName.textContent = filename(roomImageInput.value);
+        // --- Room Cover Photo Upload Handlers ---
+        const roomImageInput = document.getElementById('roomImageInput');
+        const roomUploadIdle = document.getElementById('roomUploadIdle');
+        const roomUploadPreview = document.getElementById('roomUploadPreview');
+        const roomImagePreviewThumb = document.getElementById('roomImagePreviewThumb');
+        const roomFileName = document.getElementById('roomFileName');
+        const roomFileSize = document.getElementById('roomFileSize');
+        const btnRemoveRoomPhoto = document.getElementById('btnRemoveRoomPhoto');
+
+        if (roomImageInput) {
+            roomImageInput.addEventListener('change', function () {
                 const file = roomImageInput.files && roomImageInput.files[0];
+                if (!file) return;
 
-                if (!file) {
-                    roomImageWrap.style.display = 'none';
-                    roomImagePreview.src = '';
-                    removeStorageValue(coverDraftKey);
-                    updateReviewSummary();
-                    return;
-                }
+                roomFileName.textContent = file.name;
+                roomFileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                roomImagePreviewThumb.src = URL.createObjectURL(file);
 
-                fileToDataUrl(file).then((dataUrl) => {
-                    if (!dataUrl) {
-                        removeStorageValue(coverDraftKey);
-                        updateReviewSummary();
-                        return;
-                    }
+                roomUploadIdle.classList.add('d-none');
+                roomUploadPreview.classList.remove('d-none');
+            });
+        }
 
-                    roomImagePreview.src = dataUrl;
-                    roomImageWrap.style.display = '';
-                    setStorageValue(coverDraftKey, dataUrl);
-                    updateReviewSummary();
+        if (btnRemoveRoomPhoto) {
+            btnRemoveRoomPhoto.addEventListener('click', function (e) {
+                e.stopPropagation();
+                roomImageInput.value = '';
+                roomImagePreviewThumb.src = '';
+                roomUploadPreview.classList.add('d-none');
+                roomUploadIdle.classList.remove('d-none');
+            });
+        }
+
+        // --- Detail Images (Additional) Count Preview ---
+        const detailImagesInput = document.getElementById('detailImagesInput');
+        const detailImagesPreviewGrid = document.getElementById('detailImagesPreviewGrid');
+        if (detailImagesInput) {
+            detailImagesInput.addEventListener('change', function () {
+                detailImagesPreviewGrid.innerHTML = '';
+                const files = Array.from(detailImagesInput.files || []);
+                files.forEach((file) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = URL.createObjectURL(file);
+                    thumb.style.width = '48px';
+                    thumb.style.height = '48px';
+                    thumb.style.objectFit = 'cover';
+                    thumb.style.borderRadius = '0.4rem';
+                    thumb.style.border = '1px solid #cbd5e1';
+                    detailImagesPreviewGrid.appendChild(thumb);
                 });
             });
         }
 
-        document.querySelectorAll('[data-required="1"]').forEach((field) => {
-            field.addEventListener('input', () => field.setCustomValidity(''));
-            field.addEventListener('change', () => field.setCustomValidity(''));
-        });
+        // --- Real-Time Review Data Synchronization ---
+        function syncReviewData() {
+            const roomNum = document.getElementById('roomNumber')?.value.trim() || '—';
+            const capacity = document.getElementById('roomCapacity')?.value.trim() || '1';
+            const statusSelect = document.getElementById('roomStatus');
+            const statusText = statusSelect?.options[statusSelect.selectedIndex]?.text || 'Available';
 
-        prevBtn.addEventListener('click', () => setStep(currentStep - 1));
-        nextBtn.addEventListener('click', () => {
-            if (validateStep(currentStep)) setStep(currentStep + 1);
-        });
+            document.getElementById('review_room_number').textContent = roomNum;
+            document.getElementById('review_capacity').textContent = capacity + (Number(capacity) === 1 ? ' Bed / Student' : ' Beds / Students');
+            document.getElementById('review_status').textContent = statusText;
 
-        nodes.forEach((node) => {
-            node.addEventListener('click', () => {
-                const targetStep = Number(node.dataset.stepTarget);
-                if (targetStep < currentStep) {
-                    setStep(targetStep);
-                    return;
-                }
-                if (validateStep(currentStep)) setStep(targetStep);
-            });
-        });
+            // Pricing
+            const model = document.querySelector('input[name="pricing_model"]:checked')?.value || 'per_bed';
+            const modelNames = { per_bed: 'Per Bed / Student', per_room: 'Entire Room', hybrid: 'Hybrid (Per Bed & Per Room)' };
+            document.getElementById('review_pricing_model').textContent = modelNames[model] || model;
 
-        addInclusionBtn.addEventListener('click', () => {
-            inclusionsList.appendChild(createInclusionRow());
-            serializeInclusions();
-            syncQuickInclusionButtons();
-        });
-
-        quickInclusionBtns.forEach((btn) => {
-            btn.addEventListener('click', () => addInclusionValue(btn.dataset.inclusion || ''));
-        });
-
-        inclusionsList.addEventListener('click', (event) => {
-            const button = event.target.closest('.remove-inclusion');
-            if (!button) return;
-
-            const rows = inclusionsList.querySelectorAll('.inclusion-row');
-            if (rows.length <= 1) {
-                const inputEl = rows[0]?.querySelector('.inclusion-input');
-                if (inputEl) inputEl.value = '';
+            let priceDisplay = '₱0.00';
+            if (model === 'per_bed') {
+                const p = parseFloat(inputPricePerBed?.value) || 0;
+                priceDisplay = `₱${p.toLocaleString('en-US', { minimumFractionDigits: 2 })} / bed / month`;
+            } else if (model === 'per_room') {
+                const p = parseFloat(inputPricePerRoom?.value) || 0;
+                priceDisplay = `₱${p.toLocaleString('en-US', { minimumFractionDigits: 2 })} / room / month`;
             } else {
-                button.closest('.inclusion-row')?.remove();
+                const pb = parseFloat(inputPricePerBed?.value) || 0;
+                const pr = parseFloat(inputPricePerRoom?.value) || 0;
+                priceDisplay = `₱${pb.toLocaleString('en-US', { minimumFractionDigits: 2 })} / bed or ₱${pr.toLocaleString('en-US', { minimumFractionDigits: 2 })} / room`;
+            }
+            document.getElementById('review_price_amount').textContent = priceDisplay;
+
+            // Inclusions
+            const incList = Array.from(selectedInclusions);
+            document.getElementById('review_inclusions').textContent = incList.length > 0
+                ? incList.join(', ')
+                : 'None specified';
+
+            // Photos
+            const coverInput = document.getElementById('roomImageInput');
+            const coverLabel = document.getElementById('review_cover_photo');
+            const coverThumb = document.getElementById('review_room_photo_thumb');
+            if (coverInput && coverInput.files && coverInput.files[0]) {
+                coverLabel.textContent = coverInput.files[0].name;
+                coverThumb.src = URL.createObjectURL(coverInput.files[0]);
+                coverThumb.classList.remove('d-none');
+            } else {
+                coverLabel.textContent = 'No photo uploaded';
+                coverThumb.classList.add('d-none');
             }
 
-            serializeInclusions();
-            syncQuickInclusionButtons();
-            updateReviewSummary();
-        });
-
-        inclusionsList.addEventListener('input', (event) => {
-            if (!event.target.classList.contains('inclusion-input')) return;
-            serializeInclusions();
-            syncQuickInclusionButtons();
-            updateReviewSummary();
-        });
-
-        if (addDetailSlotBtn && newDetailSlots) {
-            addDetailSlotBtn.addEventListener('click', createNewDetailSlot);
-
-            newDetailSlots.addEventListener('click', (event) => {
-                const removeBtn = event.target.closest('.remove-slot-btn');
-                if (!removeBtn) return;
-                const slot = removeBtn.closest('.new-detail-slot');
-                if (!slot) return;
-
-                slot.remove();
-                updateDetailSlotState();
-                persistDetailDraft();
-                updateReviewSummary();
-            });
-
-            newDetailSlots.querySelectorAll('.new-detail-slot').forEach(wireDetailSlot);
-            updateDetailSlotState();
+            const additionalFiles = detailImagesInput?.files ? detailImagesInput.files.length : 0;
+            document.getElementById('review_detail_photos_count').textContent = additionalFiles > 0
+                ? `${additionalFiles} additional photo(s)`
+                : 'None';
         }
 
-        [roomNumberInput, capacityInput, pricePerRoomInput, pricePerBedInput, statusInput].forEach((el) => {
-            if (!el) return;
-            el.addEventListener('input', () => {
-                updateReviewSummary();
-            });
-            el.addEventListener('change', () => {
-                updateReviewSummary();
-            });
-        });
-
-        pricingModelRadios.forEach((radio) => {
-            radio.addEventListener('input', () => {
-                radio.setCustomValidity('');
-                updatePricingFieldState();
-                updateReviewSummary();
-            });
-            radio.addEventListener('change', () => {
-                radio.setCustomValidity('');
-                updatePricingFieldState();
-                updateReviewSummary();
-            });
-        });
-
-        form.addEventListener('submit', (event) => {
-            serializeInclusions();
-            for (let step = 1; step <= totalSteps; step += 1) {
-                if (!validateStep(step)) {
-                    event.preventDefault();
-                    setStep(step);
-                    return;
-                }
-            }
-        });
-
-        if (advancePaymentCheckbox) {
-            advancePaymentCheckbox.addEventListener('change', syncAdvanceCtaState);
-            syncAdvanceCtaState();
-        }
-
-        serializeInclusions();
-        syncQuickInclusionButtons();
-        if (hasServerValidationErrors) {
-            restoreImageDrafts();
-        } else {
-            clearImageDraftState();
-        }
-        updatePricingFieldState();
-        updateReviewSummary();
-        setStep(currentStep);
-    });
+        // Initialize active panel
+        showPanel(currentPanel);
+    })();
 </script>
 @endpush
-@endsection
