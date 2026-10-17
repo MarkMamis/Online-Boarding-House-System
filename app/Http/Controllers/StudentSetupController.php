@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\AcademicCatalogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use App\Services\AcademicCatalogService;
-use App\Models\User;
 
 class StudentSetupController extends Controller
 {
@@ -56,7 +56,7 @@ class StudentSetupController extends Controller
         $studentId = trim((string) $request->input('student_id'));
 
         // Validate format (alphanumeric with hyphens, 3-50 characters)
-        if (!preg_match('/^[A-Za-z0-9\-]{3,50}$/', $studentId)) {
+        if (! preg_match('/^[A-Za-z0-9\-]{3,50}$/', $studentId)) {
             return response()->json([
                 'available' => false,
                 'valid' => false,
@@ -80,7 +80,7 @@ class StudentSetupController extends Controller
             ->whereNotNull('student_id')
             ->where(function ($query) use ($studentId) {
                 $query->where('student_id', $studentId)
-                      ->orWhereRaw('LOWER(TRIM(student_id)) = ?', [strtolower($studentId)]);
+                    ->orWhereRaw('LOWER(TRIM(student_id)) = ?', [strtolower($studentId)]);
             })
             ->exists();
 
@@ -89,7 +89,8 @@ class StudentSetupController extends Controller
                 'available' => false,
                 'valid' => true,
                 'status' => 'taken',
-                'message' => 'This Student ID is already registered.',
+                'message' => 'We couldn\'t continue with this Student ID.',
+                'recovery_url' => route('password.request'),
             ]);
         }
 
@@ -98,6 +99,61 @@ class StudentSetupController extends Controller
             'valid' => true,
             'status' => 'available',
             'message' => 'Student ID is available.',
+        ]);
+    }
+
+    public function storeRecoveryRequest(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (! $request->filled('student_id') && $request->filled('claimed_student_id')) {
+            $request->merge(['student_id' => $request->input('claimed_student_id')]);
+        }
+        if (! $request->hasFile('id_document') && $request->hasFile('supporting_document')) {
+            $request->files->set('id_document', $request->file('supporting_document'));
+        }
+
+        $validator = Validator::make($request->all(), [
+            'student_id' => 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/',
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => 'nullable|regex:/^09\d{9}$/',
+            'reason' => 'required|string|max:1000',
+            'id_document' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:3072',
+        ], [
+            'student_id.regex' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
+            'contact_phone.regex' => 'Contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
+            'id_document.max' => 'Document must not exceed 3MB.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $documentPath = null;
+        if ($request->hasFile('id_document')) {
+            $documentPath = app(\App\Services\FileStorageService::class)->put(
+                'identity_recoveries/'.$user->id,
+                $request->file('id_document')
+            );
+        }
+
+        \App\Models\IdentityRecoveryRequest::create([
+            'user_id' => $user->id,
+            'student_id' => trim((string) $request->input('student_id')),
+            'contact_email' => trim((string) $request->input('contact_email')),
+            'contact_phone' => $request->filled('contact_phone') ? trim((string) $request->input('contact_phone')) : null,
+            'reason' => trim((string) $request->input('reason')),
+            'document_path' => $documentPath,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your assistance request has been submitted for administrator review.',
         ]);
     }
 
@@ -111,7 +167,7 @@ class StudentSetupController extends Controller
             $request->merge(['student_id' => $trimmedStudentId !== '' ? $trimmedStudentId : null]);
         }
 
-        if (!$request->filled('program') && $request->filled('course')) {
+        if (! $request->filled('program') && $request->filled('course')) {
             $request->merge(['program' => $request->input('course')]);
         }
 
@@ -137,11 +193,11 @@ class StudentSetupController extends Controller
         $collegeOptions = array_keys($academicCatalog['colleges'] ?? []);
         $collegeRule = empty($collegeOptions)
             ? 'required|string|max:20'
-            : 'required|in:' . implode(',', $collegeOptions);
+            : 'required|in:'.implode(',', $collegeOptions);
 
         $studentIdRule = $isFirstYear
-            ? 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,' . $user->id
-            : 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,' . $user->id;
+            ? 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id
+            : 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id;
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
@@ -178,7 +234,6 @@ class StudentSetupController extends Controller
             'enrollment_proof_file.required' => 'COR or COE file is required before completing setup.',
         ]);
 
-
         $validator->after(function ($validator) use ($request, $academicCatalog) {
             $college = trim((string) $request->input('college', ''));
             $program = trim((string) $request->input('program', ''));
@@ -188,14 +243,14 @@ class StudentSetupController extends Controller
 
             if ($college !== '' && $program !== '') {
                 $allowedPrograms = $catalogPrograms[$college] ?? [];
-                if (!in_array($program, $allowedPrograms, true)) {
+                if (! in_array($program, $allowedPrograms, true)) {
                     $validator->errors()->add('program', 'The selected program is not valid for the selected college.');
                 }
             }
 
             if ($major !== '') {
                 $allowedMajors = $catalogMajors[$program] ?? [];
-                if (!in_array($major, $allowedMajors, true)) {
+                if (! in_array($major, $allowedMajors, true)) {
                     $validator->errors()->add('major', 'The selected major is not valid for the selected program.');
                 }
             }
@@ -223,7 +278,7 @@ class StudentSetupController extends Controller
                 $user->profile_image_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->profile_image_path,
                     $request->file('profile_image'),
-                    'students/' . $user->id . '/profile'
+                    'students/'.$user->id.'/profile'
                 );
             }
 
@@ -231,7 +286,7 @@ class StudentSetupController extends Controller
                 $user->school_id_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->school_id_path,
                     $request->file('school_id_photo'),
-                    'students/' . $user->id . '/school-id'
+                    'students/'.$user->id.'/school-id'
                 );
             }
 
@@ -239,7 +294,7 @@ class StudentSetupController extends Controller
                 $user->enrollment_proof_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->enrollment_proof_path,
                     $request->file('enrollment_proof_file'),
-                    'students/' . $user->id . '/enrollment-proof'
+                    'students/'.$user->id.'/enrollment-proof'
                 );
             }
         } catch (\RuntimeException $e) {
@@ -264,7 +319,7 @@ class StudentSetupController extends Controller
                 $user->parent_contact_photo_path = app(\App\Services\FileStorageService::class)->replace(
                     $user->parent_contact_photo_path,
                     $request->file('parent_contact_photo'),
-                    'students/' . $user->id . '/parent-documents'
+                    'students/'.$user->id.'/parent-documents'
                 );
             }
         } catch (\RuntimeException $e) {
@@ -276,7 +331,7 @@ class StudentSetupController extends Controller
         $major = trim((string) $request->input('major', ''));
 
         $allowedMajors = $academicCatalog['majors'][$program] ?? [];
-        if (!in_array($major, $allowedMajors, true)) {
+        if (! in_array($major, $allowedMajors, true)) {
             $major = '';
         }
 

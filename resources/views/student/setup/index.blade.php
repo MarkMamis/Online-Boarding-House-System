@@ -458,10 +458,114 @@
                     $selectedFullName = old('full_name', $user->full_name ?: $user->name);
                 @endphp
 
-                <!-- PANEL 1: Basic Identity & Contact Number -->
+                <!-- PANEL 0: Early Student ID Question & Identity Protection -->
                 <section class="question-panel active" data-question-panel="0">
+                    <div class="question-kicker">Student identity</div>
+                    <h1 class="question-title">What is your Student ID?</h1>
+                    <p class="question-subtitle">Enter your MinSU Student ID as shown on your university records.</p>
+
+                    <div class="row g-3">
+                        <div class="col-12" id="studentIdInputContainer">
+                            <label class="form-label" for="student_id" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
+                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }} autocomplete="off" spellcheck="false">
+                            <div class="field-hint">Format example: MCC2026-00000. Exactly as shown on your Certificate of Registration (COR) or MinSU ID card.</div>
+                            <div id="student_id_feedback" class="mt-2 small" role="status" aria-live="polite"></div>
+                            @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-link p-0 text-decoration-none small text-muted" id="skipStudentIdBtn">
+                                    First-year student without an official Student ID yet? <span class="text-decoration-underline text-success fw-semibold">Continue without ID &rarr;</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- RECOVERY GUIDANCE CARD (Displayed on exact duplicate/conflict) -->
+                        <div class="col-12 d-none" id="studentIdConflictCard">
+                            <div class="p-3 p-md-4 rounded-4 border border-warning-subtle" style="background: #fffbeb; box-shadow: 0 4px 14px rgba(245, 158, 11, .10);">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="rounded-circle p-2 text-warning-emphasis bg-warning bg-opacity-25 flex-shrink-0" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="bi bi-shield-exclamation fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold text-dark mb-1" style="font-size: 1.05rem;">We couldn't continue with this Student ID.</h5>
+                                        <p class="text-muted small mb-3 leading-relaxed">
+                                            If you've used OBHS before, you can recover your account. If you believe this is a mistake, request assistance.
+                                        </p>
+
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <a href="{{ route('password.request') }}" class="btn btn-sm btn-brand">
+                                                <i class="bi bi-key me-1"></i>Recover Account
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="toggleAssistanceFormBtn">
+                                                <i class="bi bi-question-circle me-1"></i>Request Assistance
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" id="dismissConflictBtn">
+                                                <i class="bi bi-arrow-left me-1"></i>Back
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Inline Identity Assistance Request Form -->
+                                <div class="mt-3 pt-3 border-top border-warning-subtle d-none" id="assistanceRequestFormWrap">
+                                    <h6 class="fw-bold text-dark mb-1" style="font-size: .95rem;">
+                                        <i class="bi bi-envelope-paper me-1 text-success"></i>Request Account Assistance
+                                    </h6>
+                                    <p class="text-muted small mb-3">
+                                        Submit a recovery request for administrative identity review. Our campus administrators will verify your university records.
+                                    </p>
+
+                                    <div id="assistanceAlert" class="alert d-none py-2 small" role="alert"></div>
+
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small mb-1">Claimed Student ID</label>
+                                            <input type="text" id="assist_student_id" class="form-control form-control-sm bg-light" readonly>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small mb-1">Contact Email *</label>
+                                            <input type="email" id="assist_contact_email" class="form-control form-control-sm" value="{{ $user->email }}" required>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small mb-1">Contact Phone (Optional)</label>
+                                            <input type="text" id="assist_contact_phone" class="form-control form-control-sm" placeholder="09XXXXXXXXX" value="{{ $user->contact_number }}">
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small mb-1">Supporting Document (Optional)</label>
+                                            <input type="file" id="assist_document" class="form-control form-control-sm" accept=".pdf,image/*">
+                                            <div class="field-hint" style="font-size: .72rem;">MinSU ID or COR/COE photo (max 4MB).</div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Reason for Recovery *</label>
+                                            <textarea id="assist_reason" class="form-control form-control-sm" rows="2" placeholder="e.g., I lost access to my registered university email and need to recover my existing student identity." required></textarea>
+                                        </div>
+                                        <div class="col-12 pt-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-brand" id="submitAssistanceBtn">
+                                                <span>Submit Assistance Request</span>
+                                                <i class="bi bi-send ms-1"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="cancelAssistanceBtn">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="question-actions first-question">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="1" id="btnContinueFromStudentId">
+                            <span>Continue</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- PANEL 1: Basic Identity & Contact Number -->
+                <section class="question-panel" data-question-panel="1">
                     <div class="question-kicker">Personal details</div>
-                    <h1 class="question-title">What should we call you and how can we reach you?</h1>
+                    <h2 class="question-title">What should we call you and how can we reach you?</h2>
                     <p class="question-subtitle">Enter your full legal name as it appears on university records, active mobile number, and profile picture.</p>
 
                     <div class="row g-3">
@@ -495,8 +599,12 @@
                         </div>
                     </div>
 
-                    <div class="question-actions first-question">
-                        <button type="button" class="btn btn-brand btn-next-question" data-target="1">
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Previous</span>
+                        </button>
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="2">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
@@ -504,7 +612,7 @@
                 </section>
 
                 <!-- PANEL 2: Demographics & Permanent Location -->
-                <section class="question-panel" data-question-panel="1">
+                <section class="question-panel" data-question-panel="2">
                     <div class="question-kicker">Personal details</div>
                     <h2 class="question-title">Tell us a bit more about yourself</h2>
                     <p class="question-subtitle">Your birthdate, gender, and permanent home address for student verification.</p>
@@ -547,11 +655,11 @@
                     </div>
 
                     <div class="question-actions">
-                        <button type="button" class="btn btn-prev btn-prev-question" data-target="0">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="1">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
-                        <button type="button" class="btn btn-brand btn-next-question" data-target="2">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="3">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
@@ -559,7 +667,7 @@
                 </section>
 
                 <!-- PANEL 3: Academic Standing at MinSU -->
-                <section class="question-panel" data-question-panel="2">
+                <section class="question-panel" data-question-panel="3">
                     <div class="question-kicker">Academic information</div>
                     <h2 class="question-title">What is your academic standing at MinSU?</h2>
                     <p class="question-subtitle">Select your college, degree program, and current year level.</p>
@@ -601,20 +709,25 @@
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <label class="form-label" id="studentIdLabel">Student ID{{ $isFirstYearSelected ? '' : ' *' }}</label>
-                            <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="MCC2026-00000" {{ $isFirstYearSelected ? '' : 'required' }} autocomplete="off">
-                            <div id="student_id_help" class="field-hint {{ $isFirstYearSelected ? '' : 'd-none' }}">Optional for 1st Year while official ID is pending.</div>
-                            <div id="student_id_feedback" class="mt-1 small" role="status" aria-live="polite"></div>
-                            @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <label class="form-label">Student ID</label>
+                            <div class="p-2 px-3 rounded-3 bg-light border d-flex align-items-center justify-content-between" style="min-height: 42px;">
+                                <span class="font-monospace fw-bold text-dark" id="confirmedStudentIdDisplay">
+                                    {{ old('student_id', $user->student_id) ?: '(Pending / 1st Year without ID)' }}
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" id="btnEditStudentId" title="Change Student ID">
+                                    <i class="bi bi-pencil me-1"></i>Change
+                                </button>
+                            </div>
+                            <div class="field-hint">Validated early for identity protection.</div>
                         </div>
                     </div>
 
                     <div class="question-actions">
-                        <button type="button" class="btn btn-prev btn-prev-question" data-target="1">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
-                        <button type="button" class="btn btn-brand btn-next-question" data-target="3">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="4">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
@@ -622,7 +735,7 @@
                 </section>
 
                 <!-- PANEL 4: Student Verification Documents -->
-                <section class="question-panel" data-question-panel="3">
+                <section class="question-panel" data-question-panel="4">
                     <div class="question-kicker">Academic verification</div>
                     <h2 class="question-title">Verify your student enrollment</h2>
                     <p class="question-subtitle">Upload your school ID and proof of enrollment (COR or COE) to verify your account.</p>
@@ -673,11 +786,11 @@
                     </div>
 
                     <div class="question-actions">
-                        <button type="button" class="btn btn-prev btn-prev-question" data-target="2">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="3">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
-                        <button type="button" class="btn btn-brand btn-next-question" data-target="4">
+                        <button type="button" class="btn btn-brand btn-next-question" data-target="5">
                             <span>Continue</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
@@ -685,7 +798,7 @@
                 </section>
 
                 <!-- PANEL 5: Emergency & Parent Contact -->
-                <section class="question-panel" data-question-panel="4">
+                <section class="question-panel" data-question-panel="5">
                     <div class="question-kicker">Safety & emergency contacts</div>
                     <h2 class="question-title">Who should we contact in case of emergency?</h2>
                     <p class="question-subtitle">Provide your parent or guardian details and an emergency contact for safety coordination.</p>
@@ -737,7 +850,7 @@
                     </div>
 
                     <div class="question-actions">
-                        <button type="button" class="btn btn-prev btn-prev-question" data-target="3">
+                        <button type="button" class="btn btn-prev btn-prev-question" data-target="4">
                             <i class="bi bi-arrow-left"></i>
                             <span>Previous</span>
                         </button>
@@ -784,6 +897,38 @@
             const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
             const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
 
+            // Identity Protection & Recovery DOM References
+            const conflictCard = document.getElementById('studentIdConflictCard');
+            const assistFormWrap = document.getElementById('assistanceRequestFormWrap');
+            const assistStudentIdInput = document.getElementById('assist_student_id');
+            const confirmedStudentIdDisplay = document.getElementById('confirmedStudentIdDisplay');
+            const toggleAssistanceBtn = document.getElementById('toggleAssistanceFormBtn');
+            const dismissConflictBtn = document.getElementById('dismissConflictBtn');
+            const cancelAssistanceBtn = document.getElementById('cancelAssistanceBtn');
+            const submitAssistanceBtn = document.getElementById('submitAssistanceBtn');
+            const assistAlert = document.getElementById('assistanceAlert');
+            const skipStudentIdBtn = document.getElementById('skipStudentIdBtn');
+            const btnEditStudentId = document.getElementById('btnEditStudentId');
+            const recoveryRequestUrl = @json(route('student.setup.recovery_request'));
+
+            const showConflictCard = function (val) {
+                if (conflictCard) {
+                    conflictCard.classList.remove('d-none');
+                }
+                if (assistStudentIdInput) {
+                    assistStudentIdInput.value = val;
+                }
+            };
+
+            const hideConflictCard = function () {
+                if (conflictCard) {
+                    conflictCard.classList.add('d-none');
+                }
+                if (assistFormWrap) {
+                    assistFormWrap.classList.add('d-none');
+                }
+            };
+
             // --- Student ID Exact-Match Availability State ---
             let currentStudentIdCheckState = initialStudentId ? 'available' : 'idle';
             let lastCheckedStudentId = initialStudentId;
@@ -800,9 +945,14 @@
                 } else if (state === 'available') {
                     studentIdInput.classList.add('is-valid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
+                    hideConflictCard();
+                    if (confirmedStudentIdDisplay) {
+                        confirmedStudentIdDisplay.textContent = lastCheckedStudentId || (studentIdInput.value || '').trim();
+                    }
                 } else if (state === 'taken') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
+                    showConflictCard(lastCheckedStudentId || (studentIdInput.value || '').trim());
                 } else if (state === 'invalid_format') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
@@ -937,6 +1087,7 @@
                     if (studentIdFeedback) {
                         studentIdFeedback.innerHTML = '';
                     }
+                    hideConflictCard();
                 });
 
                 // Validate ONLY on blur
@@ -968,6 +1119,127 @@
                     }
 
                     performStudentIdCheck(val);
+                });
+            }
+
+            // Assistance Form & Conflict Card Listeners
+            if (dismissConflictBtn) {
+                dismissConflictBtn.addEventListener('click', function () {
+                    hideConflictCard();
+                    if (studentIdInput) {
+                        studentIdInput.focus();
+                        studentIdInput.select();
+                    }
+                });
+            }
+
+            if (toggleAssistanceBtn && assistFormWrap) {
+                toggleAssistanceBtn.addEventListener('click', function () {
+                    assistFormWrap.classList.toggle('d-none');
+                });
+            }
+
+            if (cancelAssistanceBtn && assistFormWrap) {
+                cancelAssistanceBtn.addEventListener('click', function () {
+                    assistFormWrap.classList.add('d-none');
+                });
+            }
+
+            if (skipStudentIdBtn) {
+                skipStudentIdBtn.addEventListener('click', function () {
+                    if (studentIdInput) {
+                        studentIdInput.value = '';
+                        studentIdInput.required = false;
+                        currentStudentIdCheckState = 'idle';
+                        lastCheckedStudentId = '';
+                        renderStudentIdFeedback('idle', '');
+                    }
+                    if (confirmedStudentIdDisplay) {
+                        confirmedStudentIdDisplay.textContent = '(Pending / 1st Year without ID)';
+                    }
+                    hideConflictCard();
+                    moveToPanel(1);
+                });
+            }
+
+            if (btnEditStudentId) {
+                btnEditStudentId.addEventListener('click', function () {
+                    moveToPanel(0);
+                    if (studentIdInput) {
+                        studentIdInput.focus();
+                    }
+                });
+            }
+
+            if (submitAssistanceBtn) {
+                submitAssistanceBtn.addEventListener('click', async function () {
+                    const email = (document.getElementById('assist_contact_email')?.value || '').trim();
+                    const reason = (document.getElementById('assist_reason')?.value || '').trim();
+                    const studentId = (document.getElementById('assist_student_id')?.value || '').trim();
+                    const phone = (document.getElementById('assist_contact_phone')?.value || '').trim();
+                    const docFile = document.getElementById('assist_document')?.files?.[0];
+
+                    if (!email || !reason) {
+                        if (assistAlert) {
+                            assistAlert.className = 'alert alert-danger py-2 small';
+                            assistAlert.textContent = 'Please provide your contact email and a reason for recovery.';
+                            assistAlert.classList.remove('d-none');
+                        }
+                        return;
+                    }
+
+                    submitAssistanceBtn.disabled = true;
+                    submitAssistanceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Submitting...';
+
+                    const token = document.querySelector('input[name="_token"]')?.value || '';
+                    const formData = new FormData();
+                    formData.append('claimed_student_id', studentId);
+                    formData.append('contact_email', email);
+                    formData.append('contact_phone', phone);
+                    formData.append('reason', reason);
+                    if (docFile) {
+                        formData.append('supporting_document', docFile);
+                    }
+
+                    try {
+                        const resp = await fetch(recoveryRequestUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': token,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        });
+
+                        const data = await resp.json().catch(() => ({}));
+                        if (resp.ok && data.success) {
+                            if (assistAlert) {
+                                assistAlert.className = 'alert alert-success py-2 small';
+                                assistAlert.innerHTML = `<strong>Request Submitted!</strong> Reference <code>${data.tracking_number || ''}</code>. Campus administrators will review your student identity.`;
+                                assistAlert.classList.remove('d-none');
+                            }
+                            const reasonEl = document.getElementById('assist_reason');
+                            if (reasonEl) reasonEl.value = '';
+                            submitAssistanceBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Submitted';
+                        } else {
+                            if (assistAlert) {
+                                assistAlert.className = 'alert alert-danger py-2 small';
+                                assistAlert.textContent = data.message || 'Unable to submit request. Please try again.';
+                                assistAlert.classList.remove('d-none');
+                            }
+                            submitAssistanceBtn.disabled = false;
+                            submitAssistanceBtn.innerHTML = '<span>Submit Assistance Request</span><i class="bi bi-send ms-1"></i>';
+                        }
+                    } catch (e) {
+                        if (assistAlert) {
+                            assistAlert.className = 'alert alert-danger py-2 small';
+                            assistAlert.textContent = 'Network error. Please try again.';
+                            assistAlert.classList.remove('d-none');
+                        }
+                        submitAssistanceBtn.disabled = false;
+                        submitAssistanceBtn.innerHTML = '<span>Submit Assistance Request</span><i class="bi bi-send ms-1"></i>';
+                    }
                 });
             }
 
@@ -1145,116 +1417,6 @@
                 }
 
                 return isValid;
-            };
-
-            // --- Navigation Button Listeners ---
-            document.querySelectorAll('.btn-next-question').forEach((button) => {
-                button.addEventListener('click', async function (e) {
-                    e.preventDefault();
-                    if (button.disabled) return;
-
-                    // If advancing from Academic panel (Panel 2) with a Student ID that is entered
-                    if (currentPanel === 2 && studentIdInput) {
-                        const val = (studentIdInput.value || '').trim();
-                        if (val !== '') {
-                            // Validate COMPLETE input format first
-                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
-                                currentStudentIdCheckState = 'invalid_format';
-                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
-                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                return;
-                            }
-
-                            // If checking is currently in flight, wait for it
-                            if (activeCheckPromise) {
-                                await activeCheckPromise;
-                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
-                                await performStudentIdCheck(val);
-                            }
-
-                            if (currentStudentIdCheckState !== 'available') {
-                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                return;
-                            }
-                        }
-                    }
-
-                    if (!validatePanel(currentPanel)) {
-                        return;
-                    }
-                    const target = Number(button.getAttribute('data-target'));
-                    moveToPanel(target);
-                });
-            });
-
-            document.querySelectorAll('.btn-prev-question').forEach((button) => {
-                button.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = Number(button.getAttribute('data-target'));
-                    moveToPanel(target);
-                });
-            });
-
-            // Automatically clear client validation on user edit
-            if (form) {
-                ['input', 'change'].forEach((eventName) => {
-                    form.addEventListener(eventName, function (e) {
-                        if (e.target && e.target.matches('input, select, textarea')) {
-                            if (e.target !== studentIdInput) {
-                                clearFieldError(e.target);
-                            }
-                        }
-                    });
-                });
-
-                form.addEventListener('submit', async function (event) {
-                    if (studentIdInput) {
-                        const val = (studentIdInput.value || '').trim();
-                        if (val !== '') {
-                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
-                                currentStudentIdCheckState = 'invalid_format';
-                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
-                                moveToPanel(2);
-                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                event.preventDefault();
-                                return;
-                            }
-
-                            if (activeCheckPromise) {
-                                await activeCheckPromise;
-                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
-                                await performStudentIdCheck(val);
-                            }
-
-                            if (currentStudentIdCheckState !== 'available') {
-                                moveToPanel(2);
-                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                event.preventDefault();
-                                return;
-                            }
-                        }
-                    }
-
-                    for (let i = 0; i < questionPanels.length; i++) {
-                        if (!validatePanel(i)) {
-                            moveToPanel(i);
-                            event.preventDefault();
-                            return;
-                        }
-                    }
-
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<span>Submitting verification...</span><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-                    }
-                });
-            }
-
-
             // --- Image Preview Handlers ---
             if (profileInput && profilePreview) {
                 profileInput.addEventListener('change', function () {

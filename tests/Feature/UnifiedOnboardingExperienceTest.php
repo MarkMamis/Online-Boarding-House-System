@@ -345,7 +345,7 @@ class UnifiedOnboardingExperienceTest extends TestCase
                 'available' => false,
                 'valid' => true,
                 'status' => 'taken',
-                'message' => 'This Student ID is already registered.',
+                'message' => "We couldn't continue with this Student ID.",
             ])
             ->assertJsonMissing([
                 'id' => $existing->id,
@@ -409,7 +409,7 @@ class UnifiedOnboardingExperienceTest extends TestCase
                 'available' => false,
                 'valid' => true,
                 'status' => 'taken',
-                'message' => 'This Student ID is already registered.',
+                'message' => "We couldn't continue with this Student ID.",
             ]);
     }
 

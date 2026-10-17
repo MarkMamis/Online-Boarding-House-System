@@ -460,7 +460,7 @@
                                             <input class="form-check-input" type="checkbox" id="remember" name="remember">
                                             <label class="form-check-label" for="remember">Remember me</label>
                                         </div>
-                                        <a class="small text-white text-decoration-none" href="#" onclick="return false; ">Forgot password?</a>
+                                        <a class="small text-white text-decoration-none" href="{{ route('password.request') }}">Forgot password?</a>
                                     </div>
 
                                     <div class="col-12 mt-2">
