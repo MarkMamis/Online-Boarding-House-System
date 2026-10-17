@@ -102,20 +102,31 @@
 <div class="reports-shell mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
         <div>
-            <div class="help-center-kicker"><i class="bi bi-life-preserver"></i>Student Support</div>
-            <h1 class="h3 mb-1 mt-2">Help Center</h1>
-            <div class="text-muted small">Create support reports, monitor issue status, and read admin responses in one page.</div>
+            <div class="help-center-kicker"><i class="bi bi-shield-check"></i>Student Support & Safety</div>
+            <h1 class="h3 mb-1 mt-2 fw-bold text-dark">Help & Safety Center</h1>
+            <div class="text-muted small">Submit confidential tenancy concerns, safety incidents, and maintenance reports to the MinSU Housing Office.</div>
         </div>
         <div class="d-flex gap-2">
             @if($canSubmitReport ?? false)
-                <button type="button" class="btn btn-sm btn-brand rounded-pill px-3" data-open-report-form="1">Create report</button>
+                <button type="button" class="btn btn-sm btn-brand rounded-pill px-4 fw-semibold" data-open-report-form="1">
+                    <i class="bi bi-plus-circle me-1"></i>Create Report
+                </button>
             @endif
         </div>
     </div>
 
+    {{-- Official Emergency Notice --}}
+    <div class="alert alert-warning border-0 rounded-4 mt-3 mb-0 d-flex align-items-start gap-2.5 p-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0 mt-0.5"></i>
+        <div class="small">
+            <strong class="text-dark d-block mb-0.5">Campus Safety & Emergency Protocol</strong>
+            <span>Online tickets are reviewed by MinSU Housing administration during university office hours. For immediate life-safety emergencies, please contact emergency responders directly via <strong>911</strong> or the MinSU Campus Security Office.</span>
+        </div>
+    </div>
+
     @if(!($canSubmitReport ?? false))
-        <div class="alert alert-info mt-3 mb-0">
-            Only verified tenants can submit reports. Reports and feedback are restricted to students with approved stays.
+        <div class="alert alert-info border-0 rounded-4 mt-3 mb-0">
+            <i class="bi bi-info-circle me-1"></i>Only students with approved or active stays can file accommodation-specific incident reports. If you require general assistance, please visit the MinSU Student Affairs Office.
         </div>
     @endif
 
