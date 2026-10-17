@@ -144,10 +144,20 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'pending';
     }
 
+    public function studentVerificationRequests()
+    {
+        return $this->hasMany(StudentVerificationRequest::class, 'user_id');
+    }
+
+    public function activeStudentVerificationRequest()
+    {
+        return $this->hasOne(StudentVerificationRequest::class, 'user_id')
+            ->whereIn('status', ['pending', 'resubmitted'])
+            ->latestOfMany();
+    }
+
     public function missingStudentSetupFields(): array
     {
-        $isFirstYear = (string) $this->year_level === '1st Year';
-
         $requiredFields = [
             'full_name' => 'Full name',
             'profile_image_path' => 'Profile photo',
@@ -167,10 +177,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'enrollment_proof_type' => 'Enrollment proof type (COR or COE)',
             'enrollment_proof_path' => 'Enrollment proof file (COR or COE)',
         ];
-
-        if (!$isFirstYear) {
-            $requiredFields['school_id_path'] = 'School ID photo';
-        }
 
         $missing = [];
 

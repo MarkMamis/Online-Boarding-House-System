@@ -177,11 +177,7 @@ class StudentSetupController extends Controller
             ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072'
             : 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
 
-        $schoolIdRule = $isFirstYear
-            ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072'
-            : (filled($user->school_id_path)
-                ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072'
-                : 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072');
+        $schoolIdRule = 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
 
         $enrollmentProofRule = filled($user->enrollment_proof_path)
             ? 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:4096'
@@ -382,7 +378,6 @@ class StudentSetupController extends Controller
                     && filled($user->program)
                     && filled($user->year_level)
                     && filled($user->gender)
-                    && (($user->year_level === '1st Year') || filled($user->school_id_path))
                     && filled($user->enrollment_proof_type)
                     && filled($user->enrollment_proof_path),
             ],
@@ -397,5 +392,76 @@ class StudentSetupController extends Controller
                     && filled($user->parent_contact_address),
             ],
         ];
+    }
+
+    public function submitVerificationRequestInfo(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->role !== 'student') {
+            abort(403);
+        }
+
+        $activeRequest = $user->activeStudentVerificationRequest;
+        if (! $activeRequest || ! $activeRequest->isPending()) {
+            return back()->with('error', 'There is no pending additional information request for your account.');
+        }
+
+        $rules = [];
+        $messages = [];
+
+        if ($activeRequest->request_student_id) {
+            $rules['student_id'] = 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,'.$user->id;
+            $messages['student_id.required'] = 'Student ID is required by the administrator.';
+            $messages['student_id.regex'] = 'Please enter a valid Student ID format (e.g., MCC2026-00000).';
+            $messages['student_id.unique'] = 'This Student ID is already registered.';
+        }
+
+        if ($activeRequest->request_school_id_photo) {
+            $rules['school_id_photo'] = 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
+            $messages['school_id_photo.required'] = 'A clear photo of your school ID is required by the administrator.';
+        }
+
+        $validated = $request->validate($rules, $messages);
+
+        if ($activeRequest->request_student_id) {
+            $user->student_id = trim((string) $validated['student_id']);
+        }
+
+        if ($activeRequest->request_school_id_photo && $request->hasFile('school_id_photo')) {
+            $user->school_id_path = app(\App\Services\FileStorageService::class)->replace(
+                $user->school_id_path,
+                $request->file('school_id_photo'),
+                'students/'.$user->id.'/school-id'
+            );
+        }
+
+        $user->school_id_verification_status = 'pending';
+        $user->school_id_verified_at = null;
+        $user->school_id_verified_by = null;
+        $user->school_id_rejection_reason = null;
+        $user->save();
+
+        $activeRequest->update([
+            'status' => 'resubmitted',
+            'resubmitted_at' => now(),
+        ]);
+
+        // Notify Admins
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new \App\Notifications\SystemNotification(
+                'Student verification resubmitted',
+                $user->full_name.' has resubmitted the requested verification information.',
+                route('admin.approvals.students'),
+                [
+                    'type' => 'student_verification_resubmitted',
+                    'student_id' => $user->id,
+                ]
+            ));
+        }
+
+        return back()->with('success', 'Your requested verification details have been submitted and are now awaiting administrator review.');
     }
 }

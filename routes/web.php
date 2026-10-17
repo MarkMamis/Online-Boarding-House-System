@@ -317,6 +317,7 @@ Route::middleware(['role:admin'])->group(function () {
     })->name('admin.student_verifications.index');
     Route::post('/admin/student-verifications/{user}/approve', [AuthController::class, 'adminApproveStudentVerification'])->name('admin.student_verifications.approve');
     Route::post('/admin/student-verifications/{user}/reject', [AuthController::class, 'adminRejectStudentVerification'])->name('admin.student_verifications.reject');
+    Route::post('/admin/student-verifications/{user}/request-information', [AuthController::class, 'adminRequestStudentVerificationInfo'])->name('admin.student_verifications.request_information');
     Route::get('/admin/users/students/{user}', [AuthController::class, 'adminStudentDetails'])->name('admin.users.students.show');
     Route::get('/admin/users/students/{user}/edit', [AuthController::class, 'adminEditStudent'])->name('admin.users.students.edit');
     Route::put('/admin/users/students/{user}', [AuthController::class, 'adminUpdateStudent'])->name('admin.users.students.update');
@@ -484,6 +485,7 @@ Route::middleware(['auth', 'verified', 'role:student'])->group(function () {
     Route::put('/student/setup', [StudentSetupController::class, 'update'])->name('student.setup.update');
     Route::post('/student/setup/check-student-id', [StudentSetupController::class, 'checkStudentId'])->name('student.setup.check_student_id')->middleware('throttle:60,1');
     Route::post('/student/setup/recovery-request', [StudentSetupController::class, 'storeRecoveryRequest'])->name('student.setup.recovery_request')->middleware('throttle:10,1');
+    Route::post('/student/verification-request/submit', [StudentSetupController::class, 'submitVerificationRequestInfo'])->name('student.verification_request.submit');
 
     Route::middleware(['student.setup'])->group(function () {
         Route::get('/student/dashboard', [AuthController::class, 'studentDashboard'])->name('student.dashboard');

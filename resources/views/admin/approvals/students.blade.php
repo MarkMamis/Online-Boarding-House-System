@@ -166,6 +166,22 @@
                             </td>
                             <td>
                                 <x-admin.status-badge :status="$status" />
+                                @if($student->activeStudentVerificationRequest)
+                                    @php $activeReq = $student->activeStudentVerificationRequest; @endphp
+                                    @if($activeReq->isPending())
+                                        <div class="mt-1">
+                                            <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning-subtle" title="{{ $activeReq->instructions }}">
+                                                <i class="bi bi-clock-history me-1"></i>Info Requested
+                                            </span>
+                                        </div>
+                                    @elseif($activeReq->isResubmitted())
+                                        <div class="mt-1">
+                                            <span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info-subtle">
+                                                <i class="bi bi-arrow-repeat me-1"></i>Resubmitted
+                                            </span>
+                                        </div>
+                                    @endif
+                                @endif
                                 @if($status === 'rejected' && filled($student->school_id_rejection_reason))
                                     <div class="small text-danger mt-1" style="max-width: 200px;">{{ $student->school_id_rejection_reason }}</div>
                                 @endif
@@ -187,6 +203,10 @@
                                     @else
                                         <button type="button" class="btn btn-sm btn-brand btn-action-icon" data-bs-toggle="modal" data-bs-target="#approveStudentModal{{ $student->id }}" title="Approve verification" aria-label="Approve verification">
                                             <i class="bi bi-check2"></i>
+                                        </button>
+
+                                        <button type="button" class="btn btn-sm btn-outline-warning btn-action-icon text-warning-emphasis" data-bs-toggle="modal" data-bs-target="#requestInfoModal{{ $student->id }}" title="Request Additional Requirements" aria-label="Request Additional Requirements">
+                                            <i class="bi bi-card-checklist"></i>
                                         </button>
                                     @endif
 
@@ -215,6 +235,20 @@
                                                         <div class="mb-2 fw-semibold">{{ $student->full_name }}</div>
                                                         <div class="small text-muted mb-3">Confirm approval to unlock verified booking privileges for this student.</div>
 
+                                                        @if($student->activeStudentVerificationRequest)
+                                                            @php $activeReq = $student->activeStudentVerificationRequest; @endphp
+                                                            @if($activeReq->request_student_id && empty($student->student_id))
+                                                                <div class="alert alert-warning py-2 small mb-3">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i>This student has not yet provided the requested Student ID number.
+                                                                </div>
+                                                            @endif
+                                                            @if($activeReq->request_school_id_photo && empty($student->school_id_path))
+                                                                <div class="alert alert-warning py-2 small mb-3">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i>This student has not yet uploaded the requested School ID photo.
+                                                                </div>
+                                                            @endif
+                                                        @endif
+
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="checkbox" value="1" id="approve_confirm_{{ $student->id }}" required>
                                                             <label class="form-check-label small" for="approve_confirm_{{ $student->id }}">
@@ -232,6 +266,55 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div class="modal fade" id="requestInfoModal{{ $student->id }}" tabindex="-1" aria-labelledby="requestInfoModalLabel{{ $student->id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content rounded-4 border-0 shadow">
+                                                <form method="POST" action="{{ route('admin.student_verifications.request_information', $student) }}">
+                                                    @csrf
+                                                    <div class="modal-header border-0 pb-0">
+                                                        <h5 class="modal-title fw-bold" id="requestInfoModalLabel{{ $student->id }}">
+                                                            <i class="bi bi-card-checklist text-warning me-2"></i>Request Additional Requirements
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body pt-2 text-start">
+                                                        <div class="mb-2 fw-semibold">{{ $student->full_name }}</div>
+                                                        <div class="small text-muted mb-3">Select the official credentials required for this student to complete verification.</div>
+
+                                                        <div class="mb-3 p-3 bg-light rounded-3 border">
+                                                            <div class="small fw-bold text-dark mb-2">Required Credentials:</div>
+                                                            <div class="form-check mb-2">
+                                                                <input class="form-check-input" type="checkbox" name="request_student_id" id="req_student_id_{{ $student->id }}" value="1" {{ empty($student->student_id) ? 'checked' : '' }}>
+                                                                <label class="form-check-label small" for="req_student_id_{{ $student->id }}">
+                                                                    <strong>Student ID number</strong>
+                                                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Official MinSU student identification number.</span>
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" name="request_school_id_photo" id="req_school_id_photo_{{ $student->id }}" value="1" {{ empty($student->school_id_path) ? 'checked' : '' }}>
+                                                                <label class="form-check-label small" for="req_school_id_photo_{{ $student->id }}">
+                                                                    <strong>School ID photo</strong>
+                                                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Clear image of the physical or digital student ID card.</span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label for="instructions_{{ $student->id }}" class="form-label small fw-semibold">Reason / Instructions <span class="text-danger">*</span></label>
+                                                            <textarea id="instructions_{{ $student->id }}" name="instructions" class="form-control" rows="3" maxlength="1000" placeholder="e.g., Please submit the Student ID issued by the registrar and a clear photo of your school ID." required></textarea>
+                                                            <div class="form-text" style="font-size: 0.75rem;">Explain clearly what the student must provide.</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 pt-0">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-sm btn-brand px-3">
+                                                            <i class="bi bi-send me-1"></i>Send Request
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                 @endif
 
                                 <div class="modal fade" id="rejectStudentModal{{ $student->id }}" tabindex="-1" aria-labelledby="rejectStudentModalLabel{{ $student->id }}" aria-hidden="true">

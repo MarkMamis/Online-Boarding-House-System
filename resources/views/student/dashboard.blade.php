@@ -356,6 +356,76 @@
                     </div>
                 </div>
 
+                @php
+                    $activeVerificationRequest = Auth::user()->activeStudentVerificationRequest;
+                @endphp
+
+                @if($activeVerificationRequest)
+                    @if($activeVerificationRequest->isPending())
+                        <div class="card border-warning-subtle shadow-sm rounded-4 mb-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle p-2 text-warning-emphasis bg-warning bg-opacity-25 flex-shrink-0" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="bi bi-shield-exclamation fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold text-dark mb-1">Additional Information Required</h5>
+                                        <p class="text-muted small mb-0">Your verification needs additional information. Please provide the items requested by the administrator.</p>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-light rounded-3 mb-3 border">
+                                    <div class="fw-semibold small text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i>Administrator Instructions:</div>
+                                    <div class="small text-secondary">{{ $activeVerificationRequest->instructions }}</div>
+                                </div>
+
+                                <form method="POST" action="{{ route('student.verification_request.submit') }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="row g-3">
+                                        @if($activeVerificationRequest->request_student_id)
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-semibold" for="req_student_id">Student ID *</label>
+                                                <input type="text" id="req_student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', Auth::user()->student_id) }}" placeholder="e.g. MCC2026-00000" required autocomplete="off">
+                                                <div class="form-text">Enter the Student ID requested by the administrator.</div>
+                                                @error('student_id')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        @endif
+
+                                        @if($activeVerificationRequest->request_school_id_photo)
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-semibold" for="req_school_id_photo">School ID Upload *</label>
+                                                <input type="file" id="req_school_id_photo" name="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*" required>
+                                                <div class="form-text">Upload the requested school ID photo. Clear photo (JPG, PNG, WEBP, GIF up to 3MB).</div>
+                                                @error('school_id_photo')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        @endif
+
+                                        <div class="col-12 mt-3">
+                                            <button type="submit" class="btn btn-brand">
+                                                <i class="bi bi-send me-1"></i>Submit Information
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @elseif($activeVerificationRequest->isResubmitted())
+                        <div class="alert alert-info rounded-4 mb-4 d-flex align-items-center gap-3">
+                            <div class="rounded-circle p-2 text-info-emphasis bg-info bg-opacity-25 flex-shrink-0" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-hourglass-split fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold text-dark">Verification Resubmitted</div>
+                                <div class="small text-muted">Your requested verification details have been submitted and are currently awaiting administrator review.</div>
+                            </div>
+                        </div>
+                    @endif
+                @endif
+
                 @if(($ratingReminders ?? collect())->isNotEmpty())
                     <div class="alert alert-warning rounded-4 mb-4">
                         <div class="fw-semibold mb-1"><i class="bi bi-star-fill me-1"></i>Rate your completed stay</div>

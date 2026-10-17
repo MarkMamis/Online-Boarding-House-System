@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Notifications\SystemNotification;
 use App\Services\AcademicCatalogService;
+use App\Models\StudentVerificationRequest;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -1607,10 +1609,11 @@ class AuthController extends Controller
         $students = User::query()
             ->where('role', 'student')
             ->where($studentsWithVerificationDocs)
+            ->with('activeStudentVerificationRequest')
             ->when($statusFilter !== 'all', function ($query) use ($statusFilter) {
                 if ($statusFilter === 'pending') {
                     $query->where(function ($pendingQuery) {
-                        $pendingQuery->where('school_id_verification_status', 'pending')
+                        $pendingQuery->whereIn('school_id_verification_status', ['pending', 'action_required'])
                             ->orWhereNull('school_id_verification_status')
                             ->orWhere('school_id_verification_status', '');
                     });
@@ -1629,7 +1632,7 @@ class AuthController extends Controller
                 ->where('role', 'student')
                 ->where($studentsWithVerificationDocs)
                 ->where(function ($pendingQuery) {
-                    $pendingQuery->where('school_id_verification_status', 'pending')
+                    $pendingQuery->whereIn('school_id_verification_status', ['pending', 'action_required'])
                         ->orWhereNull('school_id_verification_status')
                         ->orWhere('school_id_verification_status', '');
                 })
@@ -1718,6 +1721,23 @@ class AuthController extends Controller
             return back()->with('error', 'No verification document was uploaded for this student yet.');
         }
 
+        // Check if there are active unresolved information requests
+        $activeRequest = $user->activeStudentVerificationRequest;
+        if ($activeRequest) {
+            if ($activeRequest->request_student_id && !filled($user->student_id)) {
+                return back()->with('error', 'Cannot approve verification: the requested Student ID number has not been provided.');
+            }
+            if ($activeRequest->request_school_id_photo && !filled($user->school_id_path)) {
+                return back()->with('error', 'Cannot approve verification: the requested School ID photo has not been uploaded.');
+            }
+
+            $activeRequest->update([
+                'status' => 'resolved',
+                'resolved_at' => now(),
+                'resolved_by' => Auth::id(),
+            ]);
+        }
+
         $user->update([
             'school_id_verification_status' => 'approved',
             'school_id_verified_at' => now(),
@@ -1760,6 +1780,16 @@ class AuthController extends Controller
             'rejection_reason' => 'required|string|max:500',
         ]);
 
+        $activeRequest = $user->activeStudentVerificationRequest;
+        if ($activeRequest) {
+            $activeRequest->update([
+                'status' => 'resolved',
+                'resolved_at' => now(),
+                'resolved_by' => Auth::id(),
+                'admin_notes' => 'Rejected verification: ' . $validated['rejection_reason'],
+            ]);
+        }
+
         $user->update([
             'school_id_verification_status' => 'rejected',
             'school_id_verified_at' => now(),
@@ -1778,6 +1808,70 @@ class AuthController extends Controller
         ));
 
         return back()->with('success', 'Student academic verification rejected and student notified.');
+    }
+
+    public function adminRequestStudentVerificationInfo(Request $request, User $user)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role !== 'student') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'request_student_id' => 'nullable|boolean',
+            'request_school_id_photo' => 'nullable|boolean',
+            'instructions' => 'required|string|max:1000',
+        ]);
+
+        $reqStudentId = $request->boolean('request_student_id');
+        $reqSchoolIdPhoto = $request->boolean('request_school_id_photo');
+
+        if (!$reqStudentId && !$reqSchoolIdPhoto) {
+            return back()->withErrors([
+                'requested_items' => 'Please select at least one item to request (Student ID number or School ID photo).',
+                'instructions' => 'Please select at least one item to request (Student ID number or School ID photo).',
+            ]);
+        }
+
+        // Cancel previous active requests
+        $user->studentVerificationRequests()
+            ->whereIn('status', ['pending', 'resubmitted'])
+            ->update([
+                'status' => 'cancelled',
+                'resolved_at' => now(),
+                'resolved_by' => Auth::id(),
+                'admin_notes' => 'Superseded by new information request.',
+            ]);
+
+        StudentVerificationRequest::create([
+            'user_id' => $user->id,
+            'request_student_id' => $reqStudentId,
+            'request_school_id_photo' => $reqSchoolIdPhoto,
+            'instructions' => trim($validated['instructions']),
+            'status' => 'pending',
+            'requested_by' => Auth::id(),
+            'requested_at' => now(),
+        ]);
+
+        $user->update([
+            'school_id_verification_status' => 'action_required',
+        ]);
+
+        $user->notify(new SystemNotification(
+            'Additional verification information required',
+            'The administrator has requested additional verification information: ' . Str::limit(trim($validated['instructions']), 100),
+            route('student.dashboard'),
+            [
+                'type' => 'student_verification_info_requested',
+                'request_student_id' => $reqStudentId,
+                'request_school_id_photo' => $reqSchoolIdPhoto,
+            ]
+        ));
+
+        return back()->with('success', 'Additional information request sent to student successfully.');
     }
 
     public function adminStudentDetails(User $user)

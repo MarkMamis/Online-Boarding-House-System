@@ -211,11 +211,12 @@
         $academicStatusBadgeClass = match ($academicVerificationStatus) {
             'approved' => 'text-bg-success',
             'rejected' => 'text-bg-danger',
+            'action_required' => 'text-bg-warning',
             'pending' => 'text-bg-warning',
             default => 'text-bg-secondary',
         };
 
-        $academicStatusLabel = ucwords(str_replace('_', ' ', $academicVerificationStatus));
+        $academicStatusLabel = $academicVerificationStatus === 'action_required' ? 'Additional Info Required' : ucwords(str_replace('_', ' ', $academicVerificationStatus));
         $enrollmentProofLabel = strtoupper((string) ($user->enrollment_proof_type ?? 'COR/COE'));
 
         $collegeMap = $academicCatalog['colleges'] ?? [];
