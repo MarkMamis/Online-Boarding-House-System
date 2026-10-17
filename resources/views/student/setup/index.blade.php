@@ -466,17 +466,11 @@
 
                     <div class="row g-3">
                         <div class="col-12" id="studentIdInputContainer">
-                            <label class="form-label" for="student_id" id="studentIdLabel">Student ID (Optional)</label>
+                            <label class="form-label" for="student_id" id="studentIdLabel">Student ID</label>
                             <input type="text" id="student_id" name="student_id" class="form-control @error('student_id') is-invalid @enderror" value="{{ old('student_id', $user->student_id) }}" placeholder="Enter your Student ID, if available" autocomplete="off" spellcheck="false">
                             <div class="field-hint" id="student_id_help">If you haven't received your Student ID yet, you may leave this blank. Format example: MCC2026-00000.</div>
                             <div id="student_id_feedback" class="mt-2 small" role="status" aria-live="polite"></div>
                             @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-
-                            <div class="mt-3">
-                                <button type="button" class="btn btn-link p-0 text-decoration-none small text-muted" id="skipStudentIdBtn">
-                                    Don't have an official Student ID yet? <span class="text-decoration-underline text-success fw-semibold">Continue without ID &rarr;</span>
-                                </button>
-                            </div>
                         </div>
 
                         <!-- RECOVERY GUIDANCE CARD (Displayed on exact duplicate/conflict) -->
@@ -697,7 +691,7 @@
                             @error('program')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="col-12 col-md-6">
+                        <div class="col-12">
                             <label class="form-label">Year Level *</label>
                             <select id="year_level" name="year_level" class="form-select @error('year_level') is-invalid @enderror" required>
                                 <option value="" disabled {{ $selectedYearLevel ? '' : 'selected' }}>Select year</option>
@@ -706,20 +700,6 @@
                                 @endforeach
                             </select>
                             @error('year_level')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label" for="academic_student_id">Student ID (Optional)</label>
-                            <div class="input-group">
-                                <input type="text" id="academic_student_id" class="form-control" placeholder="Enter your Student ID, if available" value="{{ old('student_id', $user->student_id) }}" autocomplete="off" spellcheck="false">
-                                <button type="button" class="btn btn-outline-secondary" id="btnClearStudentId" title="Clear Student ID" style="{{ old('student_id', $user->student_id) ? '' : 'display: none;' }}">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
-                            <div id="academic_student_id_feedback" class="mt-1 small" role="status" aria-live="polite"></div>
-                            <div class="field-hint" id="academic_student_id_hint">
-                                {{ old('student_id', $user->student_id) ? 'Validated early for identity protection.' : "If you haven't received your Student ID yet, you may leave this blank." }}
-                            </div>
                         </div>
                     </div>
 
@@ -743,7 +723,7 @@
 
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label" id="schoolIdLabel">School ID Upload{{ $isFirstYearSelected ? '' : ' *' }}</label>
+                            <label class="form-label" id="schoolIdLabel">School ID Upload</label>
                             <div class="d-flex align-items-center gap-3">
                                 @if(!empty($user->school_id_path))
                                     <img id="school_id_preview" src="{{ file_download_url($user->school_id_path) }}" alt="School ID preview" class="upload-preview">
@@ -751,9 +731,9 @@
                                     <img id="school_id_preview" src="" alt="School ID preview" class="upload-preview d-none">
                                 @endif
                                 <div class="w-100">
-                                    <input type="file" name="school_id_photo" id="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*" data-has-existing="{{ empty($user->school_id_path) ? '0' : '1' }}" {{ ($isFirstYearSelected || !empty($user->school_id_path)) ? '' : 'required' }}>
+                                    <input type="file" name="school_id_photo" id="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*" data-has-existing="{{ empty($user->school_id_path) ? '0' : '1' }}">
                                     <div id="school_id_help" class="field-hint">
-                                        {{ $isFirstYearSelected ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.' : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).' }}
+                                        Upload a clear photo of your school ID if available.
                                     </div>
                                     @error('school_id_photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
@@ -903,16 +883,11 @@
             const assistFormWrap = document.getElementById('assistanceRequestFormWrap');
             const assistStudentIdInput = document.getElementById('assist_student_id');
             const confirmedStudentIdDisplay = document.getElementById('confirmedStudentIdDisplay');
-            const academicStudentIdInput = document.getElementById('academic_student_id');
-            const btnClearStudentId = document.getElementById('btnClearStudentId');
-            const academicStudentIdHint = document.getElementById('academic_student_id_hint');
-            const academicStudentIdFeedback = document.getElementById('academic_student_id_feedback');
             const toggleAssistanceBtn = document.getElementById('toggleAssistanceFormBtn');
             const dismissConflictBtn = document.getElementById('dismissConflictBtn');
             const cancelAssistanceBtn = document.getElementById('cancelAssistanceBtn');
             const submitAssistanceBtn = document.getElementById('submitAssistanceBtn');
             const assistAlert = document.getElementById('assistanceAlert');
-            const skipStudentIdBtn = document.getElementById('skipStudentIdBtn');
             const btnEditStudentId = document.getElementById('btnEditStudentId');
             const recoveryRequestUrl = @json(route('student.setup.recovery_request'));
 
@@ -951,12 +926,10 @@
                     studentIdInput.classList.add('is-valid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
                     hideConflictCard();
-                    syncAcademicStudentIdUI();
                 } else if (state === 'taken') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
                     showConflictCard(lastCheckedStudentId || (studentIdInput.value || '').trim());
-                    syncAcademicStudentIdUI();
                 } else if (state === 'invalid_format') {
                     studentIdInput.classList.add('is-invalid');
                     studentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
@@ -1127,113 +1100,6 @@
             }
 
             // Assistance Form & Conflict Card Listeners
-            const syncAcademicStudentIdUI = function () {
-                if (!academicStudentIdInput) return;
-                const val = (studentIdInput ? studentIdInput.value : '').trim();
-                academicStudentIdInput.value = val;
-                if (btnClearStudentId) {
-                    btnClearStudentId.style.display = val !== '' ? '' : 'none';
-                }
-                if (academicStudentIdHint) {
-                    if (val !== '' && (currentStudentIdCheckState === 'available' || (initialStudentId && val.toLowerCase() === initialStudentId.toLowerCase()))) {
-                        academicStudentIdHint.textContent = 'Validated early for identity protection.';
-                    } else {
-                        academicStudentIdHint.textContent = "If you haven't received your Student ID yet, you may leave this blank.";
-                    }
-                }
-            };
-
-            const renderAcademicStudentIdFeedback = function (state, message) {
-                if (!academicStudentIdFeedback || !academicStudentIdInput) return;
-                academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
-                if (state === 'checking') {
-                    academicStudentIdFeedback.innerHTML = `<span class="spinner-border spinner-border-sm me-1 text-muted" role="status" aria-hidden="true"></span><span class="text-muted">${message}</span>`;
-                } else if (state === 'available') {
-                    academicStudentIdInput.classList.add('is-valid');
-                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i><span class="text-success fw-semibold">${message}</span>`;
-                    hideConflictCard();
-                    if (academicStudentIdHint) {
-                        academicStudentIdHint.textContent = 'Validated early for identity protection.';
-                    }
-                } else if (state === 'taken') {
-                    academicStudentIdInput.classList.add('is-invalid');
-                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-x-circle-fill text-danger me-1"></i><span class="text-danger fw-semibold">${message}</span>`;
-                    showConflictCard(academicStudentIdInput.value.trim());
-                } else if (state === 'invalid_format' || state === 'failed') {
-                    academicStudentIdInput.classList.add('is-invalid');
-                    academicStudentIdFeedback.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger me-1"></i><span class="text-danger">${message}</span>`;
-                } else {
-                    academicStudentIdFeedback.innerHTML = '';
-                }
-            };
-
-            if (btnClearStudentId) {
-                btnClearStudentId.addEventListener('click', function () {
-                    if (studentIdInput) {
-                        studentIdInput.value = '';
-                        studentIdInput.classList.remove('is-valid', 'is-invalid');
-                    }
-                    if (academicStudentIdInput) {
-                        academicStudentIdInput.value = '';
-                        academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
-                    }
-                    currentStudentIdCheckState = 'idle';
-                    lastCheckedStudentId = '';
-                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
-                    if (academicStudentIdFeedback) academicStudentIdFeedback.innerHTML = '';
-                    hideConflictCard();
-                    syncAcademicStudentIdUI();
-                });
-            }
-
-            if (academicStudentIdInput) {
-                academicStudentIdInput.addEventListener('input', function () {
-                    const val = academicStudentIdInput.value.trim();
-                    if (studentIdInput) {
-                        studentIdInput.value = val;
-                        studentIdInput.classList.remove('is-valid', 'is-invalid');
-                    }
-                    academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
-                    if (academicStudentIdFeedback) academicStudentIdFeedback.innerHTML = '';
-                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
-                    if (btnClearStudentId) {
-                        btnClearStudentId.style.display = val !== '' ? '' : 'none';
-                    }
-                    currentStudentIdCheckState = 'idle';
-                    lastCheckedStudentId = '';
-                    if (academicStudentIdHint) {
-                        academicStudentIdHint.textContent = "If you haven't received your Student ID yet, you may leave this blank.";
-                    }
-                });
-
-                academicStudentIdInput.addEventListener('blur', function () {
-                    const val = academicStudentIdInput.value.trim();
-                    if (val === '') {
-                        currentStudentIdCheckState = 'idle';
-                        lastCheckedStudentId = '';
-                        syncAcademicStudentIdUI();
-                        return;
-                    }
-                    if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
-                        currentStudentIdCheckState = 'invalid_format';
-                        renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
-                        return;
-                    }
-                    if (val.toLowerCase() === lastCheckedStudentId.toLowerCase() && (currentStudentIdCheckState === 'available' || currentStudentIdCheckState === 'taken')) {
-                        return;
-                    }
-                    performStudentIdCheck(val).then(function (result) {
-                        if (result.state === 'available') {
-                            renderAcademicStudentIdFeedback('available', 'Student ID is available.');
-                        } else if (result.state === 'taken') {
-                            renderAcademicStudentIdFeedback('taken', 'We couldn\'t continue with this Student ID.');
-                        } else if (result.state === 'invalid_format') {
-                            renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
-                        }
-                    });
-                });
-            }
-
             if (dismissConflictBtn) {
                 dismissConflictBtn.addEventListener('click', function () {
                     hideConflictCard();
@@ -1253,28 +1119,6 @@
             if (cancelAssistanceBtn && assistFormWrap) {
                 cancelAssistanceBtn.addEventListener('click', function () {
                     assistFormWrap.classList.add('d-none');
-                });
-            }
-
-            if (skipStudentIdBtn) {
-                skipStudentIdBtn.addEventListener('click', function () {
-                    if (studentIdInput) {
-                        studentIdInput.value = '';
-                        studentIdInput.required = false;
-                        currentStudentIdCheckState = 'idle';
-                        lastCheckedStudentId = '';
-                        renderStudentIdFeedback('idle', '');
-                    }
-                    if (academicStudentIdInput) {
-                        academicStudentIdInput.value = '';
-                        academicStudentIdInput.classList.remove('is-valid', 'is-invalid');
-                    }
-                    if (academicStudentIdFeedback) {
-                        academicStudentIdFeedback.innerHTML = '';
-                    }
-                    syncAcademicStudentIdUI();
-                    hideConflictCard();
-                    moveToPanel(1);
                 });
             }
 
@@ -1573,42 +1417,6 @@
                             if (studentIdFeedback) studentIdFeedback.innerHTML = '';
                             hideConflictCard();
                         }
-                        syncAcademicStudentIdUI();
-                    }
-
-                    // If advancing from Academic panel (Panel 3) with an entered Student ID
-                    if (currentPanel === 3 && academicStudentIdInput) {
-                        const val = (academicStudentIdInput.value || '').trim();
-                        if (studentIdInput) {
-                            studentIdInput.value = val;
-                        }
-                        if (val !== '') {
-                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
-                                currentStudentIdCheckState = 'invalid_format';
-                                renderAcademicStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
-                                academicStudentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { academicStudentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                return;
-                            }
-
-                            if (activeCheckPromise) {
-                                await activeCheckPromise;
-                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
-                                await performStudentIdCheck(val);
-                            }
-
-                            if (currentStudentIdCheckState !== 'available') {
-                                renderAcademicStudentIdFeedback('taken', 'We couldn\'t continue with this Student ID.');
-                                academicStudentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                try { academicStudentIdInput.focus({ preventScroll: true }); } catch (err) {}
-                                return;
-                            }
-                        } else {
-                            currentStudentIdCheckState = 'idle';
-                            lastCheckedStudentId = '';
-                            renderAcademicStudentIdFeedback('idle', '');
-                        }
-                        syncAcademicStudentIdUI();
                     }
 
                     if (!validatePanel(currentPanel)) {
@@ -1751,46 +1559,37 @@
                 syncGenderCustom();
             }
 
-            // --- Academic Proof Sync based on Year Level ---
+            // --- Academic Proof Sync ---
             const syncAcademicProofRequirements = function () {
-                const isFirstYear = yearLevelInput && yearLevelInput.value === '1st Year';
-
-                // Student ID is optional across all year levels
+                // Student ID is optional across all year levels at initial onboarding
                 if (studentIdInput) {
                     studentIdInput.required = false;
                 }
                 if (studentIdLabel) {
-                    studentIdLabel.textContent = 'Student ID (Optional)';
+                    studentIdLabel.textContent = 'Student ID';
                 }
 
                 if (schoolIdLabel) {
-                    schoolIdLabel.textContent = isFirstYear ? 'School ID Upload' : 'School ID Upload *';
+                    schoolIdLabel.textContent = 'School ID Upload';
                 }
                 if (schoolIdInput) {
-                    const hasExistingSchoolId = schoolIdInput.dataset.hasExisting === '1';
-                    schoolIdInput.required = !isFirstYear && !hasExistingSchoolId;
+                    schoolIdInput.required = false;
                 }
                 if (schoolIdHelp) {
-                    schoolIdHelp.textContent = isFirstYear
-                        ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.'
-                        : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).';
+                    schoolIdHelp.textContent = 'Upload a clear photo of your school ID if available.';
                 }
 
                 if (enrollmentProofFile) {
                     const hasExistingEnrollmentProof = enrollmentProofFile.dataset.hasExisting === '1';
-                    enrollmentProofFile.required = isFirstYear && !hasExistingEnrollmentProof;
+                    enrollmentProofFile.required = !hasExistingEnrollmentProof;
                 }
 
                 if (enrollmentProofType) {
-                    const hasExistingEnrollmentProof = enrollmentProofFile && enrollmentProofFile.dataset.hasExisting === '1';
-                    const hasSelectedProofFile = enrollmentProofFile && enrollmentProofFile.files && enrollmentProofFile.files.length > 0;
-                    enrollmentProofType.required = isFirstYear || hasExistingEnrollmentProof || hasSelectedProofFile;
+                    enrollmentProofType.required = true;
                 }
 
                 if (enrollmentProofHelp) {
-                    enrollmentProofHelp.textContent = isFirstYear
-                        ? 'Required for 1st Year students. Accepted: PDF, JPG, PNG, WEBP up to 4MB.'
-                        : 'Optional for 2nd Year and above. Accepted: PDF, JPG, PNG, WEBP up to 4MB.';
+                    enrollmentProofHelp.textContent = 'Accepted: PDF, JPG, PNG, WEBP up to 4MB.';
                 }
             };
 
@@ -2025,7 +1824,6 @@
                 }
             }
 
-            syncAcademicStudentIdUI();
             updateActivePanel();
         })();
     </script>

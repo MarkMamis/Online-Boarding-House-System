@@ -155,9 +155,10 @@ class StudentIdentityProtectionTest extends TestCase
 
         $response->assertOk()
             ->assertSee('What is your Student ID?')
-            ->assertSee('Student ID (Optional)')
+            ->assertSee('Student ID')
+            ->assertDontSee('Student ID (Optional)')
             ->assertSee('Enter your Student ID, if available')
-            ->assertSee("If you haven't received your Student ID yet, you may leave this blank.")
+            ->assertSee("If you haven't received your Student ID yet, you may leave this blank.", false)
             ->assertDontSee('(Pending / 1st Year without ID)')
             ->assertSee('studentIdConflictCard')
             ->assertSee('Recover Account')
