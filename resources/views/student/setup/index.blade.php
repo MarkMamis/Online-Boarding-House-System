@@ -757,6 +757,30 @@
             const questionPanels = Array.from(document.querySelectorAll('[data-question-panel]'));
             let currentPanel = 0;
 
+            // DOM References
+            const profileInput = document.getElementById('profile_image');
+            const profilePreview = document.getElementById('profile_preview');
+            const schoolIdInput = document.getElementById('school_id_photo');
+            const schoolIdPreview = document.getElementById('school_id_preview');
+            const yearLevelInput = document.getElementById('year_level');
+            const studentIdInput = document.getElementById('student_id');
+            const studentIdLabel = document.getElementById('studentIdLabel');
+            const studentIdHelp = document.getElementById('student_id_help');
+            const schoolIdLabel = document.getElementById('schoolIdLabel');
+            const schoolIdHelp = document.getElementById('school_id_help');
+            const enrollmentProofType = document.getElementById('enrollment_proof_type');
+            const enrollmentProofFile = document.getElementById('enrollment_proof_file');
+            const enrollmentProofHelp = document.getElementById('enrollment_proof_help');
+            const genderSelect = document.getElementById('gender');
+            const genderCustomWrap = document.getElementById('genderCustomWrap');
+            const genderCustomInput = document.getElementById('gender_custom');
+            const collegeSelect = document.getElementById('college');
+            const programSelect = document.getElementById('program');
+            const homeAddressInput = document.getElementById('homeAddressInput');
+            const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
+            const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
+
+            // --- Panel Navigation & Visibility ---
             const updateActivePanel = function () {
                 questionPanels.forEach((panel, index) => {
                     panel.classList.toggle('active', index === currentPanel);
@@ -764,52 +788,180 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const firstInvalidInPanel = function (panelIndex) {
-                const panel = questionPanels[panelIndex];
-                if (!panel) return null;
-                const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
-
-                for (let i = 0; i < fields.length; i++) {
-                    const field = fields[i];
-                    if (field.disabled) continue;
-                    if (field.offsetParent === null) continue;
-                    if (!field.checkValidity()) {
-                        return field;
-                    }
-                }
-                return null;
-            };
-
-            const validatePanel = function (panelIndex) {
-                const invalidField = firstInvalidInPanel(panelIndex);
-                if (!invalidField) return true;
-
-                invalidField.reportValidity();
-                invalidField.focus();
-                return false;
-            };
-
             const moveToPanel = function (targetIndex) {
                 currentPanel = Math.max(0, Math.min(questionPanels.length - 1, targetIndex));
                 updateActivePanel();
             };
 
+            // --- Inline Validation Engine ---
+            const getFieldLabelText = function (field) {
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                const label = parent ? parent.querySelector('.form-label') : null;
+                if (label) {
+                    return label.textContent.replace(/[*:]/g, '').trim();
+                }
+                return 'This field';
+            };
+
+            const showFieldError = function (field, message) {
+                if (!field) return;
+                field.classList.add('is-invalid');
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                let feedback = parent.querySelector(`.client-feedback[data-for="${field.name || field.id}"]`);
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback client-feedback d-block';
+                    feedback.setAttribute('data-for', field.name || field.id);
+                    parent.appendChild(feedback);
+                }
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+            };
+
+            const clearFieldError = function (field) {
+                if (!field) return;
+                field.classList.remove('is-invalid');
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                if (parent) {
+                    const feedback = parent.querySelector(`.client-feedback[data-for="${field.name || field.id}"]`);
+                    if (feedback) feedback.remove();
+                    const serverFeedback = parent.querySelector('.invalid-feedback:not(.client-feedback)');
+                    if (serverFeedback) serverFeedback.style.display = 'none';
+                }
+            };
+
+            const validateField = function (field) {
+                if (!field || field.disabled || field.type === 'hidden') return true;
+
+                // Check if element is conditionally hidden inside its panel
+                let parent = field.parentElement;
+                while (parent && !parent.classList.contains('question-panel')) {
+                    if (parent.style.display === 'none' || parent.classList.contains('d-none')) {
+                        return true;
+                    }
+                    parent = parent.parentElement;
+                }
+
+                const value = (field.value || '').trim();
+
+                // 1. Required check
+                if (field.required) {
+                    if (field.type === 'file') {
+                        const hasFiles = field.files && field.files.length > 0;
+                        const hasExisting = field.dataset.hasExisting === '1';
+                        if (!hasFiles && !hasExisting) {
+                            showFieldError(field, `${getFieldLabelText(field)} is required.`);
+                            return false;
+                        }
+                    } else if (value === '') {
+                        showFieldError(field, `${getFieldLabelText(field)} is required.`);
+                        return false;
+                    }
+                }
+
+                // 2. File size & format checks if file is selected
+                if (field.type === 'file' && field.files && field.files.length > 0) {
+                    const file = field.files[0];
+                    let maxMb = 3;
+                    if (field.name === 'enrollment_proof_file') maxMb = 4;
+                    if (file.size > maxMb * 1024 * 1024) {
+                        const actualMb = (file.size / (1024 * 1024)).toFixed(1);
+                        showFieldError(field, `Selected file (${actualMb}MB) exceeds the maximum limit of ${maxMb}MB.`);
+                        return false;
+                    }
+                    if (field.accept) {
+                        const allowed = field.accept.split(',').map((s) => s.trim().toLowerCase());
+                        const fileName = file.name.toLowerCase();
+                        const fileType = (file.type || '').toLowerCase();
+                        const matches = allowed.some((ext) => {
+                            if (ext === 'image/*') return fileType.startsWith('image/');
+                            if (ext.startsWith('.')) return fileName.endsWith(ext);
+                            return false;
+                        });
+                        if (!matches) {
+                            showFieldError(field, `Please upload an accepted format (${field.accept}).`);
+                            return false;
+                        }
+                    }
+                }
+
+                // 3. Philippine mobile phone validation
+                if (field.classList.contains('ph-contact-number')) {
+                    if (value !== '' && !/^09\d{9}$/.test(value)) {
+                        showFieldError(field, 'Use 11-digit Philippine mobile format: 09XXXXXXXXX.');
+                        return false;
+                    }
+                }
+
+                // 4. HTML5 Constraint Validation
+                if (!field.checkValidity()) {
+                    showFieldError(field, field.validationMessage || 'Please provide a valid value.');
+                    return false;
+                }
+
+                clearFieldError(field);
+                return true;
+            };
+
+            const validatePanel = function (panelIndex) {
+                const panel = questionPanels[panelIndex];
+                if (!panel) return true;
+
+                const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
+                let firstInvalid = null;
+                let isValid = true;
+
+                fields.forEach((field) => {
+                    const fieldValid = validateField(field);
+                    if (!fieldValid) {
+                        isValid = false;
+                        if (!firstInvalid) {
+                            firstInvalid = field;
+                        }
+                    }
+                });
+
+                if (!isValid && firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    try {
+                        firstInvalid.focus({ preventScroll: true });
+                        firstInvalid.reportValidity();
+                    } catch (e) {}
+                }
+
+                return isValid;
+            };
+
+            // --- Navigation Button Listeners ---
             document.querySelectorAll('.btn-next-question').forEach((button) => {
-                button.addEventListener('click', function () {
-                    if (!validatePanel(currentPanel)) return;
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (!validatePanel(currentPanel)) {
+                        return;
+                    }
                     const target = Number(button.getAttribute('data-target'));
                     moveToPanel(target);
                 });
             });
 
             document.querySelectorAll('.btn-prev-question').forEach((button) => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
                     const target = Number(button.getAttribute('data-target'));
                     moveToPanel(target);
                 });
             });
 
+            // Automatically clear client validation on user edit
             if (form) {
+                ['input', 'change'].forEach((eventName) => {
+                    form.addEventListener(eventName, function (e) {
+                        if (e.target && e.target.matches('input, select, textarea')) {
+                            clearFieldError(e.target);
+                        }
+                    });
+                });
+
                 form.addEventListener('submit', function (event) {
                     for (let i = 0; i < questionPanels.length; i++) {
                         if (!validatePanel(i)) {
@@ -826,9 +978,7 @@
                 });
             }
 
-            // Image Preview Handlers
-            const profileInput = document.getElementById('profile_image');
-            const profilePreview = document.getElementById('profile_preview');
+            // --- Image Preview Handlers ---
             if (profileInput && profilePreview) {
                 profileInput.addEventListener('change', function () {
                     const file = profileInput.files && profileInput.files[0];
@@ -838,8 +988,6 @@
                 });
             }
 
-            const schoolIdInput = document.getElementById('school_id_photo');
-            const schoolIdPreview = document.getElementById('school_id_preview');
             if (schoolIdInput && schoolIdPreview) {
                 schoolIdInput.addEventListener('change', function () {
                     const file = schoolIdInput.files && schoolIdInput.files[0];
@@ -849,11 +997,101 @@
                 });
             }
 
-            // PSGC Philippine Location Suggestions for Home Address
-            const homeAddressInput = document.getElementById('homeAddressInput');
-            const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
-            const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
+            // --- Phone Normalization & Validation ---
+            const phoneInputs = Array.from(document.querySelectorAll('.ph-contact-number'));
+            const phonePattern = /^09\d{9}$/;
+            const sanitizePhone = function (value) {
+                return (value || '').replace(/\D/g, '').slice(0, 11);
+            };
+            const syncPhoneValidity = function (input) {
+                const value = input.value || '';
+                if (value === '' || phonePattern.test(value)) {
+                    input.setCustomValidity('');
+                    return;
+                }
+                input.setCustomValidity('Use 11-digit PH mobile format: 09XXXXXXXXX.');
+            };
 
+            phoneInputs.forEach(function (input) {
+                const normalize = function () {
+                    input.value = sanitizePhone(input.value);
+                    syncPhoneValidity(input);
+                };
+
+                input.addEventListener('input', normalize);
+                input.addEventListener('blur', normalize);
+                input.addEventListener('paste', function () {
+                    window.setTimeout(normalize, 0);
+                });
+                normalize();
+            });
+
+            // --- Gender Custom Input Toggle ---
+            const syncGenderCustom = function () {
+                if (!genderSelect || !genderCustomWrap) return;
+                const isOther = genderSelect.value === 'Other';
+                genderCustomWrap.style.display = isOther ? '' : 'none';
+                if (genderCustomInput) {
+                    genderCustomInput.required = isOther;
+                    if (!isOther) genderCustomInput.value = '';
+                }
+            };
+
+            if (genderSelect) {
+                genderSelect.addEventListener('change', syncGenderCustom);
+                syncGenderCustom();
+            }
+
+            // --- Academic Proof Sync based on Year Level ---
+            const syncAcademicProofRequirements = function () {
+                const isFirstYear = yearLevelInput && yearLevelInput.value === '1st Year';
+
+                if (studentIdInput) {
+                    studentIdInput.required = !isFirstYear;
+                }
+                if (studentIdLabel) {
+                    studentIdLabel.textContent = isFirstYear ? 'Student ID' : 'Student ID *';
+                }
+                if (studentIdHelp) {
+                    studentIdHelp.classList.toggle('d-none', !isFirstYear);
+                }
+
+                if (schoolIdLabel) {
+                    schoolIdLabel.textContent = isFirstYear ? 'School ID Upload' : 'School ID Upload *';
+                }
+                if (schoolIdInput) {
+                    const hasExistingSchoolId = schoolIdInput.dataset.hasExisting === '1';
+                    schoolIdInput.required = !isFirstYear && !hasExistingSchoolId;
+                }
+                if (schoolIdHelp) {
+                    schoolIdHelp.textContent = isFirstYear
+                        ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.'
+                        : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).';
+                }
+
+                if (enrollmentProofFile) {
+                    const hasExistingEnrollmentProof = enrollmentProofFile.dataset.hasExisting === '1';
+                    enrollmentProofFile.required = isFirstYear && !hasExistingEnrollmentProof;
+                }
+
+                if (enrollmentProofType) {
+                    const hasExistingEnrollmentProof = enrollmentProofFile && enrollmentProofFile.dataset.hasExisting === '1';
+                    const hasSelectedProofFile = enrollmentProofFile && enrollmentProofFile.files && enrollmentProofFile.files.length > 0;
+                    enrollmentProofType.required = isFirstYear || hasExistingEnrollmentProof || hasSelectedProofFile;
+                }
+
+                if (enrollmentProofHelp) {
+                    enrollmentProofHelp.textContent = isFirstYear
+                        ? 'Required for 1st Year students. Accepted: PDF, JPG, PNG, WEBP up to 4MB.'
+                        : 'Optional for 2nd Year and above. Accepted: PDF, JPG, PNG, WEBP up to 4MB.';
+                }
+            };
+
+            if (yearLevelInput) yearLevelInput.addEventListener('change', syncAcademicProofRequirements);
+            if (enrollmentProofFile) enrollmentProofFile.addEventListener('change', syncAcademicProofRequirements);
+            syncAcademicProofRequirements();
+
+            // --- PSGC Location Suggestions ---
             if (homeAddressInput && homeAddressSuggestMenu && homeAddressSuggestStatus) {
                 const psgcBaseUrl = 'https://psgc.gitlab.io/api';
                 let indexedBarangays = [];
@@ -988,6 +1226,7 @@
                             homeAddressInput.value = item;
                             closeSuggestionMenu();
                             setAddressStatus('Suggested address applied.', false);
+                            clearFieldError(homeAddressInput);
                         });
                         homeAddressSuggestMenu.appendChild(button);
                     });
@@ -1038,11 +1277,8 @@
                 });
             }
 
-            // Academic Catalog & Program Population
-            const collegeSelect = document.getElementById('college');
-            const programSelect = document.getElementById('program');
+            // --- Academic Catalog & Program Population ---
             const catalog = @json($academicCatalog ?? ['programs' => [], 'majors' => []]);
-
             if (collegeSelect && programSelect) {
                 const initialProgram = programSelect.dataset.initialProgram || programSelect.value;
 
@@ -1070,121 +1306,15 @@
                 populatePrograms(collegeSelect.value, initialProgram);
             }
 
-            // Academic Proof Sync based on Year Level
-            const yearLevelInput = document.getElementById('year_level');
-            const studentIdInput = document.getElementById('student_id');
-            const studentIdLabel = document.getElementById('studentIdLabel');
-            const studentIdHelp = document.getElementById('student_id_help');
-            const schoolIdLabel = document.getElementById('schoolIdLabel');
-            const schoolIdHelp = document.getElementById('school_id_help');
-            const schoolIdInput = document.getElementById('school_id_photo');
-            const enrollmentProofType = document.getElementById('enrollment_proof_type');
-            const enrollmentProofFile = document.getElementById('enrollment_proof_file');
-            const enrollmentProofHelp = document.getElementById('enrollment_proof_help');
-
-            const syncAcademicProofRequirements = function () {
-                const isFirstYear = yearLevelInput && yearLevelInput.value === '1st Year';
-
-                if (studentIdInput) {
-                    studentIdInput.required = !isFirstYear;
-                }
-                if (studentIdLabel) {
-                    studentIdLabel.textContent = isFirstYear ? 'Student ID' : 'Student ID *';
-                }
-                if (studentIdHelp) {
-                    studentIdHelp.classList.toggle('d-none', !isFirstYear);
-                }
-
-                if (schoolIdLabel) {
-                    schoolIdLabel.textContent = isFirstYear ? 'School ID Upload' : 'School ID Upload *';
-                }
-                if (schoolIdInput) {
-                    const hasExistingSchoolId = schoolIdInput.dataset.hasExisting === '1';
-                    schoolIdInput.required = !isFirstYear && !hasExistingSchoolId;
-                }
-                if (schoolIdHelp) {
-                    schoolIdHelp.textContent = isFirstYear
-                        ? 'Optional for 1st Year students. If unavailable, upload COR or COE below.'
-                        : 'Required for 2nd Year and above. Clear School ID photo (JPG, PNG, WEBP, GIF up to 3MB).';
-                }
-
-                if (enrollmentProofFile) {
-                    const hasExistingEnrollmentProof = enrollmentProofFile.dataset.hasExisting === '1';
-                    enrollmentProofFile.required = isFirstYear && !hasExistingEnrollmentProof;
-                }
-
-                if (enrollmentProofType) {
-                    const hasExistingEnrollmentProof = enrollmentProofFile && enrollmentProofFile.dataset.hasExisting === '1';
-                    const hasSelectedProofFile = enrollmentProofFile && enrollmentProofFile.files && enrollmentProofFile.files.length > 0;
-                    enrollmentProofType.required = isFirstYear || hasExistingEnrollmentProof || hasSelectedProofFile;
-                }
-
-                if (enrollmentProofHelp) {
-                    enrollmentProofHelp.textContent = isFirstYear
-                        ? 'Required for 1st Year students. Accepted: PDF, JPG, PNG, WEBP up to 4MB.'
-                        : 'Optional for 2nd Year and above. Accepted: PDF, JPG, PNG, WEBP up to 4MB.';
-                }
-            };
-
-            if (yearLevelInput) yearLevelInput.addEventListener('change', syncAcademicProofRequirements);
-            if (enrollmentProofFile) enrollmentProofFile.addEventListener('change', syncAcademicProofRequirements);
-            syncAcademicProofRequirements();
-
-            // Phone Normalization & Validation
-            const phoneInputs = Array.from(document.querySelectorAll('.ph-contact-number'));
-            const phonePattern = /^09\d{9}$/;
-            const sanitizePhone = function (value) {
-                return (value || '').replace(/\D/g, '').slice(0, 11);
-            };
-            const syncPhoneValidity = function (input) {
-                const value = input.value || '';
-                if (value === '' || phonePattern.test(value)) {
-                    input.setCustomValidity('');
-                    return;
-                }
-                input.setCustomValidity('Use 11-digit PH mobile format: 09XXXXXXXXX.');
-            };
-
-            phoneInputs.forEach(function (input) {
-                const normalize = function () {
-                    input.value = sanitizePhone(input.value);
-                    syncPhoneValidity(input);
-                };
-
-                input.addEventListener('input', normalize);
-                input.addEventListener('blur', normalize);
-                input.addEventListener('paste', function () {
-                    window.setTimeout(normalize, 0);
-                });
-                normalize();
-            });
-
-            // Gender Custom Input Toggle
-            const genderSelect = document.getElementById('gender');
-            const genderCustomWrap = document.getElementById('genderCustomWrap');
-            const genderCustomInput = document.getElementById('gender_custom');
-
-            const syncGenderCustom = function () {
-                if (!genderSelect || !genderCustomWrap) return;
-                const isOther = genderSelect.value === 'Other';
-                genderCustomWrap.style.display = isOther ? '' : 'none';
-                if (genderCustomInput) {
-                    genderCustomInput.required = isOther;
-                    if (!isOther) genderCustomInput.value = '';
-                }
-            };
-
-            if (genderSelect) {
-                genderSelect.addEventListener('change', syncGenderCustom);
-                syncGenderCustom();
-            }
-
-            // Server-side invalid field automatic panel activation
+            // --- Server-side invalid field automatic panel activation ---
             const invalidServerField = document.querySelector('#studentSetupForm .is-invalid');
             if (invalidServerField) {
                 const invalidPanelIndex = questionPanels.findIndex((panel) => panel.contains(invalidServerField));
                 if (invalidPanelIndex >= 0) {
                     currentPanel = invalidPanelIndex;
+                    setTimeout(function () {
+                        invalidServerField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
                 }
             }
 

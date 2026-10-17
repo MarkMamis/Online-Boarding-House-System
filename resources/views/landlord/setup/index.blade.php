@@ -819,29 +819,142 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const firstInvalidInPanel = function (panelIndex) {
-                const panel = questionPanels[panelIndex];
-                if (!panel) return null;
-                const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
+            // --- Inline Validation Engine ---
+            const getFieldLabelText = function (field) {
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                const label = parent ? parent.querySelector('.form-label') : null;
+                if (label) {
+                    return label.textContent.replace(/[*:]/g, '').trim();
+                }
+                return 'This field';
+            };
 
-                for (let i = 0; i < fields.length; i++) {
-                    const field = fields[i];
-                    if (field.disabled) continue;
-                    if (field.offsetParent === null) continue;
-                    if (!field.checkValidity()) {
-                        return field;
+            const showFieldError = function (field, message) {
+                if (!field) return;
+                field.classList.add('is-invalid');
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                let feedback = parent.querySelector(`.client-feedback[data-for="${field.name || field.id}"]`);
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback client-feedback d-block';
+                    feedback.setAttribute('data-for', field.name || field.id);
+                    parent.appendChild(feedback);
+                }
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+            };
+
+            const clearFieldError = function (field) {
+                if (!field) return;
+                field.classList.remove('is-invalid');
+                const parent = field.closest('.col-12, .col-md-6') || field.parentElement;
+                if (parent) {
+                    const feedback = parent.querySelector(`.client-feedback[data-for="${field.name || field.id}"]`);
+                    if (feedback) feedback.remove();
+                    const serverFeedback = parent.querySelector('.invalid-feedback:not(.client-feedback)');
+                    if (serverFeedback) serverFeedback.style.display = 'none';
+                }
+            };
+
+            const validateField = function (field) {
+                if (!field || field.disabled || field.type === 'hidden') return true;
+
+                // Check if element is conditionally hidden inside its panel
+                let parent = field.parentElement;
+                while (parent && !parent.classList.contains('question-panel')) {
+                    if (parent.style.display === 'none' || parent.classList.contains('d-none')) {
+                        return true;
+                    }
+                    parent = parent.parentElement;
+                }
+
+                const value = (field.value || '').trim();
+
+                // 1. Required check
+                if (field.required) {
+                    if (field.type === 'file') {
+                        const hasFiles = field.files && field.files.length > 0;
+                        const hasExisting = field.dataset.hasExisting === '1';
+                        if (!hasFiles && !hasExisting) {
+                            showFieldError(field, `${getFieldLabelText(field)} is required.`);
+                            return false;
+                        }
+                    } else if (value === '') {
+                        showFieldError(field, `${getFieldLabelText(field)} is required.`);
+                        return false;
                     }
                 }
-                return null;
+
+                // 2. File size & format checks if file is selected
+                if (field.type === 'file' && field.files && field.files.length > 0) {
+                    const file = field.files[0];
+                    const maxMb = 2;
+                    if (file.size > maxMb * 1024 * 1024) {
+                        const actualMb = (file.size / (1024 * 1024)).toFixed(1);
+                        showFieldError(field, `Selected file (${actualMb}MB) exceeds the maximum limit of ${maxMb}MB.`);
+                        return false;
+                    }
+                    if (field.accept) {
+                        const allowed = field.accept.split(',').map((s) => s.trim().toLowerCase());
+                        const fileName = file.name.toLowerCase();
+                        const fileType = (file.type || '').toLowerCase();
+                        const matches = allowed.some((ext) => {
+                            if (ext === 'image/*') return fileType.startsWith('image/');
+                            if (ext.startsWith('.')) return fileName.endsWith(ext);
+                            return false;
+                        });
+                        if (!matches) {
+                            showFieldError(field, `Please upload an accepted format (${field.accept}).`);
+                            return false;
+                        }
+                    }
+                }
+
+                // 3. Philippine mobile phone validation
+                if (field.classList.contains('ph-number')) {
+                    if (value !== '' && !/^09\d{9}$/.test(value)) {
+                        showFieldError(field, 'Use 11-digit Philippine mobile format: 09XXXXXXXXX.');
+                        return false;
+                    }
+                }
+
+                // 4. HTML5 Constraint Validation
+                if (!field.checkValidity()) {
+                    showFieldError(field, field.validationMessage || 'Please provide a valid value.');
+                    return false;
+                }
+
+                clearFieldError(field);
+                return true;
             };
 
             const validatePanel = function (panelIndex) {
-                const invalidField = firstInvalidInPanel(panelIndex);
-                if (!invalidField) return true;
+                const panel = questionPanels[panelIndex];
+                if (!panel) return true;
 
-                invalidField.reportValidity();
-                invalidField.focus();
-                return false;
+                const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
+                let firstInvalid = null;
+                let isValid = true;
+
+                fields.forEach((field) => {
+                    const fieldValid = validateField(field);
+                    if (!fieldValid) {
+                        isValid = false;
+                        if (!firstInvalid) {
+                            firstInvalid = field;
+                        }
+                    }
+                });
+
+                if (!isValid && firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    try {
+                        firstInvalid.focus({ preventScroll: true });
+                        firstInvalid.reportValidity();
+                    } catch (e) {}
+                }
+
+                return isValid;
             };
 
             const moveToPanel = function (targetIndex) {
@@ -850,19 +963,30 @@
             };
 
             document.querySelectorAll('.btn-next-question').forEach((button) => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
                     if (!validatePanel(currentPanel)) return;
                     moveToPanel(Number(button.getAttribute('data-target')));
                 });
             });
 
             document.querySelectorAll('.btn-prev-question').forEach((button) => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
                     moveToPanel(Number(button.getAttribute('data-target')));
                 });
             });
 
+            // Automatically clear client validation on user edit
             if (form) {
+                ['input', 'change'].forEach((eventName) => {
+                    form.addEventListener(eventName, function (e) {
+                        if (e.target && e.target.matches('input, select, textarea')) {
+                            clearFieldError(e.target);
+                        }
+                    });
+                });
+
                 form.addEventListener('submit', function (event) {
                     for (let i = 0; i < questionPanels.length; i++) {
                         if (!validatePanel(i)) {

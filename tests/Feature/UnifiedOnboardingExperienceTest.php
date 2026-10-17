@@ -216,6 +216,59 @@ class UnifiedOnboardingExperienceTest extends TestCase
             ->assertDontSee('step-chip');
     }
 
+    public function test_student_setup_rejects_invalid_phone_and_missing_academic_fields(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $response = $this->actingAs($user)->put(route('student.setup.update'), [
+            'full_name' => 'Juan Dela Cruz',
+            'contact_number' => '08123456789', // Invalid PH mobile prefix
+            'college' => '',
+            'program' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['contact_number', 'college', 'program']);
+    }
+
+    public function test_student_setup_rejects_invalid_file_upload(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $invalidFile = UploadedFile::fake()->create('malicious.exe', 500, 'application/x-msdownload');
+
+        $response = $this->actingAs($user)->put(route('student.setup.update'), [
+            'full_name' => 'Juan Dela Cruz',
+            'contact_number' => '09171234567',
+            'profile_image' => $invalidFile,
+        ]);
+
+        $response->assertSessionHasErrors('profile_image');
+    }
+
+    public function test_student_setup_rejects_missing_emergency_contacts(): void
+    {
+        $user = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        $response = $this->actingAs($user)->put(route('student.setup.update'), [
+            'full_name' => 'Juan Dela Cruz',
+            'contact_number' => '09171234567',
+            'emergency_contact_name' => '',
+            'emergency_contact_number' => '1234',
+            'emergency_contact_relationship' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['emergency_contact_name', 'emergency_contact_number', 'emergency_contact_relationship']);
+    }
+
     public function test_landlord_setup_submits_and_completes_landlord_profile(): void
     {
         $user = $this->createUser([
