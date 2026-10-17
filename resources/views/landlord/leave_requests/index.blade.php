@@ -15,10 +15,17 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
             <div>
                 <div class="text-uppercase small text-muted fw-semibold">Operations</div>
-                <h1 class="h3 mb-1">Leave Requests</h1>
-                <div class="text-muted small">Review tenant leave requests and respond with clear decisions.</div>
+                <h1 class="h3 mb-1">Departure & Leave Notices</h1>
+                <div class="text-muted small">Review tenant early departure notices and schedule move-out dates.</div>
             </div>
-            <a href="{{ route('landlord.tenants.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Tenants</a>
+            <a href="{{ route('landlord.tenants.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Active Tenants</a>
+        </div>
+
+        <div class="alert alert-info border-0 rounded-4 bg-light d-flex align-items-center gap-2 mb-4 p-3 text-secondary">
+            <i class="bi bi-info-circle text-primary fs-5 flex-shrink-0"></i>
+            <div class="small">
+                <strong>Scheduled Departures Policy:</strong> Approving a future departure date adjusts the student's booking end-date so they remain an active resident until that day. Their bed slot is automatically made available for new student bookings once the departure date passes.
+            </div>
         </div>
 
         <div class="leave-summary mb-4">
@@ -119,11 +126,11 @@
                             @if($status === 'pending')
                                 <form method="POST" action="{{ route('landlord.leave_requests.approve', $lr->id) }}" class="action-form">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check2 me-1"></i>Approve</button>
+                                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" onclick="return confirm('Approve this departure notice? If the departure date is in the future, the tenant remains active until that date.')"><i class="bi bi-check2 me-1"></i>Approve</button>
                                 </form>
                                 <form method="POST" action="{{ route('landlord.leave_requests.reject', $lr->id) }}" class="action-form">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x me-1"></i>Reject</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('Reject this departure notice? The student will remain on their current check-out schedule.')"><i class="bi bi-x me-1"></i>Reject</button>
                                 </form>
                             @else
                                 <span class="action-muted"><i class="bi bi-lock me-1"></i>No actions available</span>

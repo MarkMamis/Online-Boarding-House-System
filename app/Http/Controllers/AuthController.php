@@ -2184,11 +2184,48 @@ class AuthController extends Controller
             ->where('status', 'available')
             ->where('slots_available', '>', 0)
             ->count();
+        $totalBeds = (int) Room::whereIn('property_id', $propertyIds)->sum('capacity');
         $pendingRequests = Booking::where('status', 'pending')
             ->whereHas('room.property', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
             })
             ->count();
+        $pendingBookingsList = Booking::with(['room.property', 'student'])
+            ->where('status', 'pending')
+            ->whereHas('room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->latest()
+            ->limit(4)
+            ->get();
+
+        $pendingOnboardingsCount = TenantOnboarding::whereIn('status', ['documents_uploaded', 'deposit_paid'])
+            ->whereHas('booking.room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->count();
+        $pendingOnboardingsList = TenantOnboarding::with(['booking.student', 'booking.room.property'])
+            ->whereIn('status', ['documents_uploaded', 'deposit_paid'])
+            ->whereHas('booking.room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->latest()
+            ->limit(4)
+            ->get();
+
+        $pendingMonthlyPaymentsCount = \App\Models\TenantPayment::where('status', 'submitted')
+            ->whereHas('booking.room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->count();
+        $pendingMonthlyPaymentsList = \App\Models\TenantPayment::with(['student', 'booking.room.property'])
+            ->where('status', 'submitted')
+            ->whereHas('booking.room.property', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->latest()
+            ->limit(4)
+            ->get();
 
         $activeTenantBookings = Booking::with(['room.property', 'student'])
             ->where('status', 'approved')
@@ -2200,6 +2237,9 @@ class AuthController extends Controller
             ->get();
 
         $activeTenantsCount = $activeTenantBookings->count();
+        $occupiedBeds = $activeTenantsCount;
+        $vacantBeds = max(0, $totalBeds - $occupiedBeds);
+        $bedOccupancyRate = $totalBeds > 0 ? (int) round(($occupiedBeds / $totalBeds) * 100) : 0;
 
         $recentCheckInsCount = Booking::where('status', 'approved')
             ->whereBetween('check_in', [now()->subDays(14)->toDateString(), $today])
@@ -2313,8 +2353,13 @@ class AuthController extends Controller
             ])
             ->keyBy('type');
 
+        $totalActionCount = $pendingRequests + $pendingOnboardingsCount + $pendingMonthlyPaymentsCount + $overduePaymentsCount;
+
         return view('landlord.dashboard', compact(
-            'properties', 'propertiesCount', 'totalRooms', 'vacantRooms', 'pendingRequests', 'recommendedRooms', 'unreadMessages', 'unreadMessagesList', 'recentReceivedMessages',
+            'properties', 'propertiesCount', 'totalRooms', 'vacantRooms', 'totalBeds', 'occupiedBeds', 'vacantBeds', 'bedOccupancyRate',
+            'pendingRequests', 'pendingBookingsList', 'pendingOnboardingsCount', 'pendingOnboardingsList',
+            'pendingMonthlyPaymentsCount', 'pendingMonthlyPaymentsList', 'totalActionCount',
+            'recommendedRooms', 'unreadMessages', 'unreadMessagesList', 'recentReceivedMessages',
             'needsPaymentSetup',
             'setupChecklist', 'setupCompletedCount', 'setupTotalCount', 'needsLandlordSetup', 'setupSnapshot',
             'activeTenantsCount', 'recentCheckInsCount', 'tenantTrend', 'propertyOccupancyBreakdown',

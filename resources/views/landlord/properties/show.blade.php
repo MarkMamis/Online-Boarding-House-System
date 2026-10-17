@@ -131,6 +131,12 @@
 
               <div class="d-flex flex-wrap gap-2 justify-content-end">
                 <a href="{{ route('landlord.properties.rooms.edit', [$property->id, $room->id]) }}" class="btn btn-sm btn-outline-brand">Edit</a>
+                <form action="{{ route('landlord.properties.rooms.duplicate', [$property->id, $room->id]) }}" method="POST" class="d-inline">
+                  @csrf
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="Duplicate Room Configuration">
+                    <i class="bi bi-copy me-1"></i>Duplicate
+                  </button>
+                </form>
                 <form action="{{ route('landlord.properties.rooms.destroy', [$property->id, $room->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this room?');">
                   @csrf
                   @method('DELETE')

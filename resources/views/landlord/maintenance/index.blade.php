@@ -12,10 +12,17 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="text-uppercase small text-muted fw-semibold">Operations</div>
-            <h1 class="h3 mb-1">Maintenance Management</h1>
-            <div class="text-muted small">Track rooms under maintenance and restore room availability once work is complete.</div>
+            <h1 class="h3 mb-1">Room Availability & Maintenance Mode</h1>
+            <div class="text-muted small">Temporarily take rooms offline for cleaning or repairs. Rooms in maintenance mode are hidden from student marketplace search results.</div>
         </div>
-        <a href="{{ route('landlord.rooms.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View Rooms</a>
+        <a href="{{ route('landlord.rooms.index') }}" class="btn btn-outline-secondary rounded-pill px-3">View All Rooms</a>
+    </div>
+
+    <div class="alert alert-info border-0 rounded-4 bg-light d-flex align-items-center gap-2 mb-4 p-3 text-secondary">
+        <i class="bi bi-info-circle text-primary fs-5 flex-shrink-0"></i>
+        <div class="small">
+            <strong>Room Availability Notice:</strong> Placing a room under maintenance temporarily removes its vacant bed slots from the student discovery marketplace. Once repairs are completed, clicking <strong>Complete</strong> immediately restores the room to available status.
+        </div>
     </div>
 
     <div class="maintenance-summary mb-4">

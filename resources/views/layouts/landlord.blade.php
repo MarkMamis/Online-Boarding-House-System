@@ -628,60 +628,14 @@
                                 <div class="nav-helper">Complete your profile and business permit approval to unlock full management workflows.</div>
                             </div>
                         @else
-                            <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navProperties" aria-expanded="{{ $portfolioOpen ? 'true' : 'false' }}" aria-controls="navProperties">
+                            <a @class(['list-group-item', 'active' => is_string($routeName) && (str_starts_with($routeName, 'landlord.properties.') && !str_starts_with($routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.index') }}">
                                 <i class="bi bi-buildings"></i>
                                 <span>Properties</span>
-                                <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
-                            </button>
-                            <div class="collapse {{ $portfolioOpen ? 'show' : '' }}" id="navProperties">
-                                <a @class(['list-group-item sub-item', 'active' => is_string($routeName) && ($routeName === 'landlord.properties.index' || $routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with($routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.index') }}">
-                                    <i class="bi bi-list-ul"></i> All Properties
-                                </a>
-                                @foreach($landlordProperties as $navProperty)
-                                    <a @class(['list-group-item sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && ($routeName === 'landlord.properties.show' || $routeName === 'landlord.properties.edit' || str_starts_with((string) $routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.properties.show', $navProperty->id) }}" title="{{ $navProperty->name }}">
-                                        <i class="bi bi-house-door"></i>
-                                        <span class="sub-item-label">{{ $navProperty->name }}</span>
-                                        <span class="sub-meta">{{ $navProperty->rooms_count }}</span>
-                                    </a>
-                                @endforeach
-                                <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.properties.create']) href="{{ route('landlord.properties.create') }}">
-                                    <i class="bi bi-plus-circle"></i> Add Property
-                                </a>
-                            </div>
-
-                            <button class="list-group-item nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navRooms" aria-expanded="{{ $roomsOpen ? 'true' : 'false' }}" aria-controls="navRooms">
+                            </a>
+                            <a @class(['list-group-item', 'active' => is_string($routeName) && ($routeName === 'landlord.rooms.index' || str_starts_with($routeName, 'landlord.properties.rooms.'))]) href="{{ route('landlord.rooms.index') }}">
                                 <i class="bi bi-door-open"></i>
                                 <span>Room Directory</span>
-                                <i class="bi bi-chevron-down nav-chevron" style="font-size:.9rem;"></i>
-                            </button>
-                            <div class="collapse {{ $roomsOpen ? 'show' : '' }}" id="navRooms">
-                                <a @class(['list-group-item sub-item', 'active' => $routeName === 'landlord.rooms.index']) href="{{ route('landlord.rooms.index') }}">
-                                    <i class="bi bi-grid"></i> All Rooms
-                                </a>
-                                @foreach($landlordProperties as $navProperty)
-                                    @php
-                                        $roomGroupOpen = $currentPropertyId === (int) $navProperty->id && str_starts_with((string) $routeName, 'landlord.properties.rooms.');
-                                    @endphp
-                                    <button class="list-group-item sub-group-toggle nav-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#navPropertyRooms{{ $navProperty->id }}" aria-expanded="{{ $roomGroupOpen ? 'true' : 'false' }}" aria-controls="navPropertyRooms{{ $navProperty->id }}" title="{{ $navProperty->name }}">
-                                        <i class="bi bi-building"></i>
-                                        <span class="sub-item-label">{{ $navProperty->name }}</span>
-                                        <i class="bi bi-chevron-down nav-chevron" style="font-size:.85rem;"></i>
-                                    </button>
-                                    <div class="collapse {{ $roomGroupOpen ? 'show' : '' }}" id="navPropertyRooms{{ $navProperty->id }}">
-                                        <a @class(['list-group-item sub-sub-item', 'active' => $currentPropertyId === (int) $navProperty->id && $routeName === 'landlord.properties.rooms.index']) href="{{ route('landlord.properties.rooms.index', $navProperty->id) }}">
-                                            <i class="bi bi-list-ul"></i>
-                                            <span>All Rooms</span>
-                                        </a>
-                                        @foreach($navProperty->rooms as $navRoom)
-                                            <a @class(['list-group-item sub-sub-item', 'active' => $currentRoomId === (int) $navRoom->id && $routeName === 'landlord.properties.rooms.edit']) href="{{ route('landlord.properties.rooms.edit', [$navProperty->id, $navRoom->id]) }}">
-                                                <i class="bi bi-door-closed"></i>
-                                                <span class="sub-item-label">{{ $navRoom->room_number }}</span>
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                @endforeach
-                            </div>
-
+                            </a>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.bookings.index']) href="{{ route('landlord.bookings.index') }}">
                                 <i class="bi bi-journal-check"></i>
                                 <span>Boarding Requests</span>
@@ -696,10 +650,6 @@
                                     <span class="badge rounded-pill text-bg-danger ms-auto">{{ $onboardingQueueCount > 99 ? '99+' : $onboardingQueueCount }}</span>
                                 @endif
                             </a>
-                            <a @class(['list-group-item', 'active' => $routeName === 'landlord.payments.index']) href="{{ route('landlord.payments.index') }}">
-                                <i class="bi bi-cash-coin"></i>
-                                <span>Rent &amp; Payments</span>
-                            </a>
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.leave_requests.index']) href="{{ route('landlord.leave_requests.index') }}">
                                 <i class="bi bi-box-arrow-right"></i>
                                 <span>Leave Requests</span>
@@ -711,6 +661,15 @@
                             <a @class(['list-group-item', 'active' => $routeName === 'landlord.documents.index']) href="{{ route('landlord.documents.index') }}">
                                 <i class="bi bi-folder-check"></i>
                                 <span>Document Renewals</span>
+                            </a>
+                        @endif
+
+                        <!-- FINANCE -->
+                        @if(!$landlordOpsLocked)
+                            <div class="nav-section">Finance</div>
+                            <a @class(['list-group-item', 'active' => is_string($routeName) && str_starts_with($routeName, 'landlord.payments')]) href="{{ route('landlord.payments.index') }}">
+                                <i class="bi bi-cash-coin"></i>
+                                <span>Rent &amp; Payments</span>
                             </a>
                         @endif
 

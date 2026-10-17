@@ -259,25 +259,25 @@
                     <div class="step-pane" data-step="4">
                         <div class="pane-wrap">
                             <div class="section-kicker">Step 4</div>
-                            <h5 class="fw-semibold mb-1">First Room Setup</h5>
-                            <p class="text-muted small mb-3">Add your initial room so this property is ready for listing.</p>
+                            <h5 class="fw-semibold mb-1">First Room Setup (Optional)</h5>
+                            <p class="text-muted small mb-3">Add your initial room now, or save as draft and manage rooms inside your property dashboard anytime.</p>
 
                             <div class="row g-3">
                                 <div class="col-md-3">
                                     <label class="form-label">Room Number</label>
-                                    <input type="text" name="initial_room_number" value="{{ old('initial_room_number') }}" class="form-control" placeholder="e.g. A-101" data-required="1" data-label="Room number">
+                                    <input type="text" name="initial_room_number" value="{{ old('initial_room_number') }}" class="form-control" placeholder="e.g. A-101 (Optional)" data-label="Room number">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Capacity</label>
-                                    <input type="number" min="1" name="initial_capacity" value="{{ old('initial_capacity', 1) }}" class="form-control" data-required="1" data-label="Capacity">
+                                    <input type="number" min="1" name="initial_capacity" value="{{ old('initial_capacity', 1) }}" class="form-control" data-label="Capacity">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Price (P)</label>
-                                    <input type="number" step="0.01" min="0" name="initial_price" value="{{ old('initial_price') }}" class="form-control" data-required="1" data-label="Price">
+                                    <label class="form-label">Price (₱)</label>
+                                    <input type="number" step="0.01" min="0" name="initial_price" value="{{ old('initial_price') }}" class="form-control" placeholder="Optional" data-label="Price">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Status</label>
-                                    <select name="initial_status" class="form-select" data-required="1" data-label="Room status">
+                                    <select name="initial_status" class="form-select" data-label="Room status">
                                         <option value="available" @selected(old('initial_status', 'available')==='available')>Available</option>
                                         <option value="occupied" @selected(old('initial_status')==='occupied')>Occupied</option>
                                         <option value="maintenance" @selected(old('initial_status')==='maintenance')>Maintenance</option>
@@ -295,7 +295,10 @@
 
                 <div class="card-footer bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-3" id="prevStepBtn">Previous</button>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" name="action" value="draft" class="btn btn-outline-success rounded-pill px-3" id="saveDraftBtn">
+                            <i class="bi bi-save me-1"></i>Save Draft
+                        </button>
                         <a href="{{ route('landlord.properties.index') }}" class="btn btn-outline-secondary rounded-pill px-3">Cancel</a>
                         <button type="button" class="btn btn-brand rounded-pill px-4" id="nextStepBtn">Next</button>
                         <button type="submit" class="btn btn-brand rounded-pill px-4" id="savePropertyBtn">Save Property</button>
@@ -768,7 +771,9 @@
         });
 
         form.addEventListener('submit', function (event) {
-            for (let step = 1; step <= totalSteps; step += 1) {
+            const isDraft = event.submitter?.value === 'draft';
+            const maxValidateStep = isDraft ? 1 : totalSteps;
+            for (let step = 1; step <= maxValidateStep; step += 1) {
                 if (!validateStep(step)) {
                     event.preventDefault();
                     setStep(step);

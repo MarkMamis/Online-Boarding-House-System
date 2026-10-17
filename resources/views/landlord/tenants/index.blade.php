@@ -48,6 +48,15 @@
             <input type="text" id="tenantSearchInput" class="form-control" placeholder="Search tenant, room, property, or contact...">
         </div>
         <div class="toolbar-filter-wrap">
+            <i class="bi bi-people"></i>
+            <select id="tenantResidencyFilter" class="form-select">
+                <option value="all" selected>All residents</option>
+                <option value="active">Active residents</option>
+                <option value="movein">Move-in in progress</option>
+                <option value="past">Past stays</option>
+            </select>
+        </div>
+        <div class="toolbar-filter-wrap">
             <i class="bi bi-funnel"></i>
             <select id="tenantPaymentFilter" class="form-select">
                 <option value="all">All payments</option>
@@ -66,6 +75,11 @@
                 $property = $room?->property;
                 $paymentStatus = strtolower((string) $tenant->derivedPaymentStatus());
                 $dueDate = optional($tenant->resolvePaymentDueDate());
+                $onboarding = $tenant->tenantOnboarding;
+                $isOnboarding = $onboarding && (string) $onboarding->status !== 'completed';
+                $isPastStay = $tenant->check_out && $tenant->check_out->isPast();
+                $residencyStatus = $isOnboarding ? 'movein' : ($isPastStay ? 'past' : 'active');
+
                 $paymentLabel = match ($paymentStatus) {
                     'paid' => 'Paid',
                     'pending' => 'Pending',
@@ -104,7 +118,7 @@
                 ])));
             @endphp
 
-            <article class="tenant-item" data-search="{{ $searchBlob }}" data-payment="{{ $paymentStatus }}">
+            <article class="tenant-item" data-search="{{ $searchBlob }}" data-payment="{{ $paymentStatus }}" data-residency="{{ $residencyStatus }}">
                 <div class="tenant-main">
                     <div class="tenant-header-row">
                         <div class="d-flex align-items-center gap-2 min-w-0">
@@ -112,7 +126,22 @@
                                 {{ strtoupper(substr($student->full_name ?? 'U', 0, 1)) }}
                             </div>
                             <div class="min-w-0">
-                                <div class="tenant-name text-truncate">{{ $student->full_name ?? 'Unknown Tenant' }}</div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="tenant-name text-truncate">{{ $student->full_name ?? 'Unknown Tenant' }}</span>
+                                    @if($isOnboarding)
+                                        <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size:0.75rem;">
+                                            <i class="bi bi-clock me-1"></i>Move-in In Progress
+                                        </span>
+                                    @elseif($isPastStay)
+                                        <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:0.75rem;">
+                                            Past Stay
+                                        </span>
+                                    @else
+                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle" style="font-size:0.75rem;">
+                                            <i class="bi bi-person-check-fill me-1"></i>Active Resident
+                                        </span>
+                                    @endif
+                                </div>
                                 <div class="tenant-email text-truncate">
                                     Year Level: {{ $student->year_level ?: 'Not provided' }}
                                 </div>
@@ -165,6 +194,11 @@
                     </div>
 
                     <div class="tenant-actions">
+                    @if($isOnboarding)
+                        <a href="{{ route('landlord.onboarding.review', $onboarding->id) }}" class="btn btn-sm btn-outline-warning rounded-pill action-btn" title="View Move-In Step">
+                            <i class="bi bi-clipboard-check"></i><span>Move-In</span>
+                        </a>
+                    @endif
                     <a href="{{ route('landlord.messages.index') }}?to={{ $student->id }}" class="btn btn-sm btn-brand rounded-pill action-btn" title="Send message">
                         <i class="bi bi-chat-dots"></i><span>Message</span>
                     </a>
@@ -487,6 +521,7 @@
     (function () {
         const searchInput = document.getElementById('tenantSearchInput');
         const paymentFilter = document.getElementById('tenantPaymentFilter');
+        const residencyFilter = document.getElementById('tenantResidencyFilter');
         const items = Array.from(document.querySelectorAll('.tenant-item'));
         const emptyState = document.getElementById('tenantFilterEmpty');
 
@@ -495,14 +530,17 @@
         const applyFilters = () => {
             const query = (searchInput.value || '').trim().toLowerCase();
             const payment = (paymentFilter.value || 'all').toLowerCase();
+            const residency = (residencyFilter?.value || 'all').toLowerCase();
             let visibleCount = 0;
 
             items.forEach((item) => {
                 const haystack = (item.dataset.search || '').toLowerCase();
                 const itemPayment = (item.dataset.payment || '').toLowerCase();
+                const itemResidency = (item.dataset.residency || '').toLowerCase();
                 const matchQuery = !query || haystack.includes(query);
                 const matchPayment = payment === 'all' || itemPayment === payment;
-                const visible = matchQuery && matchPayment;
+                const matchResidency = residency === 'all' || itemResidency === residency;
+                const visible = matchQuery && matchPayment && matchResidency;
 
                 item.classList.toggle('d-none', !visible);
                 if (visible) visibleCount += 1;
@@ -515,6 +553,9 @@
 
         searchInput.addEventListener('input', applyFilters);
         paymentFilter.addEventListener('change', applyFilters);
+        if (residencyFilter) {
+            residencyFilter.addEventListener('change', applyFilters);
+        }
     })();
 </script>
 @endpush

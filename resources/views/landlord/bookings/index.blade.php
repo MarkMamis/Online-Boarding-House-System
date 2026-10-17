@@ -88,8 +88,18 @@
 
           <div class="booking-actions {{ $status !== 'pending' ? 'booking-actions-disabled' : '' }}">
             @if($status === 'pending')
-              <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="action-form">@csrf<button class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check2 me-1"></i>Approve</button></form>
-              <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="action-form">@csrf<button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x me-1"></i>Reject</button></form>
+              <form action="{{ route('landlord.bookings.approve', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Approve this request? Approving this request will allow the student to continue the move-in requirements (documents, contract, deposit).');">
+                @csrf
+                <button class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check2 me-1"></i>Approve</button>
+              </form>
+              <form action="{{ route('landlord.bookings.reject', $b->id) }}" method="POST" class="action-form" onsubmit="return confirm('Decline this boarding request?');">
+                @csrf
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x me-1"></i>Decline</button>
+              </form>
+            @elseif($status === 'approved' && $b->tenantOnboarding)
+              <a href="{{ route('landlord.onboarding.review', $b->tenantOnboarding->id) }}" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                <i class="bi bi-clipboard-check me-1"></i>View Move-In Step
+              </a>
             @else
               <span class="action-muted"><i class="bi bi-lock me-1"></i>No actions available</span>
             @endif

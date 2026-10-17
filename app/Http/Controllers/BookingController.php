@@ -510,7 +510,7 @@ class BookingController extends Controller
             'deposit_amount' => round($onboardingTotal, 2),
         ]);
 
-        return back()->with('success', 'Boarding request approved. Tenant onboarding process initiated.');
+        return redirect()->route('landlord.onboarding.index')->with('success', 'Boarding request approved. Student has been moved to Move-in Progress.');
     }
 
     // Landlord: reject booking

@@ -1021,4 +1021,59 @@ class RoomController extends Controller
             'tenantMode'
         ));
     }
+
+    public function duplicate(Request $request, $propertyId, Room $room)
+    {
+        $property = $this->getOwnedProperty($propertyId);
+        if ($room->property_id !== $property->id) {
+            abort(404);
+        }
+        $this->authorize('update', $room);
+
+        // Determine unique room number
+        $baseNumber = trim((string) $room->room_number);
+        $newNumber = $baseNumber . ' (Copy)';
+        $counter = 1;
+        while ($property->rooms()->where('room_number', $newNumber)->exists()) {
+            $counter++;
+            $newNumber = $baseNumber . " (Copy {$counter})";
+        }
+
+        // Safe attributes copying (NEVER copy tenants, bookings, contracts, payments, or reviews)
+        $capacity = (int) $room->capacity;
+        $duplicateData = [
+            'room_number' => $newNumber,
+            'capacity' => $capacity,
+            'slots_available' => $capacity,
+            'status' => 'available',
+            'price' => $room->price,
+            'inclusions' => $room->inclusions,
+            'description' => $room->description,
+        ];
+
+        if (Schema::hasColumn('rooms', 'pricing_model')) {
+            $duplicateData['pricing_model'] = $room->pricing_model;
+        }
+        if (Schema::hasColumn('rooms', 'price_per_room')) {
+            $duplicateData['price_per_room'] = $room->price_per_room;
+        }
+        if (Schema::hasColumn('rooms', 'price_per_bed')) {
+            $duplicateData['price_per_bed'] = $room->price_per_bed;
+        }
+        if (Schema::hasColumn('rooms', 'requires_advance_payment')) {
+            $duplicateData['requires_advance_payment'] = $room->requires_advance_payment;
+        }
+        if ($room->image_path) {
+            $duplicateData['image_path'] = $room->image_path;
+        }
+
+        $newRoom = $property->rooms()->create($duplicateData);
+        $newRoom->syncAvailabilitySnapshot();
+        $this->syncPropertyPriceRange($property);
+
+        return redirect()
+            ->route('landlord.properties.rooms.edit', [$property->id, $newRoom->id])
+            ->with('success', "Room duplicated successfully as \"{$newNumber}\". You can now adjust its details.");
+    }
 }
+

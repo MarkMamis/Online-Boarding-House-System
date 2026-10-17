@@ -188,19 +188,30 @@ class PaymentController extends Controller
         $currentCyclePayment = $this->resolveCurrentCycleTenantPayment($booking, $baseDueDate);
 
         if (!$currentCyclePayment) {
-            return back()->with('error', 'No monthly payment record for this cycle yet. Use Manage Monthly and create a payment record first.');
+            $currentCyclePayment = TenantPayment::create([
+                'booking_id' => $booking->id,
+                'student_id' => $booking->student_id,
+                'billing_for_date' => $baseDueDate->toDateString(),
+                'due_date' => $baseDueDate->toDateString(),
+                'amount_due' => $this->resolveBookingBillingAmount($booking),
+                'status' => 'approved',
+                'payment_method' => 'cash',
+                'reviewed_at' => now(),
+                'reviewed_by' => $landlordId,
+                'payment_notes' => 'Confirmed directly by landlord (Cash/Direct)',
+            ]);
+        } else {
+            $currentCyclePayment->update([
+                'status' => 'approved',
+                'reviewed_at' => now(),
+                'reviewed_by' => $landlordId,
+                'review_notes' => null,
+            ]);
         }
 
         $this->applyApprovedMonthlyCycleToBooking($booking, $baseDueDate);
 
-        $currentCyclePayment->update([
-            'status' => 'approved',
-            'reviewed_at' => now(),
-            'reviewed_by' => $landlordId,
-            'review_notes' => null,
-        ]);
-
-        return back()->with('success', 'Payment marked as received.');
+        return back()->with('success', 'Payment marked as received and recorded in ledger.');
     }
 
     public function markAsPending($bookingId)

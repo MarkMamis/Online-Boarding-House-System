@@ -455,6 +455,7 @@ class PropertyController extends Controller
         $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
         $isDashboardQuickCreate = $request->boolean('from_dashboard');
+        $isDraft = in_array($request->input('action'), ['draft', 'save_draft'], true) || $request->boolean('save_draft');
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -468,11 +469,11 @@ class PropertyController extends Controller
             'building_inclusion_custom.*' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
             'building_inclusion_custom.*.*' => $supportsBuildingInclusions ? 'nullable|string|max:100' : 'nullable',
             'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
-            // First room is required on full create flow, optional on dashboard quick create
-            'initial_room_number' => [Rule::requiredIf(!$isDashboardQuickCreate), 'string', 'max:50'],
-            'initial_capacity' => [Rule::requiredIf(!$isDashboardQuickCreate), 'integer', 'min:1'],
-            'initial_price' => [Rule::requiredIf(!$isDashboardQuickCreate), 'numeric', 'min:0'],
-            'initial_status' => [Rule::requiredIf(!$isDashboardQuickCreate), 'in:available,occupied,maintenance'],
+            // Room fields are optional when saving draft or adding rooms later inside property
+            'initial_room_number' => ['nullable', 'string', 'max:50'],
+            'initial_capacity' => ['nullable', 'integer', 'min:1'],
+            'initial_price' => ['nullable', 'numeric', 'min:0'],
+            'initial_status' => ['nullable', 'in:available,occupied,maintenance'],
         ]);
 
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
@@ -552,7 +553,7 @@ class PropertyController extends Controller
         $propertyData = [
             'landlord_id' => Auth::id(),
             'image_path' => $imagePath,
-            'approval_status' => 'pending',
+            'approval_status' => $isDraft ? 'draft' : 'pending',
             'name' => $request->name,
             'address' => $request->address,
             'latitude' => $request->latitude,
@@ -606,7 +607,9 @@ class PropertyController extends Controller
             $property->refreshPriceRange();
         }
 
-        $successMsg = 'Property created successfully.' . ($request->filled('initial_room_number') ? ' First room added.' : '');
+        $successMsg = $isDraft
+            ? 'Boarding house saved as draft. You can continue setup and add rooms inside.'
+            : ('Property created successfully.' . ($request->filled('initial_room_number') ? ' First room added.' : ''));
         if ($request->boolean('from_dashboard')) {
             return redirect()->route('landlord.dashboard')->with('success', $successMsg);
         }

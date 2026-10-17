@@ -34,30 +34,30 @@
     <section class="payments-section payments-summary-section mb-4">
         <div class="payments-summary">
             <div class="payments-summary-item">
-                <div class="payments-summary-label">Total Paid (Shared)</div>
+                <div class="payments-summary-label">Total Collections</div>
                 <div class="payments-summary-value text-success-emphasis">PHP {{ number_format($totalPaid, 2) }}</div>
-                <div class="payments-summary-sub">Total Paid = onboarding paid + monthly approved</div>
+                <div class="payments-summary-sub">Confirmed move-in dues &amp; approved monthly rent</div>
             </div>
             <div class="payments-summary-item">
-                <div class="payments-summary-label">Pending (Shared)</div>
+                <div class="payments-summary-label">Pending Verification</div>
                 <div class="payments-summary-value text-warning-emphasis">PHP {{ number_format($totalPending, 2) }}</div>
-                <div class="payments-summary-sub">Pending = onboarding pending + monthly submitted</div>
+                <div class="payments-summary-sub">Payment proofs submitted awaiting your review</div>
             </div>
             <div class="payments-summary-item">
-                <div class="payments-summary-label">Total Ledger</div>
+                <div class="payments-summary-label">Total Expected</div>
                 <div class="payments-summary-value text-primary-emphasis">PHP {{ number_format($totalExpected, 2) }}</div>
-                <div class="payments-summary-sub">Total Ledger = Total Paid + Pending</div>
+                <div class="payments-summary-sub">Total dues across your tenant portfolio</div>
             </div>
         </div>
     </section>
 
     <section class="payments-section payments-records-section">
         <div class="billing-tabs mb-3" role="tablist" aria-label="Payment views">
-            <a href="{{ $onboardingTabUrl }}" class="billing-tab {{ $activeTab === 'onboarding' ? 'active' : '' }}" aria-current="{{ $activeTab === 'onboarding' ? 'page' : 'false' }}">
-                <i class="bi bi-file-earmark-check me-1"></i>Onboarding
-            </a>
             <a href="{{ $monthlyTabUrl }}" class="billing-tab {{ $activeTab === 'monthly' ? 'active' : '' }}" aria-current="{{ $activeTab === 'monthly' ? 'page' : 'false' }}">
-                <i class="bi bi-calendar2-week me-1"></i>Monthly Billing
+                <i class="bi bi-calendar2-week me-1"></i>Monthly Rent &amp; Billings
+            </a>
+            <a href="{{ $onboardingTabUrl }}" class="billing-tab {{ $activeTab === 'onboarding' ? 'active' : '' }}" aria-current="{{ $activeTab === 'onboarding' ? 'page' : 'false' }}">
+                <i class="bi bi-file-earmark-check me-1"></i>Move-In Dues &amp; Deposits
             </a>
         </div>
 

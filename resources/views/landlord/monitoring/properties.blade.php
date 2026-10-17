@@ -85,6 +85,8 @@
                                 <h2 class="h5 mb-0 fw-bold">{{ $property->name }}</h2>
                                 @if(($property->approval_status ?? $property->status) === 'approved')
                                     <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle">Approved</span>
+                                @elseif(($property->approval_status ?? $property->status) === 'draft')
+                                    <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle">Draft</span>
                                 @elseif(($property->approval_status ?? $property->status) === 'rejected')
                                     <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle">Rejected</span>
                                 @else

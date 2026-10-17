@@ -426,6 +426,7 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
         Route::get('/landlord/properties/{property}/rooms/{room}/edit', [RoomController::class, 'edit'])->name('landlord.properties.rooms.edit');
         Route::put('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'update'])->name('landlord.properties.rooms.update');
         Route::delete('/landlord/properties/{property}/rooms/{room}', [RoomController::class, 'destroy'])->name('landlord.properties.rooms.destroy');
+        Route::post('/landlord/properties/{property}/rooms/{room}/duplicate', [RoomController::class, 'duplicate'])->name('landlord.properties.rooms.duplicate');
         // Quick creation from dashboard (property id passed directly)
         Route::post('/landlord/dashboard/properties/{property}/rooms', [RoomController::class, 'quickStore'])->name('landlord.dashboard.rooms.quick_store');
 
