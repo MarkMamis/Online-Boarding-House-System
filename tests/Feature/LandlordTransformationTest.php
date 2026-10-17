@@ -280,4 +280,82 @@ class LandlordTransformationTest extends TestCase
         $response->assertSee('Active Resident');
         $response->assertSee('Move-in In Progress');
     }
+
+    public function test_landlord_property_create_renders_guided_setup_without_stepper(): void
+    {
+        $landlord = $this->createLandlord('Guided Property Landlord');
+
+        $response = $this->actingAs($landlord)->get(route('landlord.properties.create'));
+
+        $response->assertOk();
+        // Asserts guided onboarding shell
+        $response->assertSee('guided-setup-wrapper');
+        $response->assertSee('Property Basics');
+        $response->assertSee('Tell us about your boarding house.');
+        $response->assertSee('Save &amp; Return to Review', false);
+        $response->assertSee('Review your boarding house.');
+
+        // Asserts absence of old stepper elements
+        $response->assertDontSee('property-stepper');
+        $response->assertDontSee('stepper-head');
+        $response->assertDontSee('stepper-node');
+        $response->assertDontSee('First Room');
+    }
+
+    public function test_landlord_room_create_renders_guided_setup_without_stepper(): void
+    {
+        $landlord = $this->createLandlord('Guided Room Landlord');
+        [$property, $room] = $this->createPropertyWithRoom($landlord, 2500.00, 2);
+
+        $response = $this->actingAs($landlord)->get(route('landlord.properties.rooms.create', $property->id));
+
+        $response->assertOk();
+        // Asserts clean contextual header
+        $response->assertSee('Adding Room To');
+        $response->assertSee($property->name);
+        $response->assertSee('Tell us about this room.');
+        $response->assertSee('Set the monthly rent.');
+        $response->assertSee("What's included in the rent?", false);
+        $response->assertSee('Save &amp; Return to Review', false);
+        $response->assertSee('Review your room details.');
+
+        // Asserts absence of old stepper and summary elements
+        $response->assertDontSee('room-stepper');
+        $response->assertDontSee('stepper-head');
+        $response->assertDontSee('stepper-node');
+        $response->assertDontSee('create-summary-item');
+    }
+
+    public function test_landlord_can_create_room_with_guided_payload(): void
+    {
+        $landlord = $this->createLandlord('Room Creator Landlord');
+        [$property, $room] = $this->createPropertyWithRoom($landlord, 2500.00, 2);
+
+        $payload = [
+            'room_number' => 'Deluxe Room 201',
+            'capacity' => 2,
+            'status' => 'available',
+            'pricing_model' => 'per_bed',
+            'price_per_bed' => 2600.00,
+            'inclusions' => 'Wifi, Water Bill, Aircon',
+        ];
+
+        $response = $this->actingAs($landlord)->post(
+            route('landlord.properties.rooms.store', $property->id),
+            $payload
+        );
+
+        $response->assertRedirect(route('landlord.properties.rooms.index', $property->id));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('rooms', [
+            'property_id' => $property->id,
+            'room_number' => 'Deluxe Room 201',
+            'capacity' => 2,
+            'status' => 'available',
+            'price' => 2600.00,
+            'inclusions' => 'Wifi, Water Bill, Aircon',
+        ]);
+    }
 }
+
