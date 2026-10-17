@@ -784,12 +784,12 @@
             const homeAddressSuggestMenu = document.getElementById('homeAddressSuggestMenu');
             const homeAddressSuggestStatus = document.getElementById('homeAddressSuggestStatus');
 
-            // --- Student ID Real-time Availability State ---
+            // --- Student ID Exact-Match Availability State ---
             let currentStudentIdCheckState = initialStudentId ? 'available' : 'idle';
             let lastCheckedStudentId = initialStudentId;
             let studentIdAbortController = null;
-            let studentIdDebounceTimer = null;
             let studentIdRequestId = 0;
+            let activeCheckPromise = null;
 
             const renderStudentIdFeedback = function (state, message, showRetry = false) {
                 if (!studentIdFeedback || !studentIdInput) return;
@@ -834,16 +834,18 @@
                     return Promise.resolve({ available: false, state: 'idle' });
                 }
 
+                // Format validation: do NOT query database if format is incomplete/invalid
                 if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
                     currentStudentIdCheckState = 'invalid_format';
                     renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
                     return Promise.resolve({ available: false, state: 'invalid_format' });
                 }
 
+                // If this is the student's own existing ID already assigned to them
                 if (initialStudentId && val.toLowerCase() === initialStudentId.toLowerCase()) {
                     currentStudentIdCheckState = 'available';
                     lastCheckedStudentId = val;
-                    renderStudentIdFeedback('available', 'Student ID is available (currently assigned to your account).');
+                    renderStudentIdFeedback('available', 'Student ID is available.');
                     return Promise.resolve({ available: true, state: 'available' });
                 }
 
@@ -858,7 +860,7 @@
 
                 const token = document.querySelector('input[name="_token"]')?.value || '';
 
-                return fetch(checkStudentIdUrl, {
+                activeCheckPromise = fetch(checkStudentIdUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -899,7 +901,7 @@
                         return { available: true, state: 'available' };
                     } else {
                         currentStudentIdCheckState = data.status === 'invalid_format' ? 'invalid_format' : 'taken';
-                        renderStudentIdFeedback(currentStudentIdCheckState, data.message || 'This Student ID is already registered. Please check your ID.');
+                        renderStudentIdFeedback(currentStudentIdCheckState, data.message || 'This Student ID is already registered.');
                         return { available: false, state: currentStudentIdCheckState };
                     }
                 })
@@ -912,43 +914,60 @@
                     currentStudentIdCheckState = 'failed';
                     renderStudentIdFeedback('failed', 'Unable to check Student ID right now. ', true);
                     return { available: false, state: 'failed' };
+                })
+                .finally(function () {
+                    if (reqId === studentIdRequestId) {
+                        activeCheckPromise = null;
+                    }
                 });
+
+                return activeCheckPromise;
             };
 
             if (studentIdInput) {
+                // While typing: normal uninterrupted typing, no network calls, invalidate previous check
                 studentIdInput.addEventListener('input', function () {
-                    clearTimeout(studentIdDebounceTimer);
+                    if (studentIdAbortController) {
+                        studentIdAbortController.abort();
+                    }
+                    activeCheckPromise = null;
+                    currentStudentIdCheckState = 'idle';
+                    lastCheckedStudentId = '';
+                    studentIdInput.classList.remove('is-valid', 'is-invalid');
+                    if (studentIdFeedback) {
+                        studentIdFeedback.innerHTML = '';
+                    }
+                });
+
+                // Validate ONLY on blur
+                studentIdInput.addEventListener('blur', function () {
                     const val = (studentIdInput.value || '').trim();
 
                     if (val === '') {
                         if (studentIdAbortController) studentIdAbortController.abort();
+                        activeCheckPromise = null;
                         currentStudentIdCheckState = 'idle';
                         lastCheckedStudentId = '';
-                        renderStudentIdFeedback('idle', '');
+                        studentIdInput.classList.remove('is-valid', 'is-invalid');
+                        if (studentIdFeedback) studentIdFeedback.innerHTML = '';
                         return;
                     }
 
-                    // Format check
+                    // Complete format check before database lookup
                     if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
                         if (studentIdAbortController) studentIdAbortController.abort();
+                        activeCheckPromise = null;
                         currentStudentIdCheckState = 'invalid_format';
                         renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
                         return;
                     }
 
-                    if (val.toLowerCase() === lastCheckedStudentId.toLowerCase() && currentStudentIdCheckState === 'available') {
+                    // If already verified for this exact value, do not query again
+                    if (val.toLowerCase() === lastCheckedStudentId.toLowerCase() && (currentStudentIdCheckState === 'available' || currentStudentIdCheckState === 'taken')) {
                         return;
                     }
 
-                    // Invalidate previous state while user is typing
-                    if (studentIdAbortController) studentIdAbortController.abort();
-                    currentStudentIdCheckState = 'idle';
-                    studentIdInput.classList.remove('is-valid', 'is-invalid');
-                    if (studentIdFeedback) studentIdFeedback.innerHTML = '';
-
-                    studentIdDebounceTimer = setTimeout(function () {
-                        performStudentIdCheck(val);
-                    }, 500);
+                    performStudentIdCheck(val);
                 });
             }
 
@@ -1038,7 +1057,7 @@
                         return false;
                     }
                     if (currentStudentIdCheckState === 'taken') {
-                        renderStudentIdFeedback('taken', 'This Student ID is already registered. Please check your ID.');
+                        renderStudentIdFeedback('taken', 'This Student ID is already registered.');
                         return false;
                     }
                     if (currentStudentIdCheckState === 'invalid_format') {
@@ -1134,12 +1153,27 @@
                     e.preventDefault();
                     if (button.disabled) return;
 
-                    // If advancing from Academic panel (Panel 2) with a Student ID that is not yet verified
+                    // If advancing from Academic panel (Panel 2) with a Student ID that is entered
                     if (currentPanel === 2 && studentIdInput) {
                         const val = (studentIdInput.value || '').trim();
-                        if (val !== '' && (currentStudentIdCheckState === 'idle' || currentStudentIdCheckState === 'checking')) {
-                            const checkResult = await performStudentIdCheck(val);
-                            if (!checkResult.available) {
+                        if (val !== '') {
+                            // Validate COMPLETE input format first
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                return;
+                            }
+
+                            // If checking is currently in flight, wait for it
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
                                 studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
                                 return;
@@ -1178,9 +1212,24 @@
                 form.addEventListener('submit', async function (event) {
                     if (studentIdInput) {
                         const val = (studentIdInput.value || '').trim();
-                        if (val !== '' && (currentStudentIdCheckState === 'idle' || currentStudentIdCheckState === 'checking')) {
-                            const checkResult = await performStudentIdCheck(val);
-                            if (!checkResult.available) {
+                        if (val !== '') {
+                            if (!/^[A-Za-z0-9\-]{3,50}$/.test(val)) {
+                                currentStudentIdCheckState = 'invalid_format';
+                                renderStudentIdFeedback('invalid_format', 'Please enter a valid Student ID format (e.g., MCC2026-00000).');
+                                moveToPanel(2);
+                                studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}
+                                event.preventDefault();
+                                return;
+                            }
+
+                            if (activeCheckPromise) {
+                                await activeCheckPromise;
+                            } else if (currentStudentIdCheckState !== 'available' || val.toLowerCase() !== lastCheckedStudentId.toLowerCase()) {
+                                await performStudentIdCheck(val);
+                            }
+
+                            if (currentStudentIdCheckState !== 'available') {
                                 moveToPanel(2);
                                 studentIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 try { studentIdInput.focus({ preventScroll: true }); } catch (err) {}

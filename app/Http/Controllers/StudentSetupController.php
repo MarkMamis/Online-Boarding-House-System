@@ -71,14 +71,17 @@ class StudentSetupController extends Controller
                 'available' => true,
                 'valid' => true,
                 'status' => 'available',
-                'message' => 'Student ID is available (currently assigned to your account).',
+                'message' => 'Student ID is available.',
             ]);
         }
 
-        // Check if any other user in the database has this student_id (case-insensitive)
+        // Check if any other user in the database has this EXACT student_id (full-value equality)
         $isTaken = User::where('id', '!=', $user->id)
             ->whereNotNull('student_id')
-            ->whereRaw('LOWER(TRIM(student_id)) = ?', [strtolower($studentId)])
+            ->where(function ($query) use ($studentId) {
+                $query->where('student_id', $studentId)
+                      ->orWhereRaw('LOWER(TRIM(student_id)) = ?', [strtolower($studentId)]);
+            })
             ->exists();
 
         if ($isTaken) {
@@ -86,7 +89,7 @@ class StudentSetupController extends Controller
                 'available' => false,
                 'valid' => true,
                 'status' => 'taken',
-                'message' => 'This Student ID is already registered. Please check your ID.',
+                'message' => 'This Student ID is already registered.',
             ]);
         }
 
@@ -137,8 +140,8 @@ class StudentSetupController extends Controller
             : 'required|in:' . implode(',', $collegeOptions);
 
         $studentIdRule = $isFirstYear
-            ? 'nullable|string|max:50|unique:users,student_id,' . $user->id
-            : 'required|string|max:50|unique:users,student_id,' . $user->id;
+            ? 'nullable|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,' . $user->id
+            : 'required|string|max:50|regex:/^[A-Za-z0-9\-]{3,50}$/|unique:users,student_id,' . $user->id;
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
@@ -168,7 +171,8 @@ class StudentSetupController extends Controller
             'emergency_contact_number.regex' => 'Emergency contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'parent_contact_number.regex' => 'Parent or guardian number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'student_id.required' => 'Student ID is required for 2nd year and above.',
-            'student_id.unique' => 'This Student ID is already registered. Please check your ID.',
+            'student_id.regex' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
+            'student_id.unique' => 'This Student ID is already registered.',
             'birth_date.required' => 'Birthdate is required.',
             'birth_date.after_or_equal' => 'Birthdate must be January 1, 1920 or later.',
             'enrollment_proof_file.required' => 'COR or COE file is required before completing setup.',

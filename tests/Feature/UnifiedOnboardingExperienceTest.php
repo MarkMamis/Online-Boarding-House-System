@@ -335,7 +335,7 @@ class UnifiedOnboardingExperienceTest extends TestCase
             'onboarding_complete' => false,
         ]);
 
-        // Case-insensitive test
+        // Case-insensitive exact match test
         $response = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
             'student_id' => 'mcc2024-11111',
         ]);
@@ -345,12 +345,71 @@ class UnifiedOnboardingExperienceTest extends TestCase
                 'available' => false,
                 'valid' => true,
                 'status' => 'taken',
-                'message' => 'This Student ID is already registered. Please check your ID.',
+                'message' => 'This Student ID is already registered.',
             ])
             ->assertJsonMissing([
                 'id' => $existing->id,
                 'email' => $existing->email,
                 'name' => $existing->name,
+            ]);
+    }
+
+    public function test_partial_or_prefix_value_does_not_match_longer_stored_student_id(): void
+    {
+        $this->createUser([
+            'role' => 'student',
+            'student_id' => 'MCC2024-12039',
+            'onboarding_complete' => true,
+        ]);
+
+        $currentUser = $this->createUser([
+            'role' => 'student',
+            'onboarding_complete' => false,
+        ]);
+
+        // Partial prefix: MCC2024-1203 (must NOT match MCC2024-12039)
+        $responsePrefix = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2024-1203',
+        ]);
+        $responsePrefix->assertOk()
+            ->assertJson([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+            ]);
+
+        // Longer suffix: MCC2024-120390 (must NOT match MCC2024-12039)
+        $responseSuffix = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2024-120390',
+        ]);
+        $responseSuffix->assertOk()
+            ->assertJson([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+            ]);
+
+        // General prefix: MCC2024 (must NOT match MCC2024-12039)
+        $responseShort = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2024',
+        ]);
+        $responseShort->assertOk()
+            ->assertJson([
+                'available' => true,
+                'valid' => true,
+                'status' => 'available',
+            ]);
+
+        // Exact match: MCC2024-12039 (MUST match and return taken)
+        $responseExact = $this->actingAs($currentUser)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'MCC2024-12039',
+        ]);
+        $responseExact->assertOk()
+            ->assertJson([
+                'available' => false,
+                'valid' => true,
+                'status' => 'taken',
+                'message' => 'This Student ID is already registered.',
             ]);
     }
 
@@ -381,11 +440,24 @@ class UnifiedOnboardingExperienceTest extends TestCase
             'onboarding_complete' => false,
         ]);
 
+        // Illegal characters
         $response = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
             'student_id' => 'ID@INVALID!',
         ]);
 
         $response->assertStatus(422)
+            ->assertJson([
+                'available' => false,
+                'valid' => false,
+                'status' => 'invalid_format',
+            ]);
+
+        // Incomplete / too short (< 3 chars)
+        $responseShort = $this->actingAs($user)->postJson(route('student.setup.check_student_id'), [
+            'student_id' => 'AB',
+        ]);
+
+        $responseShort->assertStatus(422)
             ->assertJson([
                 'available' => false,
                 'valid' => false,

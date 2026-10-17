@@ -1,61 +1,54 @@
-# Handoff: Real-Time Student ID Availability Validation
+# Handoff: Student ID Exact-Match Input Validation
 
 **Date:** 2026-10-17  
 **Branch:** `main`  
-**Feature:** Real-time Student ID availability checking during guided student onboarding (`/student/setup`)
+**Feature:** Exact-match Student ID availability checking on blur and Continue (`/student/setup`)
 
 ---
 
 ## 1. Summary of Changes
 
-Implemented real-time, asynchronous Student ID availability checking during guided student onboarding at `/student/setup` (Academic Information question panel).
+Simplified Student ID validation during guided student onboarding at `/student/setup` (Academic Information question panel). Removed debounce-based live typing requests and partial matching, replacing them with exact-match full-value equality triggered on `blur` and `Continue`.
 
 ### Key Improvements:
-- **Immediate Inline Feedback:** Student ID uniqueness is validated immediately below the input rather than discovering collisions at final submission or later stages.
-- **Debounced Validation:** Client-side 500ms debounce prevents excessive network requests while maintaining responsive typing feedback.
-- **Race Condition Prevention:** Utilizes `AbortController` and monotonic request sequencing IDs (`studentIdRequestId`) to discard stale responses from rapid keystrokes.
-- **Navigation Safety:** Clicking "Continue" while an ID is being typed or checked triggers an immediate synchronous evaluation. If taken, format-invalid, or checking, advancing beyond the Academic Information question is blocked.
-- **Ownership Semantics:** If an authenticated student is editing or resuming onboarding, their own existing assigned Student ID is recognized as available.
-- **Privacy & Security Controls:** Endpoint requires `auth`, `verified`, `role:student`, CSRF token, and is rate-limited at 60 requests/minute. Responses return only boolean/status metadata—no names, emails, user IDs, or personal data.
-- **Backend Defense-in-Depth:** Final submission retains Laravel's server-side unique validation rule with customized feedback.
+- **Normal Uninterrupted Typing:** The Student ID field behaves like a standard text input during typing. No debounce timers, no AJAX requests, no "Checking availability" spinners, and no premature "taken" warnings occur while the user is actively entering their ID.
+- **Immediate Invalidation on Edit:** If an ID was previously verified and the user changes or edits it, the previous availability status is cleared immediately (`currentStudentIdCheckState = 'idle'`) without assuming the new value is available.
+- **Format-First Evaluation:** Before any database lookup, the complete input format is checked (`/^[A-Za-z0-9\-]{3,50}$/`). Incomplete or incorrectly formatted values display the format error only and completely bypass database queries.
+- **Exact Full-Value Equality (No Partial Matching):** Lookups strictly enforce full-value equality (`student_id = :student_id` and `LOWER(TRIM(student_id)) = ?`). Prefix strings (e.g. `MCC2024-1203`) or longer variations do NOT match a stored value like `MCC2024-12039`. No `LIKE`, `ILIKE`, `%`, or wildcard searches are used.
+- **Blur & Continue Triggering:** Validation only queries when:
+  1. The user leaves the Student ID field (`blur`), OR
+  2. The user clicks "Continue".
+- **Synchronous In-Flight Protection:** If Continue is clicked while a check is in flight or pending, the navigation handler awaits the exact in-flight Promise (`activeCheckPromise`) before deciding whether to advance or block.
+- **Backend Defense-in-Depth:** Final submission retains Laravel's server-side unique validation rule with the exact message: `'This Student ID is already registered.'`.
 
 ---
 
 ## 2. Modified Files
 
-1. `routes/web.php`:
-   - Added `POST /student/setup/check-student-id` (`student.setup.check_student_id`) inside the `['auth', 'verified', 'role:student']` middleware group with `throttle:60,1`.
+1. `app/Http/Controllers/StudentSetupController.php`:
+   - Updated `checkStudentId` to perform exact full-value matching with bound parameters (`where('student_id', $studentId)->orWhereRaw('LOWER(TRIM(student_id)) = ?')`).
+   - Returns exact response message: `"This Student ID is already registered."`.
+   - Updated `update` validation rules with `regex:/^[A-Za-z0-9\-]{3,50}$/` and synchronized error message.
 
-2. `app/Http/Controllers/StudentSetupController.php`:
-   - Added `checkStudentId(Request $request)` method returning minimal JSON payload: `{ available, valid, status, message }`.
-   - Normalizes student IDs using trim and case-insensitive database comparison (`whereRaw('LOWER(TRIM(student_id)) = ?')`) excluding current user.
-   - Updated `update(Request $request)` to trim `student_id` input and added explicit error message `'student_id.unique'`.
+2. `resources/views/student/setup/index.blade.php`:
+   - Removed typing debounced listener. Added clean `input` handler that only clears feedback and aborts stale requests.
+   - Added `blur` handler that validates format first, then dispatches `performStudentIdCheck` only if valid and not already checked.
+   - Updated `btn-next-question` and `form.addEventListener('submit')` to validate complete format, await in-flight or pending check promises, and block advancement if taken.
 
-3. `resources/views/student/setup/index.blade.php`:
-   - Added `#student_id_feedback` live region container with ARIA attributes (`role="status"`, `aria-live="polite"`).
-   - Added client-side asynchronous checking with state transitions: `idle`, `checking`, `available`, `taken`, `invalid_format`, and `failed`.
-   - Added Retry button support when network/server failures occur.
-   - Integrated check state into `validateField`, `validatePanel`, `btn-next-question`, and form submission handlers.
-
-4. `tests/Feature/UnifiedOnboardingExperienceTest.php`:
-   - Added 8 automated regression tests:
-     - `test_realtime_check_returns_available_for_unused_student_id`
-     - `test_realtime_check_returns_unavailable_for_existing_student_id`
-     - `test_realtime_check_returns_available_for_own_existing_student_id`
-     - `test_realtime_check_rejects_invalid_format`
-     - `test_realtime_check_requires_authentication`
-     - `test_realtime_check_rejects_unauthorized_role`
-     - `test_realtime_check_rate_limiting`
-     - `test_final_submission_rejects_duplicate_student_id`
+3. `tests/Feature/UnifiedOnboardingExperienceTest.php`:
+   - Added test `test_partial_or_prefix_value_does_not_match_longer_stored_student_id` covering prefix, suffix, and exact equality.
+   - Added incomplete format tests (< 3 characters) to `test_realtime_check_rejects_invalid_format`.
+   - Updated assertions to match concise feedback message.
 
 ---
 
 ## 3. Verification & Results
 
-- **PHPUnit / Pest Test Suite:** 273 passed (1367 assertions), 0 failures.
+- **PHPUnit / Pest Test Suite:** 274 passed (1377 assertions), 0 failures.
 - **Route Registration:** Verified via `php artisan route:list --name=student.setup`.
 - **View Compilation:** `php artisan view:clear && php artisan view:cache` passed with 0 errors.
 - **Asset Compilation:** `npm run build` compiled cleanly via Vite (5.4.14).
+- **JavaScript Syntax:** Clean AST execution without errors.
 
 ---
 
