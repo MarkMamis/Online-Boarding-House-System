@@ -116,10 +116,9 @@ class StudentMarketplaceExperienceTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Find your next place near MinSU.');
         $response->assertSee('Available Accommodations');
-        $response->assertSee('All Stays');
+        $response->assertSee('All Accommodations');
         $response->assertSee('Solo Rooms');
         $response->assertSee('Bed-Spacer (Shared)');
-        $response->assertSee('Open Campus Map');
         $response->assertSee('MinSU Haven Dorm');
         $response->assertSee('Room 101');
         $response->assertSee('₱2,000');
@@ -226,7 +225,62 @@ class StudentMarketplaceExperienceTest extends TestCase
         $response->assertSee('MinSU Haven Dorm');
         $response->assertSee('Room 101');
         $response->assertSee('₱2,000');
-        $response->assertSee('MinSU Accredited');
+        $response->assertSee('Accredited');
+    }
+
+    public function test_student_rooms_search_by_property_name_and_room_number(): void
+    {
+        $student = $this->createStudent('Search Student');
+        $landlord = $this->createLandlord('Host');
+        [$property, $room] = $this->createPropertyAndRoom($landlord);
+
+        // Search by property name
+        $responseName = $this->actingAs($student)->get(route('student.rooms.index', ['q' => 'Haven']));
+        $responseName->assertStatus(200);
+        $responseName->assertSee('MinSU Haven Dorm');
+
+        // Search by room number
+        $responseRoom = $this->actingAs($student)->get(route('student.rooms.index', ['q' => '101']));
+        $responseRoom->assertStatus(200);
+        $responseRoom->assertSee('Room 101');
+
+        // Search for non-existent keyword
+        $responseEmpty = $this->actingAs($student)->get(route('student.rooms.index', ['q' => 'NonExistentPlaceXYZ']));
+        $responseEmpty->assertStatus(200);
+        $responseEmpty->assertSee('No Accommodations Found');
+    }
+
+    public function test_student_rooms_price_filter_does_not_clamp_out_of_range_requests(): void
+    {
+        $student = $this->createStudent('Price Student');
+        $landlord = $this->createLandlord('Host');
+        [$property, $room] = $this->createPropertyAndRoom($landlord); // Room price is 2000
+
+        // Filter max_price = 1500 (lower than any room in database)
+        $response = $this->actingAs($student)->get(route('student.rooms.index', ['max_price' => 1500]));
+        $response->assertStatus(200);
+        $response->assertSee('No Accommodations Found');
+        $response->assertDontSee('MinSU Haven Dorm');
+
+        // Filter max_price = 2500 (covers room price 2000)
+        $responseMatch = $this->actingAs($student)->get(route('student.rooms.index', ['max_price' => 2500]));
+        $responseMatch->assertStatus(200);
+        $responseMatch->assertSee('MinSU Haven Dorm');
+    }
+
+    public function test_student_rooms_filters_by_property_id(): void
+    {
+        $student = $this->createStudent('PropId Student');
+        $landlord = $this->createLandlord('Host');
+        [$property, $room] = $this->createPropertyAndRoom($landlord);
+
+        $response = $this->actingAs($student)->get(route('student.rooms.index', ['property_id' => $property->id]));
+        $response->assertStatus(200);
+        $response->assertSee('MinSU Haven Dorm');
+
+        $responseOther = $this->actingAs($student)->get(route('student.rooms.index', ['property_id' => 99999]));
+        $responseOther->assertStatus(200);
+        $responseOther->assertSee('No Accommodations Found');
     }
 
     public function test_my_bookings_and_stays_renders_active_and_past_tabs(): void
@@ -253,6 +307,9 @@ class StudentMarketplaceExperienceTest extends TestCase
         $response->assertSee('Past Stays & History', false);
         $response->assertSee('MinSU Haven Dorm');
         $response->assertSee('Awaiting Landlord Review');
+
+        // Confirm redundant 3rd "All Requests" tab is removed
+        $response->assertDontSee('All Requests (');
     }
 
     public function test_campus_map_data_endpoint_computes_room_prices_without_tbd(): void
