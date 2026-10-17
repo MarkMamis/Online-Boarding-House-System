@@ -13,16 +13,7 @@
             ['label' => 'Insights', 'url' => route('admin.dashboard')],
             ['label' => 'Analytics']
         ]"
-    >
-        <x-slot name="actions">
-            <a href="{{ route('admin.boarding_monitoring.students') }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-door-open me-1"></i>Active Boarders
-            </a>
-            <a href="{{ route('admin.institutional_reports.index') }}" class="btn btn-sm btn-brand">
-                <i class="bi bi-journal-text me-1"></i>Institutional Reports
-            </a>
-        </x-slot>
-    </x-admin.page-header>
+    />
 
     {{-- Filter Toolbar --}}
     <div class="admin-toolbar mb-4">

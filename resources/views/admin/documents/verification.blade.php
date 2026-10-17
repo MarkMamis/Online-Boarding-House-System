@@ -14,25 +14,13 @@
             ['label' => 'Document Review Queue']
         ]"
     >
-        <x-slot:actions>
-            @if($landlordId > 0)
+        @if($landlordId > 0)
+            <x-slot:actions>
                 <a href="{{ route('admin.users.landlords.show', $landlordId) }}" class="btn btn-sm btn-light border px-3">
                     <i class="bi bi-arrow-left me-1"></i>Landlord Details
                 </a>
-            @endif
-            <a href="{{ route('admin.documents.monitoring') }}" class="btn btn-sm btn-outline-brand px-3">
-                <i class="bi bi-activity me-1"></i>Compliance Monitor
-            </a>
-            @if($includeHistory)
-                <a href="{{ route('admin.documents.verification', ['landlord_id' => $landlordId, 'verification_status' => $statusFilter, 'document_type' => $documentType]) }}" class="btn btn-sm btn-brand px-3">
-                    <i class="bi bi-clock-history me-1"></i>Current Versions
-                </a>
-            @else
-                <a href="{{ route('admin.documents.verification', ['landlord_id' => $landlordId, 'verification_status' => 'all', 'document_type' => $documentType, 'history' => 1]) }}" class="btn btn-sm btn-light border px-3 text-secondary">
-                    <i class="bi bi-clock-history me-1"></i>View History
-                </a>
-            @endif
-        </x-slot:actions>
+            </x-slot:actions>
+        @endif
     </x-admin.page-header>
 
     @if(session('success'))

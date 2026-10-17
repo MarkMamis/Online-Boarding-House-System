@@ -91,11 +91,6 @@
             <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-people me-1"></i>All Users
             </a>
-            @if($role === 'landlord')
-                <a href="{{ route('admin.permits.index') }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-shield-check me-1"></i>Landlord Accreditation
-                </a>
-            @endif
         </x-slot>
     </x-admin.page-header>
 

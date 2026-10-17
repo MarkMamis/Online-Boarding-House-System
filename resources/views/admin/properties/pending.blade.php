@@ -13,13 +13,7 @@
             ['label' => 'Management'],
             ['label' => 'Property Reviews']
         ]"
-    >
-        <x-slot:actions>
-            <a href="{{ route('admin.properties.index') }}" class="btn btn-sm btn-outline-brand px-3">
-                <i class="bi bi-buildings me-1"></i>Boarding Houses
-            </a>
-        </x-slot:actions>
-    </x-admin.page-header>
+    />
 
     {{-- Metric Strip --}}
     <div class="row g-3 mb-4">

@@ -663,22 +663,7 @@
             ['label' => 'Monitoring', 'url' => route('admin.dashboard')],
             ['label' => 'Boarding Houses']
         ]"
-    >
-        <x-slot name="actions">
-            @if(($summary['pending_properties'] ?? 0) > 0)
-                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-2">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Property Reviews</span>
-                    <span class="badge rounded-pill bg-danger text-white" id="headerPendingBadge">{{ $summary['pending_properties'] }}</span>
-                </a>
-            @else
-                <a href="{{ route('admin.property_reviews.index') }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Review Queue</span>
-                </a>
-            @endif
-        </x-slot>
-    </x-admin.page-header>
+    />
 
     {{-- 2. COMPACT SUMMARY KPI ROW --}}
     <div class="row g-3 mb-4">

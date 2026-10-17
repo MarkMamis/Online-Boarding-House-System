@@ -178,34 +178,7 @@
             ['label' => 'Monitoring', 'url' => route('admin.dashboard')],
             ['label' => 'Active Boarders']
         ]"
-    >
-        <x-slot name="actions">
-            <a href="{{ route('admin.bookings.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="View raw transactional bookings">
-                <i class="bi bi-journal-check me-1"></i>All Bookings
-            </a>
-            <a href="{{ route('admin.analytics.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="View deep analytics & trends">
-                <i class="bi bi-graph-up-arrow me-1"></i>Analytics
-            </a>
-            <a href="{{ route('admin.institutional_reports.index') }}" class="btn btn-outline-secondary rounded-pill px-3" title="Generate official institutional reports">
-                <i class="bi bi-journal-text me-1"></i>Reports
-            </a>
-        </x-slot>
-    </x-admin.page-header>
-
-    {{-- Top-Level Workspace Tabs --}}
-    <ul class="nav admin-tabs mb-4" id="monitoringWorkspaceTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'current']) }}" class="nav-link {{ $isCurrentTab ? 'active' : '' }}" id="tab-current-link">
-                <i class="bi bi-person-check me-1"></i>Current Boarders
-                <span class="badge {{ $isCurrentTab ? 'bg-success text-white' : 'bg-light text-dark border' }} ms-1">{{ $currentBoardersCount }}</span>
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a href="{{ route('admin.boarding_monitoring.students', ['tab' => 'history']) }}" class="nav-link {{ $isHistoryTab ? 'active' : '' }}" id="tab-history-link">
-                <i class="bi bi-clock-history me-1"></i>Stay History &amp; Reports
-            </a>
-        </li>
-    </ul>
+    />
 
     {{-- ========================================================================= --}}
     {{-- PART A: CURRENT BOARDERS TAB --}}
@@ -299,7 +272,7 @@
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
                 <div class="fw-semibold text-dark d-flex align-items-center gap-2">
                     <i class="bi bi-person-check text-success fs-5"></i>
-                    <span>Current Active Boarders</span>
+                    <span>Current Boarders</span>
                 </div>
                 <span class="badge bg-secondary rounded-pill px-3">{{ $boardedStudents->total() }} active</span>
             </div>

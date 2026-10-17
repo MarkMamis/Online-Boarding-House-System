@@ -13,13 +13,7 @@
             ['label' => 'Management'],
             ['label' => 'Student Verification']
         ]"
-    >
-        <x-slot:actions>
-            <a href="{{ route('admin.users.students') }}" class="btn btn-sm btn-outline-brand px-3">
-                <i class="bi bi-mortarboard me-1"></i>Students Directory
-            </a>
-        </x-slot:actions>
-    </x-admin.page-header>
+    />
 
     @if(session('success'))
         <div class="alert alert-success border-0 shadow-sm py-2 mb-3 d-flex align-items-center gap-2">

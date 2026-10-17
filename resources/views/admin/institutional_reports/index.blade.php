@@ -15,9 +15,6 @@
         ]"
     >
         <x-slot name="actions">
-            <a href="{{ route('admin.analytics.index') }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-graph-up-arrow me-1"></i>Analytics Dashboard
-            </a>
             <a href="{{ route('admin.institutional_reports.export', array_merge(request()->query(), ['report_preset' => $selectedPreset])) }}" class="btn btn-sm btn-brand">
                 <i class="bi bi-download me-1"></i>Export CSV
             </a>

@@ -13,13 +13,7 @@
             ['label' => 'Management'],
             ['label' => 'Landlord Accreditation']
         ]"
-    >
-        <x-slot:actions>
-            <a href="{{ route('admin.users.landlords') }}" class="btn btn-sm btn-outline-brand px-3">
-                <i class="bi bi-people me-1"></i>Landlords Directory
-            </a>
-        </x-slot:actions>
-    </x-admin.page-header>
+    />
 
     {{-- Flash messages --}}
     @if(session('success'))
@@ -49,25 +43,12 @@
         $propertyStatusOptions = ['pending'=>'Pending','approved'=>'Approved','rejected'=>'Rejected','all'=>'All'];
     @endphp
 
-    {{-- Tabs & Status Filters --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-        <div class="admin-segmented">
-            <a href="{{ route('admin.approvals.landlords', ['tab' => 'permits']) }}"
-               class="btn-seg {{ $activeTab === 'permits' ? 'active' : '' }}">
-                <i class="bi bi-file-earmark-check"></i> Permit Accreditation
-            </a>
-            <a href="{{ route('admin.approvals.landlords', ['tab' => 'properties']) }}"
-               class="btn-seg {{ $activeTab === 'properties' ? 'active' : '' }}">
-                <i class="bi bi-building"></i> Property Reviews
-            </a>
-        </div>
-
-        <div class="d-flex flex-wrap gap-1">
-            @foreach(($activeTab === 'permits' ? $permitStatusOptions : $propertyStatusOptions) as $value => $label)
-                <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => $value]) }}"
-                   class="filter-chip {{ $statusFilter === $value ? 'active' : '' }}">{{ $label }}</a>
-            @endforeach
-        </div>
+    {{-- Status Filters --}}
+    <div class="d-flex flex-wrap gap-1 mb-3">
+        @foreach(($activeTab === 'permits' ? $permitStatusOptions : $propertyStatusOptions) as $value => $label)
+            <a href="{{ route('admin.approvals.landlords', ['tab' => $activeTab, 'status' => $value]) }}"
+               class="filter-chip {{ $statusFilter === $value ? 'active' : '' }}">{{ $label }}</a>
+        @endforeach
     </div>
 
     {{-- Landlord List --}}
