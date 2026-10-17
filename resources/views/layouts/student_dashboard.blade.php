@@ -460,6 +460,36 @@
             border-color: #166534;
             box-shadow: 0 6px 24px rgba(22, 101, 52, 0.16);
         }
+
+        /* Responsive refinements & chatbot widget collision prevention */
+        @media (max-width: 768px) {
+            .chatbot-widget {
+                bottom: 1.25rem !important;
+                right: 1rem !important;
+            }
+            .chatbot-toggle {
+                width: 46px !important;
+                height: 46px !important;
+                font-size: 1.15rem !important;
+            }
+            .has-sticky-cta .chatbot-widget {
+                bottom: 5.5rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .market-search-bar {
+                padding: .25rem .35rem .25rem .85rem;
+            }
+            .market-search-bar input {
+                font-size: .88rem;
+            }
+            .market-search-bar .btn {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                font-size: .85rem;
+            }
+        }
     </style>
 </head>
 <body>
