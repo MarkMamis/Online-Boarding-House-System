@@ -293,7 +293,7 @@
             <!-- ========================================== -->
             <div class="question-panel {{ $initialPanel === 2 ? 'active' : '' }}" data-panel="2">
                 <div class="question-kicker">Room Inclusions</div>
-                <h2 class="question-title">What is included in this room?</h2>
+                <h2 class="question-title">What's included in the rent?</h2>
                 <p class="question-subtitle">Select the amenities and utilities covered by this room's rent.</p>
 
                 <!-- Hidden Input for Form Submission -->
@@ -363,6 +363,10 @@
                             name="image"
                             class="file-input-hidden"
                             accept="image/jpeg,image/png,image/webp">
+                        <div class="upload-preparing d-none" id="roomUploadPreparing" style="padding: 1.5rem; text-align: center;">
+                            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                            <span class="text-muted fw-semibold" style="font-size: 0.9rem;">Preparing photo...</span>
+                        </div>
                         <div class="upload-idle {{ $hasExistingImage ? 'd-none' : '' }}" id="roomUploadIdle">
                             <div class="upload-icon-circle">
                                 <i class="bi bi-camera"></i>
@@ -370,7 +374,7 @@
                             <div class="upload-prompt">
                                 <span class="upload-action-text">{{ $isEdit ? 'Click to replace room cover photo' : 'Click to choose room cover photo' }}</span> or drag here
                             </div>
-                            <div class="upload-help-text">JPG, PNG, or WebP up to 4MB</div>
+                            <div class="upload-help-text">JPG, PNG, or WebP up to 5MB</div>
                         </div>
                         <div class="upload-preview-card {{ $hasExistingImage ? '' : 'd-none' }}" id="roomUploadPreview">
                             <img id="roomImagePreviewThumb" src="{{ $existingImageUrl ?: '' }}" alt="Room Preview" class="upload-preview-thumb">
@@ -383,6 +387,7 @@
                             </button>
                         </div>
                     </div>
+                    <div class="text-danger small mt-1 d-none" id="roomPhotoClientError"></div>
                     @if($isEdit)
                         <div class="field-hint">Leave untouched to keep your current cover photo.</div>
                     @endif
@@ -433,7 +438,12 @@
                         class="form-control"
                         accept="image/jpeg,image/png,image/webp"
                         multiple>
-                    <div class="field-hint">Upload bathroom, bed, or window views (up to 4MB each).</div>
+                    <div class="upload-preparing d-none mt-2" id="detailImagesPreparing">
+                        <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                        <span class="text-muted fw-semibold" style="font-size: 0.85rem;">Preparing photos...</span>
+                    </div>
+                    <div class="text-danger small mt-1 d-none" id="detailImagesClientError"></div>
+                    <div class="field-hint">Upload bathroom, bed, or window views (up to 5MB each).</div>
                     <div id="detailImagesPreviewGrid" class="d-flex flex-wrap gap-2 mt-2"></div>
                 </div>
 
@@ -1172,6 +1182,7 @@
 @endpush
 
 @push('scripts')
+<script src="{{ asset('js/image-optimizer.js') }}"></script>
 <script>
     (function () {
         'use strict';
@@ -1394,22 +1405,56 @@
         const roomImageInput = document.getElementById('roomImageInput');
         const roomUploadIdle = document.getElementById('roomUploadIdle');
         const roomUploadPreview = document.getElementById('roomUploadPreview');
+        const roomUploadPreparing = document.getElementById('roomUploadPreparing');
+        const roomPhotoClientError = document.getElementById('roomPhotoClientError');
         const roomImagePreviewThumb = document.getElementById('roomImagePreviewThumb');
         const roomFileName = document.getElementById('roomFileName');
         const roomFileSize = document.getElementById('roomFileSize');
         const btnRemoveRoomPhoto = document.getElementById('btnRemoveRoomPhoto');
 
         if (roomImageInput) {
-            roomImageInput.addEventListener('change', function () {
-                const file = roomImageInput.files && roomImageInput.files[0];
-                if (!file) return;
+            roomImageInput.addEventListener('change', async function () {
+                const rawFile = roomImageInput.files && roomImageInput.files[0];
+                if (!rawFile) return;
 
-                roomFileName.textContent = file.name;
-                roomFileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                roomImagePreviewThumb.src = URL.createObjectURL(file);
+                if (roomPhotoClientError) {
+                    roomPhotoClientError.textContent = '';
+                    roomPhotoClientError.classList.add('d-none');
+                }
 
-                roomUploadIdle.classList.add('d-none');
-                roomUploadPreview.classList.remove('d-none');
+                let finalFile = rawFile;
+
+                if (window.OBHSImageOptimizer && typeof window.OBHSImageOptimizer.optimizeFile === 'function') {
+                    if (roomUploadIdle) roomUploadIdle.classList.add('d-none');
+                    if (roomUploadPreview) roomUploadPreview.classList.add('d-none');
+                    if (roomUploadPreparing) roomUploadPreparing.classList.remove('d-none');
+
+                    const result = await window.OBHSImageOptimizer.optimizeFile(rawFile);
+
+                    if (roomUploadPreparing) roomUploadPreparing.classList.add('d-none');
+
+                    if (result.error) {
+                        if (roomPhotoClientError) {
+                            roomPhotoClientError.textContent = result.error;
+                            roomPhotoClientError.classList.remove('d-none');
+                        }
+                        if (roomUploadIdle) roomUploadIdle.classList.remove('d-none');
+                        roomImageInput.value = '';
+                        return;
+                    }
+
+                    finalFile = result.file;
+                    if (result.optimized) {
+                        window.OBHSImageOptimizer.setInputFiles(roomImageInput, finalFile);
+                    }
+                }
+
+                roomFileName.textContent = finalFile.name;
+                roomFileSize.textContent = (finalFile.size / 1024 / 1024).toFixed(2) + ' MB';
+                roomImagePreviewThumb.src = URL.createObjectURL(finalFile);
+
+                if (roomUploadIdle) roomUploadIdle.classList.add('d-none');
+                if (roomUploadPreview) roomUploadPreview.classList.remove('d-none');
             });
         }
 
@@ -1418,19 +1463,74 @@
                 e.stopPropagation();
                 roomImageInput.value = '';
                 roomImagePreviewThumb.src = '';
+                if (roomPhotoClientError) {
+                    roomPhotoClientError.textContent = '';
+                    roomPhotoClientError.classList.add('d-none');
+                }
                 roomUploadPreview.classList.add('d-none');
                 roomUploadIdle.classList.remove('d-none');
             });
         }
 
-        // --- Detail Images (Additional) Count Preview ---
+        // --- Detail Images (Additional) Count Preview & Optimization ---
         const detailImagesInput = document.getElementById('detailImagesInput');
         const detailImagesPreviewGrid = document.getElementById('detailImagesPreviewGrid');
+        const detailImagesPreparing = document.getElementById('detailImagesPreparing');
+        const detailImagesClientError = document.getElementById('detailImagesClientError');
+
         if (detailImagesInput && detailImagesPreviewGrid) {
-            detailImagesInput.addEventListener('change', function () {
+            detailImagesInput.addEventListener('change', async function () {
                 detailImagesPreviewGrid.innerHTML = '';
-                const files = Array.from(detailImagesInput.files || []);
-                files.forEach((file) => {
+                if (detailImagesClientError) {
+                    detailImagesClientError.textContent = '';
+                    detailImagesClientError.classList.add('d-none');
+                }
+
+                const rawFiles = Array.from(detailImagesInput.files || []);
+                if (rawFiles.length === 0) return;
+
+                if (rawFiles.length > 10) {
+                    if (detailImagesClientError) {
+                        detailImagesClientError.textContent = 'You can upload a maximum of 10 additional photos at once.';
+                        detailImagesClientError.classList.remove('d-none');
+                    }
+                    detailImagesInput.value = '';
+                    return;
+                }
+
+                const finalFiles = [];
+                let hasError = false;
+
+                if (window.OBHSImageOptimizer && typeof window.OBHSImageOptimizer.optimizeFile === 'function') {
+                    if (detailImagesPreparing) detailImagesPreparing.classList.remove('d-none');
+
+                    for (let i = 0; i < rawFiles.length; i++) {
+                        const file = rawFiles[i];
+                        const result = await window.OBHSImageOptimizer.optimizeFile(file);
+                        if (result.error) {
+                            if (detailImagesClientError) {
+                                detailImagesClientError.textContent = result.error;
+                                detailImagesClientError.classList.remove('d-none');
+                            }
+                            hasError = true;
+                            break;
+                        }
+                        finalFiles.push(result.file);
+                    }
+
+                    if (detailImagesPreparing) detailImagesPreparing.classList.add('d-none');
+
+                    if (hasError) {
+                        detailImagesInput.value = '';
+                        return;
+                    }
+
+                    window.OBHSImageOptimizer.setInputFiles(detailImagesInput, finalFiles);
+                } else {
+                    finalFiles.push(...rawFiles);
+                }
+
+                finalFiles.forEach((file) => {
                     const thumb = document.createElement('img');
                     thumb.src = URL.createObjectURL(file);
                     thumb.style.width = '48px';

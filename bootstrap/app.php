@@ -74,4 +74,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return null;
         });
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $exception, Request $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your upload is too large. Try uploading fewer photos at once.',
+                    'errors' => [
+                        'image' => ['Your upload is too large. Try uploading fewer photos at once.'],
+                    ],
+                ], 413);
+            }
+
+            return back()->withInput()->with('error', 'Your upload is too large. Try uploading fewer photos at once.');
+        });
     })->create();

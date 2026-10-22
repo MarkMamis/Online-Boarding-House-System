@@ -160,6 +160,10 @@
                             name="image"
                             class="file-input-hidden"
                             accept="image/jpeg,image/png,image/webp">
+                        <div class="upload-preparing d-none" id="propertyUploadPreparing" style="padding: 1.5rem; text-align: center;">
+                            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+                            <span class="text-muted fw-semibold" style="font-size: 0.9rem;">Preparing photo...</span>
+                        </div>
                         <div class="upload-idle {{ $hasExistingImage ? 'd-none' : '' }}" id="uploadIdleState">
                             <div class="upload-icon-circle">
                                 <i class="bi bi-cloud-arrow-up"></i>
@@ -180,6 +184,7 @@
                             </button>
                         </div>
                     </div>
+                    <div class="text-danger small mt-1 d-none" id="propertyPhotoClientError"></div>
                     @error('image')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
@@ -1044,6 +1049,7 @@
 @endpush
 
 @push('scripts')
+<script src="{{ asset('js/image-optimizer.js') }}"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     (function () {
@@ -1424,22 +1430,56 @@
         const imageInput = document.getElementById('propertyImageInput');
         const uploadIdleState = document.getElementById('uploadIdleState');
         const uploadPreviewCard = document.getElementById('uploadPreviewCard');
+        const uploadPreparing = document.getElementById('propertyUploadPreparing');
+        const photoClientError = document.getElementById('propertyPhotoClientError');
         const imagePreview = document.getElementById('propertyImagePreview');
         const fileNameLabel = document.getElementById('uploadFileName');
         const fileSizeLabel = document.getElementById('uploadFileSize');
         const btnRemovePhoto = document.getElementById('btnRemovePhoto');
 
         if (imageInput) {
-            imageInput.addEventListener('change', function () {
-                const file = imageInput.files && imageInput.files[0];
-                if (!file) return;
+            imageInput.addEventListener('change', async function () {
+                const rawFile = imageInput.files && imageInput.files[0];
+                if (!rawFile) return;
 
-                fileNameLabel.textContent = file.name;
-                fileSizeLabel.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                imagePreview.src = URL.createObjectURL(file);
+                if (photoClientError) {
+                    photoClientError.textContent = '';
+                    photoClientError.classList.add('d-none');
+                }
 
-                uploadIdleState.classList.add('d-none');
-                uploadPreviewCard.classList.remove('d-none');
+                let finalFile = rawFile;
+
+                if (window.OBHSImageOptimizer && typeof window.OBHSImageOptimizer.optimizeFile === 'function') {
+                    if (uploadIdleState) uploadIdleState.classList.add('d-none');
+                    if (uploadPreviewCard) uploadPreviewCard.classList.add('d-none');
+                    if (uploadPreparing) uploadPreparing.classList.remove('d-none');
+
+                    const result = await window.OBHSImageOptimizer.optimizeFile(rawFile);
+
+                    if (uploadPreparing) uploadPreparing.classList.add('d-none');
+
+                    if (result.error) {
+                        if (photoClientError) {
+                            photoClientError.textContent = result.error;
+                            photoClientError.classList.remove('d-none');
+                        }
+                        if (uploadIdleState) uploadIdleState.classList.remove('d-none');
+                        imageInput.value = '';
+                        return;
+                    }
+
+                    finalFile = result.file;
+                    if (result.optimized) {
+                        window.OBHSImageOptimizer.setInputFiles(imageInput, finalFile);
+                    }
+                }
+
+                fileNameLabel.textContent = finalFile.name;
+                fileSizeLabel.textContent = (finalFile.size / 1024 / 1024).toFixed(2) + ' MB';
+                imagePreview.src = URL.createObjectURL(finalFile);
+
+                if (uploadIdleState) uploadIdleState.classList.add('d-none');
+                if (uploadPreviewCard) uploadPreviewCard.classList.remove('d-none');
 
                 if (!isEditMode) {
                     triggerAutoSaveNow();
@@ -1452,6 +1492,10 @@
                 e.stopPropagation();
                 imageInput.value = '';
                 imagePreview.src = '';
+                if (photoClientError) {
+                    photoClientError.textContent = '';
+                    photoClientError.classList.add('d-none');
+                }
                 uploadPreviewCard.classList.add('d-none');
                 uploadIdleState.classList.remove('d-none');
                 if (!isEditMode) {

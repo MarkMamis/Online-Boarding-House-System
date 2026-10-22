@@ -246,17 +246,28 @@ class RoomController extends Controller
     {
         $property = $this->getOwnedProperty($propertyId);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'detail_images.max' => 'You can upload a maximum of 10 additional photos at once.',
+            'detail_images.*.max' => 'One or more additional photos are too large. Please choose images under 5 MB.',
+            'detail_images.*.image' => 'One or more additional photos are not valid images.',
+            'detail_images.*.mimes' => 'One or more additional photos must be in JPG, PNG, or WebP format.',
+        ];
+
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
             'slots_available' => 'nullable|integer|min:0|lte:capacity',
             'status' => 'required|in:available,occupied,maintenance',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'inclusions' => 'nullable|string|max:2000',
             'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
-            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'detail_images' => 'nullable|array|max:10',
+            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'detail_labels.*' => 'nullable|string|max:100',
-        ] + $this->pricingRules());
+        ] + $this->pricingRules(), $customMessages);
 
         $validator->after(function ($validator) use ($request) {
             $this->validatePricingInputs($validator, $request);
@@ -355,19 +366,30 @@ class RoomController extends Controller
         }
         $this->authorize('update', $room);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'detail_images.max' => 'You can upload a maximum of 10 additional photos at once.',
+            'detail_images.*.max' => 'One or more additional photos are too large. Please choose images under 5 MB.',
+            'detail_images.*.image' => 'One or more additional photos are not valid images.',
+            'detail_images.*.mimes' => 'One or more additional photos must be in JPG, PNG, or WebP format.',
+        ];
+
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
             'slots_available' => 'nullable|integer|min:0|lte:capacity',
             'status' => 'required|in:available,occupied,maintenance',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'inclusions' => 'nullable|string|max:2000',
             'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
-            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:4096',
+            'detail_images' => 'nullable|array|max:10',
+            'detail_images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'detail_labels.*' => 'nullable|string|max:100',
             'delete_detail_images' => 'nullable|array',
             'delete_detail_images.*' => 'integer',
-        ] + $this->pricingRules());
+        ] + $this->pricingRules(), $customMessages);
 
         $validator->after(function ($validator) use ($request) {
             $this->validatePricingInputs($validator, $request);
@@ -498,15 +520,21 @@ class RoomController extends Controller
         $property = $this->getOwnedProperty($propertyId);
         $this->authorize('update', $property);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+        ];
+
         $validator = Validator::make($request->all(), [
             'room_number' => 'required|string|max:50',
             'capacity' => 'required|integer|min:1',
             'slots_available' => 'nullable|integer|min:0|lte:capacity',
             'status' => 'required|in:available,occupied,maintenance',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'inclusions' => 'nullable|string|max:2000',
             'requires_advance_payment' => $supportsAdvanceRequirement ? 'nullable|boolean' : 'nullable',
-        ] + $this->pricingRules());
+        ] + $this->pricingRules(), $customMessages);
 
         $validator->after(function ($validator) use ($request) {
             $this->validatePricingInputs($validator, $request);
@@ -1032,11 +1060,11 @@ class RoomController extends Controller
 
         // Determine unique room number
         $baseNumber = trim((string) $room->room_number);
-        $newNumber = $baseNumber . ' (Copy)';
+        $newNumber = $baseNumber.' (Copy)';
         $counter = 1;
         while ($property->rooms()->where('room_number', $newNumber)->exists()) {
             $counter++;
-            $newNumber = $baseNumber . " (Copy {$counter})";
+            $newNumber = $baseNumber." (Copy {$counter})";
         }
 
         // Safe attributes copying (NEVER copy tenants, bookings, contracts, payments, or reviews)
@@ -1076,4 +1104,3 @@ class RoomController extends Controller
             ->with('success', "Room duplicated successfully as \"{$newNumber}\". You can now adjust its details.");
     }
 }
-

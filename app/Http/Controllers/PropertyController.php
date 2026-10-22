@@ -8,7 +8,6 @@ use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -17,14 +16,14 @@ class PropertyController extends Controller
 {
     protected function ensureLandlord()
     {
-        if (!Auth::check() || Auth::user()->role !== 'landlord') {
+        if (! Auth::check() || Auth::user()->role !== 'landlord') {
             abort(403, 'Unauthorized');
         }
     }
 
     protected function ensureAdmin()
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        if (! Auth::check() || Auth::user()->role !== 'admin') {
             abort(403, 'Unauthorized');
         }
     }
@@ -34,7 +33,7 @@ class PropertyController extends Controller
         $this->ensureAdmin();
 
         $statusFilter = strtolower((string) request('status', 'pending'));
-        if (!in_array($statusFilter, ['pending', 'approved', 'rejected', 'all'], true)) {
+        if (! in_array($statusFilter, ['pending', 'approved', 'rejected', 'all'], true)) {
             $statusFilter = 'pending';
         }
 
@@ -205,9 +204,9 @@ class PropertyController extends Controller
         $isCompliant = ($bpStatus === 'approved' && $scStatus === 'approved');
 
         // Quick check
-        $hasImage = !empty($property->image_path);
+        $hasImage = ! empty($property->image_path);
         $hasDescription = filled($property->description);
-        $hasCoordinates = !empty($property->latitude) && !empty($property->longitude);
+        $hasCoordinates = ! empty($property->latitude) && ! empty($property->longitude);
         $hasRooms = $property->total_rooms > 0;
 
         // Room pricing
@@ -233,6 +232,7 @@ class PropertyController extends Controller
             ->filter()
             ->map(function (string $item) use ($amenityLabelMap): string {
                 $normalized = strtolower($item);
+
                 return $amenityLabelMap->has($normalized)
                     ? (string) $amenityLabelMap->get($normalized)
                     : ucwords(str_replace(['_', '-'], ' ', $item));
@@ -329,24 +329,12 @@ class PropertyController extends Controller
                     'Property approved',
                     sprintf('Your property "%s" has been approved and is now visible to students.', $property->name),
                     route('landlord.properties.index'),
-                    ['property_id' => $property->id, 'status' => 'approved']
+                    ['property_id' => $property->id, 'status' => 'approved'],
+                    sendEmail: true,
+                    actionText: 'View Properties'
                 ));
             } catch (\Throwable $e) {
-                // ignore
-            }
-
-            try {
-                Mail::raw(
-                    sprintf(
-                        "Good news! Your property '%s' has been approved and is now visible to students.",
-                        $property->name
-                    ),
-                    function ($message) use ($property) {
-                        $message->to($property->landlord->email)->subject('Property Approved');
-                    }
-                );
-            } catch (\Throwable $e) {
-                // ignore email transport errors
+                // ignore notification/email transport errors
             }
         }
 
@@ -389,23 +377,16 @@ class PropertyController extends Controller
                         ? sprintf('Your property "%s" was rejected: %s', $property->name, $reason)
                         : sprintf('Your property "%s" was rejected.', $property->name),
                     route('landlord.properties.index'),
-                    ['property_id' => $property->id, 'status' => 'rejected']
+                    [
+                        'property_id' => $property->id,
+                        'status' => 'rejected',
+                        'reason' => $reason,
+                    ],
+                    sendEmail: true,
+                    actionText: 'View Property Listings'
                 ));
             } catch (\Throwable $e) {
-                // ignore
-            }
-
-            try {
-                Mail::raw(
-                    $reason !== ''
-                        ? sprintf("Your property '%s' was rejected. Reason: %s", $property->name, $reason)
-                        : sprintf("Your property '%s' was rejected.", $property->name),
-                    function ($message) use ($property) {
-                        $message->to($property->landlord->email)->subject('Property Rejected');
-                    }
-                );
-            } catch (\Throwable $e) {
-                // ignore email transport errors
+                // ignore notification/email transport errors
             }
         }
 
@@ -432,8 +413,9 @@ class PropertyController extends Controller
                     $q->where('status', 'available')->where('slots_available', '>', 0);
                 },
             ])
-            ->orderBy('created_at','desc')
+            ->orderBy('created_at', 'desc')
             ->get();
+
         return view('landlord.properties.index', compact('properties'));
     }
 
@@ -449,7 +431,7 @@ class PropertyController extends Controller
                 ->where('landlord_id', Auth::id())
                 ->where('approval_status', 'draft')
                 ->first();
-        } elseif (!$request->boolean('new')) {
+        } elseif (! $request->boolean('new')) {
             $draftProperty = Property::where('landlord_id', Auth::id())
                 ->where('approval_status', 'draft')
                 ->latest('updated_at')
@@ -464,6 +446,12 @@ class PropertyController extends Controller
         $this->ensureLandlord();
         $this->authorize('create', Property::class);
 
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+        ];
+
         $validator = Validator::make($request->all(), [
             'property_id' => 'nullable|integer',
             'draft_version' => 'nullable|integer',
@@ -476,7 +464,7 @@ class PropertyController extends Controller
             'building_inclusions' => 'nullable|array',
             'building_inclusions.*' => 'string',
             'house_rules' => 'nullable|array',
-        ]);
+        ], $customMessages);
 
         if ($validator->fails()) {
             return response()->json([
@@ -493,7 +481,7 @@ class PropertyController extends Controller
                 ->where('landlord_id', Auth::id())
                 ->first();
 
-            if (!$property) {
+            if (! $property) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Draft property not found or unauthorized.',
@@ -513,7 +501,7 @@ class PropertyController extends Controller
             $hasDescription = filled(trim((string) $request->input('description', '')));
             $hasImage = $request->hasFile('image');
 
-            if (!$hasName && !$hasAddress && !$hasDescription && !$hasImage) {
+            if (! $hasName && ! $hasAddress && ! $hasDescription && ! $hasImage) {
                 return response()->json([
                     'success' => true,
                     'saved' => false,
@@ -537,14 +525,14 @@ class PropertyController extends Controller
         $houseRulesPayload = [];
         if ($request->has('house_rules') && is_array($request->input('house_rules'))) {
             foreach (array_keys($houseRuleCategories) as $categoryKey) {
-                $raw = $request->input('house_rules.' . $categoryKey);
+                $raw = $request->input('house_rules.'.$categoryKey);
                 if (is_array($raw)) {
                     $cleaned = collect($raw)->map(fn ($l) => trim((string) $l))->filter()->values()->all();
                 } else {
                     $rawLines = preg_split('/\r\n|\r|\n/', (string) $raw) ?: [];
                     $cleaned = collect($rawLines)->map(fn ($l) => trim((string) $l))->filter()->values()->all();
                 }
-                if (!empty($cleaned)) {
+                if (! empty($cleaned)) {
                     $houseRulesPayload[$categoryKey] = $cleaned;
                 }
             }
@@ -578,11 +566,11 @@ class PropertyController extends Controller
             try {
                 $imagePath = app(\App\Services\FileStorageService::class)->upload(
                     $request->file('image'),
-                    'properties/' . $property->id . '/images'
+                    'properties/'.$property->id.'/images'
                 );
                 $property->update(['image_path' => $imagePath]);
             } catch (\Throwable $e) {
-                Log::warning('Autosave image upload failed: ' . $e->getMessage());
+                Log::warning('Autosave image upload failed: '.$e->getMessage());
             }
         }
 
@@ -608,6 +596,12 @@ class PropertyController extends Controller
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
         $isDashboardQuickCreate = $request->boolean('from_dashboard');
         $isDraft = in_array($request->input('action'), ['draft', 'save_draft'], true) || $request->boolean('save_draft');
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+        ];
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -626,11 +620,11 @@ class PropertyController extends Controller
             'initial_capacity' => ['nullable', 'integer', 'min:1'],
             'initial_price' => ['nullable', 'numeric', 'min:0'],
             'initial_status' => ['nullable', 'in:available,occupied,maintenance'],
-        ]);
+        ], $customMessages);
 
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
             $validator->addRules([
-                'house_rules.' . $categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
+                'house_rules.'.$categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
             ]);
         }
 
@@ -661,10 +655,10 @@ class PropertyController extends Controller
             ->all();
 
         $submittedCustomInclusionPayload = $request->boolean('building_inclusion_custom_present') || $request->has('building_inclusion_custom');
-        if (!$submittedCustomInclusionPayload) {
+        if (! $submittedCustomInclusionPayload) {
             $existingCustomAmenities = collect((array) ($property->building_inclusions ?? []))
                 ->map(fn ($item) => trim((string) $item))
-                ->filter(fn ($item) => $item !== '' && !in_array($item, $allowedAmenities, true))
+                ->filter(fn ($item) => $item !== '' && ! in_array($item, $allowedAmenities, true))
                 ->values()
                 ->all();
 
@@ -684,7 +678,7 @@ class PropertyController extends Controller
         $houseRulesPayload = [];
         $hasHouseRuleInput = false;
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
-            $rawValue = (string) $request->input('house_rules.' . $categoryKey, '');
+            $rawValue = (string) $request->input('house_rules.'.$categoryKey, '');
             if (trim($rawValue) !== '') {
                 $hasHouseRuleInput = true;
             }
@@ -697,7 +691,7 @@ class PropertyController extends Controller
                 ->values()
                 ->all();
 
-            if (!empty($cleanedLines)) {
+            if (! empty($cleanedLines)) {
                 $houseRulesPayload[$categoryKey] = $cleanedLines;
             }
         }
@@ -712,7 +706,7 @@ class PropertyController extends Controller
 
         $propertyData = [
             'landlord_id' => Auth::id(),
-            'image_path' => $existingDraft && !$coverImagePending ? $existingDraft->image_path : $imagePath,
+            'image_path' => $existingDraft && ! $coverImagePending ? $existingDraft->image_path : $imagePath,
             'approval_status' => $isDraft ? 'draft' : 'pending',
             'name' => $request->name,
             'address' => $request->address,
@@ -738,7 +732,7 @@ class PropertyController extends Controller
             try {
                 $imagePath = app(\App\Services\FileStorageService::class)->upload(
                     $request->file('image'),
-                    'properties/' . $property->id . '/images'
+                    'properties/'.$property->id.'/images'
                 );
                 $property->update(['image_path' => $imagePath]);
             } catch (\Throwable $e) {
@@ -747,7 +741,7 @@ class PropertyController extends Controller
         }
 
         // Geocode address only if coordinates not provided
-        if (!$request->filled('latitude') || !$request->filled('longitude')) {
+        if (! $request->filled('latitude') || ! $request->filled('longitude')) {
             $geo = app(\App\Services\GeocodingService::class)->geocodeAddress($property->address);
             if ($geo) {
                 $property->latitude = $geo['lat'];
@@ -774,17 +768,19 @@ class PropertyController extends Controller
 
         $successMsg = $isDraft
             ? 'Boarding house saved as draft. You can continue setup and add rooms inside.'
-            : ('Property created successfully.' . ($request->filled('initial_room_number') ? ' First room added.' : ''));
+            : ('Property created successfully.'.($request->filled('initial_room_number') ? ' First room added.' : ''));
         if ($request->boolean('from_dashboard')) {
             return redirect()->route('landlord.dashboard')->with('success', $successMsg);
         }
-        return redirect()->route('landlord.properties.show', $property->id)->with('success', $successMsg);       
+
+        return redirect()->route('landlord.properties.show', $property->id)->with('success', $successMsg);
     }
 
     public function edit(Property $property)
     {
         $this->ensureLandlord();
         $this->authorize('update', $property);
+
         return view('landlord.properties.edit', compact('property'));
     }
 
@@ -796,6 +792,12 @@ class PropertyController extends Controller
         $supportsHouseRules = Schema::hasColumn('properties', 'house_rules');
         $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
+        $customMessages = [
+            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
+            'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
+        ];
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'address' => 'required|string|max:255',
@@ -809,11 +811,11 @@ class PropertyController extends Controller
             'building_inclusion_custom.*' => $supportsBuildingInclusions ? 'nullable|array' : 'nullable',
             'building_inclusion_custom.*.*' => $supportsBuildingInclusions ? 'nullable|string|max:100' : 'nullable',
             'house_rules' => $supportsHouseRules ? 'nullable|array' : 'nullable',
-        ]);
+        ], $customMessages);
 
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
             $validator->addRules([
-                'house_rules.' . $categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
+                'house_rules.'.$categoryKey => $supportsHouseRules ? 'nullable|string|max:4000' : 'nullable',
             ]);
         }
 
@@ -849,7 +851,7 @@ class PropertyController extends Controller
         $houseRulesPayload = [];
         $hasHouseRuleInput = false;
         foreach (array_keys($houseRuleCategories) as $categoryKey) {
-            $rawValue = (string) $request->input('house_rules.' . $categoryKey, '');
+            $rawValue = (string) $request->input('house_rules.'.$categoryKey, '');
             if (trim($rawValue) !== '') {
                 $hasHouseRuleInput = true;
             }
@@ -862,7 +864,7 @@ class PropertyController extends Controller
                 ->values()
                 ->all();
 
-            if (!empty($cleanedLines)) {
+            if (! empty($cleanedLines)) {
                 $houseRulesPayload[$categoryKey] = $cleanedLines;
             }
         }
@@ -872,7 +874,7 @@ class PropertyController extends Controller
                 $newImagePath = app(\App\Services\FileStorageService::class)->replace(
                     $property->image_path,
                     $request->file('image'),
-                    'properties/' . $property->id . '/images'
+                    'properties/'.$property->id.'/images'
                 );
             } catch (\RuntimeException $e) {
                 return back()->withInput()->with('error', 'File upload failed. Please try again.');
@@ -923,12 +925,12 @@ class PropertyController extends Controller
 
         $today = now()->toDateString();
         $hasActiveBookings = \App\Models\Booking::whereHas('room', function ($q) use ($property) {
-                $q->where('property_id', $property->id);
-            })
+            $q->where('property_id', $property->id);
+        })
             ->where(function ($q) use ($today) {
                 $q->where(function ($sq) use ($today) {
                     $sq->where('status', 'approved')
-                       ->where('check_out', '>', $today);
+                        ->where('check_out', '>', $today);
                 })->orWhere('status', 'pending');
             })
             ->exists();
@@ -938,6 +940,7 @@ class PropertyController extends Controller
         }
 
         $property->delete();
+
         return redirect()->route('landlord.properties.index')->with('success', 'Property deleted.');
     }
 
@@ -951,21 +954,21 @@ class PropertyController extends Controller
             'rooms as rooms_vacant_live' => function ($q) {
                 $q->where('status', 'available')->where('slots_available', '>', 0);
             },
-        ])->load(['rooms' => function($q){
-            $q->with(['roomImages', 'bookings' => function($bookingQ) {
+        ])->load(['rooms' => function ($q) {
+            $q->with(['roomImages', 'bookings' => function ($bookingQ) {
                 $bookingQ->where('status', 'approved')
-                  ->where('check_in', '<=', now()->toDateString())
-                  ->where('check_out', '>', now()->toDateString())
-                  ->with('student');
+                    ->where('check_in', '<=', now()->toDateString())
+                    ->where('check_out', '>', now()->toDateString())
+                    ->with('student');
             }])
-            ->orderBy('room_number');
+                ->orderBy('room_number');
         }]);
 
         // Add current tenant info and full active tenants list to each room
-        $property->rooms->each(function($room) {
+        $property->rooms->each(function ($room) {
             $activeStudents = $room->bookings
-                ->filter(fn($b) => $b->status === 'approved' && $b->student !== null)
-                ->map(fn($b) => $b->student)
+                ->filter(fn ($b) => $b->status === 'approved' && $b->student !== null)
+                ->map(fn ($b) => $b->student)
                 ->values();
 
             $room->active_tenants = $activeStudents;
@@ -975,21 +978,24 @@ class PropertyController extends Controller
         });
 
         $today = now()->toDateString();
-        $activeBookings = \App\Models\Booking::with(['room','student'])
-            ->whereHas('room', function ($q) use ($property) { $q->where('property_id', $property->id); })
+        $activeBookings = \App\Models\Booking::with(['room', 'student'])
+            ->whereHas('room', function ($q) use ($property) {
+                $q->where('property_id', $property->id);
+            })
             ->where('status', 'approved')
             ->where('check_in', '<=', $today)
             ->where('check_out', '>', $today)
             ->orderByDesc('created_at')
             ->get();
 
-        $pendingBookings = \App\Models\Booking::with(['room','student'])
-            ->whereHas('room', function ($q) use ($property) { $q->where('property_id', $property->id); })
+        $pendingBookings = \App\Models\Booking::with(['room', 'student'])
+            ->whereHas('room', function ($q) use ($property) {
+                $q->where('property_id', $property->id);
+            })
             ->where('status', 'pending')
             ->orderByDesc('created_at')
             ->get();
 
-        return view('landlord.properties.show', compact('property','activeBookings','pendingBookings'));
+        return view('landlord.properties.show', compact('property', 'activeBookings', 'pendingBookings'));
     }
 }
-
