@@ -247,7 +247,7 @@ class RoomController extends Controller
         $property = $this->getOwnedProperty($propertyId);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'detail_images.max' => 'You can upload a maximum of 10 additional photos at once.',
@@ -367,7 +367,7 @@ class RoomController extends Controller
         $this->authorize('update', $room);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'detail_images.max' => 'You can upload a maximum of 10 additional photos at once.',
@@ -521,7 +521,7 @@ class RoomController extends Controller
         $this->authorize('update', $property);
         $supportsAdvanceRequirement = Schema::hasColumn('rooms', 'requires_advance_payment');
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
         ];

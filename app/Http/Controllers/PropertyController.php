@@ -480,7 +480,7 @@ class PropertyController extends Controller
         $this->authorize('create', Property::class);
 
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
         ];
@@ -631,7 +631,7 @@ class PropertyController extends Controller
         $isDashboardQuickCreate = $request->boolean('from_dashboard');
         $isDraft = in_array($request->input('action'), ['draft', 'save_draft'], true) || $request->boolean('save_draft');
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
         ];
@@ -854,7 +854,7 @@ class PropertyController extends Controller
         $allowedAmenities = array_keys((array) config('property_amenities.flat', []));
         $houseRuleCategories = (array) config('property_house_rules.categories', []);
         $customMessages = [
-            'image.max' => 'Your photo is too large. Please choose an image under 5 MB.',
+            'image.max' => 'This photo is too large. Please choose one under 5 MB.',
             'image.image' => 'Please select a valid image file (JPG, PNG, or WebP).',
             'image.mimes' => 'Please select a valid image file (JPG, PNG, or WebP).',
         ];

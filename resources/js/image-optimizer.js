@@ -2,10 +2,11 @@
  * OBHS Landlord Mobile Image Optimizer (ESM Module)
  */
 export const CONFIG = {
-    maxSizeBytes: 5 * 1024 * 1024, // 5 MB
-    maxDimension: 2000,
-    initialQuality: 0.82,
-    fallbackQuality: 0.72,
+    maxSizeBytes: 5 * 1024 * 1024,           // 5 MB (5120 KiB) backend ceiling
+    compressThresholdBytes: 1.8 * 1024 * 1024, // 1.8 MB threshold to trigger mobile compression
+    maxDimension: 2000,                       // Max longest edge in pixels
+    initialQuality: 0.82,                     // Standard photo JPEG quality
+    fallbackQuality: 0.72,                    // If still over 5MB on first pass
     supportedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
 };
 
@@ -87,7 +88,7 @@ export async function optimizeFile(file, options) {
             return {
                 file,
                 optimized: false,
-                error: 'Your photo is too large. Please choose an image under 5 MB.'
+                error: 'This photo is too large. Please choose one under 5 MB.'
             };
         }
         return { file, optimized: false };
@@ -114,7 +115,7 @@ export async function optimizeFile(file, options) {
         }
     }
 
-    if (file.size <= opts.maxSizeBytes) {
+    if (file.size <= opts.compressThresholdBytes) {
         return { file, optimized: false };
     }
 
@@ -152,7 +153,7 @@ export async function optimizeFile(file, options) {
             return {
                 file,
                 optimized: false,
-                error: 'Your photo is too large. Please choose an image under 5 MB.'
+                error: 'This photo is too large. Please choose one under 5 MB.'
             };
         }
 

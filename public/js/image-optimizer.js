@@ -16,10 +16,11 @@
     'use strict';
 
     const CONFIG = {
-        maxSizeBytes: 5 * 1024 * 1024, // 5 MB (5120 KiB)
-        maxDimension: 2000,             // Max longest edge in pixels
-        initialQuality: 0.82,           // Standard photo JPEG quality
-        fallbackQuality: 0.72,          // If still over 5MB on first pass
+        maxSizeBytes: 5 * 1024 * 1024,           // 5 MB (5120 KiB) backend ceiling
+        compressThresholdBytes: 1.8 * 1024 * 1024, // 1.8 MB threshold to trigger mobile compression
+        maxDimension: 2000,                       // Max longest edge in pixels
+        initialQuality: 0.82,                     // Standard photo JPEG quality
+        fallbackQuality: 0.72,                    // If still over 5MB on first pass
         supportedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
     };
 
@@ -123,7 +124,7 @@
                 return {
                     file,
                     optimized: false,
-                    error: 'Your photo is too large. Please choose an image under 5 MB.'
+                    error: 'This photo is too large. Please choose one under 5 MB.'
                 };
             }
             return { file, optimized: false };
@@ -151,8 +152,8 @@
             }
         }
 
-        // If already within 5MB and reasonable size, keep original
-        if (file.size <= opts.maxSizeBytes) {
+        // If already within compression threshold (under 1.8 MB), preserve original
+        if (file.size <= opts.compressThresholdBytes) {
             return { file, optimized: false };
         }
 
@@ -196,7 +197,7 @@
                 return {
                     file,
                     optimized: false,
-                    error: 'Your photo is too large. Please choose an image under 5 MB.'
+                    error: 'This photo is too large. Please choose one under 5 MB.'
                 };
             }
 

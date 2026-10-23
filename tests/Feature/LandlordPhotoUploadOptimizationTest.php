@@ -186,7 +186,7 @@ class LandlordPhotoUploadOptimizationTest extends TestCase
 
         $response->assertSessionHasErrors(['image']);
         $error = session('errors')->first('image');
-        $this->assertSame('Your photo is too large. Please choose an image under 5 MB.', $error);
+        $this->assertSame('This photo is too large. Please choose one under 5 MB.', $error);
     }
 
     // 6. Invalid MIME content
@@ -373,7 +373,7 @@ class LandlordPhotoUploadOptimizationTest extends TestCase
 
         $response->assertSessionHasErrors(['image']);
         $error = session('errors')->first('image');
-        $this->assertSame('Your photo is too large. Please choose an image under 5 MB.', $error);
+        $this->assertSame('This photo is too large. Please choose one under 5 MB.', $error);
     }
 
     // 14. Property editing replacement
@@ -405,7 +405,7 @@ class LandlordPhotoUploadOptimizationTest extends TestCase
             ]
         );
 
-        $response->assertRedirect(route('landlord.properties.index'));
+        $response->assertRedirect(route('landlord.properties.show', $this->property->id));
         $this->property->refresh();
         $this->assertNotSame($oldPath, $this->property->image_path);
     }
@@ -593,7 +593,7 @@ class LandlordPhotoUploadOptimizationTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['image']);
         $error = $response->json('errors.image.0');
-        $this->assertSame('Your photo is too large. Please choose an image under 5 MB.', $error);
+        $this->assertSame('This photo is too large. Please choose one under 5 MB.', $error);
     }
 
     // 22. Strict security: no arbitrary file execution disguised as image
