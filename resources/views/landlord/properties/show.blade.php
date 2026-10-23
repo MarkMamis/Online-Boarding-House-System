@@ -128,17 +128,59 @@
                 </div>
             </div>
 
-            {{-- Header Actions: Add Room (Primary) and Edit Property (Secondary) --}}
+            {{-- Header Actions --}}
             <div class="d-flex align-items-center gap-2 flex-wrap flex-shrink-0 w-100 w-md-auto justify-content-start justify-content-md-end">
-                <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand rounded-pill px-3 py-2">
-                    <i class="bi bi-plus-lg me-1"></i> Add Room
-                </a>
-                <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
-                    <i class="bi bi-pencil me-1"></i> Edit Property
-                </a>
+                @if($approvalStatus === 'draft')
+                    <a href="{{ route('landlord.properties.edit', ['property' => $property->id, 'panel' => 3]) }}" class="btn btn-brand rounded-pill px-3 py-2 fw-semibold">
+                        <i class="bi bi-send-check me-1"></i> Review &amp; Submit
+                    </a>
+                    <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
+                        <i class="bi bi-pencil me-1"></i> Edit Property
+                    </a>
+                    <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Add Room
+                    </a>
+                @elseif($approvalStatus === 'pending')
+                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 small fw-semibold">
+                        <i class="bi bi-clock-history me-1"></i> Waiting for Admin review
+                    </span>
+                    <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand rounded-pill px-3 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Add Room
+                    </a>
+                    <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
+                        <i class="bi bi-pencil me-1"></i> Edit Property
+                    </a>
+                @else
+                    <a href="{{ route('landlord.properties.rooms.create', $property->id) }}" class="btn btn-brand rounded-pill px-3 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Add Room
+                    </a>
+                    <a href="{{ route('landlord.properties.edit', $property->id) }}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
+                        <i class="bi bi-pencil me-1"></i> Edit Property
+                    </a>
+                @endif
             </div>
         </div>
     </header>
+
+    {{-- Contextual Review State Banners --}}
+    @if($approvalStatus === 'draft')
+        <div class="alert alert-warning border-0 rounded-4 p-3 mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill text-warning fs-5 flex-shrink-0"></i>
+                <span class="small text-dark">Your property is saved but hasn't been submitted for approval.</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <a href="{{ route('landlord.properties.edit', ['property' => $property->id, 'panel' => 3]) }}" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold">
+                    Review &amp; Submit
+                </a>
+            </div>
+        </div>
+    @elseif($approvalStatus === 'pending')
+        <div class="alert alert-info border-0 rounded-4 p-3 mb-3 d-flex align-items-center gap-2 shadow-sm">
+            <i class="bi bi-hourglass-split text-primary fs-5 flex-shrink-0"></i>
+            <span class="small text-dark">Waiting for Admin review. Your property submission is queued for administrative review.</span>
+        </div>
+    @endif
 
     {{-- 2. Compact Room Availability Summary Strip --}}
     <div class="property-summary-bar rounded-pill px-3 py-2 mb-4 d-inline-flex flex-wrap align-items-center gap-2">

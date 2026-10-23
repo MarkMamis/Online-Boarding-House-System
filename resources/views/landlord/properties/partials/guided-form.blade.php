@@ -5,11 +5,21 @@
     $errorKeys = $errors->keys();
     $initialPanel = 0;
 
-    if (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['latitude', 'longitude'], true))) {
+    if (request()->has('panel')) {
+        $initialPanel = max(0, min(3, (int) request('panel')));
+    } elseif (request()->boolean('review')) {
+        $initialPanel = 3;
+    } elseif (collect($errorKeys)->contains(fn ($key) => in_array((string) $key, ['latitude', 'longitude'], true))) {
         $initialPanel = 2;
     } elseif (collect($errorKeys)->contains(fn ($key) => str_starts_with((string) $key, 'house_rules') || str_starts_with((string) $key, 'building_inclusions') || str_starts_with((string) $key, 'building_inclusion_custom'))) {
         $initialPanel = 1;
     }
+
+    $isDraft = isset($property) && $property && ($property->approval_status ?? 'draft') === 'draft';
+    $missingRequirements = $isDraft && method_exists($property, 'getMissingSubmissionRequirements')
+        ? $property->getMissingSubmissionRequirements()
+        : [];
+    $isSubmittable = $isDraft && empty($missingRequirements);
 
     $amenityCategories = (array) config('property_amenities.categories', []);
     $allowedAmenityKeys = collect((array) config('property_amenities.flat', []))
@@ -465,7 +475,32 @@
                     </div>
                 </div>
 
-                @if(!$isEdit)
+                @if($isDraft && !empty($missingRequirements))
+                    <div class="alert alert-warning border-0 rounded-3 mb-4 p-3 shadow-sm">
+                        <div class="fw-bold mb-1 d-flex align-items-center gap-2 text-warning-emphasis">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Required Information Missing for Submission</span>
+                        </div>
+                        <p class="small text-muted mb-2">You can save your progress as a draft anytime, but the following must be provided before submitting for Admin approval:</p>
+                        <ul class="mb-0 ps-3 small text-secondary">
+                            @foreach($missingRequirements as $req)
+                                <li class="mb-1">
+                                    <strong>{{ $req['label'] }}:</strong> {{ $req['message'] }}
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-success fw-semibold text-decoration-none" onclick="showPanel({{ $req['panel'] }})">
+                                        Go to Section &rarr;
+                                    </button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @elseif($isDraft)
+                    <div class="alert alert-success border-0 rounded-3 d-flex align-items-center gap-2 mb-4 p-3 text-secondary border shadow-sm">
+                        <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"></i>
+                        <div class="small">
+                            <strong class="text-dark">Ready for Submission:</strong> All essential property details have been completed. You can submit now for Admin approval or save changes to continue editing later.
+                        </div>
+                    </div>
+                @elseif(!$isEdit)
                     <div class="alert alert-info border-0 rounded-3 bg-light d-flex align-items-center gap-2 mb-4 p-3 text-secondary">
                         <i class="bi bi-info-circle text-primary fs-5 flex-shrink-0"></i>
                         <div class="small">
@@ -479,13 +514,20 @@
                     <button type="button" class="btn-prev" data-target="2">
                         <i class="bi bi-arrow-left me-1"></i> Previous
                     </button>
-                    <div class="actions-right">
-                        @if($isEdit)
-                            <button type="submit" class="btn-submit btn-primary-green" id="submitPropertyBtn">
+                    <div class="actions-right d-flex align-items-center gap-2">
+                        @if($isEdit && $isDraft)
+                            <button type="submit" name="action" value="save_draft" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold" id="saveDraftBtn">
+                                Save Changes <i class="bi bi-check2 ms-1"></i>
+                            </button>
+                            <button type="submit" name="action" value="submit" class="btn-submit btn-primary-green rounded-pill px-4 py-2" id="submitPropertyBtn" {{ $isSubmittable ? '' : 'title="Complete all required fields above to submit for review"' }}>
+                                Submit for Review <i class="bi bi-send-check ms-1"></i>
+                            </button>
+                        @elseif($isEdit)
+                            <button type="submit" name="action" value="save" class="btn-submit btn-primary-green rounded-pill px-4 py-2" id="submitPropertyBtn">
                                 Save Changes <i class="bi bi-check2-circle ms-1"></i>
                             </button>
                         @else
-                            <button type="submit" name="action" value="submit" class="btn-submit btn-primary-green" id="submitPropertyBtn">
+                            <button type="submit" name="action" value="submit" class="btn-submit btn-primary-green rounded-pill px-4 py-2" id="submitPropertyBtn">
                                 Submit for Review <i class="bi bi-send-check ms-1"></i>
                             </button>
                         @endif
@@ -1657,14 +1699,45 @@
             });
         }
 
-        // Prevent double submission on final save
+        // Prevent double submission on final save and preserve clicked action value
         const submitBtn = document.getElementById('submitPropertyBtn');
+        const saveDraftBtn = document.getElementById('saveDraftBtn');
+        let clickedAction = null;
+
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function () {
+                clickedAction = this.value || 'submit';
+            });
+        }
+        if (saveDraftBtn) {
+            saveDraftBtn.addEventListener('click', function () {
+                clickedAction = this.value || 'save_draft';
+            });
+        }
+
         form.addEventListener('submit', function () {
+            if (clickedAction) {
+                let actionInput = form.querySelector('input[name="action"]');
+                if (!actionInput) {
+                    actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    form.appendChild(actionInput);
+                }
+                actionInput.value = clickedAction;
+            }
+
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Saving...';
             }
+            if (saveDraftBtn) {
+                saveDraftBtn.disabled = true;
+            }
         });
+
+        // Expose showPanel to global scope for quick jumping from checklist
+        window.showPanel = showPanel;
 
         // Beforeunload safety warning if save is pending (Create mode only)
         if (!isEditMode) {

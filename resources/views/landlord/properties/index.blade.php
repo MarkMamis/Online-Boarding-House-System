@@ -97,7 +97,7 @@
                             @if(($prop->approval_status ?? $prop->status) === 'approved')
                                 <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle small">Approved</span>
                             @elseif(($prop->approval_status ?? $prop->status) === 'draft')
-                                <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle small">Draft</span>
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle small"><i class="bi bi-pencil me-1"></i>Draft / Not submitted</span>
                             @elseif(($prop->approval_status ?? $prop->status) === 'rejected')
                                 <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle small">Rejected</span>
                             @else
@@ -154,9 +154,24 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2 property-actions justify-content-md-end align-self-md-start pt-2 pt-md-0">
-                        <a class="btn btn-sm btn-brand rounded-pill px-3" href="{{ route('landlord.properties.show', $prop->id) }}">
-                            Manage Property
-                        </a>
+                        @if(($prop->approval_status ?? $prop->status) === 'draft')
+                            @if(method_exists($prop, 'isCompleteForSubmission') && $prop->isCompleteForSubmission())
+                                <a class="btn btn-sm btn-brand rounded-pill px-3 fw-semibold" href="{{ route('landlord.properties.edit', ['property' => $prop->id, 'panel' => 3]) }}">
+                                    <i class="bi bi-send-check me-1"></i> Review &amp; Submit
+                                </a>
+                            @else
+                                <a class="btn btn-sm btn-brand rounded-pill px-3 fw-semibold" href="{{ route('landlord.properties.edit', $prop->id) }}">
+                                    <i class="bi bi-arrow-right-circle me-1"></i> Continue Setup
+                                </a>
+                            @endif
+                            <a class="btn btn-sm btn-outline-secondary rounded-pill px-3" href="{{ route('landlord.properties.show', $prop->id) }}">
+                                Manage
+                            </a>
+                        @else
+                            <a class="btn btn-sm btn-brand rounded-pill px-3" href="{{ route('landlord.properties.show', $prop->id) }}">
+                                Manage Property
+                            </a>
+                        @endif
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary btn-icon rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions">
                                 <i class="bi bi-three-dots-vertical"></i>

@@ -418,6 +418,7 @@ Route::middleware(['auth', 'verified', 'role:landlord'])->group(function () {
         Route::get('/landlord/properties/{property}', [PropertyController::class, 'show'])->name('landlord.properties.show');
         Route::get('/landlord/properties/{property}/edit', [PropertyController::class, 'edit'])->name('landlord.properties.edit');
         Route::put('/landlord/properties/{property}', [PropertyController::class, 'update'])->name('landlord.properties.update');
+        Route::post('/landlord/properties/{property}/submit', [PropertyController::class, 'submit'])->name('landlord.properties.submit');
         Route::delete('/landlord/properties/{property}', [PropertyController::class, 'destroy'])->name('landlord.properties.destroy');
 
         // Landlord room management (nested under property)

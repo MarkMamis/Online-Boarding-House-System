@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use App\Models\Room;
+use App\Models\User;
 use App\Notifications\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,17 +34,23 @@ class PropertyController extends Controller
         $this->ensureAdmin();
 
         $statusFilter = strtolower((string) request('status', 'pending'));
-        if (! in_array($statusFilter, ['pending', 'approved', 'rejected', 'all'], true)) {
+        if (! in_array($statusFilter, ['pending', 'approved', 'rejected', 'all', 'draft'], true)) {
             $statusFilter = 'pending';
         }
 
         $propertiesQuery = Property::with(['landlord']);
-        if ($statusFilter !== 'all') {
+        if ($statusFilter === 'all') {
+            // "All Submissions" queue: actual review submissions, excluding draft properties
+            $propertiesQuery->whereIn('approval_status', ['pending', 'approved', 'rejected']);
+        } elseif ($statusFilter === 'draft') {
+            // Dedicated Draft monitoring queue
+            $propertiesQuery->where('approval_status', 'draft');
+        } else {
             $propertiesQuery->where('approval_status', $statusFilter);
         }
 
         $properties = $propertiesQuery
-            ->orderByDesc('created_at')
+            ->orderByRaw('COALESCE(submitted_at, created_at) DESC')
             ->paginate(20)
             ->withQueryString();
 
@@ -51,7 +58,8 @@ class PropertyController extends Controller
             'pending' => Property::where('approval_status', 'pending')->count(),
             'approved' => Property::where('approval_status', 'approved')->count(),
             'rejected' => Property::where('approval_status', 'rejected')->count(),
-            'all' => Property::count(),
+            'all' => Property::whereIn('approval_status', ['pending', 'approved', 'rejected'])->count(),
+            'draft' => Property::where('approval_status', 'draft')->count(),
         ];
 
         return view('admin.properties.pending', compact('properties', 'statusFilter', 'counts'));
@@ -265,6 +273,9 @@ class PropertyController extends Controller
             'name' => $property->name,
             'approval_status' => $property->approval_status ?? 'pending',
             'created_at_formatted' => $property->created_at?->format('M d, Y') ?? 'N/A',
+            'submitted_at_formatted' => $property->submitted_at?->format('M d, Y h:i A') ?? ($property->approval_status === 'draft' ? 'Not yet submitted' : ($property->created_at?->format('M d, Y h:i A') ?? 'N/A')),
+            'last_saved_formatted' => ($property->updated_at ?? $property->created_at)?->format('M d, Y h:i A') ?? 'N/A',
+            'can_review' => $property->approval_status !== 'draft',
             'address' => $property->address ?: 'Address not set',
             'latitude' => $property->latitude ? (float) $property->latitude : null,
             'longitude' => $property->longitude ? (float) $property->longitude : null,
@@ -304,14 +315,25 @@ class PropertyController extends Controller
             'building_inclusions' => $buildingServices,
             'rooms' => $roomsData,
             'full_details_url' => route('admin.properties.show', $property),
-            'approve_url' => route('admin.properties.approve', $property),
-            'reject_url' => route('admin.properties.reject', $property),
+            'approve_url' => $property->approval_status !== 'draft' ? route('admin.properties.approve', $property) : null,
+            'reject_url' => $property->approval_status !== 'draft' ? route('admin.properties.reject', $property) : null,
         ]);
     }
 
     public function adminApprove(Property $property)
     {
         $this->ensureAdmin();
+
+        if ($property->approval_status === 'draft') {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot approve a property that is still in draft and has not been submitted for review.',
+                ], 422);
+            }
+
+            return back()->with('error', 'Cannot approve a property that is still in draft and has not been submitted for review.');
+        }
 
         $property->update([
             'approval_status' => 'approved',
@@ -353,6 +375,17 @@ class PropertyController extends Controller
     public function adminReject(Request $request, Property $property)
     {
         $this->ensureAdmin();
+
+        if ($property->approval_status === 'draft') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot reject a property that is still in draft and has not been submitted for review.',
+                ], 422);
+            }
+
+            return back()->with('error', 'Cannot reject a property that is still in draft and has not been submitted for review.');
+        }
 
         $request->validate([
             'rejection_reason' => 'required|string|max:500',
@@ -491,6 +524,7 @@ class PropertyController extends Controller
             if ($property->approval_status !== 'draft') {
                 return response()->json([
                     'success' => false,
+                    'approval_status' => $property->approval_status,
                     'message' => 'Cannot auto-save a property that has already been submitted for review.',
                 ], 422);
             }
@@ -698,16 +732,24 @@ class PropertyController extends Controller
 
         $existingDraft = null;
         if ($request->filled('property_id')) {
-            $existingDraft = Property::where('id', $request->input('property_id'))
+            $existingProperty = Property::where('id', $request->input('property_id'))
                 ->where('landlord_id', Auth::id())
-                ->where('approval_status', 'draft')
                 ->first();
+
+            if ($existingProperty) {
+                if ($existingProperty->approval_status !== 'draft') {
+                    return redirect()->route('landlord.properties.show', $existingProperty->id)
+                        ->with('info', 'This property has already been submitted for review.');
+                }
+                $existingDraft = $existingProperty;
+            }
         }
 
         $propertyData = [
             'landlord_id' => Auth::id(),
             'image_path' => $existingDraft && ! $coverImagePending ? $existingDraft->image_path : $imagePath,
             'approval_status' => $isDraft ? 'draft' : 'pending',
+            'submitted_at' => $isDraft ? null : now(),
             'name' => $request->name,
             'address' => $request->address,
             'latitude' => $request->latitude,
@@ -766,9 +808,28 @@ class PropertyController extends Controller
             $property->refreshPriceRange();
         }
 
+        if (! $isDraft) {
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                try {
+                    $admin->notify(new SystemNotification(
+                        'New property submitted for review',
+                        sprintf('Landlord %s submitted "%s" for approval.', Auth::user()->full_name ?: Auth::user()->name, $property->name),
+                        route('admin.property_reviews.index', ['status' => 'pending']),
+                        [
+                            'type' => 'property_submission',
+                            'property_id' => $property->id,
+                        ]
+                    ));
+                } catch (\Throwable $e) {
+                    // ignore notification/email transport errors
+                }
+            }
+        }
+
         $successMsg = $isDraft
             ? 'Boarding house saved as draft. You can continue setup and add rooms inside.'
-            : ('Property created successfully.'.($request->filled('initial_room_number') ? ' First room added.' : ''));
+            : ('Property submitted for review successfully.'.($request->filled('initial_room_number') ? ' First room added.' : ''));
         if ($request->boolean('from_dashboard')) {
             return redirect()->route('landlord.dashboard')->with('success', $successMsg);
         }
@@ -915,7 +976,97 @@ class PropertyController extends Controller
 
         $property->refreshPriceRange();
 
-        return redirect()->route('landlord.properties.index')->with('success', 'Property updated.');
+        $isSubmitAction = in_array(strtolower((string) $request->input('action')), ['submit', 'submit_review'], true);
+
+        if ($isSubmitAction && $property->approval_status === 'draft') {
+            $missing = $property->fresh()->getMissingSubmissionRequirements();
+            if (! empty($missing)) {
+                $errorBag = [];
+                foreach ($missing as $item) {
+                    $errorBag[$item['field'] ?? 'submission'] = $item['message'];
+                }
+
+                return redirect()->route('landlord.properties.edit', ['property' => $property->id, 'panel' => 3])
+                    ->withErrors($errorBag)
+                    ->with('error', 'Please complete all required fields before submitting for review.');
+            }
+
+            $property->update([
+                'approval_status' => 'pending',
+                'submitted_at' => now(),
+            ]);
+
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                try {
+                    $admin->notify(new SystemNotification(
+                        'New property submitted for review',
+                        sprintf('Landlord %s submitted "%s" for approval.', Auth::user()->full_name ?: Auth::user()->name, $property->name),
+                        route('admin.property_reviews.index', ['status' => 'pending']),
+                        [
+                            'type' => 'property_submission',
+                            'property_id' => $property->id,
+                        ]
+                    ));
+                } catch (\Throwable $e) {
+                    // ignore notification/email transport errors
+                }
+            }
+
+            return redirect()->route('landlord.properties.show', $property->id)
+                ->with('success', 'Property submitted for administrative review successfully! An administrator will evaluate your listing.');
+        }
+
+        return redirect()->route('landlord.properties.show', $property->id)
+            ->with('success', 'Property updated successfully.');
+    }
+
+    public function submit(Property $property)
+    {
+        $this->ensureLandlord();
+        $this->authorize('update', $property);
+
+        if ($property->approval_status !== 'draft') {
+            return redirect()->route('landlord.properties.show', $property->id)
+                ->with('info', 'This property has already been submitted for review.');
+        }
+
+        $missing = $property->getMissingSubmissionRequirements();
+        if (! empty($missing)) {
+            $errorBag = [];
+            foreach ($missing as $item) {
+                $errorBag[$item['field'] ?? 'submission'] = $item['message'];
+            }
+
+            return redirect()->route('landlord.properties.edit', ['property' => $property->id, 'panel' => 3])
+                ->withErrors($errorBag)
+                ->with('error', 'Please complete all required fields before submitting for review.');
+        }
+
+        $property->update([
+            'approval_status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            try {
+                $admin->notify(new SystemNotification(
+                    'New property submitted for review',
+                    sprintf('Landlord %s submitted "%s" for approval.', Auth::user()->full_name ?: Auth::user()->name, $property->name),
+                    route('admin.property_reviews.index', ['status' => 'pending']),
+                    [
+                        'type' => 'property_submission',
+                        'property_id' => $property->id,
+                    ]
+                ));
+            } catch (\Throwable $e) {
+                // ignore notification/email transport errors
+            }
+        }
+
+        return redirect()->route('landlord.properties.show', $property->id)
+            ->with('success', 'Property submitted for administrative review successfully! An administrator will evaluate your listing.');
     }
 
     public function destroy(Property $property)
