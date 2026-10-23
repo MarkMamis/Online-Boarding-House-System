@@ -1257,7 +1257,9 @@ class AuthController extends Controller
             'Business permit approved',
             'Your business permit has been approved. You can now proceed with full landlord operations.',
             route('landlord.dashboard'),
-            ['type' => 'permit_approved']
+            ['type' => 'permit_approved'],
+            sendEmail: true,
+            actionText: 'Go to Landlord Dashboard'
         ));
 
         return back()->with('success', 'Business permit approved successfully.');
@@ -1319,7 +1321,9 @@ class AuthController extends Controller
             [
                 'type' => 'permit_rejected',
                 'reason' => $validated['rejection_reason'],
-            ]
+            ],
+            sendEmail: true,
+            actionText: 'Review Permit Status'
         ));
 
         return back()->with('success', 'Business permit rejected and landlord notified.');
@@ -1374,7 +1378,9 @@ class AuthController extends Controller
             'Safety certificate approved',
             'Your safety certificate has been approved.',
             route('landlord.dashboard'),
-            ['type' => 'safety_certificate_approved']
+            ['type' => 'safety_certificate_approved'],
+            sendEmail: true,
+            actionText: 'Go to Landlord Dashboard'
         ));
 
         return back()->with('success', 'Safety certificate approved successfully.');
@@ -1436,7 +1442,9 @@ class AuthController extends Controller
             [
                 'type' => 'safety_certificate_rejected',
                 'reason' => $validated['rejection_reason'],
-            ]
+            ],
+            sendEmail: true,
+            actionText: 'Review Safety Certificate'
         ));
 
         return back()->with('success', 'Safety certificate rejected and landlord notified.');
@@ -1757,7 +1765,9 @@ class AuthController extends Controller
             'Academic verification approved',
             'Your School ID/COR/COE verification has been approved. Booking is now enabled for your account.',
             route('student.dashboard'),
-            ['type' => 'student_verification_approved']
+            ['type' => 'student_verification_approved'],
+            sendEmail: true,
+            actionText: 'Go to Student Dashboard'
         ));
 
         return back()->with('success', 'Student academic verification approved successfully.');
@@ -1812,7 +1822,9 @@ class AuthController extends Controller
             [
                 'type' => 'student_verification_rejected',
                 'reason' => $validated['rejection_reason'],
-            ]
+            ],
+            sendEmail: true,
+            actionText: 'Update Verification'
         ));
 
         return back()->with('success', 'Student academic verification rejected and student notified.');
@@ -1876,7 +1888,9 @@ class AuthController extends Controller
                 'type' => 'student_verification_info_requested',
                 'request_student_id' => $reqStudentId,
                 'request_school_id_photo' => $reqSchoolIdPhoto,
-            ]
+            ],
+            sendEmail: true,
+            actionText: 'View Verification Request'
         ));
 
         return back()->with('success', 'Additional information request sent to student successfully.');
@@ -2076,6 +2090,7 @@ class AuthController extends Controller
             'approved_properties' => Property::where('approval_status', 'approved')->count(),
             'pending_properties' => Property::where('approval_status', 'pending')->count(),
             'rejected_properties' => Property::where('approval_status', 'rejected')->count(),
+            'draft_properties' => Property::where('approval_status', 'draft')->count(),
             'available_rooms' => Room::where('status', 'available')->where('slots_available', '>', 0)->count(),
             'available_slots' => (int) Room::where('status', 'available')->sum('slots_available'),
         ];

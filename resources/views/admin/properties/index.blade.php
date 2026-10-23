@@ -730,6 +730,11 @@
             <span>Rejected</span>
             <span class="badge bg-light text-dark ms-1" id="tabCountRejected">{{ number_format($summary['rejected_properties'] ?? 0) }}</span>
         </a>
+        <a href="{{ route('admin.properties.index', array_merge(request()->except(['page']), ['status' => 'draft'])) }}"
+           class="filter-chip {{ $statusFilter === 'draft' ? 'active' : '' }}">
+            <span>Drafts</span>
+            <span class="badge bg-light text-dark ms-1" id="tabCountDraft">{{ number_format($summary['draft_properties'] ?? 0) }}</span>
+        </a>
     </div>
 
     {{-- 3. VIEW MODE & FILTER TOOLBAR --}}
@@ -780,6 +785,7 @@
                         <option value="approved" {{ $statusFilter === 'approved' ? 'selected' : '' }}>Approved</option>
                         <option value="pending" {{ $statusFilter === 'pending' ? 'selected' : '' }}>Pending Review</option>
                         <option value="rejected" {{ $statusFilter === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                        <option value="draft" {{ $statusFilter === 'draft' ? 'selected' : '' }}>Draft (Not submitted)</option>
                     </select>
                 </div>
 
@@ -913,6 +919,10 @@
                                                   title="{{ $property->rejection_reason ?? 'Rejected' }}">
                                                 <i class="bi bi-x-circle-fill me-1"></i>Rejected
                                             </span>
+                                        @elseif(($property->approval_status ?? 'pending') === 'draft')
+                                            <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2 py-1">
+                                                <i class="bi bi-pencil me-1"></i>Draft
+                                            </span>
                                         @else
                                             <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
                                                 <i class="bi bi-clock-fill me-1"></i>Pending Review
@@ -975,6 +985,10 @@
                                 @elseif(($property->approval_status ?? 'pending') === 'rejected')
                                     <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis border border-danger-subtle px-2 py-1">
                                         Rejected
+                                    </span>
+                                @elseif(($property->approval_status ?? 'pending') === 'draft')
+                                    <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle px-2 py-1">
+                                        Draft
                                     </span>
                                 @else
                                     <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
