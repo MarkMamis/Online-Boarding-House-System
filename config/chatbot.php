@@ -9,6 +9,7 @@ return [
     'rate_limit_per_minute' => (int) env('CHATBOT_RATE_LIMIT_PER_MINUTE', 20),
     'max_tool_iterations' => (int) env('CHATBOT_MAX_TOOL_ITERATIONS', 4),
     'history_message_limit' => (int) env('CHATBOT_HISTORY_MESSAGE_LIMIT', 10),
+    'ui_enabled' => filter_var(env('CHATBOT_UI_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
 
     /*
     |--------------------------------------------------------------------------

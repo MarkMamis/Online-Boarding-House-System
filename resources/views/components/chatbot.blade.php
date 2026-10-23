@@ -1,3 +1,4 @@
+@if (config('features.chatbot_ui_enabled', false))
 @php
     $chatbotRole = Auth::user()->role ?? 'guest';
 @endphp
@@ -995,3 +996,4 @@
         });
     })();
 </script>
+@endif

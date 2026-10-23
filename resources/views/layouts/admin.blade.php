@@ -1839,7 +1839,9 @@
         });
     </script>
     <x-toast />
-    <x-chatbot />
+    @if (config('features.chatbot_ui_enabled', false))
+        <x-chatbot />
+    @endif
     @stack('scripts')
 </body>
 </html>
