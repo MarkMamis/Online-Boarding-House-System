@@ -11,7 +11,10 @@ class EnsureStudentSetupComplete
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
             abort(403);
         }
 
@@ -22,7 +25,14 @@ class EnsureStudentSetupComplete
             return $next($request);
         }
 
-        if (!$user->isStudentSetupComplete()) {
+        if (! $user->isStudentSetupComplete()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Please complete your student verification setup to access this feature.',
+                    'redirect' => route('student.setup.show'),
+                ], 403);
+            }
+
             return redirect()
                 ->route('student.setup.show')
                 ->with('error', 'Complete your student verification setup to unlock the full student portal.');

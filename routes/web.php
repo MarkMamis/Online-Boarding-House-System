@@ -232,7 +232,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Chatbot (global, authenticated)
-Route::middleware(['auth', 'verified', 'role.selected', 'student.setup'])->group(function () {
+Route::middleware(['auth', 'verified', 'role.selected'])->group(function () {
     Route::get('/chatbot/history', [ChatbotController::class, 'history'])->name('chatbot.history');
     Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message')->middleware('throttle:chatbot');
 });

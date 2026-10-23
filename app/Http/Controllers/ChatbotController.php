@@ -58,16 +58,31 @@ class ChatbotController extends Controller
             ];
         }
 
-        // Delegate reasoning and tool execution to the AI assistant
-        $response = $aiAssistant->handleMessage($conversation, $user, $content, $geoContext);
+        try {
+            // Delegate reasoning and tool execution to the AI assistant
+            $response = $aiAssistant->handleMessage($conversation, $user, $content, $geoContext);
 
-        $actions = $response['meta']['actions'] ?? [];
+            $actions = $response['meta']['actions'] ?? [];
 
-        return response()->json([
-            'reply' => $response['reply'],
-            'message' => $response['reply'],
-            'actions' => $actions,
-            'meta' => $response['meta'] ?? [],
-        ]);
+            return response()->json([
+                'reply' => $response['reply'],
+                'message' => $response['reply'],
+                'actions' => $actions,
+                'meta' => $response['meta'] ?? [],
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Chatbot assistant failure', [
+                'route' => 'chatbot.message',
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process your message right now. Please try again shortly.',
+                'reply' => 'Paumanhin, nagkaroon ng pansamantalang aberya sa sistema. Maaari kang sumubok muli mamaya.',
+            ], 500);
+        }
     }
 }

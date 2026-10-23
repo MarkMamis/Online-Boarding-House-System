@@ -21,10 +21,16 @@ class LandlordSetupController extends Controller
 
         $setupSnapshot = $this->getSetupSnapshot($user);
 
-        if ($setupSnapshot['setup_submitted'] && ! $request->has('step')) {
-            return redirect()
-                ->route('landlord.dashboard')
-                ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
+        if ($setupSnapshot['setup_submitted']) {
+            if (! ($user->onboarding_complete ?? false)) {
+                $user->forceFill(['onboarding_complete' => true])->save();
+            }
+
+            if (! $request->has('step')) {
+                return redirect()
+                    ->route('landlord.dashboard')
+                    ->with('success', 'Landlord setup is already submitted. You can update details from Profile anytime.');
+            }
         }
 
         $stepMap = [
@@ -333,8 +339,12 @@ class LandlordSetupController extends Controller
         $bankSetupComplete = filled(optional($landlordProfile)->payment_bank_name)
             && filled(optional($landlordProfile)->payment_account_name);
 
+        $gcashNumber = filled(optional($landlordProfile)->payment_gcash_number)
+            ? optional($landlordProfile)->payment_gcash_number
+            : $user->contact_number;
+
         $gcashSetupComplete = filled(optional($landlordProfile)->payment_gcash_name)
-            && filled(optional($landlordProfile)->payment_gcash_number);
+            && filled($gcashNumber);
 
         $requiresBank = $preferredPaymentMethods->contains('bank');
         $requiresGcash = $preferredPaymentMethods->contains('gcash');

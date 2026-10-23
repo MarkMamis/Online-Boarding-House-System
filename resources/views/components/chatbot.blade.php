@@ -805,8 +805,32 @@
 
         async function loadHistory() {
             try {
-                const res = await fetch('/chatbot/history');
-                if (!res.ok) return;
+                const res = await fetch('/chatbot/history', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (res.redirected) {
+                    console.warn('Chatbot history request redirected', res.url);
+                    return;
+                }
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        console.warn('Chatbot session expired');
+                    }
+                    return;
+                }
+
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    console.warn('Unexpected non-JSON response for chatbot history');
+                    return;
+                }
+
                 const data = await res.json();
                 list.innerHTML = '';
                 const messages = data.messages || [];
@@ -845,20 +869,63 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': csrf || '',
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify(payload),
                 });
 
                 removeTypingIndicator();
 
+                if (res.redirected) {
+                    addBubble('assistant', 'Your session may have changed or expired. Please refresh the page to continue chatting.');
+                    if (input && !input.value) {
+                        input.value = text;
+                    }
+                    return;
+                }
+
+                if (res.status === 401) {
+                    addBubble('assistant', 'Your session has expired. Please sign in again.');
+                    return;
+                }
+
+                if (res.status === 403) {
+                    const errData = await res.json().catch(() => ({}));
+                    addBubble('assistant', errData.message || 'Unable to access chatbot. Please complete your account setup.');
+                    return;
+                }
+
                 if (res.status === 429) {
                     addBubble('assistant', 'Masyadong mabilis ang pagpapadala ng mensahe. Mangyaring maghintay ng ilang segundo bago sumubok muli.');
+                    if (input && !input.value) {
+                        input.value = text;
+                    }
+                    return;
+                }
+
+                if (res.status === 422) {
+                    const valData = await res.json().catch(() => ({}));
+                    const valMsg = valData.message || 'Invalid message format. Please check your message.';
+                    addBubble('assistant', valMsg);
                     return;
                 }
 
                 if (!res.ok) {
-                    addBubble('assistant', 'Sorry, I could not reach the assistant right now. Please try again shortly.');
+                    addBubble('assistant', 'Unable to send your message. Please try again.');
+                    if (input && !input.value) {
+                        input.value = text;
+                    }
+                    return;
+                }
+
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    addBubble('assistant', 'Unable to receive response. Please try again.');
+                    if (input && !input.value) {
+                        input.value = text;
+                    }
                     return;
                 }
 
@@ -868,7 +935,10 @@
                 addBubble('assistant', replyText, data.meta || {}, actions);
             } catch (e) {
                 removeTypingIndicator();
-                addBubble('assistant', 'Sorry, an unexpected connection issue occurred.');
+                addBubble('assistant', 'Sorry, a connection issue occurred. Please try again.');
+                if (input && !input.value) {
+                    input.value = text;
+                }
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
                 if (input) {
