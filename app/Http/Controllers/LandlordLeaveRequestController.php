@@ -99,11 +99,13 @@ class LandlordLeaveRequestController extends Controller
                     'Leave request approved',
                     'Your landlord approved your leave request.',
                     route('student.dashboard') . '#onboarding',
-                    ['leave_request_id' => $leaveRequest->id]
+                    ['leave_request_id' => $leaveRequest->id],
+                    sendEmail: true,
+                    actionText: 'View Tenancy Status'
                 ));
             }
         } catch (\Throwable $e) {
-            // ignore
+            // ignore notification / email errors
         }
 
         return back()->with('success', 'Leave request approved.');
@@ -140,13 +142,20 @@ class LandlordLeaveRequestController extends Controller
             if ($student) {
                 $student->notify(new SystemNotification(
                     'Leave request rejected',
-                    'Your landlord rejected your leave request.',
+                    $leaveRequest->landlord_response
+                        ? 'Your landlord rejected your leave request. Reason: ' . $leaveRequest->landlord_response
+                        : 'Your landlord rejected your leave request.',
                     route('student.dashboard') . '#onboarding',
-                    ['leave_request_id' => $leaveRequest->id]
+                    [
+                        'leave_request_id' => $leaveRequest->id,
+                        'reason' => $leaveRequest->landlord_response,
+                    ],
+                    sendEmail: true,
+                    actionText: 'View Tenancy Details'
                 ));
             }
         } catch (\Throwable $e) {
-            // ignore
+            // ignore notification / email errors
         }
 
         return back()->with('success', 'Leave request rejected.');

@@ -225,6 +225,24 @@ class PaymentController extends Controller
 
         $this->applyApprovedMonthlyCycleToBooking($booking, $baseDueDate);
 
+        try {
+            $booking->loadMissing('room.property', 'student');
+            $booking->student?->notify(new SystemNotification(
+                'Rent payment confirmed',
+                sprintf(
+                    'Your rent payment for Room %s at %s has been confirmed by your landlord.',
+                    $booking->room?->room_number ?? '—',
+                    $booking->room?->property?->name ?? 'Property'
+                ),
+                route('student.bookings.index'),
+                ['booking_id' => $booking->id, 'due_date' => $baseDueDate->format('M d, Y')],
+                sendEmail: true,
+                actionText: 'View Payment History'
+            ));
+        } catch (\Throwable $e) {
+            // Ignore notification / email transport errors.
+        }
+
         return back()->with('success', 'Payment marked as received and recorded in ledger.');
     }
 
@@ -295,32 +313,12 @@ class PaymentController extends Controller
                     'due_date' => $dueDate,
                     'gcash_summary' => $gcashSummary,
                     'gcash_qr_url' => $qrUrl,
-                ]
+                ],
+                sendEmail: true,
+                actionText: 'View Payment Details'
             ));
         } catch (\Throwable $e) {
-            // Ignore notification storage errors.
-        }
-
-        try {
-            $emailLines = [
-                sprintf('Payment reminder for %s - Room %s.', $booking->room->property->name, $booking->room->room_number),
-                sprintf('Due date: %s', $dueDate),
-            ];
-
-            if ($gcashSummary) {
-                $emailLines[] = $gcashSummary;
-            }
-            if ($qrUrl) {
-                $emailLines[] = 'GCash QR: ' . $qrUrl;
-            }
-
-            $emailLines[] = 'Thank you.';
-
-            Mail::raw(implode("\n", $emailLines), function ($message) use ($booking) {
-                $message->to($booking->student->email)->subject('Payment Reminder');
-            });
-        } catch (\Throwable $e) {
-            // Ignore email transport errors for now.
+            // Ignore notification / email transport errors.
         }
 
         try {
@@ -476,6 +474,24 @@ class PaymentController extends Controller
         }
 
         $statusContext = $validated['status_context'] ?? $this->resolveStatusFilter($request->query('status'));
+
+        if (in_array($targetStatus, ['approved', 'rejected'], true)) {
+            try {
+                $booking->loadMissing('room.property', 'student');
+                $booking->student?->notify(new SystemNotification(
+                    $targetStatus === 'approved' ? 'Monthly payment approved' : 'Monthly payment rejected',
+                    $targetStatus === 'approved'
+                        ? sprintf('Your monthly payment for Room %s at %s was approved.', $booking->room?->room_number ?? '—', $booking->room?->property?->name ?? 'Property')
+                        : sprintf('Your monthly payment for Room %s at %s was rejected. Please review payment details.', $booking->room?->room_number ?? '—', $booking->room?->property?->name ?? 'Property'),
+                    route('student.bookings.index'),
+                    ['booking_id' => $booking->id, 'payment_id' => $record->id, 'status' => $targetStatus],
+                    sendEmail: true,
+                    actionText: 'View Payments'
+                ));
+            } catch (\Throwable $e) {
+                // Ignore notification / email transport errors.
+            }
+        }
 
         return redirect()
             ->route('landlord.payments.manage', ['booking' => $booking->id, 'status' => $statusContext])

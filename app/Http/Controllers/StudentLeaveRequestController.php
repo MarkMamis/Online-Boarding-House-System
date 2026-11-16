@@ -122,11 +122,17 @@ class StudentLeaveRequestController extends Controller
                         $booking->room->room_number ?? $booking->room_id
                     ),
                     route('landlord.leave_requests.index'),
-                    ['leave_request_id' => $leaveRequest->id, 'booking_id' => $booking->id]
+                    [
+                        'leave_request_id' => $leaveRequest->id,
+                        'booking_id' => $booking->id,
+                        'reason' => $leaveRequest->reason,
+                    ],
+                    sendEmail: true,
+                    actionText: 'Review Leave Request'
                 ));
             }
         } catch (\Throwable $e) {
-            // ignore notification errors
+            // ignore notification / email delivery errors
         }
 
         return $this->redirectBackToPanel($request)

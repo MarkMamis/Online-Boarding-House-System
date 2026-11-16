@@ -379,7 +379,14 @@ class StudentPaymentController extends Controller
         ];
 
         try {
-            $landlord->notify(new SystemNotification($title, $message, $url, $meta));
+            $landlord->notify(new SystemNotification(
+                $title,
+                $message,
+                $url,
+                $meta,
+                sendEmail: true,
+                actionText: 'Review Payment Submission'
+            ));
         } catch (\Throwable $e) {
             Log::warning('Primary landlord payment notification dispatch failed. Applying DB fallback.', [
                 'booking_id' => $booking->id,

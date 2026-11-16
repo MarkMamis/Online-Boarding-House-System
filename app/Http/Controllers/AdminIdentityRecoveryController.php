@@ -76,7 +76,9 @@ class AdminIdentityRecoveryController extends Controller
                 'Identity recovery approved',
                 'Your account recovery request for Student ID '.$recovery->student_id.' has been approved by an administrator. Please check your contact email for further instructions.',
                 route('student.setup.show'),
-                ['type' => 'identity_recovery_approved']
+                ['type' => 'identity_recovery_approved'],
+                sendEmail: true,
+                actionText: 'Access Student Account'
             ));
         }
 
@@ -105,7 +107,12 @@ class AdminIdentityRecoveryController extends Controller
                 'Identity recovery rejected',
                 'Your account recovery request for Student ID '.$recovery->student_id.' was rejected. Reason: '.$validated['admin_notes'],
                 route('student.setup.show'),
-                ['type' => 'identity_recovery_rejected', 'reason' => $validated['admin_notes']]
+                [
+                    'type' => 'identity_recovery_rejected',
+                    'reason' => $validated['admin_notes'],
+                ],
+                sendEmail: true,
+                actionText: 'Review Recovery Status'
             ));
         }
 

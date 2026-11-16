@@ -311,29 +311,12 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 route('landlord.bookings.index'),
-                ['booking_id' => $booking->id, 'room_id' => $room->id, 'property_id' => $room->property_id]
+                ['booking_id' => $booking->id, 'room_id' => $room->id, 'property_id' => $room->property_id],
+                sendEmail: true,
+                actionText: 'Review Booking Request'
             ));
         } catch (\Throwable $e) {
-            // ignore notifications storage errors
-        }
-
-        try {
-            Mail::raw(
-                sprintf(
-                    'New booking request for Room %s at %s (%s) from %s, %s to %s.',
-                    $room->room_number,
-                    $room->property->name,
-                    $room->property->address,
-                    Auth::user()->full_name,
-                    $booking->check_in->format('M d, Y'),
-                    $booking->check_out->format('M d, Y')
-                ),
-                function ($message) use ($landlord) {
-                    $message->to($landlord->email)->subject('New Boarding Request');
-                }
-            );
-        } catch (\Throwable $e) {
-            // ignore email transport errors for now
+            // ignore notification / email delivery errors to preserve booking creation
         }
 
         if ($stayOnPage) {
@@ -477,27 +460,12 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 route('student.onboarding.index'),
-                ['booking_id' => $booking->id]
+                ['booking_id' => $booking->id],
+                sendEmail: true,
+                actionText: 'Continue Onboarding'
             ));
         } catch (\Throwable $e) {
-            // ignore
-        }
-
-        try {
-            Mail::raw(
-                sprintf(
-                    'Your booking was approved for Room %s at %s, %s to %s. Please complete your tenant onboarding process.',
-                    $booking->room->room_number,
-                    $booking->room->property->name,
-                    $booking->check_in->format('M d, Y'),
-                    $booking->check_out->format('M d, Y')
-                ),
-                function ($message) use ($booking) {
-                    $message->to($booking->student->email)->subject('Boarding Request Approved - Complete Onboarding');
-                }
-            );
-        } catch (\Throwable $e) {
-            // ignore email transport errors
+            // ignore notification / email errors
         }
 
         // Create tenant onboarding record
@@ -531,27 +499,12 @@ class BookingController extends Controller
                     $booking->check_out->format('M d, Y')
                 ),
                 route('student.bookings.index'),
-                ['booking_id' => $booking->id]
+                ['booking_id' => $booking->id],
+                sendEmail: true,
+                actionText: 'View My Bookings'
             ));
         } catch (\Throwable $e) {
-            // ignore
-        }
-
-        try {
-            Mail::raw(
-                sprintf(
-                    'Your booking was rejected for Room %s at %s, %s to %s.',
-                    $booking->room->room_number,
-                    $booking->room->property->name,
-                    $booking->check_in->format('M d, Y'),
-                    $booking->check_out->format('M d, Y')
-                ),
-                function ($message) use ($booking) {
-                    $message->to($booking->student->email)->subject('Boarding Request Rejected');
-                }
-            );
-        } catch (\Throwable $e) {
-            // ignore email transport errors
+            // ignore notification / email errors
         }
 
         return back()->with('success', 'Boarding request rejected.');

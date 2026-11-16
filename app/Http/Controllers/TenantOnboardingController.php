@@ -822,7 +822,9 @@ class TenantOnboardingController extends Controller
                     'onboarding_id' => $onboarding->id,
                     'booking_id' => $onboarding->booking_id,
                     'student_id' => $onboarding->booking?->student_id,
-                ]
+                ],
+                sendEmail: true,
+                actionText: 'Review Onboarding'
             ));
         } catch (\Throwable $e) {
             // Ignore notification delivery errors to avoid blocking onboarding actions.
@@ -847,7 +849,9 @@ class TenantOnboardingController extends Controller
                     'onboarding_id' => $onboarding->id,
                     'booking_id' => $onboarding->booking_id,
                     'student_id' => $student->id,
-                ]
+                ],
+                sendEmail: true,
+                actionText: 'View Onboarding'
             ));
         } catch (\Throwable $e) {
             // Ignore notification delivery errors to avoid blocking onboarding actions.

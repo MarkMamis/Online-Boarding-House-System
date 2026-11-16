@@ -55,10 +55,12 @@ class NotifyOverduePayments extends Command
                         'booking_id' => $booking->id,
                         'student_id' => $student->id,
                         'due_date' => $dueDateLabel,
-                    ]
+                    ],
+                    sendEmail: true,
+                    actionText: 'Review Overdue Payments'
                 ));
             } catch (\Throwable $e) {
-                // Ignore notification storage errors.
+                // Ignore notification / email errors.
             }
 
             try {
@@ -74,27 +76,12 @@ class NotifyOverduePayments extends Command
                     [
                         'booking_id' => $booking->id,
                         'due_date' => $dueDateLabel,
-                    ]
+                    ],
+                    sendEmail: true,
+                    actionText: 'View My Booking'
                 ));
             } catch (\Throwable $e) {
-                // Ignore notification storage errors.
-            }
-
-            try {
-                Mail::raw(
-                    sprintf(
-                        "Overdue payment alert:\nTenant: %s\nProperty: %s\nRoom: %s\nDue date: %s\n\nOpen landlord payments to review and send reminder.",
-                        $student->full_name,
-                        $booking->room->property->name,
-                        $booking->room->room_number,
-                        $dueDateLabel
-                    ),
-                    function ($message) use ($landlord) {
-                        $message->to($landlord->email)->subject('Overdue Payment Alert');
-                    }
-                );
-            } catch (\Throwable $e) {
-                // Ignore email transport errors.
+                // Ignore notification / email errors.
             }
 
             $booking->last_overdue_notified_at = now();
