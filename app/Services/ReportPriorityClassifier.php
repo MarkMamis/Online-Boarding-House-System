@@ -13,44 +13,23 @@ class ReportPriorityClassifier
             return 'medium';
         }
 
-        $token = config('services.huggingface.token');
-        $model = (string) config('services.huggingface.model', 'deepseek-ai/DeepSeek-V4.1-Flash:novita');
-
-        if (empty($token)) {
+        $gemini = app(GeminiService::class);
+        if (!$gemini->isConfigured()) {
             return $this->heuristicClassify($content);
         }
 
         try {
-            $response = Http::withToken($token)
-                ->acceptJson()
-                ->timeout(15)
-                ->post('https://router.huggingface.co/v1/chat/completions', [
-                    'model' => $model,
-                    'stream' => false,
-                    'temperature' => 0,
-                    'max_tokens' => 6,
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => "You are a severity triage classifier for student accommodation reports. "
-                                . "Classify each report into exactly one label: low, medium, high. "
-                                . "Output ONLY one lowercase word from {low,medium,high}. "
-                                . "Use high for immediate safety/security risks or urgent hazards; "
-                                . "medium for important service disruptions; low for minor/non-urgent concerns.",
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => "Report title: {$title}\nReport description: {$description}",
-                        ],
-                    ],
-                ]);
+            $classified = $gemini->classify(
+                $content,
+                ['low', 'medium', 'high'],
+                "You are a severity triage classifier for student accommodation reports. "
+                . "Classify each report into exactly one label: low, medium, high. "
+                . "Use high for immediate safety/security risks or urgent hazards; "
+                . "medium for important service disruptions; low for minor/non-urgent concerns."
+            );
 
-            if ($response->successful()) {
-                $raw = $response->json('choices.0.message.content');
-                $normalized = $this->normalizePriority(is_string($raw) ? $raw : null);
-                if ($normalized !== null) {
-                    return $normalized;
-                }
+            if ($classified !== null) {
+                return $classified;
             }
         } catch (\Throwable $e) {
             // Fall through to heuristic classifier.

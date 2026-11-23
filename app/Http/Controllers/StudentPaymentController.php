@@ -207,12 +207,11 @@ class StudentPaymentController extends Controller
             'payment_method' => 'required|string|in:bank,gcash,cash',
             'payment_reference' => 'nullable|string|max:120',
             'payment_notes' => 'nullable|string|max:1000',
-            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
         ], [
             'payment_method.required' => 'Please select a payment method.',
             'payment_method.in' => 'Selected payment method is invalid.',
             'payment_proof.mimes' => 'Payment proof must be a JPG, PNG, or PDF file.',
-            'payment_proof.max' => 'Payment proof must not exceed 5MB.',
         ]);
 
         $validator->after(function ($validator) use ($request, $availablePaymentMethods, $hasBankDetails, $hasGcashDetails) {
@@ -259,6 +258,11 @@ class StudentPaymentController extends Controller
         $paymentProofPath = null;
 
         if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
+            $proofFile = $request->file('payment_proof');
+            if (!$proofFile->isValid()) {
+                return back()->withInput()->with('error', 'Payment proof file failed to upload: ' . $proofFile->getErrorMessage());
+            }
+
             // Create the payment row first so the object path can include its id.
             $payment = TenantPayment::create([
                 'booking_id' => $booking->id,

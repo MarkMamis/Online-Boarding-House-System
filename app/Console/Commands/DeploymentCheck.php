@@ -60,7 +60,7 @@ class DeploymentCheck extends Command
         // 6. Frontend Production Build
         $this->checkFrontendBuild($isProductionCheck);
 
-        // 7. Services & Integrations (R2, Mail, Hugging Face)
+        // 7. Services & Integrations (R2, Mail, Google Gemini)
         $this->checkServices();
 
         // Summary
@@ -318,12 +318,20 @@ class DeploymentCheck extends Command
             $this->recordPass('Cloudflare R2 not configured (Local public disk active as fallback)');
         }
 
-        // Hugging Face
-        $hfToken = config('services.huggingface.token');
-        if (!empty($hfToken)) {
-            $this->recordPass('Hugging Face AI Chatbot token is configured');
+        // Google Gemini AI
+        $geminiKey = config('services.gemini.api_key');
+        if (!empty($geminiKey)) {
+            $this->recordPass('Google Gemini AI API key is configured');
         } else {
-            $this->recordPass('Hugging Face AI token not configured (AI Chatbot operates in safe offline fallback mode)');
+            $this->recordPass('Google Gemini AI key not configured (AI Chatbot operates in safe offline fallback mode)');
+        }
+
+        // Chatbot UI Feature Flag (canonical: features.chatbot_ui_enabled)
+        $chatbotUi = (bool) config('features.chatbot_ui_enabled', false);
+        if ($chatbotUi) {
+            $this->recordPass('AI Chatbot UI is ENABLED (features.chatbot_ui_enabled = true)');
+        } else {
+            $this->recordWarn('AI Chatbot UI is DISABLED (features.chatbot_ui_enabled = false). Set CHATBOT_UI_ENABLED=true in .env');
         }
 
         // Queue

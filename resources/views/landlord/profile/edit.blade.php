@@ -93,7 +93,7 @@
                                                             @error('profile_image')
                                                                 <div class="invalid-feedback">{{ $message }}</div>
                                                             @enderror
-                                                            <div class="form-text">JPG, PNG, WEBP, GIF (max 2MB)</div>
+                                                            <div class="form-text">JPG, PNG, WEBP, GIF</div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -185,7 +185,7 @@
                                                     @error('business_permit')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                    <div class="form-text">Accepted: PDF, JPG, JPEG, PNG. Max size: 2MB.</div>
+                                                    <div class="form-text">Accepted: PDF, JPG, JPEG, PNG.</div>
                                                     @if(!empty(optional($user->landlordProfile)->business_permit_path))
                                                         <div class="mt-2">
                                                             <a href="{{ file_download_url(optional($user->landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">
@@ -298,7 +298,7 @@
                                                     @error('payment_gcash_qr')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                    <div class="form-text">Optional upload. Accepted: JPG, JPEG, PNG, WEBP. Max size: 2MB.</div>
+                                                    <div class="form-text">Optional upload. Accepted: JPG, JPEG, PNG, WEBP.</div>
                                                     @if(!empty(optional($user->landlordProfile)->payment_gcash_qr_path))
                                                         <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
                                                             <a href="{{ file_download_url(optional($user->landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill">

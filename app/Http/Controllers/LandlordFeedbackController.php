@@ -28,13 +28,15 @@ class LandlordFeedbackController extends Controller
 
     public function analyzePending()
     {
-        $token = config('services.huggingface.token');
-        if (empty($token)) {
-            return back()->with('status', 'HF_TOKEN is not configured.');
+        $gemini = app(\App\Services\GeminiService::class);
+        if (!$gemini->isConfigured()) {
+            return back()->with('status', 'Gemini API key is not configured.');
         }
 
         $baseQuery = RoomFeedback::query()
             ->whereNull('sentiment_label')
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
             ->whereHas('room.property', function ($q) {
                 $q->where('landlord_id', Auth::id());
             });
@@ -48,68 +50,32 @@ class LandlordFeedbackController extends Controller
 
         (clone $baseQuery)
             ->orderBy('created_at')
-            ->chunkById(25, function ($batch) use ($token, &$processed) {
+            ->chunkById(25, function ($batch) use ($gemini, &$processed) {
                 foreach ($batch as $feedback) {
-                    [$label, $score] = $this->analyzeComment($token, $feedback->comment);
-                    if ($label) {
-                        $feedback->sentiment_label = $label;
-                        $feedback->sentiment_score = $score;
-                        $feedback->save();
-                        $processed++;
+                    $comment = trim((string) $feedback->comment);
+                    if ($comment === '') {
+                        continue;
+                    }
+
+                    try {
+                        $label = $gemini->classify(
+                            $comment,
+                            ['positive', 'neutral', 'negative'],
+                            'You are a sentiment analyzer for student accommodation feedback. Classify the user comment into exactly one label: positive, neutral, negative.'
+                        );
+
+                        if ($label !== null) {
+                            $feedback->sentiment_label = $label;
+                            $feedback->sentiment_score = null;
+                            $feedback->save();
+                            $processed++;
+                        }
+                    } catch (\Throwable $e) {
+                        // Leave sentiment_label null so it can be retried on next run
                     }
                 }
             });
 
         return back()->with('status', "Sentiment analysis complete: {$processed} updated.");
-    }
-
-    private function analyzeComment(string $token, string $comment): array
-    {
-        try {
-            $response = Http::withToken($token)
-                ->acceptJson()
-                ->timeout(10)
-                ->post('https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis', [
-                    'inputs' => $comment,
-                ]);
-
-            if (!$response->successful()) {
-                return [null, null];
-            }
-
-            $data = $response->json();
-            $candidates = [];
-
-            if (is_array($data) && isset($data[0]) && is_array($data[0]) && isset($data[0]['label'])) {
-                $candidates = $data;
-            } elseif (is_array($data) && isset($data[0]) && is_array($data[0]) && isset($data[0][0]['label'])) {
-                $candidates = $data[0];
-            }
-
-            if (empty($candidates)) {
-                return [null, null];
-            }
-
-            usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
-            $best = $candidates[0] ?? null;
-            if (empty($best['label'])) {
-                return [null, null];
-            }
-
-            $label = strtolower((string) $best['label']);
-            if (str_contains($label, 'pos')) {
-                $label = 'positive';
-            } elseif (str_contains($label, 'neg')) {
-                $label = 'negative';
-            } elseif (str_contains($label, 'neu')) {
-                $label = 'neutral';
-            }
-
-            $score = isset($best['score']) ? (float) $best['score'] : null;
-
-            return [$label, $score];
-        } catch (\Throwable $e) {
-            return [null, null];
-        }
     }
 }

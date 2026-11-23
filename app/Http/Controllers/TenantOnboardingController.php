@@ -171,43 +171,114 @@ class TenantOnboardingController extends Controller
         $this->authorize('uploadDocuments', $onboarding);
 
         $onboarding->load('booking.student', 'booking.room.property.landlord');
-        $requiredDocumentCount = max(1, count((array) ($onboarding->required_documents ?? [])));
 
-        try {
-            $request->validate([
-                'documents' => 'required|array|min:' . $requiredDocumentCount,
-                'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
-            ], [
-                'documents.required' => 'Please upload all required documents before continuing.',
-                'documents.array' => 'Invalid document upload payload. Please try again.',
-                'documents.min' => 'Please upload all required documents before continuing.',
-                'documents.*.required' => 'Each required document must have an uploaded file.',
-            ]);
-        } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-            return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try smaller file(s) if needed (PHP upload limit).');
+        if ($onboarding->contract_signed || in_array((string) $onboarding->status, ['contract_signed', 'deposit_paid', 'completed'], true)) {
+            return back()->with('error', 'Documents cannot be resubmitted once the contract has been signed or onboarding is completed.');
         }
 
-        $uploadedPaths = $onboarding->uploaded_documents ?? [];
+        $student = Auth::user();
+        if ((int) $onboarding->booking->student_id !== (int) $student->id) {
+            abort(403, 'Unauthorized');
+        }
 
+        // Validate emergency contact from profile
+        $hasEmergencyContact = (filled($student->emergency_contact_name) && filled($student->emergency_contact_number))
+            || (filled($student->parent_contact_name) && filled($student->parent_contact_number));
+        if (!$hasEmergencyContact) {
+            return back()->withInput()->with('error', 'Emergency contact details are missing from your profile. Please update your profile before submitting move-in requirements.');
+        }
+
+        $reuseOptions = collect((array) $request->input('reuse_documents', []))
+            ->filter(fn ($v) => in_array($v, ['enrollment_proof', 'school_id'], true))
+            ->values();
+
+        $fileStorage = app(\App\Services\FileStorageService::class);
+        $targetDirectory = 'tenant-onboardings/' . $onboarding->id . '/documents';
+        $uploadedPaths = (array) ($onboarding->uploaded_documents ?? []);
+
+        // Process document reuse from authenticated student's profile
+        foreach ($reuseOptions as $reuseType) {
+            $sourcePath = match ($reuseType) {
+                'enrollment_proof' => $student->enrollment_proof_path,
+                'school_id' => $student->school_id_path,
+                default => null,
+            };
+
+            $prefix = match ($reuseType) {
+                'enrollment_proof' => 'cor-coe',
+                'school_id' => 'school-id',
+                default => 'doc',
+            };
+
+            if (!filled($sourcePath) || !$fileStorage->exists($sourcePath)) {
+                $docLabel = $reuseType === 'enrollment_proof' ? 'Proof of Enrollment (COR/COE)' : 'School ID';
+                return back()->withInput()->with('error', "The selected profile {$docLabel} was not found on storage. Please upload a file manually.");
+            }
+
+            // Check if a copy already exists in uploaded_documents to prevent duplicate copies
+            $existingCopy = collect($uploadedPaths)->first(function ($path) use ($prefix, $fileStorage) {
+                return str_contains(basename((string) $path), $prefix) && $fileStorage->exists((string) $path);
+            });
+
+            if ($existingCopy) {
+                continue;
+            }
+
+            $copiedPath = $fileStorage->copyToDirectory($sourcePath, $targetDirectory, $prefix);
+            if (!$copiedPath) {
+                return back()->withInput()->with('error', 'Unable to copy existing profile document. Please upload a new file.');
+            }
+
+            $uploadedPaths[] = $copiedPath;
+        }
+
+        // Process new manual uploads
         if ($request->hasFile('documents')) {
+            try {
+                $request->validate([
+                    'documents.*' => 'file|mimes:pdf,jpg,jpeg,png',
+                ], [
+                    'documents.*.file' => 'Uploaded file is invalid or failed upload.',
+                    'documents.*.mimes' => 'Verification documents must be PDF, JPG, JPEG, or PNG files.',
+                ]);
+            } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
+                return back()->withInput()->with('error', 'File upload validation failed. Please ensure the PHP "fileinfo" extension is enabled and try smaller file(s) if needed.');
+            }
+
             foreach ($request->file('documents') as $file) {
+                if (!$file->isValid()) {
+                    return back()->withInput()->with('error', 'Uploaded file "' . $file->getClientOriginalName() . '" failed to upload: ' . $file->getErrorMessage());
+                }
+
                 try {
-                    $path = app(\App\Services\FileStorageService::class)->upload(
-                        $file,
-                        'tenant-onboardings/' . $onboarding->id . '/documents'
-                    );
+                    $path = $fileStorage->upload($file, $targetDirectory);
                     $uploadedPaths[] = $path;
                 } catch (\Symfony\Component\Mime\Exception\LogicException $e) {
-                    return back()->withInput()->with('error', 'Unable to process the uploaded file(s). Please ensure the PHP "fileinfo" extension is enabled and try smaller file(s) if needed (PHP upload limit).');
+                    return back()->withInput()->with('error', 'Unable to process the uploaded file(s). Please ensure the PHP "fileinfo" extension is enabled.');
                 } catch (\RuntimeException $e) {
                     return back()->withInput()->with('error', 'File upload failed. Please try again.');
                 }
             }
         }
 
+        $validUploadedPaths = collect($uploadedPaths)
+            ->unique()
+            ->filter(fn ($p) => filled($p) && $fileStorage->exists((string) $p))
+            ->values()
+            ->all();
+
+        if (empty($validUploadedPaths)) {
+            return back()->withInput()->with('error', 'Please provide your Certificate of Registration (COR/COE) or School ID, either by using existing documents or uploading a file.');
+        }
+
+        $req = (array) ($onboarding->required_documents ?? []);
+        $req['_documents_approved'] = false;
+        unset($req['_documents_approved_at']);
+
         $onboarding->update([
-            'uploaded_documents' => $uploadedPaths,
-            'status' => 'documents_uploaded'
+            'uploaded_documents' => $validUploadedPaths,
+            'required_documents' => $req,
+            'status' => 'documents_uploaded',
         ]);
 
         $this->notifyLandlordOnboardingStep(
@@ -221,7 +292,7 @@ class TenantOnboardingController extends Controller
             )
         );
 
-        return back()->with('success', 'Documents uploaded successfully.');
+        return back()->with('success', 'Documents submitted successfully. Waiting for landlord review and approval.');
     }
 
     // Student: sign contract
@@ -231,8 +302,8 @@ class TenantOnboardingController extends Controller
 
         $onboarding->load('booking.student', 'booking.room.property.landlord');
 
-        if ((string) $onboarding->status !== 'documents_uploaded') {
-            return back()->with('error', 'Contract can only be signed after document upload.');
+        if ((string) $onboarding->status !== 'documents_uploaded' || !$onboarding->areDocumentsApproved()) {
+            return back()->with('error', 'The lease contract can only be signed after your documents have been reviewed and approved by the landlord.');
         }
 
         $request->validate([
@@ -309,8 +380,10 @@ class TenantOnboardingController extends Controller
         $hasBankDetails = filled($landlordProfile?->payment_bank_name)
             && filled($landlordProfile?->payment_account_name)
             && filled($landlordProfile?->payment_account_number);
+        $gcashNumber = $landlordProfile?->payment_gcash_number
+            ?: ($landlordProfile?->contact_number ?: optional($onboarding->booking->room->property->landlord)->contact_number);
         $hasGcashDetails = filled($landlordProfile?->payment_gcash_name)
-            && filled($landlordProfile?->payment_gcash_number);
+            && filled($gcashNumber);
 
         $availableMethods = collect();
         if ($preferredMethods->contains('bank') && $hasBankDetails) {
@@ -341,12 +414,11 @@ class TenantOnboardingController extends Controller
             'payment_method' => 'required|string|in:bank,gcash,cash',
             'payment_reference' => 'nullable|string|max:120',
             'payment_notes' => 'nullable|string|max:1000',
-            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
         ], [
             'payment_method.required' => 'Please select a payment method.',
             'payment_method.in' => 'Selected payment method is invalid.',
             'payment_proof.mimes' => 'Payment proof must be a JPG, PNG, or PDF file.',
-            'payment_proof.max' => 'Payment proof must not exceed 5MB.',
         ]);
 
         $validator->after(function ($validator) use ($request, $availableMethods, $hasBankDetails, $hasGcashDetails) {
@@ -383,10 +455,15 @@ class TenantOnboardingController extends Controller
 
         $paymentProofPath = $onboarding->payment_proof_path;
         if ($requiresOnlineProof && $request->hasFile('payment_proof')) {
+            $proofFile = $request->file('payment_proof');
+            if (!$proofFile->isValid()) {
+                return back()->withInput()->with('error', 'Payment proof file failed to upload: ' . $proofFile->getErrorMessage());
+            }
+
             try {
                 $paymentProofPath = app(\App\Services\FileStorageService::class)->replace(
                     $paymentProofPath,
-                    $request->file('payment_proof'),
+                    $proofFile,
                     'tenant-onboardings/' . $onboarding->id . '/payment-proofs'
                 );
             } catch (\RuntimeException $e) {
@@ -530,22 +607,43 @@ class TenantOnboardingController extends Controller
         $action = (string) $request->input('action');
 
         if ($action === 'approve') {
-            $onboarding->update(['status' => 'documents_uploaded']);
-            return back()->with('success', 'Documents approved.');
+            $req = (array) ($onboarding->required_documents ?? []);
+            $req['_documents_approved'] = true;
+            $req['_documents_approved_at'] = now()->toIso8601String();
+
+            $onboarding->update([
+                'required_documents' => $req,
+                'status' => 'documents_uploaded',
+            ]);
+
+            return back()->with('success', 'Documents approved successfully. The student can now review and sign the contract.');
         }
 
         if ($action === 'reject') {
-            // Reset to pending for re-upload
+            $req = (array) ($onboarding->required_documents ?? []);
+            $req['_documents_approved'] = false;
+            unset($req['_documents_approved_at']);
+
             $onboarding->update([
+                'required_documents' => $req,
                 'status' => 'pending',
-                'uploaded_documents' => []
+                'uploaded_documents' => [],
             ]);
+
             return back()->with('error', 'Documents rejected. Student needs to re-upload.');
         }
 
         if ($action === 'approve_payment') {
             if ((string) $onboarding->status !== 'deposit_paid') {
                 return back()->with('error', 'No payment submission is pending approval for this onboarding.');
+            }
+
+            if (!$onboarding->contract_signed || empty($onboarding->contract_signature_path)) {
+                return back()->with('error', 'Student must sign the rental agreement before onboarding can be completed.');
+            }
+
+            if (!$onboarding->landlord_contract_signed || empty($onboarding->landlord_contract_signature_path)) {
+                return back()->with('error', 'Landlord countersignature is required before approving payment and completing onboarding. Please sign the rental agreement first.');
             }
 
             $booking = $onboarding->booking;
@@ -722,20 +820,12 @@ class TenantOnboardingController extends Controller
 
     private function completeOnboarding(TenantOnboarding $onboarding)
     {
-        // Generate QR code (placeholder - implement when GD extension is available)
-        // $qrData = json_encode([
-        //     'tenant_id' => $onboarding->booking->student_id,
-        //     'booking_id' => $onboarding->booking->id,
-        //     'room' => $onboarding->booking->room->room_number,
-        //     'property' => $onboarding->booking->room->property->name,
-        //     'valid_until' => $onboarding->booking->check_out->format('Y-m-d')
-        // ]);
-        // $qrCode = QrCode::format('png')->size(200)->generate($qrData);
-        // $qrPath = 'qr-codes/' . Str::uuid() . '.png';
-        // Storage::disk('public')->put($qrPath, $qrCode);
+        if (!$onboarding->contract_signed || !$onboarding->landlord_contract_signed || !$onboarding->deposit_paid) {
+            throw new \LogicException('Cannot complete onboarding without student signature, landlord countersignature, and payment confirmation.');
+        }
 
         // Generate digital ID
-        $digitalId = 'TID-' . strtoupper(Str::random(8));
+        $digitalId = $onboarding->digital_id ?: ('TID-' . strtoupper(Str::random(8)));
 
         $onboarding->update([
             // 'qr_code_path' => $qrPath,
@@ -760,10 +850,6 @@ class TenantOnboardingController extends Controller
         $binary = base64_decode($encoded, true);
 
         if ($binary === false || $binary === '') {
-            return null;
-        }
-
-        if (strlen($binary) > (5 * 1024 * 1024)) {
             return null;
         }
 

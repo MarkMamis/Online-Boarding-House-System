@@ -127,8 +127,9 @@
   $hasLandlordSignature = !empty($onboarding->landlord_contract_signature_path) && file_exists_any($onboarding->landlord_contract_signature_path);
   $hasProfileSignature = !empty($landlordProfile?->contract_signature_path) && file_exists_any($landlordProfile?->contract_signature_path);
 
+  $areDocsApproved = method_exists($onboarding, 'areDocumentsApproved') ? $onboarding->areDocumentsApproved() : !empty($onboarding->required_documents['_documents_approved']);
   $needsPaymentApproval = ($status === 'deposit_paid' && empty($onboarding->deposit_paid_at));
-  $needsDocumentReview = ($status === 'documents_uploaded' && $uploadedDocs->isNotEmpty());
+  $needsDocumentReview = ($status === 'documents_uploaded' && $uploadedDocs->isNotEmpty() && !$areDocsApproved);
   $needsLandlordSign = ($onboarding->contract_signed && !$onboarding->landlord_contract_signed);
 
   $statusBadgeClass = match($status) {
@@ -141,7 +142,7 @@
 
   $statusLabel = match($status) {
     'pending' => 'Waiting for Student Upload',
-    'documents_uploaded' => 'Documents Ready for Review',
+    'documents_uploaded' => $areDocsApproved ? 'Documents Approved · Awaiting Student Signature' : 'Documents Ready for Review',
     'contract_signed' => $needsLandlordSign ? 'Landlord Signature Required' : 'Awaiting Student Payment',
     'deposit_paid' => 'Payment Awaiting Confirmation',
     'completed' => 'Move-in Complete',
@@ -476,6 +477,19 @@
             @csrf
             <input type="hidden" name="action" value="reject">
             <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+              <i class="bi bi-arrow-repeat me-1"></i>Request Re-upload
+            </button>
+          </form>
+        </div>
+      @elseif($areDocsApproved && $status === 'documents_uploaded')
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 border-top">
+          <div class="text-success small fw-semibold">
+            <i class="bi bi-check-circle-fill me-1"></i>Documents approved. Waiting for student to review and sign the contract.
+          </div>
+          <form action="{{ route('landlord.onboarding.approve_documents', $onboarding) }}" method="POST" class="d-inline" onsubmit="return confirm('Reopen document review and request student to re-upload?');">
+            @csrf
+            <input type="hidden" name="action" value="reject">
+            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
               <i class="bi bi-arrow-repeat me-1"></i>Request Re-upload
             </button>
           </form>

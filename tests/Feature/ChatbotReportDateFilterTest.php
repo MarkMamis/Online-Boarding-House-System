@@ -308,7 +308,7 @@ class ChatbotReportDateFilterTest extends TestCase
 
     public function test_chatbot_ai_assistant_date_filtered_report_flow(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $this->createReport(['title' => 'Broken Faucet', 'status' => 'pending', 'priority' => 'high', 'created_at' => now()]);
         $this->createReport(['title' => 'Noisy Tenant', 'status' => 'in_progress', 'priority' => 'medium', 'created_at' => now()]);
@@ -319,9 +319,9 @@ class ChatbotReportDateFilterTest extends TestCase
             'title' => 'Admin Test Session',
         ]);
 
-        // Mock Hugging Face: first step calls get_report_statistics with period='today', second step returns final text
+        // Mock Gemini: first step calls get_report_statistics with period='today', second step returns final text
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [

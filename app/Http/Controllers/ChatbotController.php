@@ -23,6 +23,7 @@ class ChatbotController extends Controller
         return response()->json([
             'conversation_id' => $conversation->id,
             'messages' => $conversation->messages()->get(['id', 'role', 'content', 'meta', 'created_at']),
+            'ui_enabled' => (bool) config('features.chatbot_ui_enabled', false),
         ]);
     }
 

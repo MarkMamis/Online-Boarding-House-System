@@ -396,6 +396,33 @@
         }
     }
 
+    $toDataUri = $toDataUri ?? static function (?string $path): ?string {
+        if (!$path || !is_file($path) || !is_readable($path)) {
+            return null;
+        }
+
+        try {
+            $contents = @file_get_contents($path);
+            if ($contents === false || $contents === '') {
+                return null;
+            }
+
+            $ext = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+            $mime = match ($ext) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+                default => 'application/octet-stream',
+            };
+
+            return 'data:' . $mime . ';base64,' . base64_encode($contents);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    };
+
     $primaryLogoSrc = $toDataUri($primaryLogoPath);
     $secondaryLogoSrc = $toDataUri($secondaryLogoPath);
     $digitalTenantId = trim((string) ($onboarding->digital_id ?? ''));

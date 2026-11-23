@@ -221,6 +221,19 @@ class ChatbotUiVisibilityFeatureFlagTest extends TestCase
         $response->assertSee('id="chatbotWidget"', false);
         $response->assertSee('id="chatbotToggle"', false);
         $response->assertSee('id="chatbotPanel"', false);
+
+        // Verify the chatbot widget and toggle are included exactly once (no duplicates)
+        $content = $response->getContent();
+        $this->assertEquals(1, substr_count($content, 'id="chatbotWidget"'), 'chatbotWidget must appear exactly once on admin dashboard');
+        $this->assertEquals(1, substr_count($content, 'id="chatbotToggle"'), 'chatbotToggle must appear exactly once on admin dashboard');
+        $this->assertEquals(1, substr_count($content, 'id="chatbotPanel"'), 'chatbotPanel must appear exactly once on admin dashboard');
+
+        // Verify all required JavaScript selector IDs match in DOM
+        $this->assertStringContainsString('id="chatbotClose"', $content);
+        $this->assertStringContainsString('id="chatbotMessages"', $content);
+        $this->assertStringContainsString('id="chatbotForm"', $content);
+        $this->assertStringContainsString('id="chatbotText"', $content);
+        $this->assertStringContainsString('id="chatbotSubmit"', $content);
     }
 
     // 10. Backend chatbot routes remain accessible and authenticated regardless of UI visibility flag
@@ -231,6 +244,18 @@ class ChatbotUiVisibilityFeatureFlagTest extends TestCase
         $response = $this->actingAs($this->student)->getJson(route('chatbot.history'));
 
         $response->assertOk();
-        $response->assertJsonStructure(['conversation_id', 'messages']);
+        $response->assertJsonStructure(['conversation_id', 'messages', 'ui_enabled']);
+        $this->assertFalse($response->json('ui_enabled'));
+    }
+
+    // 11. Backend chatbot history reports ui_enabled true when feature flag is enabled
+    public function test_chatbot_history_reports_ui_enabled_true_when_active(): void
+    {
+        Config::set('features.chatbot_ui_enabled', true);
+
+        $response = $this->actingAs($this->student)->getJson(route('chatbot.history'));
+
+        $response->assertOk();
+        $this->assertTrue($response->json('ui_enabled'));
     }
 }

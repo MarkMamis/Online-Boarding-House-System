@@ -176,7 +176,7 @@
                             <div class="mb-3">
                                 <label class="form-label small fw-semibold">Document file *</label>
                                 <input type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
-                                <div class="form-text">PDF, JPG, JPEG, or PNG. Maximum 2 MB.</div>
+                                <div class="form-text">PDF, JPG, JPEG, or PNG.</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label small fw-semibold">Document number</label>

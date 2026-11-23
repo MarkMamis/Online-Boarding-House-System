@@ -274,7 +274,7 @@
                                                     @error('profile_image')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                    <div class="form-text">JPG, PNG, WEBP, GIF (max 2MB)</div>
+                                                    <div class="form-text">JPG, PNG, WEBP, GIF</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -419,7 +419,7 @@
                                                     <label class="form-label">School ID Photo</label>
                                                     <input type="file" name="school_id_photo" class="form-control @error('school_id_photo') is-invalid @enderror" accept="image/*">
                                                     @error('school_id_photo')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                                    <div class="form-text">JPG, PNG, WEBP, GIF (max 3MB)</div>
+                                                    <div class="form-text">JPG, PNG, WEBP, GIF</div>
 
                                                     @if(!empty($user->school_id_path))
                                                         <a href="{{ file_download_url($user->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
@@ -440,7 +440,7 @@
                                                     <label class="form-label mt-3">Enrollment Proof File</label>
                                                     <input type="file" name="enrollment_proof_file" class="form-control @error('enrollment_proof_file') is-invalid @enderror" accept=".pdf,image/*">
                                                     @error('enrollment_proof_file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                                    <div class="form-text">PDF, JPG, PNG, WEBP (max 4MB)</div>
+                                                    <div class="form-text">PDF, JPG, PNG, WEBP</div>
 
                                                     @if(!empty($user->enrollment_proof_path))
                                                         <a href="{{ file_download_url($user->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
@@ -511,7 +511,7 @@
                                                     @error('parent_contact_photo')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
-                                                    <div class="form-text">JPG, PNG, WEBP, GIF (max 3MB)</div>
+                                                    <div class="form-text">JPG, PNG, WEBP, GIF</div>
                                                 </div>
                                             </div>
                                         </div>

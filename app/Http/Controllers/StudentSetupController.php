@@ -119,11 +119,10 @@ class StudentSetupController extends Controller
             'contact_email' => 'required|email|max:255',
             'contact_phone' => 'nullable|regex:/^09\d{9}$/',
             'reason' => 'required|string|max:1000',
-            'id_document' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:3072',
+            'id_document' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf',
         ], [
             'student_id.regex' => 'Please enter a valid Student ID format (e.g., MCC2026-00000).',
             'contact_phone.regex' => 'Contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
-            'id_document.max' => 'Document must not exceed 3MB.',
         ]);
 
         if ($validator->fails()) {
@@ -174,14 +173,14 @@ class StudentSetupController extends Controller
         $isFirstYear = (string) $request->input('year_level') === '1st Year';
 
         $profileImageRule = filled($user->profile_image_path)
-            ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072'
-            : 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
+            ? 'nullable|image|mimes:jpg,jpeg,png,webp,gif'
+            : 'required|image|mimes:jpg,jpeg,png,webp,gif';
 
-        $schoolIdRule = 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
+        $schoolIdRule = 'nullable|image|mimes:jpg,jpeg,png,webp,gif';
 
         $enrollmentProofRule = filled($user->enrollment_proof_path)
-            ? 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:4096'
-            : 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:4096';
+            ? 'nullable|file|mimes:jpg,jpeg,png,webp,pdf'
+            : 'required|file|mimes:jpg,jpeg,png,webp,pdf';
 
         $enrollmentProofTypeRule = 'required|in:cor,coe';
 
@@ -215,7 +214,7 @@ class StudentSetupController extends Controller
             'school_id_photo' => $schoolIdRule,
             'enrollment_proof_type' => $enrollmentProofTypeRule,
             'enrollment_proof_file' => $enrollmentProofRule,
-            'parent_contact_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:3072',
+            'parent_contact_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif',
         ], [
             'contact_number.regex' => 'Contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
             'emergency_contact_number.regex' => 'Emergency contact number must use 11-digit PH mobile format (09XXXXXXXXX).',
@@ -419,7 +418,7 @@ class StudentSetupController extends Controller
         }
 
         if ($activeRequest->request_school_id_photo) {
-            $rules['school_id_photo'] = 'required|image|mimes:jpg,jpeg,png,webp,gif|max:3072';
+            $rules['school_id_photo'] = 'required|image|mimes:jpg,jpeg,png,webp,gif';
             $messages['school_id_photo.required'] = 'A clear photo of your school ID is required by the administrator.';
         }
 

@@ -72,4 +72,19 @@ class TenantOnboarding extends Model
     {
         return $this->booking->room ?? null;
     }
+
+    public function areDocumentsApproved(): bool
+    {
+        if ($this->contract_signed || in_array((string) $this->status, ['contract_signed', 'deposit_paid', 'completed'], true)) {
+            return true;
+        }
+
+        $req = (array) ($this->required_documents ?? []);
+        return !empty($req['_documents_approved']);
+    }
+
+    public function areDocumentsSubmitted(): bool
+    {
+        return $this->status !== 'pending' && !empty($this->uploaded_documents);
+    }
 }

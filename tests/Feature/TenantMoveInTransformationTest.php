@@ -129,6 +129,13 @@ class TenantMoveInTransformationTest extends TestCase
         $onboarding = TenantOnboarding::create([
             'booking_id' => $booking->id,
             'status' => $status,
+            'contract_signed' => in_array($status, ['contract_signed', 'deposit_paid', 'completed'], true),
+            'contract_signed_at' => in_array($status, ['contract_signed', 'deposit_paid', 'completed'], true) ? now() : null,
+            'contract_signature_path' => in_array($status, ['contract_signed', 'deposit_paid', 'completed'], true) ? 'signatures/student.png' : null,
+            'landlord_contract_signed' => in_array($status, ['deposit_paid', 'completed'], true),
+            'landlord_contract_signed_at' => in_array($status, ['deposit_paid', 'completed'], true) ? now() : null,
+            'landlord_contract_signature_path' => in_array($status, ['deposit_paid', 'completed'], true) ? 'signatures/landlord.png' : null,
+            'required_documents' => in_array($status, ['contract_signed', 'deposit_paid', 'completed'], true) ? ['_documents_approved' => true] : [],
             'step' => 1,
         ]);
 
@@ -155,6 +162,7 @@ class TenantMoveInTransformationTest extends TestCase
         $student = $this->createStudent('Alice');
         $landlord = $this->createLandlord('Bob');
         [$property, $room, $booking, $onboarding] = $this->setupBookingAndOnboarding($student, $landlord, 'documents_uploaded');
+        $onboarding->update(['required_documents' => ['_documents_approved' => true]]);
 
         $response = $this->actingAs($student)->get(route('student.onboarding.show', $onboarding));
 

@@ -297,9 +297,9 @@ class FileStorageService
     }
 
     /**
-     * Copy an existing stored object to a new directory (used for landlord signatures).
+     * Copy an existing stored object to a new directory (used for signatures and document reuse).
      */
-    public function copyToDirectory(?string $sourcePath, string $directory, string $prefix = 'signature'): ?string
+    public function copyToDirectory(?string $sourcePath, string $directory, string $prefix = 'signature', ?array $allowedExtensions = null): ?string
     {
         $sourcePath = $this->normalize((string) $sourcePath);
         if ($sourcePath === '' || !$this->exists($sourcePath)) {
@@ -312,8 +312,9 @@ class FileStorageService
         }
 
         $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
-        if (!in_array($extension, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true)) {
-            $extension = 'png';
+        $validExtensions = $allowedExtensions ?? ['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf'];
+        if (!in_array($extension, $validExtensions, true)) {
+            $extension = $validExtensions[0] ?? 'bin';
         }
 
         $directory = trim(str_replace('\\', '/', $directory), '/');

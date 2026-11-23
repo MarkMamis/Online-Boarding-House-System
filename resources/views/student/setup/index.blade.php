@@ -663,7 +663,7 @@
                                         <div class="col-12 col-md-6">
                                             <label class="form-label small mb-1">Supporting Document (Optional)</label>
                                             <input type="file" id="assist_document" class="form-control form-control-sm" accept=".pdf,image/*">
-                                            <div class="field-hint" style="font-size: .72rem;">MinSU ID or COR/COE photo (max 4MB).</div>
+                                            <div class="field-hint" style="font-size: .72rem;">MinSU ID or COR/COE photo.</div>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label small mb-1">Reason for Recovery *</label>
@@ -726,7 +726,7 @@
                                 @endif
                                 <div class="w-100">
                                     <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*" {{ empty($user->profile_image_path) ? 'required' : '' }}>
-                                    <div class="field-hint">JPG, PNG, WEBP, or GIF up to 3MB.</div>
+                                    <div class="field-hint">JPG, PNG, WEBP, or GIF.</div>
                                     @error('profile_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
@@ -907,7 +907,7 @@
                             <label class="form-label">COR / COE Upload *</label>
                             <input type="file" name="enrollment_proof_file" id="enrollment_proof_file" class="form-control @error('enrollment_proof_file') is-invalid @enderror" accept=".pdf,image/*" data-has-existing="{{ $hasEnrollmentProof ? '1' : '0' }}" {{ $hasEnrollmentProof ? '' : 'required' }}>
                             <div id="enrollment_proof_help" class="field-hint">
-                                Accepted: PDF, JPG, PNG, WEBP up to 4MB.
+                                Accepted: PDF, JPG, PNG, WEBP.
                             </div>
                             @error('enrollment_proof_file')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             @if($hasEnrollmentProof)
@@ -1797,16 +1797,9 @@
                     }
                 }
 
-                // 3. File size & format checks if file is selected
+                // 3. Format checks if file is selected
                 if (field.type === 'file' && field.files && field.files.length > 0) {
                     const file = field.files[0];
-                    let maxMb = 3;
-                    if (field.name === 'enrollment_proof_file') maxMb = 4;
-                    if (file.size > maxMb * 1024 * 1024) {
-                        const actualMb = (file.size / (1024 * 1024)).toFixed(1);
-                        showFieldError(field, `Selected file (${actualMb}MB) exceeds the maximum limit of ${maxMb}MB.`);
-                        return false;
-                    }
                     if (field.accept) {
                         const allowed = field.accept.split(',').map((s) => s.trim().toLowerCase());
                         const fileName = file.name.toLowerCase();
@@ -2132,7 +2125,7 @@
                 }
 
                 if (enrollmentProofHelp) {
-                    enrollmentProofHelp.textContent = 'Accepted: PDF, JPG, PNG, WEBP up to 4MB.';
+                    enrollmentProofHelp.textContent = 'Accepted: PDF, JPG, PNG, WEBP.';
                 }
             };
 

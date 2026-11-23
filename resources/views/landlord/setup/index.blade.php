@@ -757,7 +757,7 @@
                                 @endif
                                 <div class="w-100">
                                     <input type="file" name="profile_image" id="profile_image" class="form-control @error('profile_image') is-invalid @enderror" accept="image/*">
-                                    <div class="field-hint">Optional. JPG, PNG, WEBP, or GIF up to 2MB.</div>
+                                    <div class="field-hint">Optional. JPG, PNG, WEBP, or GIF.</div>
                                     @error('profile_image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                             </div>
@@ -813,7 +813,7 @@
                         <div class="col-12">
                             <label class="form-label">Business Permit</label>
                             <input type="file" name="business_permit" class="form-control @error('business_permit') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
-                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP up to 2MB. Can be uploaded now or updated later.</div>
+                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP. Can be uploaded now or updated later.</div>
                             @error('business_permit')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             @if($hasBusinessPermit)
                                 <a href="{{ file_download_url(optional($landlordProfile)->business_permit_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
@@ -825,7 +825,7 @@
                         <div class="col-12">
                             <label class="form-label">Safety Certificate (BFP Inspection / Barangay Clearance)</label>
                             <input type="file" name="safety_certificate" class="form-control @error('safety_certificate') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png,.webp">
-                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP up to 2MB.</div>
+                            <div class="field-hint">Accepted: PDF, JPG, PNG, WEBP.</div>
                             @error('safety_certificate')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             @if($hasSafetyCertificate)
                                 <a href="{{ file_download_url(optional($landlordProfile)->safety_certificate_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
@@ -928,7 +928,7 @@
                                 <div class="col-12">
                                     <label class="form-label">GCash QR Code</label>
                                     <input type="file" name="payment_gcash_qr" class="form-control @error('payment_gcash_qr') is-invalid @enderror" accept="image/*">
-                                    <div class="field-hint">Optional. Upload a JPG, PNG, or WEBP QR image up to 2MB.</div>
+                                    <div class="field-hint">Optional. Upload a JPG, PNG, or WEBP QR image.</div>
                                     @error('payment_gcash_qr')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     @if(!empty(optional($landlordProfile)->payment_gcash_qr_path))
                                         <a href="{{ file_download_url(optional($landlordProfile)->payment_gcash_qr_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill mt-2">
@@ -1182,15 +1182,9 @@
                     }
                 }
 
-                // 2. File size & format checks if file is selected
+                // 2. Format checks if file is selected
                 if (field.type === 'file' && field.files && field.files.length > 0) {
                     const file = field.files[0];
-                    const maxMb = 2;
-                    if (file.size > maxMb * 1024 * 1024) {
-                        const actualMb = (file.size / (1024 * 1024)).toFixed(1);
-                        showFieldError(field, `Selected file (${actualMb}MB) exceeds the maximum limit of ${maxMb}MB.`);
-                        return false;
-                    }
                     if (field.accept) {
                         const allowed = field.accept.split(',').map((s) => s.trim().toLowerCase());
                         const fileName = file.name.toLowerCase();

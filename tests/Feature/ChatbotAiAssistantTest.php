@@ -23,9 +23,9 @@ class ChatbotAiAssistantTest extends TestCase
         parent::setUp();
 
         config([
-            'services.huggingface.token' => 'test-hf-token',
-            'services.huggingface.model' => 'deepseek-ai/DeepSeek-V4.1-Flash:novita',
-            'services.huggingface.endpoint' => 'https://router.huggingface.co/v1/chat/completions',
+            'services.gemini.api_key' => 'test-gemini-key',
+            'services.gemini.chat_model' => 'gemini-3.8-flash',
+            'services.gemini.classification_model' => 'gemini-3.5-flash-lite',
             'chatbot.rate_limit_per_minute' => 20,
         ]);
     }
@@ -101,7 +101,7 @@ class ChatbotAiAssistantTest extends TestCase
         ]);
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     [
                         'message' => [
@@ -148,7 +148,7 @@ class ChatbotAiAssistantTest extends TestCase
 
         $callCount = 0;
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function ($request) use (&$callCount) {
+            'https://generativelanguage.googleapis.com/*' => function ($request) use (&$callCount) {
                 $callCount++;
                 if ($callCount === 1) {
                     // First call: model decides to call count_students tool
@@ -249,7 +249,7 @@ class ChatbotAiAssistantTest extends TestCase
 
         $callCount = 0;
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function () use (&$callCount) {
+            'https://generativelanguage.googleapis.com/*' => function () use (&$callCount) {
                 $callCount++;
                 if ($callCount === 1) {
                     return Http::response([
@@ -306,7 +306,7 @@ class ChatbotAiAssistantTest extends TestCase
         ]);
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'error' => 'Model overloaded',
             ], 503),
         ]);
@@ -333,7 +333,7 @@ class ChatbotAiAssistantTest extends TestCase
 
         $callCount = 0;
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function () use (&$callCount) {
+            'https://generativelanguage.googleapis.com/*' => function () use (&$callCount) {
                 $callCount++;
                 if ($callCount === 1) {
                     // LLM outputs JSON tool call inside text content instead of tool_calls array
@@ -398,25 +398,28 @@ class ChatbotAiAssistantTest extends TestCase
         ]);
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function ($request) {
+            'https://generativelanguage.googleapis.com/*' => function ($request) {
                 $payload = $request->data();
-                $messages = $payload['messages'];
-                $lastMsg = end($messages);
+                $contents = $payload['contents'] ?? $payload['messages'] ?? [];
+                $lastMsg = end($contents);
+                $text = '';
+                if (isset($lastMsg['parts'][0]['text'])) {
+                    $text = $lastMsg['parts'][0]['text'];
+                } elseif (isset($lastMsg['content'])) {
+                    $text = $lastMsg['content'];
+                }
 
-                if ($lastMsg['role'] === 'user' && str_contains($lastMsg['content'], 'properties do I have')) {
+                if (str_contains($text, 'properties do I have')) {
                     return Http::response([
-                        'choices' => [
+                        'candidates' => [
                             [
-                                'message' => [
-                                    'role' => 'assistant',
-                                    'content' => '',
-                                    'tool_calls' => [
+                                'content' => [
+                                    'role' => 'model',
+                                    'parts' => [
                                         [
-                                            'id' => 'call_prop_1',
-                                            'type' => 'function',
-                                            'function' => [
+                                            'functionCall' => [
                                                 'name' => 'get_landlord_properties',
-                                                'arguments' => '{}',
+                                                'args' => [],
                                             ],
                                         ],
                                     ],
@@ -427,11 +430,15 @@ class ChatbotAiAssistantTest extends TestCase
                 }
 
                 return Http::response([
-                    'choices' => [
+                    'candidates' => [
                         [
-                            'message' => [
-                                'role' => 'assistant',
-                                'content' => 'You currently own 1 property: Landlord One Boarding House.',
+                            'content' => [
+                                'role' => 'model',
+                                'parts' => [
+                                    [
+                                        'text' => 'You currently own 1 property: Landlord One Boarding House.',
+                                    ],
+                                ],
                             ],
                         ],
                     ],
@@ -449,7 +456,7 @@ class ChatbotAiAssistantTest extends TestCase
         ]);
     }
 
-    public function test_conversation_memory_is_sent_to_huggingface(): void
+    public function test_conversation_memory_is_sent_to_gemini(): void
     {
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -473,16 +480,18 @@ class ChatbotAiAssistantTest extends TestCase
             'content' => 'Sure! What would you like to know about occupancy?',
         ]);
 
-        $capturedMessages = [];
+        $capturedContents = [];
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function ($request) use (&$capturedMessages) {
-                $capturedMessages = $request->data()['messages'];
+            'https://generativelanguage.googleapis.com/*' => function ($request) use (&$capturedContents) {
+                $capturedContents = $request->data()['contents'] ?? [];
                 return Http::response([
-                    'choices' => [
+                    'candidates' => [
                         [
-                            'message' => [
-                                'role' => 'assistant',
-                                'content' => 'Occupancy statistics are updated.',
+                            'content' => [
+                                'role' => 'model',
+                                'parts' => [
+                                    ['text' => 'Occupancy statistics are updated.'],
+                                ],
                             ],
                         ],
                     ],
@@ -496,11 +505,18 @@ class ChatbotAiAssistantTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Verify history turns were sent
-        $historyContents = array_column($capturedMessages, 'content');
-        $this->assertContains('I am looking into occupancy.', $historyContents);
-        $this->assertContains('Sure! What would you like to know about occupancy?', $historyContents);
-        $this->assertContains('Which one has the highest?', $historyContents);
+        // Verify history turns were sent in Gemini contents format
+        $capturedTexts = [];
+        foreach ($capturedContents as $entry) {
+            foreach ($entry['parts'] ?? [] as $part) {
+                if (isset($part['text'])) {
+                    $capturedTexts[] = $part['text'];
+                }
+            }
+        }
+        $this->assertContains('I am looking into occupancy.', $capturedTexts);
+        $this->assertContains('Sure! What would you like to know about occupancy?', $capturedTexts);
+        $this->assertContains('Which one has the highest?', $capturedTexts);
     }
 
     public function test_chatbot_rate_limiting_enforced(): void
@@ -511,7 +527,7 @@ class ChatbotAiAssistantTest extends TestCase
         ]);
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     ['message' => ['role' => 'assistant', 'content' => 'Hello!']],
                 ],
@@ -549,7 +565,7 @@ class ChatbotAiAssistantTest extends TestCase
             "May iba ka pa bang gustong malaman? 😊";
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     [
                         'message' => [
@@ -594,7 +610,7 @@ class ChatbotAiAssistantTest extends TestCase
         $aiContent = "You can view the system users at `/admin/users`.";
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     [
                         'message' => [
@@ -629,7 +645,7 @@ class ChatbotAiAssistantTest extends TestCase
             "- **6 unresolved reports** sa `/admin/reports`";
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     [
                         'message' => [

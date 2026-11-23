@@ -16,7 +16,7 @@
     'use strict';
 
     const CONFIG = {
-        maxSizeBytes: 5 * 1024 * 1024,           // 5 MB (5120 KiB) backend ceiling
+        maxSizeBytes: 50 * 1024 * 1024,           // Relaxed backend ceiling
         compressThresholdBytes: 1.8 * 1024 * 1024, // 1.8 MB threshold to trigger mobile compression
         maxDimension: 2000,                       // Max longest edge in pixels
         initialQuality: 0.82,                     // Standard photo JPEG quality
@@ -124,7 +124,7 @@
                 return {
                     file,
                     optimized: false,
-                    error: 'This photo is too large. Please choose one under 5 MB.'
+                    error: 'This photo is too large. Please choose a smaller photo.'
                 };
             }
             return { file, optimized: false };
@@ -197,7 +197,7 @@
                 return {
                     file,
                     optimized: false,
-                    error: 'This photo is too large. Please choose one under 5 MB.'
+                    error: 'This photo is too large. Please choose a smaller photo.'
                 };
             }
 

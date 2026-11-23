@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\Models\ChatbotConversation;
 use App\Models\User;
+use App\Services\GeminiService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -13,17 +14,20 @@ class AiAssistantService
     protected AiToolRegistry $toolRegistry;
     protected AiToolExecutor $toolExecutor;
     protected AiConversationService $conversationService;
+    protected GeminiService $geminiService;
 
     public function __construct(
         AiPromptBuilder $promptBuilder,
         AiToolRegistry $toolRegistry,
         AiToolExecutor $toolExecutor,
-        AiConversationService $conversationService
+        AiConversationService $conversationService,
+        GeminiService $geminiService
     ) {
         $this->promptBuilder = $promptBuilder;
         $this->toolRegistry = $toolRegistry;
         $this->toolExecutor = $toolExecutor;
         $this->conversationService = $conversationService;
+        $this->geminiService = $geminiService;
     }
 
     /**
@@ -38,15 +42,13 @@ class AiAssistantService
         array $geoContext = []
     ): array {
         $startTime = microtime(true);
-        $token = config('services.huggingface.token');
-        $model = config('services.huggingface.model', 'Qwen/Qwen3.8-27B:cerebras');
-        $endpoint = config('services.huggingface.endpoint', 'https://router.huggingface.co/v1/chat/completions');
-        $timeout = (int) config('services.huggingface.timeout', 30);
+        $model = $this->geminiService->chatModel();
+        $timeout = (int) config('services.gemini.timeout', 30);
         $maxIterations = (int) config('chatbot.max_tool_iterations', 4);
         $historyLimit = (int) config('chatbot.history_message_limit', 8);
 
-        if (empty($token)) {
-            Log::warning("AI Chatbot: Hugging Face token is missing in configuration (HF_TOKEN).");
+        if (!$this->geminiService->isConfigured()) {
+            Log::warning("AI Chatbot: Gemini API key is missing in configuration (GEMINI_API_KEY).");
             $fallbackReply = 'The assistant is temporarily offline for maintenance. Please check your configuration.';
             $this->conversationService->recordAssistantReply($conversation, $fallbackReply, []);
             return ['reply' => $fallbackReply, 'meta' => []];
@@ -63,13 +65,25 @@ class AiAssistantService
             }
         }
 
-        $messages = [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ...$recentHistory,
-            ['role' => 'user', 'content' => $userContent],
+        $contents = [];
+        foreach ($recentHistory as $msg) {
+            $contents[] = [
+                'role' => $msg['role'] === 'assistant' ? 'model' : 'user',
+                'parts' => [
+                    ['text' => $msg['content']],
+                ],
+            ];
+        }
+        $contents[] = [
+            'role' => 'user',
+            'parts' => [
+                ['text' => $userContent],
+            ],
         ];
 
-        $tools = $this->toolRegistry->getToolsForRole($user->role);
+        $rawTools = $this->toolRegistry->getToolsForRole($user->role);
+        $functionDeclarations = GeminiService::convertOpenAiToolsToGemini($rawTools);
+
         $toolsInvoked = [];
         $collectedActions = [];
         $finalReply = null;
@@ -79,47 +93,81 @@ class AiAssistantService
             $iteration++;
 
             $payload = [
-                'model' => $model,
-                'stream' => false,
-                'temperature' => 0.3,
-                'messages' => $messages,
+                'contents' => $contents,
+                'systemInstruction' => [
+                    'parts' => [
+                        ['text' => $systemPrompt],
+                    ],
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.3,
+                ],
             ];
 
-            if (!empty($tools)) {
-                $payload['tools'] = $tools;
-                $payload['tool_choice'] = 'auto';
+            if (!empty($functionDeclarations)) {
+                $payload['tools'] = [
+                    [
+                        'functionDeclarations' => $functionDeclarations,
+                    ],
+                ];
             }
 
             try {
-                $data = $this->postChatCompletion($endpoint, $token, $payload, $timeout);
+                $data = $this->geminiService->postGenerateContent($model, $payload, $timeout);
 
                 if ($data === null) {
                     return $this->returnFallback($conversation, 'Sorry, I could not reach the assistant right now. Please try again shortly.');
                 }
 
-                $messageChoice = $data['choices'][0]['message'] ?? null;
+                $candidate = $data['candidates'][0] ?? null;
+                $candidateContent = $candidate['content'] ?? null;
+                $parts = $candidateContent['parts'] ?? null;
 
-                if (!is_array($messageChoice)) {
-                    Log::error("AI Chatbot: Invalid response format from LLM provider.", ['data' => $data]);
+                if ((!is_array($parts) || empty($parts)) && !isset($data['choices'][0]['message'])) {
+                    Log::error("AI Chatbot: Invalid response format from Gemini provider.", ['data' => $data]);
                     return $this->returnFallback($conversation, 'Sorry, I could not generate a response. Please try again.');
                 }
 
-                // Check for native tool calls
-                $toolCalls = $messageChoice['tool_calls'] ?? null;
+                // Check for native Gemini functionCall parts
+                $functionCalls = [];
+                $textParts = [];
 
-                if (!empty($toolCalls) && is_array($toolCalls)) {
-                    // Append assistant message with tool calls
-                    $messages[] = [
-                        'role' => 'assistant',
-                        'content' => $messageChoice['content'] ?? '',
-                        'tool_calls' => $toolCalls,
+                if (is_array($parts)) {
+                    foreach ($parts as $part) {
+                        if (isset($part['functionCall']) && is_array($part['functionCall'])) {
+                            $functionCalls[] = $part['functionCall'];
+                        }
+                        if (isset($part['text']) && is_string($part['text'])) {
+                            $textParts[] = $part['text'];
+                        }
+                    }
+                } elseif (isset($data['choices'][0]['message'])) {
+                    $msg = $data['choices'][0]['message'];
+                    if (!empty($msg['tool_calls']) && is_array($msg['tool_calls'])) {
+                        foreach ($msg['tool_calls'] as $tc) {
+                            $rawArgs = $tc['function']['arguments'] ?? [];
+                            $functionCalls[] = [
+                                'name' => $tc['function']['name'] ?? '',
+                                'args' => is_string($rawArgs) ? (json_decode($rawArgs, true) ?: []) : (array) $rawArgs,
+                            ];
+                        }
+                    }
+                    if (!empty($msg['content']) && is_string($msg['content'])) {
+                        $textParts[] = $msg['content'];
+                    }
+                }
+
+                if (!empty($functionCalls)) {
+                    // Record model turn with its function call parts
+                    $contents[] = [
+                        'role' => 'model',
+                        'parts' => !empty($parts) ? $parts : array_map(fn ($fc) => ['functionCall' => $fc], $functionCalls),
                     ];
 
-                    foreach ($toolCalls as $toolCall) {
-                        $toolCallId = $toolCall['id'] ?? ('call_' . uniqid());
-                        $funcName = $toolCall['function']['name'] ?? '';
-                        $rawArgs = $toolCall['function']['arguments'] ?? '{}';
-                        $args = is_string($rawArgs) ? (json_decode($rawArgs, true) ?: []) : (array) $rawArgs;
+                    foreach ($functionCalls as $toolCall) {
+                        $funcName = $toolCall['name'] ?? '';
+                        $rawArgs = $toolCall['args'] ?? [];
+                        $args = is_array($rawArgs) ? $rawArgs : (json_decode($rawArgs, true) ?: []);
 
                         // Inject geo context if tool is nearest rooms and coordinates exist
                         if ($funcName === 'get_nearest_available_rooms' && !empty($geoContext['lat']) && !empty($geoContext['lng'])) {
@@ -138,20 +186,27 @@ class AiAssistantService
 
                         $this->extractActionsFromResult($result, $collectedActions, $userContent);
 
-                        $messages[] = [
-                            'role' => 'tool',
-                            'tool_call_id' => $toolCallId,
-                            'content' => json_encode($result),
+                        $contents[] = [
+                            'role' => 'function',
+                            'parts' => [
+                                [
+                                    'functionResponse' => [
+                                        'name' => $funcName,
+                                        'response' => is_array($result) ? $result : ['output' => $result],
+                                    ],
+                                ],
+                            ],
                         ];
                     }
 
-                    // Loop continues to allow LLM to analyze tool outputs
+                    // Loop continues to allow Gemini to analyze tool outputs
                     continue;
                 }
 
+                $joinedText = trim(implode("\n", $textParts));
+
                 // Check if the content contains a structured JSON tool call fallback
-                $content = trim((string) ($messageChoice['content'] ?? ''));
-                $fallbackToolCall = $this->parseJsonToolCallFallback($content);
+                $fallbackToolCall = $this->parseJsonToolCallFallback($joinedText);
 
                 if ($fallbackToolCall !== null) {
                     $funcName = $fallbackToolCall['tool'];
@@ -174,20 +229,24 @@ class AiAssistantService
 
                     $this->extractActionsFromResult($result, $collectedActions, $userContent);
 
-                    $messages[] = [
-                        'role' => 'assistant',
-                        'content' => $content,
+                    $contents[] = [
+                        'role' => 'model',
+                        'parts' => [
+                            ['text' => $joinedText],
+                        ],
                     ];
-                    $messages[] = [
+                    $contents[] = [
                         'role' => 'user',
-                        'content' => 'Tool result for ' . $funcName . ': ' . json_encode($result),
+                        'parts' => [
+                            ['text' => 'Tool result for ' . $funcName . ': ' . json_encode($result)],
+                        ],
                     ];
 
                     continue;
                 }
 
                 // Natural language answer reached
-                $finalReply = $content;
+                $finalReply = $joinedText;
                 break;
 
             } catch (\Throwable $e) {
@@ -501,56 +560,6 @@ class AiAssistantService
         }
 
         return $meta;
-    }
-
-    /**
-     * Send chat completion request with transient failure retry (max 1 retry for 5xx/timeouts/429).
-     */
-    protected function postChatCompletion(string $endpoint, string $token, array $payload, int $timeout): ?array
-    {
-        $maxAttempts = 2;
-        $attempt = 0;
-
-        while ($attempt < $maxAttempts) {
-            $attempt++;
-
-            try {
-                $response = Http::withToken($token)
-                    ->acceptJson()
-                    ->timeout($timeout)
-                    ->post($endpoint, $payload);
-
-                if ($response->successful()) {
-                    return $response->json();
-                }
-
-                $status = $response->status();
-                Log::warning("AI Chatbot: Hugging Face API returned status {$status} on attempt {$attempt}", [
-                    'body' => $response->body(),
-                ]);
-
-                // Do not retry permanent client errors (400, 401, 403, 422)
-                if ($status >= 400 && $status < 500 && $status !== 429) {
-                    return null;
-                }
-
-                if ($attempt < $maxAttempts) {
-                    usleep(300000); // 300ms backoff
-                    continue;
-                }
-
-                return null;
-            } catch (\Throwable $e) {
-                Log::warning("AI Chatbot: HTTP request exception on attempt {$attempt}: " . $e->getMessage());
-                if ($attempt < $maxAttempts) {
-                    usleep(300000); // 300ms backoff
-                    continue;
-                }
-                return null;
-            }
-        }
-
-        return null;
     }
 
     /**

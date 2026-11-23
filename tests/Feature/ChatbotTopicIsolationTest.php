@@ -135,7 +135,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_sequence_c_topic_transition_reports_to_new_students(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -176,7 +176,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // Mock HF: Turn calls get_student_statistics with period='today', then answers cleanly
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [
@@ -225,7 +225,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_sequence_b_follow_up_preserves_date_context(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -267,7 +267,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // User follows up: "ilan dun ang high?"
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [
@@ -309,7 +309,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_sequence_a_operating_rooms_then_unrelated_reports_question(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -329,7 +329,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // Next turn: admin asks "ilan reports today?" (unrelated new topic)
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [
@@ -373,7 +373,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_sequence_e_user_asks_name_answered_directly_from_context(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -383,7 +383,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // The AI does not need tool calls for identity; it answers directly using system prompt context
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response([
+            'https://generativelanguage.googleapis.com/*' => Http::response([
                 'choices' => [
                     [
                         'message' => [
@@ -403,7 +403,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_sequence_f_admin_queries_student_count_without_role_rejection(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -412,7 +412,7 @@ class ChatbotTopicIsolationTest extends TestCase
         ]);
 
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [
@@ -454,7 +454,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_transient_http_failure_retries_and_recovers(): void
     {
-        config(['services.huggingface.token' => 'test-hf-token']);
+        config(['services.gemini.api_key' => 'test-gemini-key']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -464,7 +464,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // First attempt fails with 503, second attempt succeeds with 200
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push(['error' => 'Service Unavailable'], 503)
                 ->push([
                     'choices' => [
@@ -486,7 +486,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
     public function test_client_error_does_not_retry_unnecessarily(): void
     {
-        config(['services.huggingface.token' => 'invalid-token']);
+        config(['services.gemini.api_key' => 'invalid-token']);
 
         $conversation = ChatbotConversation::create([
             'user_id' => $this->admin->id,
@@ -496,7 +496,7 @@ class ChatbotTopicIsolationTest extends TestCase
 
         // 401 unauthorized: should not retry
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::response(['error' => 'Unauthorized'], 401),
+            'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Unauthorized'], 401),
         ]);
 
         $assistant = app(AiAssistantService::class);

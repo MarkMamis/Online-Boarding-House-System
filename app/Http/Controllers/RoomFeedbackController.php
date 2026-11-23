@@ -46,50 +46,20 @@ class RoomFeedbackController extends Controller
             'anonymous'    => 'nullable|boolean',
         ]);
 
+        $comment = trim((string) ($validated['comment'] ?? ''));
         $sentimentLabel = null;
         $sentimentScore = null;
 
-        $token = config('services.huggingface.token');
-        if (!empty($token)) {
+        if ($comment !== '') {
             try {
-                $response = Http::withToken($token)
-                    ->acceptJson()
-                    ->timeout(10)
-                    ->post('https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis', [
-                        'inputs' => $validated['comment'],
-                    ]);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-
-                    $candidates = [];
-                    if (is_array($data) && isset($data[0]) && is_array($data[0]) && isset($data[0]['label'])) {
-                        $candidates = $data;
-                    } elseif (is_array($data) && isset($data[0]) && is_array($data[0]) && isset($data[0][0]['label'])) {
-                        $candidates = $data[0];
-                    }
-
-                    if (!empty($candidates)) {
-                        usort($candidates, fn($a, $b) => ($b['score'] ?? 0) <=> ($a['score'] ?? 0));
-                        $best = $candidates[0] ?? null;
-
-                        if (!empty($best['label'])) {
-                            $label = strtolower((string) $best['label']);
-                            if (str_contains($label, 'pos')) {
-                                $sentimentLabel = 'positive';
-                            } elseif (str_contains($label, 'neg')) {
-                                $sentimentLabel = 'negative';
-                            } elseif (str_contains($label, 'neu')) {
-                                $sentimentLabel = 'neutral';
-                            } else {
-                                $sentimentLabel = $label;
-                            }
-                            $sentimentScore = isset($best['score']) ? (float) $best['score'] : null;
-                        }
-                    }
-                }
+                $sentimentLabel = app(\App\Services\GeminiService::class)->classify(
+                    $comment,
+                    ['positive', 'neutral', 'negative'],
+                    'You are a sentiment analyzer for student accommodation feedback. Classify the user comment into exactly one label: positive, neutral, negative.'
+                );
             } catch (\Throwable $e) {
-                // Skip sentiment if provider is unavailable.
+                // Skip sentiment if provider is unavailable; feedback will be saved without sentiment and can be retried.
+                $sentimentLabel = null;
             }
         }
 
@@ -97,8 +67,8 @@ class RoomFeedbackController extends Controller
             'room_id'      => $room->id,
             'user_id'      => $student->id,
             'rating'       => $validated['rating'],
-            'comment'      => trim((string) ($validated['comment'] ?? '')),
-            'display_name' => $request->boolean('anonymous') ? null : ($validated['display_name'] ?: $student->full_name),
+            'comment'      => $comment,
+            'display_name' => $request->boolean('anonymous') ? null : (($validated['display_name'] ?? null) ?: $student->full_name),
             'sentiment_label' => $sentimentLabel,
             'sentiment_score' => $sentimentScore,
         ]);

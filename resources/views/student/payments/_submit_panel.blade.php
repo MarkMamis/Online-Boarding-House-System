@@ -135,7 +135,7 @@
             <div class="col-12 col-md-6">
               <label for="paymentProofInput" class="form-label fw-semibold">Upload Payment Proof</label>
               <input type="file" id="paymentProofInput" name="payment_proof" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-              <div class="small text-muted mt-1">JPG, PNG, or PDF up to 5MB.</div>
+              <div class="small text-muted mt-1">JPG, PNG, or PDF.</div>
             </div>
           </div>
 

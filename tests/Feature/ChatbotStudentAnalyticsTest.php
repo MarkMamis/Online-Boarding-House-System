@@ -262,11 +262,12 @@ class ChatbotStudentAnalyticsTest extends TestCase
             'role' => 'admin',
         ]);
 
+        config(['services.gemini.api_key' => 'test-gemini-key']);
         $assistantService = app(AiAssistantService::class);
 
-        // Mock Hugging Face provider: first call returns tool_calls, second call provides final answer
+        // Mock Gemini provider: first call returns tool_calls, second call provides final answer
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => Http::sequence()
+            'https://generativelanguage.googleapis.com/*' => Http::sequence()
                 ->push([
                     'choices' => [
                         [

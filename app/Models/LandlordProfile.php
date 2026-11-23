@@ -73,6 +73,11 @@ class LandlordProfile extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function getPaymentGcashNumberAttribute($value = null)
+    {
+        return $value ?: ($this->contact_number ?: $this->user?->contact_number);
+    }
+
     public function businessPermitReviewer()
     {
         return $this->belongsTo(User::class, 'business_permit_reviewed_by');

@@ -326,6 +326,7 @@
 @php
   $status = (string) ($onboarding->status ?? 'pending');
   $booking = $onboarding->booking;
+  $student = $booking->student;
   $room = $booking->room;
   $property = $room->property;
   $monthlyRentAmount = is_numeric($booking->monthly_rent_amount)
@@ -375,9 +376,11 @@
 
   $selectedPaymentMethod = strtolower((string) old('payment_method', $availablePaymentMethods->first() ?? 'gcash'));
 
+  $areDocsApproved = method_exists($onboarding, 'areDocumentsApproved') ? $onboarding->areDocumentsApproved() : !empty($onboarding->required_documents['_documents_approved']);
+
   $statusDisplay = match($status) {
     'pending' => 'Requirements Pending',
-    'documents_uploaded' => 'Contract Ready to Sign',
+    'documents_uploaded' => $areDocsApproved ? 'Contract Ready to Sign' : 'Documents Under Review',
     'contract_signed' => 'Payment Required',
     'deposit_paid' => 'Payment Under Review',
     'completed' => 'Move-in Complete',
@@ -391,6 +394,16 @@
     'documents_uploaded' => 'bg-info-subtle text-info-emphasis border border-info-subtle',
     default => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
   };
+
+  $fileStorage = app(\App\Services\FileStorageService::class);
+  $studentUser = $student;
+  $hasSchoolId = filled($studentUser->school_id_path) && $fileStorage->exists($studentUser->school_id_path);
+  $hasEnrollmentProof = filled($studentUser->enrollment_proof_path) && $fileStorage->exists($studentUser->enrollment_proof_path);
+  $emergencyContactName = trim((string) ($studentUser->emergency_contact_name ?: $studentUser->parent_contact_name));
+  $emergencyContactPhone = trim((string) ($studentUser->emergency_contact_number ?: $studentUser->parent_contact_number));
+  $emergencyContactRel = trim((string) ($studentUser->emergency_contact_relationship ?: 'Parent/Guardian'));
+  $hasEmergencyContact = filled($emergencyContactName) && filled($emergencyContactPhone);
+  $hasReusedDocsAvailable = $hasEnrollmentProof || $hasSchoolId;
 @endphp
 
 <div class="movein-wrap">
@@ -452,30 +465,115 @@
       <div class="question-kicker">Stage 1 of 3 · Move-in Requirements</div>
       <h1 class="question-title">Submit your move-in requirements</h1>
       <p class="question-subtitle">
-        Please upload the required verification documents requested by your landlord. These documents will be reviewed before your rental contract is issued.
+        Please verify your emergency contact and submit the required academic credentials for landlord review. You may reuse documents already saved in your student profile or upload new ones.
       </p>
 
       <form action="{{ route('student.onboarding.upload_documents', $onboarding) }}" method="POST" enctype="multipart/form-data" id="studentDocsForm">
         @csrf
 
+        {{-- Emergency Contact Section --}}
+        <div class="mb-4 p-3 rounded-3 bg-light border">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="fw-bold text-dark small"><i class="bi bi-shield-check me-1 text-success"></i>Emergency Contact Details</span>
+            @if($hasEmergencyContact)
+              <span class="badge bg-success-subtle text-success border border-success-subtle">On File in Profile</span>
+            @else
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Missing in Profile</span>
+            @endif
+          </div>
+          @if($hasEmergencyContact)
+            <div class="text-dark small">
+              <strong>{{ $emergencyContactName }}</strong> ({{ $emergencyContactRel }}) · {{ $emergencyContactPhone }}
+            </div>
+            <div class="text-muted" style="font-size: 0.76rem;">
+              Verified from your student profile. No separate document upload needed for emergency contacts.
+            </div>
+          @else
+            <div class="text-danger small mt-1">
+              Emergency contact details are missing. Please <a href="{{ route('student.profile') }}" class="alert-link">update your profile</a> before submitting move-in requirements.
+            </div>
+          @endif
+        </div>
+
+        {{-- Existing Academic Documents Reuse Section --}}
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label mb-0">
+              Academic Verification Documents <span class="text-danger">*</span>
+            </label>
+            @if($hasReusedDocsAvailable)
+              <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="document.querySelectorAll('input[name=\'reuse_documents[]\']').forEach(cb => cb.checked = true);">
+                <i class="bi bi-check-all me-1"></i>Use existing documents
+              </button>
+            @endif
+          </div>
+
+          @if($hasReusedDocsAvailable)
+            <div class="field-hint mb-2">
+              Select available documents from your student profile to use for this move-in, or upload new files below.
+            </div>
+
+            @if($hasEnrollmentProof)
+              <div class="p-3 rounded-3 bg-light border mb-2 d-flex align-items-center justify-content-between">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" name="reuse_documents[]" value="enrollment_proof" id="reuse_enrollment_proof" checked>
+                  <label class="form-check-label ms-1" for="reuse_enrollment_proof">
+                    <strong>Proof of Enrollment ({{ $studentUser->enrollment_proof_type ?: 'COR/COE' }})</strong>
+                    <div class="text-muted small">Academic proof on file in your profile</div>
+                  </label>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success-subtle text-success">Profile File Available</span>
+                  <a href="{{ file_download_url($studentUser->enrollment_proof_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Preview File">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </div>
+            @endif
+
+            @if($hasSchoolId)
+              <div class="p-3 rounded-3 bg-light border mb-2 d-flex align-items-center justify-content-between">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" name="reuse_documents[]" value="school_id" id="reuse_school_id" checked>
+                  <label class="form-check-label ms-1" for="reuse_school_id">
+                    <strong>Official School ID</strong>
+                    <div class="text-muted small">Student ID photo on file in your profile</div>
+                  </label>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success-subtle text-success">Profile File Available</span>
+                  <a href="{{ file_download_url($studentUser->school_id_path) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Preview File">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </div>
+            @endif
+          @else
+            <div class="alert alert-light border small text-muted mb-3">
+              <i class="bi bi-info-circle me-1"></i>No academic documents are on file in your student profile yet. Please upload your Certificate of Registration (COR/COE) or School ID below.
+            </div>
+          @endif
+        </div>
+
+        {{-- Manual Upload for Missing or Replacement Documents --}}
         <div class="mb-4">
           <label class="form-label" for="documents">
-            Verification Documents <span class="text-danger">*</span>
+            Upload New or Replacement Documents {{ $hasReusedDocsAvailable ? '(Optional if using existing)' : '' }}
           </label>
           <div class="upload-dropzone" id="dropzoneBox" onclick="document.getElementById('documentsInput').click()">
             <div class="upload-dropzone-icon">
               <i class="bi bi-cloud-arrow-up"></i>
             </div>
-            <div class="fw-bold text-dark fs-6 mb-1">Click or drag & drop files here to upload</div>
-            <div class="small text-muted mb-2">Accepted formats: PDF, JPG, JPEG, PNG (Max 5MB per file)</div>
-            <input type="file" name="documents[]" id="documentsInput" class="d-none" multiple required accept=".pdf,.jpg,.jpeg,.png">
+            <div class="fw-bold text-dark fs-6 mb-1">Click or drag &amp; drop files here to upload</div>
+            <div class="small text-muted mb-2">Accepted formats: PDF, JPG, JPEG, PNG</div>
+            <input type="file" name="documents[]" id="documentsInput" class="d-none" multiple accept=".pdf,.jpg,.jpeg,.png">
             <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mt-1">
               <i class="bi bi-folder2-open me-1"></i>Browse Files
             </button>
             <div id="fileListContainer" class="d-flex flex-wrap gap-2 justify-content-center mt-3"></div>
           </div>
           <div class="field-hint">
-            <i class="bi bi-info-circle me-1"></i>Ensure your documents are clear and legible (e.g. Student ID, Proof of Enrollment / Registration).
+            <i class="bi bi-info-circle me-1"></i>Ensure your documents are clear and legible (e.g. Certificate of Registration COR/COE, Student ID).
           </div>
         </div>
 
@@ -489,8 +587,49 @@
     </div>
   @endif
 
-  {{-- STAGE 2: CONTRACT SIGNING (Status: documents_uploaded) --}}
-  @if($status === 'documents_uploaded')
+  {{-- STAGE 1.5: DOCUMENTS SUBMITTED / AWAITING LANDLORD REVIEW --}}
+  @if($status === 'documents_uploaded' && !$areDocsApproved)
+    <div class="setup-shell text-center py-4">
+      <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-info-subtle text-info mb-3" style="width: 60px; height: 60px; font-size: 1.6rem;">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div class="question-kicker">Stage 1 of 3 · Verification In Progress</div>
+      <h2 class="question-title">Your move-in documents are under review</h2>
+      <p class="question-subtitle mx-auto" style="max-width: 580px;">
+        Your documents have been submitted to your landlord for review. Once your landlord approves them, you will be able to review and sign your lease agreement.
+      </p>
+
+      @php
+        $submittedDocs = collect($onboarding->uploaded_documents ?? []);
+      @endphp
+      @if($submittedDocs->isNotEmpty())
+        <div class="card bg-light border-0 rounded-4 text-start p-3 mx-auto mb-3" style="max-width: 620px;">
+          <div class="fw-bold text-dark small mb-2"><i class="bi bi-files me-1"></i>Submitted Move-in Documents ({{ $submittedDocs->count() }}):</div>
+          <div class="row g-2">
+            @foreach($submittedDocs as $doc)
+              <div class="col-12 col-md-6">
+                <div class="p-2 rounded-3 bg-white border d-flex align-items-center justify-content-between gap-2">
+                  <div class="text-truncate small">
+                    <i class="bi bi-file-earmark-check text-success me-1"></i>{{ basename($doc) }}
+                  </div>
+                  <a href="{{ route('documents.view', [$onboarding->id, basename($doc)]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" title="View Document">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        </div>
+      @endif
+
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-light border text-muted small">
+        <i class="bi bi-bell text-warning-emphasis"></i> We will notify you as soon as your landlord approves your credentials.
+      </div>
+    </div>
+  @endif
+
+  {{-- STAGE 2: CONTRACT SIGNING (Status: documents_uploaded and approved) --}}
+  @if($status === 'documents_uploaded' && $areDocsApproved)
     <div class="setup-shell">
       <div class="question-kicker">Stage 2 of 3 · Rental Agreement</div>
       <h1 class="question-title">Review &amp; sign your lease contract</h1>
@@ -708,7 +847,7 @@
               Proof of Payment Screenshot / Receipt <span class="text-danger">*</span>
             </label>
             <input type="file" name="payment_proof" id="paymentProof" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-            <div class="field-hint">Upload a screenshot or photo of your payment transaction (Max 5MB).</div>
+            <div class="field-hint">Upload a screenshot or photo of your payment transaction.</div>
           </div>
         </div>
 
@@ -884,6 +1023,19 @@ document.addEventListener('DOMContentLoaded', function () {
         documentsInput.dispatchEvent(new Event('change'));
       }
     });
+
+    const studentDocsForm = document.getElementById('studentDocsForm');
+    if (studentDocsForm) {
+      studentDocsForm.addEventListener('submit', function (e) {
+        const reuseChecks = document.querySelectorAll('input[name="reuse_documents[]"]:checked');
+        const hasFiles = documentsInput && documentsInput.files && documentsInput.files.length > 0;
+        if (reuseChecks.length === 0 && !hasFiles) {
+          e.preventDefault();
+          alert('Please select at least one existing document to reuse or upload a verification document file.');
+          return false;
+        }
+      });
+    }
   }
 
   // 2. Signature Canvas for Contract

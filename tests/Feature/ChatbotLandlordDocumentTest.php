@@ -24,9 +24,9 @@ class ChatbotLandlordDocumentTest extends TestCase
         parent::setUp();
 
         config([
-            'services.huggingface.token' => 'test-hf-token',
-            'services.huggingface.model' => 'deepseek-ai/DeepSeek-V4.1-Flash:novita',
-            'services.huggingface.endpoint' => 'https://router.huggingface.co/v1/chat/completions',
+            'services.gemini.api_key' => 'test-gemini-key',
+            'services.gemini.chat_model' => 'gemini-3.8-flash',
+            'services.gemini.classification_model' => 'gemini-3.5-flash-lite',
             'chatbot.rate_limit_per_minute' => 20,
         ]);
 
@@ -287,7 +287,7 @@ class ChatbotLandlordDocumentTest extends TestCase
 
         $callCount = 0;
         Http::fake([
-            'https://router.huggingface.co/v1/chat/completions' => function ($request) use (&$callCount) {
+            'https://generativelanguage.googleapis.com/*' => function ($request) use (&$callCount) {
                 $callCount++;
                 if ($callCount === 1) {
                     return Http::response([

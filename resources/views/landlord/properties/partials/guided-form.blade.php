@@ -181,7 +181,7 @@
                             <div class="upload-prompt">
                                 <span class="upload-action-text">{{ $isEdit ? 'Click to replace photo' : 'Click to choose photo' }}</span> or drag here
                             </div>
-                            <div class="upload-help-text">JPG, PNG, or WebP up to 5MB{{ $isEdit ? ' (leave blank to keep current)' : '' }}</div>
+                            <div class="upload-help-text">JPG, PNG, or WebP{{ $isEdit ? ' (leave blank to keep current)' : '' }}</div>
                         </div>
                         <div class="upload-preview-card {{ $hasExistingImage ? '' : 'd-none' }}" id="uploadPreviewCard">
                             <img id="propertyImagePreview" src="{{ $existingImageUrl ?: '' }}" alt="Property Preview" class="upload-preview-thumb">

@@ -474,7 +474,7 @@ class BookingController extends Controller
         $onboardingTotal = $baseMonthlyRent + (! empty($booking->include_advance_payment) ? $baseMonthlyRent : 0.0);
         TenantOnboarding::create([
             'booking_id' => $booking->id,
-            'required_documents' => ['student_id', 'proof_of_income', 'emergency_contact'],
+            'required_documents' => ['enrollment_proof', 'emergency_contact'],
             'deposit_amount' => round($onboardingTotal, 2),
         ]);
 

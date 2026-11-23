@@ -374,7 +374,7 @@
                             <div class="upload-prompt">
                                 <span class="upload-action-text">{{ $isEdit ? 'Click to replace room cover photo' : 'Click to choose room cover photo' }}</span> or drag here
                             </div>
-                            <div class="upload-help-text">JPG, PNG, or WebP up to 5MB</div>
+                            <div class="upload-help-text">JPG, PNG, or WebP</div>
                         </div>
                         <div class="upload-preview-card {{ $hasExistingImage ? '' : 'd-none' }}" id="roomUploadPreview">
                             <img id="roomImagePreviewThumb" src="{{ $existingImageUrl ?: '' }}" alt="Room Preview" class="upload-preview-thumb">
@@ -443,7 +443,7 @@
                         <span class="text-muted fw-semibold" style="font-size: 0.85rem;">Preparing photos...</span>
                     </div>
                     <div class="text-danger small mt-1 d-none" id="detailImagesClientError"></div>
-                    <div class="field-hint">Upload bathroom, bed, or window views (up to 5MB each).</div>
+                    <div class="field-hint">Upload bathroom, bed, or window views.</div>
                     <div id="detailImagesPreviewGrid" class="d-flex flex-wrap gap-2 mt-2"></div>
                 </div>
 

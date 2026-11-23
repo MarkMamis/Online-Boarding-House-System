@@ -35,11 +35,12 @@ return [
         ],
     ],
 
-    'huggingface' => [
-        'token' => env('HF_TOKEN'),
-        'model' => env('HF_MODEL', env('HF_QWEN_MODEL', 'Qwen/Qwen3.8-27B:cerebras')),
-        'endpoint' => env('HF_CHAT_ENDPOINT', 'https://router.huggingface.co/v1/chat/completions'),
-        'timeout' => (int) env('HF_TIMEOUT', 30),
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-3.8-flash'),
+        'classification_model' => env('GEMINI_CLASSIFICATION_MODEL', 'gemini-3.5-flash-lite'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 30),
     ],
 
 ];

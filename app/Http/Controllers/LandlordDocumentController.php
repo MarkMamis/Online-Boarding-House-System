@@ -219,14 +219,12 @@ class LandlordDocumentController extends Controller
                 $requireFile ? 'required' : 'nullable',
                 'file',
                 'mimes:' . (string) config('landlord_documents.allowed_mimes', 'pdf,jpg,jpeg,png'),
-                'max:' . (int) config('landlord_documents.max_size_kb', 2048),
             ],
         ];
 
         $messages = [
             'expiration_date.after_or_equal' => 'The expiration date must be on or after the date issued.',
             'file.mimes' => 'The document must be a PDF, JPG, JPEG, or PNG file.',
-            'file.max' => 'The document must not be larger than 2 MB.',
         ];
 
         return Validator::make($request->all(), $rules, $messages)->validate();
